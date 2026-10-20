@@ -16,10 +16,11 @@ jobs:
       # Nilai dummy, hanya agar `prisma validate` bisa membaca schema.
       DATABASE_URL: postgresql://user:pass@localhost:5432/db
       DIRECT_URL: postgresql://user:pass@localhost:5432/db
+
     steps:
       - uses: actions/checkout@v4
 
-      # Versi pnpm dibaca dari field "packageManager" di package.json (jalankan `corepack use pnpm@latest`).
+      # Versi pnpm dibaca dari field "packageManager" di package.json
       - uses: pnpm/action-setup@v4
 
       - uses: actions/setup-node@v4
@@ -27,7 +28,13 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # pnpm v12: build scripts (prisma, esbuild, dll) harus di-approve eksplisit
+      - name: Approve build scripts
+        run: pnpm approve-builds --all
+
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test

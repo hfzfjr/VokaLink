@@ -19,10 +19,10 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 ## 2. Infrastruktur (Hari 0)
 
 - [ ] Repo GitHub + `main` terlindungi
-- [ ] Monorepo pnpm (`apps/web`, `apps/api`, `packages/shared`, `packages/core`)
-- [ ] TypeScript strict, ESLint, Prettier, Vitest
-- [ ] Project Supabase + URL pooler (6543 runtime, 5432 migrasi)
-- [ ] Prisma terhubung ke Supabase lewat pooler
+- [x] Monorepo pnpm (`apps/web`, `apps/api`, `packages/shared`, `packages/core`)
+- [x] TypeScript strict, ESLint, Prettier, Vitest
+- [x] Project Supabase + URL pooler (6543 runtime, 5432 migrasi)
+- [x] Prisma terhubung ke Supabase lewat pooler (migrasi `init_schema` sukses diterapkan)
 - [ ] Express di Coolify via Cloudflare Tunnel (`/healthz`, `/readyz`)
 - [ ] Project Vercel + env var
 - [ ] CI GitHub Actions (lint, typecheck, test, `prisma validate`, gitleaks)
@@ -49,15 +49,15 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | Modul | Pemilik | Status |
 |---|---|---|
-| Skema Prisma + migrasi + SQL guard (RLS, trigger immutability) | A | [ ] |
+| Skema Prisma + migrasi + SQL guard (RLS, trigger immutability) | A | [~] (skema 20 model tuntas & tervalidasi) |
 | `curriculum-seed.json` (6 jurusan, 792 JP, min. 12 Job Card) | A | [ ] |
 | Seeder v1 (sekolah demo, mentor terikat, penempatan) | A | [ ] |
 | Seeder v2 (riwayat 8 minggu, drift, endorsement, paspor) | A | [ ] |
-| Auth middleware (JWT Supabase, role, tenant guard) | C | [ ] |
-| `packages/core` (haversine, skor, drift, rapor, canonical JSON, HMAC) | C | [ ] |
-| `packages/shared` (skema Zod, konstanta) | semua | [ ] |
+| Auth middleware (JWT Supabase, role, tenant guard) | C | [x] |
+| `packages/core` (haversine, skor, drift, rapor, canonical JSON, HMAC) | C | [x] |
+| `packages/shared` (skema Zod, konstanta) | semua | [x] |
 | PWA shell (Serwist, Dexie, banner konektivitas) | B | [ ] |
-| Judge Demo Switcher | A | [ ] |
+| Judge Demo Switcher | A | [~] (halaman depan siap) |
 
 ## 5. Status Uji Penerimaan
 

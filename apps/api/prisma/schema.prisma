@@ -1,0 +1,489 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  SCHOOL_ADMIN
+  TEACHER
+  STUDENT
+
+  @@map("user_role")
+}
+
+enum AttendanceType {
+  PRESENT
+  SICK
+  PERMIT
+
+  @@map("attendance_type")
+}
+
+enum LogStatus {
+  PENDING_VERIFICATION
+  VERIFIED
+  REVISION_REQUIRED
+
+  @@map("log_status")
+}
+
+enum NonCompetencyCategory {
+  ADMIN_UMUM
+  KEBERSIHAN_GUDANG
+  KURIR
+  JAGA_TOKO
+
+  @@map("non_competency_category")
+}
+
+enum PlacementStatus {
+  PLANNED
+  ACTIVE
+  ROTATED_OUT
+  COMPLETED
+
+  @@map("placement_status")
+}
+
+enum DriftAlertType {
+  NON_COMPETENCY_OVERLOAD
+  SKILL_MONOTONY
+  APPROVAL_DORMANCY
+
+  @@map("drift_alert_type")
+}
+
+enum DriftAlertSeverity {
+  WARNING
+  CRITICAL
+
+  @@map("drift_alert_severity")
+}
+
+enum DriftAlertStatus {
+  OPEN
+  INTERVENED
+  RESOLVED
+
+  @@map("drift_alert_status")
+}
+
+enum InterventionActionType {
+  WA_COORDINATION
+  SITE_VISIT
+  DUDI_ROTATION
+
+  @@map("intervention_action_type")
+}
+
+enum SignedLinkPurpose {
+  DEVICE_ACTIVATION
+  LOG_VERIFY
+  ENDORSEMENT
+
+  @@map("signed_link_purpose")
+}
+
+enum SignedLinkMode {
+  QR
+  WA_BATCH
+
+  @@map("signed_link_mode")
+}
+
+enum SecurityFlagKind {
+  UNTRUSTED_DEVICE
+  PIN_LOCKOUT
+  TOKEN_REUSE
+
+  @@map("security_flag_kind")
+}
+
+model School {
+  id            String    @id @default(uuid()) @db.Uuid
+  npsn          String    @unique @db.VarChar(8)
+  name          String    @db.VarChar(150)
+  province      String    @db.VarChar(80)
+  city          String    @db.VarChar(80)
+  latitude      Decimal?  @db.Decimal(9, 6)
+  longitude     Decimal?  @db.Decimal(9, 6)
+  isDemoSandbox Boolean   @default(false) @map("is_demo_sandbox")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  academicPeriods   AcademicPeriod[]
+  userProfiles      UserProfile[]
+  schoolDepartments SchoolDepartment[]
+
+  @@map("schools")
+}
+
+model AcademicPeriod {
+  id            String    @id @default(uuid()) @db.Uuid
+  schoolId      String    @map("school_id") @db.Uuid
+  name          String    @db.VarChar(100)
+  startDate     DateTime  @map("start_date") @db.Date
+  endDate       DateTime  @map("end_date") @db.Date
+  targetTotalJp Int       @default(792) @map("target_total_jp")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  school        School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  placements    Placement[]
+
+  @@index([schoolId])
+  @@map("academic_periods")
+}
+
+model MasterDepartment {
+  id          String   @id @default(uuid()) @db.Uuid
+  sectorCode  String   @unique @map("sector_code") @db.VarChar(20)
+  name        String   @db.VarChar(100)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  schoolDepartments SchoolDepartment[]
+
+  @@map("master_departments")
+}
+
+model SchoolDepartment {
+  id                 String   @id @default(uuid()) @db.Uuid
+  schoolId           String   @map("school_id") @db.Uuid
+  masterDepartmentId String?  @map("master_department_id") @db.Uuid
+  sectorCode         String   @map("sector_code") @db.VarChar(20)
+  name               String   @db.VarChar(100)
+  isLocked           Boolean  @default(false) @map("is_locked")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  school           School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  masterDepartment MasterDepartment? @relation(fields: [masterDepartmentId], references: [id], onDelete: SetNull)
+  cpElements       CpElement[]
+  jobCards         JobCard[]
+  userProfiles     UserProfile[]
+
+  @@index([schoolId])
+  @@map("school_departments")
+}
+
+model CpElement {
+  id                 String   @id @default(uuid()) @db.Uuid
+  schoolDepartmentId String   @map("school_department_id") @db.Uuid
+  code               String   @db.VarChar(30)
+  title              String   @db.VarChar(150)
+  targetJp           Int      @map("target_jp")
+  sortOrder          Int      @default(0) @map("sort_order")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  schoolDepartment SchoolDepartment @relation(fields: [schoolDepartmentId], references: [id], onDelete: Cascade)
+  jobCards         JobCard[]
+
+  @@index([schoolDepartmentId])
+  @@map("cp_elements")
+}
+
+model JobCard {
+  id                 String   @id @default(uuid()) @db.Uuid
+  schoolDepartmentId String   @map("school_department_id") @db.Uuid
+  cpElementId        String?  @map("cp_element_id") @db.Uuid
+  title              String   @db.VarChar(60)
+  skkniUnitCode      String?  @map("skkni_unit_code") @db.VarChar(40)
+  toolsAndSoftware   String[] @default([]) @map("tools_and_software")
+  actionVerbTemplate String   @map("action_verb_template") @db.VarChar(250)
+  isNonCompetency    Boolean  @default(false) @map("is_non_competency")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  schoolDepartment SchoolDepartment @relation(fields: [schoolDepartmentId], references: [id], onDelete: Cascade)
+  cpElement        CpElement?       @relation(fields: [cpElementId], references: [id], onDelete: Cascade)
+  capabilities     DudiCapability[]
+  dailyLogItems    DailyLogItem[]
+
+  @@index([schoolDepartmentId])
+  @@index([cpElementId])
+  @@map("job_cards")
+}
+
+model UserProfile {
+  id                 String   @id @db.Uuid
+  schoolId           String   @map("school_id") @db.Uuid
+  schoolDepartmentId String?  @map("school_department_id") @db.Uuid
+  role               UserRole
+  fullName           String   @map("full_name") @db.VarChar(120)
+  identityNumber     String   @map("identity_number") @db.VarChar(30)
+  whatsappNumber     String?  @map("whatsapp_number") @db.VarChar(20)
+  homeLatitude       Decimal? @map("home_latitude") @db.Decimal(9, 6)
+  homeLongitude      Decimal? @map("home_longitude") @db.Decimal(9, 6)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  school           School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolDepartment SchoolDepartment? @relation(fields: [schoolDepartmentId], references: [id], onDelete: SetNull)
+
+  studentPlacements Placement[]       @relation("StudentPlacements")
+  teacherPlacements Placement[]       @relation("TeacherPlacements")
+  skillPassport     SkillPassport?
+  driftAlerts       DriftAlert[]
+  interventions     InterventionLog[]
+
+  @@index([schoolId, role])
+  @@index([identityNumber])
+  @@map("user_profiles")
+}
+
+model DudiPartner {
+  id                 String   @id @default(uuid()) @db.Uuid
+  createdBySchoolId  String?  @map("created_by_school_id") @db.Uuid
+  name               String   @db.VarChar(150)
+  sectorCategory     String   @map("sector_category") @db.VarChar(80)
+  address            String   @db.Text
+  city               String   @db.VarChar(80)
+  latitude           Decimal  @db.Decimal(9, 6)
+  longitude          Decimal  @db.Decimal(9, 6)
+  maxQuota           Int      @default(5) @map("max_quota")
+  qualityIndexScore  Decimal? @map("quality_index_score") @db.Decimal(5, 2)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  capabilities DudiCapability[]
+  mentors      DudiMentor[]
+  placements   Placement[]
+
+  @@index([city, sectorCategory])
+  @@map("dudi_partners")
+}
+
+model DudiCapability {
+  id                 String   @id @default(uuid()) @db.Uuid
+  dudiPartnerId      String   @map("dudi_partner_id") @db.Uuid
+  jobCardId          String   @map("job_card_id") @db.Uuid
+  verifiedBySchoolId String?  @map("verified_by_school_id") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  dudiPartner DudiPartner @relation(fields: [dudiPartnerId], references: [id], onDelete: Cascade)
+  jobCard     JobCard     @relation(fields: [jobCardId], references: [id], onDelete: Cascade)
+
+  @@unique([dudiPartnerId, jobCardId])
+  @@map("dudi_capabilities")
+}
+
+model DudiMentor {
+  id                String    @id @default(uuid()) @db.Uuid
+  dudiPartnerId     String    @map("dudi_partner_id") @db.Uuid
+  fullName          String    @map("full_name") @db.VarChar(120)
+  jobTitle          String    @map("job_title") @db.VarChar(100)
+  whatsappNumber    String    @map("whatsapp_number") @db.VarChar(20)
+  pinHash           String?   @map("pin_hash") @db.VarChar(255)
+  pinSalt           String?   @map("pin_salt") @db.VarChar(64)
+  deviceTokenHash   String?   @map("device_token_hash") @db.VarChar(64)
+  tokenBoundAt      DateTime? @map("token_bound_at") @db.Timestamptz
+  failedPinAttempts Int       @default(0) @map("failed_pin_attempts")
+  lockedUntil       DateTime? @map("locked_until") @db.Timestamptz
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  dudiPartner   DudiPartner    @relation(fields: [dudiPartnerId], references: [id], onDelete: Cascade)
+  placements    Placement[]
+  signedLinks   SignedLink[]
+  securityFlags SecurityFlag[]
+  endorsements  Endorsement[]
+
+  @@map("dudi_mentors")
+}
+
+model Placement {
+  id                      String          @id @default(uuid()) @db.Uuid
+  academicPeriodId        String          @map("academic_period_id") @db.Uuid
+  studentId               String          @map("student_id") @db.Uuid
+  teacherId               String          @map("teacher_id") @db.Uuid
+  dudiPartnerId           String          @map("dudi_partner_id") @db.Uuid
+  dudiMentorId            String?         @map("dudi_mentor_id") @db.Uuid
+  compatibilityScore      Decimal         @map("compatibility_score") @db.Decimal(5, 2)
+  coverageScore           Decimal         @default(0) @map("coverage_score") @db.Decimal(5, 2)
+  distanceKm              Decimal         @map("distance_km") @db.Decimal(6, 2)
+  requiresMidtermRotation Boolean         @default(false) @map("requires_midterm_rotation")
+  rotatedFromId           String?         @map("rotated_from_id") @db.Uuid
+  rotationSequence        Int             @default(1) @map("rotation_sequence") @db.SmallInt
+  status                  PlacementStatus @default(ACTIVE)
+  createdAt               DateTime        @default(now()) @map("created_at") @db.Timestamptz
+
+  academicPeriod AcademicPeriod @relation(fields: [academicPeriodId], references: [id], onDelete: Cascade)
+  student        UserProfile    @relation("StudentPlacements", fields: [studentId], references: [id], onDelete: Cascade)
+  teacher        UserProfile    @relation("TeacherPlacements", fields: [teacherId], references: [id], onDelete: Cascade)
+  dudiPartner    DudiPartner    @relation(fields: [dudiPartnerId], references: [id], onDelete: Cascade)
+  dudiMentor     DudiMentor?    @relation(fields: [dudiMentorId], references: [id], onDelete: SetNull)
+
+  dailyLogs     DailyLog[]
+  driftAlerts   DriftAlert[]
+  endorsement   Endorsement?
+  securityFlags SecurityFlag[]
+
+  @@index([studentId])
+  @@index([teacherId])
+  @@index([dudiPartnerId])
+  @@map("placements")
+}
+
+model DailyLog {
+  id                 String         @id @default(uuid()) @db.Uuid
+  clientLogUuid      String         @unique @map("client_log_uuid") @db.Uuid
+  placementId        String         @map("placement_id") @db.Uuid
+  studentId          String         @map("student_id") @db.Uuid
+  logDate            DateTime       @map("log_date") @db.Date
+  attendanceType     AttendanceType @default(PRESENT) @map("attendance_type")
+  evidenceWebpUrl    String?        @map("evidence_webp_url") @db.Text
+  evidenceSha256     String?        @map("evidence_sha256") @db.VarChar(64)
+  evidenceSizeBytes  Int?           @map("evidence_size_bytes")
+  isEvidencePublic   Boolean        @default(true) @map("is_evidence_public")
+  shortNote          String?        @map("short_note") @db.VarChar(250)
+  status             LogStatus      @default(PENDING_VERIFICATION)
+  verifiedByMentorId String?        @map("verified_by_mentor_id") @db.Uuid
+  verifiedAt         DateTime?      @map("verified_at") @db.Timestamptz
+  signatureHash      String?        @map("signature_hash") @db.VarChar(64)
+  rejectionReason    String?        @map("rejection_reason") @db.VarChar(300)
+  clockSkewFlag      Boolean        @default(false) @map("clock_skew_flag")
+  clientCreatedAt    DateTime?      @map("client_created_at") @db.Timestamptz
+  serverReceivedAt   DateTime       @default(now()) @map("server_received_at") @db.Timestamptz
+
+  placement Placement      @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  items     DailyLogItem[]
+
+  @@unique([placementId, logDate])
+  @@index([placementId, status])
+  @@index([placementId, logDate(sort: Desc)])
+  @@map("daily_logs")
+}
+
+model DailyLogItem {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  dailyLogId            String                 @map("daily_log_id") @db.Uuid
+  jobCardId             String                 @map("job_card_id") @db.Uuid
+  durationJp            Int                    @map("duration_jp")
+  autonomyLevel         Int                    @map("autonomy_level") @db.SmallInt
+  nonCompetencyCategory NonCompetencyCategory? @map("non_competency_category")
+  createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz
+
+  dailyLog DailyLog @relation(fields: [dailyLogId], references: [id], onDelete: Cascade)
+  jobCard  JobCard  @relation(fields: [jobCardId], references: [id], onDelete: Cascade)
+
+  @@index([jobCardId])
+  @@map("daily_log_items")
+}
+
+model DriftAlert {
+  id                 String             @id @default(uuid()) @db.Uuid
+  placementId        String             @map("placement_id") @db.Uuid
+  studentId          String             @map("student_id") @db.Uuid
+  alertType          DriftAlertType     @map("alert_type")
+  severity           DriftAlertSeverity @default(WARNING)
+  metricSnapshotJson Json               @map("metric_snapshot_json")
+  status             DriftAlertStatus   @default(OPEN)
+  detectedAt         DateTime           @default(now()) @map("detected_at") @db.Timestamptz
+  resolvedAt         DateTime?          @map("resolved_at") @db.Timestamptz
+
+  placement     Placement         @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  student       UserProfile       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  interventions InterventionLog[]
+
+  @@index([placementId, status])
+  @@map("drift_alerts")
+}
+
+model InterventionLog {
+  id           String                 @id @default(uuid()) @db.Uuid
+  driftAlertId String                 @map("drift_alert_id") @db.Uuid
+  teacherId    String                 @map("teacher_id") @db.Uuid
+  actionType   InterventionActionType @map("action_type")
+  messageSent  String                 @map("message_sent") @db.Text
+  createdAt    DateTime               @default(now()) @map("created_at") @db.Timestamptz
+
+  driftAlert DriftAlert  @relation(fields: [driftAlertId], references: [id], onDelete: Cascade)
+  teacher    UserProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@map("intervention_logs")
+}
+
+model Endorsement {
+  id               String   @id @default(uuid()) @db.Uuid
+  placementId      String   @unique @map("placement_id") @db.Uuid
+  dudiMentorId     String   @map("dudi_mentor_id") @db.Uuid
+  attitudeScore    Int      @map("attitude_score")
+  badgesArray      String[] @default([]) @map("badges_array")
+  endorsementQuote String?  @map("endorsement_quote") @db.VarChar(300)
+  signatureHash    String   @map("signature_hash") @db.VarChar(64)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  placement  Placement  @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  dudiMentor DudiMentor @relation(fields: [dudiMentorId], references: [id], onDelete: Cascade)
+
+  @@map("endorsements")
+}
+
+model SkillPassport {
+  id                  String    @id @default(uuid()) @db.Uuid
+  studentId           String    @unique @map("student_id") @db.Uuid
+  passportSlug        String    @unique @map("passport_slug") @db.VarChar(64)
+  summaryBio          String?   @map("summary_bio") @db.Text
+  extraActivitiesJson Json?     @map("extra_activities_json")
+  visibilityJson      Json?     @map("visibility_json")
+  totalVerifiedJp     Int       @default(0) @map("total_verified_jp")
+  masterSignatureHash String?   @map("master_signature_hash") @db.VarChar(64)
+  revokedAt           DateTime? @map("revoked_at") @db.Timestamptz
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  student UserProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("skill_passports")
+}
+
+model SignedLink {
+  id          String            @id @default(uuid()) @db.Uuid
+  purpose     SignedLinkPurpose
+  tokenHash   String            @unique @map("token_hash") @db.VarChar(64)
+  keyId       String            @map("key_id") @db.VarChar(32)
+  mentorId    String            @map("mentor_id") @db.Uuid
+  placementId String?           @map("placement_id") @db.Uuid
+  logIds      String[]          @default([]) @map("log_ids")
+  mode        SignedLinkMode    @default(QR)
+  payloadHash String            @map("payload_hash") @db.VarChar(64)
+  expiresAt   DateTime          @map("expires_at") @db.Timestamptz
+  usedAt      DateTime?         @map("used_at") @db.Timestamptz
+  revokedAt   DateTime?         @map("revoked_at") @db.Timestamptz
+  createdBy   String?           @map("created_by") @db.VarChar(64)
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz
+
+  mentor DudiMentor @relation(fields: [mentorId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("signed_links")
+}
+
+model SecurityFlag {
+  id             String           @id @default(uuid()) @db.Uuid
+  placementId    String           @map("placement_id") @db.Uuid
+  mentorId       String           @map("mentor_id") @db.Uuid
+  signedLinkId   String?          @map("signed_link_id") @db.Uuid
+  kind           SecurityFlagKind
+  meta           Json?
+  acknowledgedAt DateTime?        @map("acknowledged_at") @db.Timestamptz
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  placement Placement  @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  mentor    DudiMentor @relation(fields: [mentorId], references: [id], onDelete: Cascade)
+
+  @@map("security_flags")
+}
+
+model AuditLog {
+  id        BigInt   @id @default(autoincrement())
+  actorType String   @map("actor_type") @db.VarChar(40)
+  actorId   String   @map("actor_id") @db.VarChar(64)
+  action    String   @db.VarChar(60)
+  entity    String   @db.VarChar(60)
+  entityId  String   @map("entity_id") @db.VarChar(64)
+  meta      Json?
+  ipHash    String?  @map("ip_hash") @db.VarChar(64)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("audit_logs")
+}
