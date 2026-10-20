@@ -23,8 +23,8 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 - [x] TypeScript strict, ESLint, Prettier, Vitest
 - [x] Project Supabase + URL pooler (6543 runtime, 5432 migrasi)
 - [x] Prisma terhubung ke Supabase lewat pooler (migrasi `init_schema` sukses diterapkan)
-- [ ] Express di Coolify via Cloudflare Tunnel (`/healthz`, `/readyz`)
-- [ ] Project Vercel + env var
+- [x] Express di Coolify via Cloudflare Tunnel (`/healthz`, `/readyz`)
+- [x] Project Vercel + env var
 - [x] CI GitHub Actions (lint, typecheck, test, `prisma validate`, gitleaks)
 - [ ] Uptime monitor + cron anti-pause Supabase
 
