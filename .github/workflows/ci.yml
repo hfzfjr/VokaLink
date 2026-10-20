@@ -35,13 +35,14 @@ jobs:
       - name: Approve build scripts
         run: pnpm approve-builds --all
 
+      - name: Prisma validate & generate
+        run: |
+          pnpm --filter api prisma:validate
+          pnpm --filter api prisma:generate
+
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
-
-      - name: Prisma validate
-        if: ${{ hashFiles('apps/api/prisma/schema.prisma') != '' }}
-        run: pnpm --filter api exec prisma validate
 
   secrets-scan:
     runs-on: ubuntu-latest
