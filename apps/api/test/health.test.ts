@@ -18,4 +18,11 @@ describe("Health API Endpoints", () => {
     expect(res.body.status).toBe("ok");
     expect(res.body.service).toBe("vokalink-api");
   });
+
+  it("GET /readyz returns 200 ready connected to Supabase", async () => {
+    const res = await request(app).get("/readyz");
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe("ready");
+    expect(res.body.service).toBe("vokalink-api");
+  });
 });
