@@ -1,0 +1,6 @@
+# Seragamkan akhir baris (tim memakai Windows, Coolify memakai Linux)
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.webp binary
+*.ico binary

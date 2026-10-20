@@ -1,0 +1,43 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+.next/
+dist/
+build/
+out/
+*.tsbuildinfo
+.turbo/
+.vercel/
+
+# env dan secret (hanya .env.example yang boleh masuk repo)
+.env
+.env.*
+!.env.example
+
+# test
+coverage/
+playwright-report/
+test-results/
+.lighthouseci/
+
+# log
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# backup database lokal
+*.dump
+*.sql.gz
+
+# OS dan editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# agent lokal
+.claude/settings.local.json
