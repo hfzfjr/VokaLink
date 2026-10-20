@@ -18,14 +18,14 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 ## 2. Infrastruktur (Hari 0)
 
-- [ ] Repo GitHub + `main` terlindungi
+- [x] Repo GitHub + `main` terlindungi
 - [x] Monorepo pnpm (`apps/web`, `apps/api`, `packages/shared`, `packages/core`)
 - [x] TypeScript strict, ESLint, Prettier, Vitest
 - [x] Project Supabase + URL pooler (6543 runtime, 5432 migrasi)
 - [x] Prisma terhubung ke Supabase lewat pooler (migrasi `init_schema` sukses diterapkan)
 - [ ] Express di Coolify via Cloudflare Tunnel (`/healthz`, `/readyz`)
 - [ ] Project Vercel + env var
-- [ ] CI GitHub Actions (lint, typecheck, test, `prisma validate`, gitleaks)
+- [x] CI GitHub Actions (lint, typecheck, test, `prisma validate`, gitleaks)
 - [ ] Uptime monitor + cron anti-pause Supabase
 
 ## 3. Status per Fitur
