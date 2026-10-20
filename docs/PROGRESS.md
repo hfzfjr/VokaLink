@@ -26,7 +26,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 - [x] Express di Coolify via Cloudflare Tunnel (`/healthz`, `/readyz`)
 - [x] Project Vercel + env var
 - [x] CI GitHub Actions (lint, typecheck, test, `prisma validate`, gitleaks)
-- [ ] Uptime monitor + cron anti-pause Supabase
+- [x] Uptime monitor + cron anti-pause Supabase
 
 ## 3. Status per Fitur
 
