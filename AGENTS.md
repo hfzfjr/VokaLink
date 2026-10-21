@@ -10,7 +10,7 @@ Untuk lomba UINIC 8.0 Web Development 2026. Deadline 30 Okt 2026. **Biaya infras
 ## 2. Sumber Kebenaran (urutan prioritas)
 
 1. `docs/PRD.md` — fitur (FR-001 sampai FR-012), aturan bisnis (BR-001 sampai BR-012), data, acceptance criteria, test case.
-2. `docs/DESIGN.md` — cara membangun: arsitektur, skema tambahan, API, algoritma, keputusan ADR.
+2. `docs/DESIGN.md` — cara membangun: arsitektur, skema tambahan, API, algoritma, keputusan ADR, dan design system UI (Bab 13).
 3. `docs/SPRINT.md` — rencana dan kepemilikan. `docs/PROGRESS.md` — status. `docs/BUGS.md` — bug.
 4. Kode.
 
@@ -76,7 +76,8 @@ pnpm --filter api seed:v1                # seeder demo awal
 - Server menolak foto > 150 KB, memeriksa magic bytes, dan mencocokkan `X-Content-SHA256`.
 
 ### Frontend & PWA
-- Mobile-first (360 px). Area sentuh minimal 48 px (mentor 56 px untuk aksi utama).
+- **Tampilan:** ikuti `docs/DESIGN.md` Bab 13 (Design System & UI). Token hanya dari `tailwind.config.ts`, komponen dari `components/ui`. Refactor UI dikerjakan per checkpoint di `docs/UI-REFACTOR.md`.
+- Mobile-first (360 px), tetapi desktop (≥ lg) punya layout sendiri sesuai 13.6. Area sentuh minimal 48 px (mentor 56 px untuk aksi utama).
 - Tiap halaman asinkron menangani 5 kondisi: loading (skeleton), empty, offline/syncing, error (dengan tombol pulih), unauthorized.
 - Warna status tidak boleh jadi satu-satunya penanda: sertakan angka dan ikon (WCAG AA).
 - Data IndexedDB tidak boleh dihapus sebelum server membalas 200/201. Panggil `navigator.storage.persist()`.
