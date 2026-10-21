@@ -6,3 +6,4 @@ export * from "./haversine.js";
 export * from "./placement.js";
 export * from "./drift.js";
 export * from "./erapor.js";
+export * from "./cv.js";

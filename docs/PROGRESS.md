@@ -10,9 +10,9 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | Metrik | Nilai |
 |---|---|
-| FR selesai | 7 / 12 |
-| FR Must Have selesai | 7 / 11 |
-| TC lulus | 3 / 10 |
+| FR selesai | 8 / 12 |
+| FR Must Have selesai | 8 / 11 |
+| TC lulus | 4 / 10 |
 | Bug terbuka (Critical / High) | 0 / 0 |
 | Status cut-line | Belum dievaluasi (evaluasi di akhir Hari 7) |
 
@@ -43,7 +43,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 | FR-009 | Intervensi WA & rotasi mitra | C | [ ] | [ ] | [ ] | [ ] | |
 | FR-010 | Endorsement & quality index (Should) | C | [ ] | [ ] | [ ] | [ ] | Kandidat pertama cut-line |
 | FR-011 | e-Rapor exporter | A | [x] | [x] | [x] | [x] | Formula BR-009 (0.60×teknis+0.40×sikap), narratif Kurikulum Merdeka, export CSV |
-| FR-012 | CV ATS & paspor publik | B / C | [ ] | [ ] | [~] | [ ] | Layout CV A4 Print CSS siap di sisi klien |
+| FR-012 | CV ATS & paspor publik | B / C | [x] | [x] | [x] | [x] | Pure CV generator Google XYZ, isolasi log VERIFIED (BR-010), filter Tombol Jujur (BR-004), layout A4 Print CSS, router /students/me/cv & /passports/:slug, publik /verify/[passportSlug] segel HMAC-SHA256 |
 
 ## 4. Modul Bersama
 
@@ -72,7 +72,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 | TC-007 | [ ] | | |
 | TC-008 | [ ] | | |
 | TC-009 | [ ] | | |
-| TC-010 | [ ] | | |
+| TC-010 | [x] | 22 Okt 2026 | CV ATS terkunci pada data VERIFIED (BR-010), non-kompetensi dikeluarkan dari klaim teknis (BR-004), QR membuka paspor terverifikasi publik ber-HMAC |
 
 ## 6. Metrik Non-Fungsional
 
@@ -139,8 +139,18 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
     - Eko Saputra: Skenario rotasi mitra (380 JP DUDI A + 50 JP DUDI B = 430 JP total TC-009) dengan riwayat `DriftAlert` resolved dan `InterventionLog` guru, paspor publik `/verify/eko-saputra-rpl-2026`.
     - Seluruh 6 mentor DUDI diikat dengan kredensial demo (PIN: `1234`, token perangkat).
     - Demo token batch approve untuk mentor Rizky terbit dan siap dites pada `/v/[token]`.
+  - FR-012: Data-Driven Smart ATS-CV Generator, Public Verifiable Skill Passport & Instant QR Verifier (Orang B / C):
+    - Pure engine di `packages/core/src/cv.ts`: formulasi bullet points Google XYZ (`[Action] [Tools] untuk [Job Card] secara [Mandiri/Terbimbing] selama [X] JP [SKKNI]`), pemfilteran ketat log status `VERIFIED` saja (BR-010), pengecualian tugas non-kompetensi Tombol Jujur dari klaim teknis (BR-004) dengan tetap memperhitungkan total jam kehadiran magang, multi-DUDI placement grouping untuk kasus rotasi mitra (TC-009), dan ekstraksi tools unik terakumulasi JP.
+    - 7 unit tests di `packages/core/test/cv.test.ts` lulus 100%.
+    - Express Router di `apps/api/src/routes/passports.ts`:
+      - `GET /api/v1/students/me/cv`: Ekstraksi relasional Prisma log terverifikasi siswa, endorsement industri, profil sekolah, dan bio vokasi.
+      - `PATCH /api/v1/students/me/passport`: Penyuntingan ringkasan profil pribadi dan kegiatan ekstrakurikuler yang diizinkan siswa.
+      - `GET /api/v1/passports/:slug`: Verifikasi publik tanpa login dengan audit segel master kriptografi HMAC-SHA256 (`SERVER_CRYPTO_SECRET`), data capaian CP, dan galeri bukti kerja WebP.
+    - 4 integration tests di `apps/api/test/passports.test.ts` lulus 100%. Total 96 tests monorepo hijau 100%.
+    - Halaman siswa `/student/career-cv`: Layout dokumen A4 Print CSS satu kolom bebas elemen non-print, 5 kondisi UI (skeleton, empty state jika belum ada log verified, offline banner, error recovery, verified), editor teks bio siswa langsung tersimpan ke paspor, dan QR Code audit stamp.
+    - Halaman verifikasi publik `/verify/[passportSlug]`: Lencana hijau TERVERIFIKASI RESMI segel HMAC-SHA256, matriks capaian elemen CP, etos kerja mentor, galeri artefak foto, dan penanganan error dokumen tidak valid (TC-010).
 - Sedang dikerjakan:
-  - Persiapan FR-012 (CV ATS generator & Paspor Keterampilan ber-QR terhubung ke log VERIFIED).
+  - Persiapan FR-007 (Verifikasi Zero-Login Mentor QR / WA + PIN oleh Orang C).
 - Blocker:
   - Tidak ada blocker aktif saat ini.
 - Rencana besok (Hari 3):

@@ -748,3 +748,135 @@ export async function downloadEraporCsv(
   return await res.blob();
 }
 
+// ─── Student ATS-CV & Skill Passport (FR-012) ──────────────────────────────
+
+export interface StudentCvResponse {
+  student: {
+    id: string;
+    fullName: string;
+    identityNumber: string;
+    whatsappNumber?: string;
+    departmentName: string;
+    schoolName: string;
+    schoolAddress?: string;
+  };
+  summaryBio: string;
+  totalVerifiedJp: number;
+  technicalJp: number;
+  nonCompetencyJp: number;
+  experiences: Array<{
+    placementId: string;
+    dudiName: string;
+    dudiCity?: string;
+    roleTitle: string;
+    periodLabel: string;
+    mentorName?: string;
+    totalVerifiedJp: number;
+    technicalJp: number;
+    nonCompetencyJp: number;
+    bulletPoints: Array<{
+      jobCardId: string;
+      jobCardTitle: string;
+      skkniUnitCode: string | null;
+      totalJp: number;
+      taskCount: number;
+      predominantAutonomyLevel: 1 | 2 | 3;
+      autonomyLabel: "Mandiri" | "Terbimbing" | "Observasi";
+      toolsUsed: string[];
+      bulletText: string;
+    }>;
+  }>;
+  technicalSkills: Array<{
+    name: string;
+    totalJp: number;
+  }>;
+  endorsement?: {
+    attitudeScore: number;
+    badges: string[];
+    quote: string | null;
+    mentorName: string;
+    dudiName: string;
+  } | null;
+  extraActivities: Array<{
+    title: string;
+    year: string;
+    description: string;
+  }>;
+  passportSlug: string;
+  verificationUrl: string;
+  masterSignatureHash: string | null;
+}
+
+export interface PublicPassportResponse {
+  isCryptographicallyValid: boolean;
+  statusLabel: string;
+  passportSlug: string;
+  masterSignatureHash: string;
+  student: {
+    fullName: string;
+    identityNumber: string;
+    departmentName: string;
+    schoolName: string;
+    schoolAddress?: string;
+  };
+  summaryBio: string | null;
+  metrics: {
+    totalVerifiedJp: number;
+    technicalJp: number;
+    nonCompetencyJp: number;
+    verifiedDaysCount: number;
+    dudiCount: number;
+  };
+  competencies: Array<{
+    id: string;
+    code: string;
+    title: string;
+    targetJp: number;
+    verifiedJp: number;
+    percentage: number;
+  }>;
+  endorsement: {
+    attitudeScore: number;
+    badges: string[];
+    quote: string | null;
+    mentorName: string;
+    dudiName: string;
+  } | null;
+  artifactPhotos: string[];
+  extraActivities: any[];
+  verifiedAt: string;
+}
+
+/** GET /students/me/cv */
+export async function fetchStudentCv(studentId?: string): Promise<StudentCvResponse> {
+  const query = studentId ? `?studentId=${encodeURIComponent(studentId)}` : "";
+  const res = await fetch(`${API_BASE_URL}/students/me/cv${query}`);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memuat data CV ATS siswa");
+  return json;
+}
+
+/** PATCH /students/me/passport */
+export async function updateStudentPassport(
+  data: { summaryBio?: string; extraActivities?: any[] },
+  studentId?: string
+): Promise<{ success: boolean; message: string }> {
+  const query = studentId ? `?studentId=${encodeURIComponent(studentId)}` : "";
+  const res = await fetch(`${API_BASE_URL}/students/me/passport${query}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memperbarui paspor kompetensi");
+  return json;
+}
+
+/** GET /passports/:slug */
+export async function fetchPublicPassport(slug: string): Promise<PublicPassportResponse> {
+  const res = await fetch(`${API_BASE_URL}/passports/${encodeURIComponent(slug)}`);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Paspor kompetensi tidak ditemukan");
+  return json;
+}
+
