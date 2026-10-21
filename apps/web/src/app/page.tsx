@@ -7,6 +7,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { TOTAL_TARGET_JP } from "@vokalink/shared";
+import VokaLogo from "@/components/common/VokaLogo";
 
 export default function Home() {
   return (
@@ -14,27 +15,20 @@ export default function Home() {
       {/* Header */}
       <header className="w-full flex items-center justify-between py-4 border-b border-slate-200">
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
-            V
-          </div>
-          <div>
-            <h1 className="font-extrabold text-lg tracking-tight text-slate-900 leading-none">
-              VokaLink
-            </h1>
-            <p className="text-xs text-slate-500 font-medium">
-              Ekosistem PKL SMK Terkoneksi
-            </p>
-          </div>
+          <VokaLogo size="md" />
+          <p className="text-xs text-slate-500 font-medium hidden sm:block">
+            Ekosistem PKL SMK Terkoneksi
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href="/auth/register-school"
+            href="/register-school"
             className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition"
           >
             Daftar Sekolah
           </Link>
           <Link
-            href="/auth/login"
+            href="/login"
             className="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition"
           >
             Masuk
@@ -61,13 +55,13 @@ export default function Home() {
 
         <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
           <Link
-            href="/auth/register-school"
+            href="/register-school"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-sm transition"
           >
             Daftarkan Sekolah Baru <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
-            href="/auth/login"
+            href="/login"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold transition"
           >
             Judge Demo Switcher (Simulasi Peran)

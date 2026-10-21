@@ -23,6 +23,7 @@ import {
   fetchDemoSandboxData,
   type MasterDepartmentItem,
 } from "../../../lib/api";
+import Navbar, { NavbarButton } from "@/components/layout/Navbar";
 
 type Step = 1 | 2 | 3 | 4 | 5; // 1: Info, 2: Jurusan, 3: Periode, 4: Admin, 5: Sukses
 
@@ -253,27 +254,12 @@ export default function RegisterSchoolPage() {
         </div>
       )}
 
-      {/* Header */}
-      <header className="border-b border-slate-200 bg-white sticky top-0 z-30 shadow-xs">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-base shadow-xs">
-              V
-            </div>
-            <span className="font-extrabold text-slate-900 tracking-tight text-base">
-              VokaLink
-            </span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/auth/login"
-              className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 transition"
-            >
-              Sudah Terdaftar? Masuk
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Navbar
+        variant="sticky"
+        rightSlot={
+          <NavbarButton href="/login" label="Sudah Terdaftar? Masuk" />
+        }
+      />
 
       {/* Main Container */}
       <main className="max-w-3xl mx-auto w-full px-4 py-8 flex-1">
@@ -804,7 +790,7 @@ export default function RegisterSchoolPage() {
                 Buka Dasbor Pokja PKL <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
-                href="/auth/login"
+                href="/login"
                 className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-bold transition"
               >
                 Halaman Masuk

@@ -17,6 +17,7 @@ import {
   EyeOff,
   User,
 } from "lucide-react";
+import Navbar, { NavbarButton } from "@/components/layout/Navbar";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -64,25 +65,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
-      {/* Header */}
-      <header className="border-b border-slate-200 bg-white">
-        <div className="max-w-4xl mx-auto px-4 py-3.5 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-base shadow-xs">
-              V
-            </div>
-            <span className="font-extrabold text-slate-900 tracking-tight text-base">
-              VokaLink
-            </span>
-          </Link>
-          <Link
-            href="/auth/register-school"
-            className="text-xs font-semibold text-blue-600 hover:text-blue-700 px-3 py-1.5 rounded-lg border border-blue-200 hover:border-blue-300 transition"
-          >
-            Daftarkan Sekolah Baru
-          </Link>
-        </div>
-      </header>
+      <Navbar
+        rightSlot={
+          <NavbarButton href="/register-school" label="Daftarkan Sekolah Baru" variant="outline" />
+        }
+      />
 
       {/* Main Container */}
       <main className="max-w-4xl mx-auto w-full px-4 py-8 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -169,7 +156,7 @@ export default function LoginPage() {
           <div className="pt-4 border-t border-slate-100 text-center text-xs text-slate-500">
             Belum mendaftarkan sekolah Anda?{" "}
             <Link
-              href="/auth/register-school"
+              href="/register-school"
               className="text-blue-600 font-bold hover:underline"
             >
               Daftar Multi-Tenant (2 Menit)

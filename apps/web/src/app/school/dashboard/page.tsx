@@ -17,6 +17,9 @@ import {
   Compass,
 } from "lucide-react";
 import { TOTAL_TARGET_JP } from "@vokalink/shared";
+import Navbar, { NavbarButton } from "@/components/layout/Navbar";
+import StatCard from "@/components/common/StatCard";
+import DemoBadge from "@/components/common/DemoBadge";
 
 interface SchoolData {
   school: {
@@ -138,34 +141,13 @@ export default function SchoolDashboardPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Header */}
-      <header className="border-b border-slate-200 bg-white sticky top-0 z-30 shadow-xs">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-base shadow-xs">
-                V
-              </div>
-              <span className="font-extrabold text-slate-900 tracking-tight text-base hidden sm:inline">
-                VokaLink
-              </span>
-            </Link>
-            <div className="h-5 w-px bg-slate-200 hidden sm:block" />
-            <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md">
-              Panel Pengelola SMK (Pokja PKL)
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Link
-              href="/auth/login"
-              className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition"
-            >
-              Ganti Peran (Judge Switcher)
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Navbar
+        variant="sticky"
+        subtitle="Panel Pengelola SMK (Pokja PKL)"
+        rightSlot={
+          <NavbarButton href="/login" label="Ganti Peran (Judge Switcher)" />
+        }
+      />
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto w-full px-4 py-6 flex-1 space-y-6">
@@ -191,11 +173,7 @@ export default function SchoolDashboardPage() {
                     <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
                       {data.school.name}
                     </h1>
-                    {data.school.isDemoSandbox && (
-                      <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-bold border border-blue-200">
-                        Demo Sandbox (UINIC 8.0)
-                      </span>
-                    )}
+                    {data.school.isDemoSandbox && <DemoBadge />}
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
                     NPSN: <span className="font-mono font-semibold text-slate-700">{data.school.npsn}</span> ·{" "}
@@ -225,45 +203,10 @@ export default function SchoolDashboardPage() {
 
             {/* KPI Metric Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center gap-3">
-                <div className="p-3 rounded-xl bg-blue-50 text-blue-600">
-                  <Users className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-slate-500">Siswa Aktif PKL</p>
-                  <p className="text-xl font-black text-slate-900">{data.stats.totalStudents}</p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center gap-3">
-                <div className="p-3 rounded-xl bg-purple-50 text-purple-600">
-                  <Briefcase className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-slate-500">Guru Pembimbing</p>
-                  <p className="text-xl font-black text-slate-900">{data.stats.totalTeachers}</p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center gap-3">
-                <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600">
-                  <Building2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-slate-500">Mitra DUDI</p>
-                  <p className="text-xl font-black text-slate-900">{data.stats.totalDudis}</p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center gap-3">
-                <div className="p-3 rounded-xl bg-amber-50 text-amber-600">
-                  <Award className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-slate-500">Penempatan Aktif</p>
-                  <p className="text-xl font-black text-slate-900">{data.stats.totalPlacements}</p>
-                </div>
-              </div>
+              <StatCard label="Siswa Aktif PKL" value={data.stats.totalStudents} icon={Users} color="blue" />
+              <StatCard label="Guru Pembimbing" value={data.stats.totalTeachers} icon={Briefcase} color="purple" />
+              <StatCard label="Mitra DUDI" value={data.stats.totalDudis} icon={Building2} color="emerald" />
+              <StatCard label="Penempatan Aktif" value={data.stats.totalPlacements} icon={Award} color="amber" />
             </div>
 
             {/* Quick Action Navigation Grid */}
