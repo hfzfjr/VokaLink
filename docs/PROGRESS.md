@@ -10,9 +10,9 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | Metrik | Nilai |
 |---|---|
-| FR selesai | 8 / 12 |
-| FR Must Have selesai | 8 / 11 |
-| TC lulus | 4 / 10 |
+| FR selesai | 9 / 12 |
+| FR Must Have selesai | 9 / 11 |
+| TC lulus | 7 / 10 |
 | Bug terbuka (Critical / High) | 0 / 0 |
 | Status cut-line | Belum dievaluasi (evaluasi di akhir Hari 7) |
 
@@ -38,7 +38,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 | FR-004 | Smart Placement | A | [x] | [x] | [x] | [x] | Haversine spasial murni, bobot multi-kriteria 70:30, kuota aktif, lencana rotasi tengah semester (<50%), penugasan auto-greedy massal & override manual |
 | FR-005 | Logger zero-typing + Tombol Jujur | B | [x] | [x] | [x] | [x] | Form zero-typing, Tombol Jujur (BR-004), slider durasi (BR-002), autonomy level (BR-009) |
 | FR-006 | Kompres WebP, blur, offline sync | B | [x] | [x] | [x] | [x] | Two-Phase Sync Engine (batch sync maks 20 log idempoten, biner WebP maks 150 KB SHA-256) |
-| FR-007 | Verifikasi zero-login (QR / WA) | C | [ ] | [ ] | [ ] | [ ] | Kriptografi HMAC tuntas di packages/core |
+| FR-007 | Verifikasi zero-login (QR / WA) | C | [x] | [x] | [x] | [x] | Dual-factor auth (device token + PIN scrypt), batch approve < 10 dtk, segel HMAC-SHA256, lockout 15 mnt, TC-005, TC-006, TC-007 lulus |
 | FR-008 | Heatmap & drift alert | C | [ ] | [ ] | [ ] | [ ] | Algoritma drift tuntas di packages/core |
 | FR-009 | Intervensi WA & rotasi mitra | C | [ ] | [ ] | [ ] | [ ] | |
 | FR-010 | Endorsement & quality index (Should) | C | [ ] | [ ] | [ ] | [ ] | Kandidat pertama cut-line |
@@ -67,9 +67,9 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 | TC-002 | [x] | 21 Okt 2026 | Validasi alokasi != 792 JP memicu pesan error 422 JP_TOTAL_MISMATCH & tombol kunci nonaktif |
 | TC-003 | [x] | 22 Okt 2026 | Form zero-typing tersimpan di Dexie IndexedDB offline, Two-Phase sync (batch maks 20 log idempoten + upload WebP SHA-256) lulus tes |
 | TC-004 | [ ] | | |
-| TC-005 | [ ] | | |
-| TC-006 | [ ] | | |
-| TC-007 | [ ] | | |
+| TC-005 | [x] | 22 Okt 2026 | Batch approve log siswa < 10 dtk dengan segel HMAC-SHA256 |
+| TC-006 | [x] | 22 Okt 2026 | Tautan dibuka di HP tanpa device token mentor diblokir 403 DEVICE_MISMATCH + SecurityFlag UNTRUSTED_DEVICE |
+| TC-007 | [x] | 22 Okt 2026 | Salah PIN 5x berturut-turut memicu penguncian akun verifikasi 15 menit + SecurityFlag PIN_LOCKOUT |
 | TC-008 | [ ] | | |
 | TC-009 | [ ] | | |
 | TC-010 | [x] | 22 Okt 2026 | CV ATS terkunci pada data VERIFIED (BR-010), non-kompetensi dikeluarkan dari klaim teknis (BR-004), QR membuka paspor terverifikasi publik ber-HMAC |
@@ -160,8 +160,17 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
     - Presensi Sakit / Izin (PRD FR-005 A2 baris 439): Kontrol segmen kehadiran (`Hadir Praktik`, `Sakit`, `Izin Resmi`), panduan unggah foto surat dokter/izin resmi, dan pemetaan otomatis ke kategori non-kompetensi `ADMIN_UMUM` agar tidak mendistorsi metrik drift teknis.
     - Live Student Dashboard & Pure SVG Radar CP Chart (PRD FR-005 baris 420 & 983): Integrasi live Dexie IndexedDB (`useLiveQuery`), penghitungan real-time JP terverifikasi vs pending, visualisasi 5 sumbu SKKNI dengan Spider Radar Chart SVG murni (0 KB external bundle) dan progress bar capaian tiap elemen CP.
     - Kontrol Privasi Paspor Keahlian Publik (PRD FR-012 A1 baris 841): Toggle switch `showPhotos` (Galeri Bukti) dan `showGrades` (Nilai Sikap Mentor) di sidebar `/student/career-cv`, integrasi mutasi API `PATCH /api/v1/students/me/passport` dengan fallback offline andal.
+  - FR-007: Dual-Mode Zero-Login DUDI Verification & Batch Approval (Orang C):
+    - Router Express `apps/api/src/routes/verify.ts`:
+      - `GET /api/v1/verify/mentor/:token`: Validasi signed link, token kriptografi HMAC, ekstraksi siswa, penempatan, dan log pending.
+      - `POST /api/v1/verify/mentor/:token/check-device`: Deteksi kecocokan `device_token_hash` mentor.
+      - `POST /api/v1/verify/mentor/:token/execute`: Validasi 2-faktor simultan (device token + PIN scrypt + pepper), proteksi lockout gagal PIN 5x kunci 15 menit (TC-007), audit security flags (`UNTRUSTED_DEVICE` TC-006 & `PIN_LOCKOUT`), transaksi database penyegelan `signature_hash` HMAC-SHA256 (BR-007), pembaruan status `VERIFIED` / `REVISION_REQUIRED`.
+      - `POST /api/v1/verify/links`: Pembangkitan signed link dinamis untuk QR (5 menit) dan WhatsApp (7 hari).
+    - Halaman Mentor Mobile-First `/v/[token]` (`apps/web/src/app/v/[token]/page.tsx`): Area sentuh tombol aksi minimal 56px, kartu review kegiatan siswa beserta foto WebP, tombol batch approval < 10 detik (TC-005), numpad PIN pad 4 digit, modal revisi/penolakan, dan celebration screen resmi.
+    - Integrasi modal riwayat siswa `/student/log/history` dengan generator tautan dinamis dan tombol langsung kirim WhatsApp (`wa.me`).
+    - 9 integration tests di `apps/api/test/verify.test.ts` lulus 100%. Total 105 tests monorepo hijau 100%.
 - Sedang dikerjakan:
-  - Persiapan FR-007 (Verifikasi Zero-Login Mentor QR / WA + PIN oleh Orang C).
+  - Persiapan FR-008 (Heatmap & Algorithmic Drift Alert oleh Orang C).
 - Blocker:
   - Tidak ada blocker aktif saat ini.
 - Rencana besok (Hari 3):

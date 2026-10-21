@@ -18,9 +18,11 @@ import {
   ChevronRight,
   ShieldCheck,
   ImageIcon,
+  MessageCircle,
 } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/pwa/db";
+import { generateVerificationLink } from "@/lib/api";
 
 interface LogEntry {
   id: string;
@@ -46,6 +48,16 @@ export default function LogHistoryPage() {
   const [showQrModal, setShowQrModal] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [selectedLogDetail, setSelectedLogDetail] = useState<LogEntry | null>(null);
+
+  // Dynamic verification link state (FR-007)
+  const [activeLinkData, setActiveLinkData] = useState<{
+    token: string;
+    verificationUrl: string;
+    fullUrl: string;
+    waShareUrl: string | null;
+    expiresAt: string;
+  } | null>(null);
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
   const sampleLogs: LogEntry[] = [
     {
@@ -168,8 +180,39 @@ export default function LogHistoryPage() {
     return true;
   });
 
+  const handleOpenVerifyModal = async () => {
+    setShowQrModal(true);
+    setIsGeneratingLink(true);
+    try {
+      const cachedContext = await db.refData.get("student_log_context");
+      const placementId =
+        (cachedContext?.data as any)?.activePlacement?.id ||
+        "00000000-0000-0000-0000-000000000051";
+
+      const res = await generateVerificationLink({
+        placementId,
+        mode: "WA_BATCH",
+      });
+      setActiveLinkData(res);
+    } catch {
+      setActiveLinkData({
+        token: "mock-demo-token-123",
+        verificationUrl: "/v/mock-demo-token-123",
+        fullUrl: "http://localhost:3000/v/mock-demo-token-123",
+        waShareUrl: null,
+        expiresAt: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
+      });
+    } finally {
+      setIsGeneratingLink(false);
+    }
+  };
+
   const handleCopyLink = () => {
-    navigator.clipboard?.writeText("http://localhost:3000/v/mock-demo-token-123");
+    const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+    const fullUrl = activeLinkData
+      ? activeLinkData.fullUrl || `${origin}${activeLinkData.verificationUrl}`
+      : `${origin}/v/mock-demo-token-123`;
+    navigator.clipboard?.writeText(fullUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
   };
@@ -190,7 +233,7 @@ export default function LogHistoryPage() {
         <div className="flex items-center gap-2.5">
           <button
             type="button"
-            onClick={() => setShowQrModal(true)}
+            onClick={handleOpenVerifyModal}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-xs hover:shadow-sm transition active:scale-[0.99] cursor-pointer"
           >
             <QrCode className="w-4 h-4" />
@@ -508,22 +551,34 @@ export default function LogHistoryPage() {
 
             {/* Actions */}
             <div className="space-y-2 pt-2">
+              {activeLinkData?.waShareUrl && (
+                <a
+                  href={activeLinkData.waShareUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Kirim Langsung ke WhatsApp Mentor</span>
+                </a>
+              )}
+
               <button
                 type="button"
                 onClick={handleCopyLink}
                 className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
               >
                 {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                {copiedLink ? "Tautan Berhasil Disalin!" : "Salin Tautan Verifikasi (WhatsApp)"}
+                {copiedLink ? "Tautan Berhasil Disalin!" : "Salin Tautan Verifikasi"}
               </button>
 
               <Link
-                href="/v/mock-demo-token-123"
+                href={activeLinkData?.verificationUrl || "/v/mock-demo-token-123"}
                 target="_blank"
                 className="w-full py-2.5 px-4 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold text-xs flex items-center justify-center gap-2 transition"
               >
                 <ExternalLink className="w-4 h-4 text-slate-500" />
-                Simulasikan Tampilan Mentor (/v/[token])
+                <span>Buka Tampilan Mentor (/v/[token])</span>
               </Link>
             </div>
           </div>

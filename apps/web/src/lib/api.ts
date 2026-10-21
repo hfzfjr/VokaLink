@@ -925,3 +925,141 @@ export async function fetchStudentLogContext(
   return json;
 }
 
+// ─────────────────────────────────────────────────────────
+// FR-007: Zero-Login Mentor Verification & Batch Approval
+// ─────────────────────────────────────────────────────────
+
+export interface MentorVerifyDetailsResponse {
+  valid: boolean;
+  mode: "QR" | "WA_BATCH";
+  expiresAt: string;
+  nonce: string;
+  mentor: {
+    id: string;
+    fullName: string;
+    jobTitle: string;
+    dudiName: string;
+    hasDeviceBound: boolean;
+    isLocked: boolean;
+    lockedUntil: string | null;
+  };
+  student: {
+    id: string;
+    fullName: string;
+    identityNumber: string;
+    departmentName: string;
+    schoolName: string;
+  };
+  placement: {
+    id: string;
+    dudiName: string;
+    city: string;
+  };
+  logs: Array<{
+    id: string;
+    clientLogUuid: string;
+    logDate: string;
+    attendanceType: "PRESENT" | "SICK" | "PERMIT";
+    shortNote: string | null;
+    evidenceWebpUrl: string | null;
+    totalDurationJp: number;
+    items: Array<{
+      id: string;
+      jobCardId: string;
+      title: string;
+      skkniUnitCode: string | null;
+      durationJp: number;
+      autonomyLevel: number;
+      autonomyLabel: "Mandiri" | "Terbimbing" | "Observasi";
+      isNonCompetency: boolean;
+      nonCompetencyCategory?: string | null;
+    }>;
+  }>;
+}
+
+export interface MentorVerifyExecuteInput {
+  nonce: string;
+  deviceToken: string;
+  pin: string;
+  decision: "APPROVE" | "REJECT";
+  rejectionReason?: string;
+  correctedItems?: Array<{
+    itemId: string;
+    durationJp: number;
+    autonomyLevel: 1 | 2 | 3;
+  }>;
+}
+
+/** GET /api/v1/verify/mentor/:token */
+export async function fetchMentorVerifyDetails(
+  token: string
+): Promise<MentorVerifyDetailsResponse> {
+  const res = await fetch(`${API_BASE_URL}/verify/mentor/${encodeURIComponent(token)}`);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memuat data verifikasi mentor");
+  return json;
+}
+
+/** POST /api/v1/verify/mentor/:token/check-device */
+export async function checkMentorDevice(
+  token: string,
+  deviceToken: string | null
+): Promise<{ recognized: boolean; isLocked: boolean; hasDeviceBound: boolean }> {
+  const res = await fetch(
+    `${API_BASE_URL}/verify/mentor/${encodeURIComponent(token)}/check-device`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deviceToken }),
+    }
+  );
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memeriksa status perangkat");
+  return json;
+}
+
+/** POST /api/v1/verify/mentor/:token/execute */
+export async function executeMentorVerification(
+  token: string,
+  data: MentorVerifyExecuteInput
+): Promise<{
+  success: boolean;
+  decision: string;
+  processedCount: number;
+  message: string;
+  verifiedAt: string;
+}> {
+  const res = await fetch(`${API_BASE_URL}/verify/mentor/${encodeURIComponent(token)}/execute`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memproses verifikasi logbook");
+  return json;
+}
+
+/** POST /api/v1/verify/links */
+export async function generateVerificationLink(data: {
+  placementId: string;
+  logIds?: string[];
+  mode?: "QR" | "WA_BATCH";
+}): Promise<{
+  token: string;
+  verificationUrl: string;
+  fullUrl: string;
+  waShareUrl: string | null;
+  mode: string;
+  expiresAt: string;
+  pendingCount: number;
+}> {
+  const res = await fetch(`${API_BASE_URL}/verify/links`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal membuat tautan verifikasi");
+  return json;
+}
+
