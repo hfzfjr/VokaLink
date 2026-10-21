@@ -1,8 +1,8 @@
 # PROGRESS — VokaLink
 
 > Papan status hidup. Perbarui setiap malam. Rencana ada di `SPRINT.md`, spesifikasi di `PRD.md`.
-> **Terakhir diperbarui:** 20 Okt 2026 (Hari 0)
-> **Hari sprint saat ini:** 0 dari 10 · **Deadline:** 30 Okt 2026 · **Code freeze:** 28 Okt
+> **Terakhir diperbarui:** 21 Okt 2026 (Hari 1)
+> **Hari sprint saat ini:** 1 dari 10 · **Deadline:** 30 Okt 2026 · **Code freeze:** 28 Okt
 
 Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblokir
 
@@ -13,7 +13,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 | FR selesai | 0 / 12 |
 | FR Must Have selesai | 0 / 11 |
 | TC lulus | 0 / 10 |
-| Bug terbuka (Critical / High) | 0 / 0 |
+| Bug terbuka (Critical / High) | 1 / 0 |
 | Status cut-line | Belum dievaluasi (evaluasi di akhir Hari 7) |
 
 ## 2. Infrastruktur (Hari 0)
@@ -33,31 +33,31 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 | FR | Fitur | Pemilik | Status | Backend | Frontend | Tes | Catatan |
 |---|---|---|---|---|---|---|---|
 | FR-001 | Onboarding multi-sekolah + demo | A | [ ] | [ ] | [ ] | [ ] | |
-| FR-002 | Kurikulum & Job Card (6 jurusan) | A | [ ] | [ ] | [ ] | [ ] | |
+| FR-002 | Kurikulum & Job Card (6 jurusan) | A | [~] | [x] | [ ] | [ ] | Seed 6 jurusan 792 JP tuntas di DB |
 | FR-003 | Onboarding DUDI + bind device | A / C | [ ] | [ ] | [ ] | [ ] | |
-| FR-004 | Smart Placement | A | [ ] | [ ] | [ ] | [ ] | |
-| FR-005 | Logger zero-typing + Tombol Jujur | B | [ ] | [ ] | [ ] | [ ] | |
+| FR-004 | Smart Placement | A | [ ] | [ ] | [ ] | [ ] | Rumus inti tuntas di packages/core |
+| FR-005 | Logger zero-typing + Tombol Jujur | B | [~] | [ ] | [~] | [ ] | PWA shell, layout 48px, form zero-typing, & CV ATS siap di feat/fr-005-student-shell |
 | FR-006 | Kompres WebP, blur, offline sync | B | [ ] | [ ] | [ ] | [ ] | |
-| FR-007 | Verifikasi zero-login (QR / WA) | C | [ ] | [ ] | [ ] | [ ] | |
-| FR-008 | Heatmap & drift alert | C | [ ] | [ ] | [ ] | [ ] | |
+| FR-007 | Verifikasi zero-login (QR / WA) | C | [ ] | [ ] | [ ] | [ ] | Kriptografi HMAC tuntas di packages/core |
+| FR-008 | Heatmap & drift alert | C | [ ] | [ ] | [ ] | [ ] | Algoritma drift tuntas di packages/core |
 | FR-009 | Intervensi WA & rotasi mitra | C | [ ] | [ ] | [ ] | [ ] | |
 | FR-010 | Endorsement & quality index (Should) | C | [ ] | [ ] | [ ] | [ ] | Kandidat pertama cut-line |
-| FR-011 | e-Rapor exporter | A | [ ] | [ ] | [ ] | [ ] | |
-| FR-012 | CV ATS & paspor publik | B / C | [ ] | [ ] | [ ] | [ ] | |
+| FR-011 | e-Rapor exporter | A | [ ] | [ ] | [ ] | [ ] | Rumus nilai tuntas di packages/core |
+| FR-012 | CV ATS & paspor publik | B / C | [ ] | [ ] | [~] | [ ] | Layout CV A4 Print CSS siap di sisi klien |
 
 ## 4. Modul Bersama
 
 | Modul | Pemilik | Status |
 |---|---|---|
-| Skema Prisma + migrasi + SQL guard (RLS, trigger immutability) | A | [~] (skema 20 model tuntas & tervalidasi) |
-| `curriculum-seed.json` (6 jurusan, 792 JP, min. 12 Job Card) | A | [ ] |
-| Seeder v1 (sekolah demo, mentor terikat, penempatan) | A | [ ] |
+| Skema Prisma + migrasi + SQL guard (RLS, trigger immutability) | A | [~] (skema 20 model tuntas & tervalidasi; menunggu fix BUG-001) |
+| `curriculum-seed.json` (6 jurusan, 792 JP, min. 12 Job Card) | A | [x] |
+| Seeder v1 (sekolah demo, mentor terikat, penempatan) | A | [x] |
 | Seeder v2 (riwayat 8 minggu, drift, endorsement, paspor) | A | [ ] |
 | Auth middleware (JWT Supabase, role, tenant guard) | C | [x] |
 | `packages/core` (haversine, skor, drift, rapor, canonical JSON, HMAC) | C | [x] |
 | `packages/shared` (skema Zod, konstanta) | semua | [x] |
-| PWA shell (Serwist, Dexie, banner konektivitas) | B | [ ] |
-| Judge Demo Switcher | A | [~] (halaman depan siap) |
+| PWA shell (Serwist, Dexie, banner konektivitas) | B | [~] (layout mobile 360px, bottom nav 48px, connectivity banner 3-state siap) |
+| Judge Demo Switcher | A | [x] (halaman depan siap dan terhubung ke portal siswa) |
 
 ## 5. Status Uji Penerimaan
 
@@ -88,11 +88,28 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | # | Hal | Pemilik | Status |
 |---|---|---|---|
-| - | Belum ada | - | - |
+| BUG-001 | Trigger block_verified_log_update memakai mentor_id bukan verified_by_mentor_id | A | Open (P0 Critical) |
 
 Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-12) dan bagian 12.
 
 ## 8. Log Harian
+
+### Hari 1 — Rab 21 Okt 2026
+- Selesai:
+  - Inisialisasi PWA student shell mobile-first (360px), layout container, dan header status (Orang B).
+  - Bottom Navigation mobile dengan touch targets >= 48px dan elevated action "Catat" (Orang B).
+  - Connectivity Banner 3-state (Offline, Syncing, Synced) dengan useOnlineStatus SSR-safe hook (Orang B).
+  - 4 Halaman antarmuka siswa: /student/home (progress 792 JP), /student/log/new (zero-typing & Tombol Jujur), /student/log/history, dan /student/career-cv (ATS CV Print CSS) (Orang B).
+  - Resolusi dependensi monorepo dan dev server Next.js aktif di port 3000 (Orang B).
+  - Branch feat/fr-005-student-shell di-push ke GitHub remote.
+  - Dataset kurikulum 6 jurusan tervalidasi 792 JP dan seeder v1 siap (Orang A).
+- Sedang dikerjakan:
+  - FR-005 (Logger zero-typing & Tombol Jujur) & integrasi offline storage.
+- Blocker:
+  - BUG-001 (P0 Critical): Trigger SQL immutability block_verified_log_update salah mereferensikan kolom mentor_id (menunggu migrasi baru oleh Orang A).
+- Rencana besok (Hari 2):
+  - Setup Serwist PWA (sw.ts, manifest.json) dan Dexie.js (db.ts) untuk tabel logs, photos, dan refData.
+  - Hubungkan form logbook ke penyimpanan lokal IndexedDB.
 
 ### Hari 0 — Sel 20 Okt 2026
 - Dokumen PRD, DESIGN (direvisi mengikuti PRD, Express, Prisma, Supabase), SPRINT, PROGRESS, BUGS, dan AGENTS dibuat.

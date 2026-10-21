@@ -41,11 +41,27 @@ Aturan:
 
 ## 4. Daftar Bug
 
-Belum ada bug tercatat.
-
 | ID | Level | Status | Fitur | Judul | Pemilik |
 |---|---|---|---|---|---|
-| - | - | - | - | - | - |
+| BUG-001 | P0 Critical | Open | Database / BR-007 | Trigger immutability block_verified_log_update memakai nama kolom salah mentor_id | Orang A |
+
+### BUG-001 — Trigger block_verified_log_update memakai nama kolom salah mentor_id
+- **Level:** P0 Critical
+- **Status:** Open
+- **Fitur/Modul:** Database Migration / Security Guards (BR-007, P3 Immutability)
+- **Pelapor / Pemilik:** Orang B / Orang A
+- **Ditemukan:** 21 Okt 2026 (Hari 1), audit kode statis file `20261020192102_security_guards/migration.sql`
+- **Langkah reproduksi:**
+  1. Jalankan kueri `UPDATE daily_logs SET short_note = 'tes' WHERE status = 'VERIFIED'`.
+  2. Trigger PostgreSQL `trg_daily_logs_immutable` memanggil fungsi `block_verified_log_update()`.
+  3. Pada baris 47, fungsi mengevaluasi `NEW.mentor_id IS DISTINCT FROM OLD.mentor_id`.
+- **Hasil aktual:**
+  PostgreSQL melempar error runtime: `record "new" has no field "mentor_id"` karena nama kolom aktual di tabel `daily_logs` adalah `verified_by_mentor_id` (sesuai `apps/api/prisma/schema.prisma` baris 340 dan migration `20261020173926_init_schema` baris 214).
+- **Hasil seharusnya (rujukan PRD/BR/TC):**
+  Trigger mengecek kolom `verified_by_mentor_id` dan melempar pesan exception `verified log is immutable` jika kolom tersebut atau data log diverifikasi lainnya diubah.
+- **Catatan / dugaan penyebab:**
+  Typo penamaan kolom saat menyusun migration SQL guards di Hari 0/1.
+- **Perbaikan (commit/PR):** - (Memerlukan migration baru oleh Orang A untuk merevisi function trigger).
 
 ## 5. Catatan Dokumen (ketidaksinkronan yang diketahui)
 
