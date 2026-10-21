@@ -201,3 +201,87 @@ export const updateJobCardSchema = addJobCardSchema.partial().omit({
 });
 
 export type UpdateJobCardInput = z.infer<typeof updateJobCardSchema>;
+
+// ─────────────────────────────────────────────────────────
+// FR-003: Assisted DUDI Onboarding & Device Binding schemas
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Pendaftaran Mitra DUDI baru & Pemetaan Kapasitas Job Cards
+ */
+export const createDudiPartnerSchema = z.object({
+  name: z.string().min(3, "Nama DUDI minimal 3 karakter").max(150),
+  sectorCategory: z.string().min(2, "Kategori sektor wajib diisi").max(80),
+  address: z.string().min(5, "Alamat DUDI minimal 5 karakter").max(500),
+  city: z.string().min(2, "Kota/Kabupaten wajib diisi").max(80),
+  latitude: z
+    .number()
+    .min(-11, "Latitude wilayah Indonesia harus antara -11 dan 6")
+    .max(6, "Latitude wilayah Indonesia harus antara -11 dan 6"),
+  longitude: z
+    .number()
+    .min(95, "Longitude wilayah Indonesia harus antara 95 dan 141")
+    .max(141, "Longitude wilayah Indonesia harus antara 95 dan 141"),
+  maxQuota: z
+    .number()
+    .int()
+    .min(1, "Kuota siswa minimal 1 orang")
+    .max(50, "Kuota siswa maksimal 50 orang per periode")
+    .default(5),
+  supportedJobCardIds: z
+    .array(z.string().uuid("ID Job Card harus berformat UUID"))
+    .min(1, "Pilih minimal 1 pekerjaan teknis yang tersedia di lokasi mitra ini."),
+});
+
+export type CreateDudiPartnerInput = z.infer<typeof createDudiPartnerSchema>;
+
+/**
+ * Pendaftaran Mentor Industri di DUDI
+ */
+export const createDudiMentorSchema = z.object({
+  fullName: z.string().min(3, "Nama mentor minimal 3 karakter").max(120),
+  jobTitle: z.string().min(2, "Jabatan / divisi mentor minimal 2 karakter").max(100),
+  whatsappNumber: z
+    .string()
+    .regex(
+      /^(\+62|62|08)[0-9]{8,13}$/,
+      "Nomor WhatsApp tidak valid (Gunakan format 08123456789 atau +628123456789)"
+    ),
+});
+
+export type CreateDudiMentorInput = z.infer<typeof createDudiMentorSchema>;
+
+/**
+ * Aktivasi & Pengikatan Perangkat Mentor (Device Token & PIN 4-digit)
+ */
+export const bindMentorDeviceSchema = z.object({
+  activationToken: z.string().min(20, "Token aktivasi tidak valid"),
+  deviceToken: z
+    .string()
+    .min(16, "Device token tidak valid")
+    .max(128, "Device token terlalu panjang"),
+  pin: z
+    .string()
+    .regex(/^\d{4}$/, "PIN harus tepat 4 digit angka"),
+});
+
+export type BindMentorDeviceInput = z.infer<typeof bindMentorDeviceSchema>;
+
+/**
+ * Reset token perangkat mentor (A2: Pergantian HP / Kehilangan)
+ */
+export const resetMentorDeviceSchema = z.object({
+  mentorId: z.string().uuid("ID mentor harus UUID valid"),
+});
+
+export type ResetMentorDeviceInput = z.infer<typeof resetMentorDeviceSchema>;
+
+// ─────────────────────────────────────────────────────────
+// FR-004: Smart Placement & Spatial Compatibility schemas
+// ─────────────────────────────────────────────────────────
+export * from "./placement.js";
+
+// ─────────────────────────────────────────────────────────
+// FR-011: e-Rapor SMK Grade & Narrative Exporter schemas
+// ─────────────────────────────────────────────────────────
+export * from "./erapor.js";

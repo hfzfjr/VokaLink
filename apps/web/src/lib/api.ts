@@ -327,3 +327,424 @@ export async function deleteJobCard(
   if (!res.ok) throw new Error(json.detail || "Gagal menghapus Job Card");
   return json;
 }
+
+// ─────────────────────────────────────────────────────────
+// FR-003: Assisted DUDI Onboarding & Mentor Device Binding
+// ─────────────────────────────────────────────────────────
+
+export interface DudiPartnerItem {
+  id: string;
+  name: string;
+  sectorCategory: string;
+  address: string;
+  city: string;
+  latitude: number;
+  longitude: number;
+  maxQuota: number;
+  qualityIndexScore: number | null;
+  mentorsCount: number;
+  capabilitiesCount: number;
+  placementsCount: number;
+  mentors: Array<{
+    id: string;
+    fullName: string;
+    jobTitle: string;
+    whatsappNumber: string;
+    isDeviceBound: boolean;
+  }>;
+}
+
+export interface DudiDetailData extends DudiPartnerItem {
+  supportedJobCards: Array<{
+    id: string;
+    title: string;
+    skkniUnitCode: string | null;
+    toolsAndSoftware: string[];
+    isNonCompetency: boolean;
+    cpElement: { id: string; code: string; title: string } | null;
+  }>;
+}
+
+/** GET /dudi — Direktori mitra terfederasi */
+export async function fetchDudiPartners(
+  params?: { search?: string; city?: string; sectorCategory?: string },
+  token?: string
+): Promise<DudiPartnerItem[]> {
+  const query = new URLSearchParams();
+  if (params?.search) query.set("search", params.search);
+  if (params?.city) query.set("city", params.city);
+  if (params?.sectorCategory) query.set("sectorCategory", params.sectorCategory);
+
+  const res = await fetch(`${API_BASE_URL}/dudi?${query.toString()}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memuat direktori DUDI");
+  return json.data;
+}
+
+/** GET /dudi/:id — Detail DUDI + job cards yang dicentang */
+export async function fetchDudiDetail(
+  dudiId: string,
+  token: string
+): Promise<DudiDetailData> {
+  const res = await fetch(`${API_BASE_URL}/dudi/${dudiId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memuat detail mitra DUDI");
+  return json.data;
+}
+
+/** POST /dudi — Pendaftaran DUDI baru & checklist Job Cards */
+export async function createDudiPartner(
+  payload: {
+    name: string;
+    sectorCategory: string;
+    address: string;
+    city: string;
+    latitude: number;
+    longitude: number;
+    maxQuota: number;
+    supportedJobCardIds: string[];
+  },
+  token: string
+) {
+  const res = await fetch(`${API_BASE_URL}/dudi`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal mendaftarkan mitra DUDI");
+  return json;
+}
+
+/** POST /dudi/:dudiId/mentors — Daftarkan mentor & buat tautan aktivasi 72 jam */
+export async function createDudiMentor(
+  dudiId: string,
+  payload: {
+    fullName: string;
+    jobTitle: string;
+    whatsappNumber: string;
+  },
+  token: string
+) {
+  const res = await fetch(`${API_BASE_URL}/dudi/${dudiId}/mentors`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal mendaftarkan mentor");
+  return json;
+}
+
+/** POST /dudi/mentors/:mentorId/reset-device — Reset ikatan perangkat (A2) */
+export async function resetMentorDevice(mentorId: string, token: string) {
+  const res = await fetch(`${API_BASE_URL}/dudi/mentors/${mentorId}/reset-device`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal mereset perangkat mentor");
+  return json;
+}
+
+/** GET /dudi/verify/:token/activate — Review aktivasi untuk layar HP mentor */
+export async function fetchActivationDetails(token: string) {
+  const res = await fetch(`${API_BASE_URL}/dudi/verify/${token}/activate`);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Tautan aktivasi tidak valid atau kedaluwarsa");
+  return json.data;
+}
+
+/** POST /dudi/verify/:token/activate — Ikat perangkat mentor dengan PIN */
+export async function activateMentorDevice(
+  token: string,
+  payload: { deviceToken: string; pin: string }
+) {
+  const res = await fetch(`${API_BASE_URL}/dudi/verify/${token}/activate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal mengaktifkan perangkat mentor");
+  return json;
+}
+
+// ─────────────────────────────────────────────────────────
+// FR-004: Smart Placement & Spatial Compatibility API
+// ─────────────────────────────────────────────────────────
+
+export interface PlacementCandidateStudent {
+  studentId: string;
+  fullName: string;
+  identityNumber: string;
+  department: { id: string; name: string } | null;
+  hasCustomCoordinates: boolean;
+  homeLatitude: number;
+  homeLongitude: number;
+  isPlaced: boolean;
+  activePlacementId: string | null;
+  recommendations: Array<{
+    dudiId: string;
+    dudiName: string;
+    totalScore: number;
+    competencyScore: number;
+    distanceScore: number;
+    distanceKm: number;
+    requiresMidtermRotation: boolean;
+    remainingQuota: number;
+  }>;
+  bestRecommendation: {
+    dudiId: string;
+    dudiName: string;
+    totalScore: number;
+    competencyScore: number;
+    distanceScore: number;
+    distanceKm: number;
+    requiresMidtermRotation: boolean;
+    remainingQuota: number;
+  } | null;
+}
+
+export interface PlacementCandidateData {
+  period: { id: string; name: string; targetTotalJp: number } | null;
+  schoolCoordinates: { latitude: number; longitude: number };
+  students: PlacementCandidateStudent[];
+  teachers: Array<{ id: string; fullName: string; identityNumber: string }>;
+  dudis: Array<{
+    id: string;
+    name: string;
+    sectorCategory: string;
+    address: string;
+    city: string;
+    latitude: number;
+    longitude: number;
+    maxQuota: number;
+    activePlacementsCount: number;
+    remainingQuota: number;
+    mentors: Array<{ id: string; fullName: string; jobTitle: string; isBound: boolean }>;
+  }>;
+}
+
+export interface PlacementRecordItem {
+  id: string;
+  academicPeriod: { id: string; name: string };
+  student: {
+    id: string;
+    fullName: string;
+    identityNumber: string;
+    whatsappNumber: string | null;
+    schoolDepartment: { id: string; name: string } | null;
+  };
+  teacher: { id: string; fullName: string; identityNumber: string };
+  dudiPartner: {
+    id: string;
+    name: string;
+    sectorCategory: string;
+    city: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+  };
+  dudiMentor: {
+    id: string;
+    fullName: string;
+    jobTitle: string;
+    isDeviceBound: boolean;
+  } | null;
+  compatibilityScore: number;
+  coverageScore: number;
+  distanceKm: number;
+  requiresMidtermRotation: boolean;
+  status: string;
+  rotationSequence: number;
+  logsCount: number;
+  createdAt: string;
+}
+
+/** GET /schools/:schoolId/placements/candidates */
+export async function fetchPlacementCandidates(
+  schoolId: string,
+  departmentId?: string,
+  token?: string
+): Promise<PlacementCandidateData> {
+  const query = departmentId ? `?departmentId=${departmentId}` : "";
+  const res = await fetch(`${API_BASE_URL}/schools/${schoolId}/placements/candidates${query}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memuat kandidat penempatan siswa");
+  return json.data;
+}
+
+/** GET /schools/:schoolId/placements */
+export async function fetchPlacements(
+  schoolId: string,
+  params?: { departmentId?: string; status?: string },
+  token?: string
+): Promise<PlacementRecordItem[]> {
+  const q = new URLSearchParams();
+  if (params?.departmentId) q.set("departmentId", params.departmentId);
+  if (params?.status) q.set("status", params.status);
+  const query = q.toString() ? `?${q.toString()}` : "";
+
+  const res = await fetch(`${API_BASE_URL}/schools/${schoolId}/placements${query}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memuat daftar penempatan");
+  return json.data;
+}
+
+/** POST /schools/:schoolId/placements */
+export async function createPlacement(
+  schoolId: string,
+  payload: any,
+  token?: string
+) {
+  const res = await fetch(`${API_BASE_URL}/schools/${schoolId}/placements`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal menyimpan penempatan siswa");
+  return json;
+}
+
+/** POST /schools/:schoolId/placements/batch */
+export async function batchCreatePlacements(
+  schoolId: string,
+  payload: { placements: any[] },
+  token?: string
+) {
+  const res = await fetch(`${API_BASE_URL}/schools/${schoolId}/placements/batch`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal menyimpan penempatan massal");
+  return json;
+}
+
+/** PATCH /schools/:schoolId/placements/students/:studentId/coordinates */
+export async function updateStudentCoordinates(
+  schoolId: string,
+  studentId: string,
+  payload: { homeLatitude: number; homeLongitude: number },
+  token?: string
+) {
+  const res = await fetch(
+    `${API_BASE_URL}/schools/${schoolId}/placements/students/${studentId}/coordinates`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memperbarui koordinat siswa");
+  return json;
+}
+
+// ─────────────────────────────────────────────────────────
+// FR-011: e-Rapor SMK Grade & Narrative Exporter API
+// ─────────────────────────────────────────────────────────
+
+export interface EraporStudentRecord {
+  placementId: string;
+  student: {
+    id: string;
+    fullName: string;
+    identityNumber: string;
+    department: { id: string; name: string } | null;
+  };
+  dudiPartner: {
+    id: string;
+    name: string;
+    city: string;
+  };
+  teacher: {
+    id: string;
+    fullName: string;
+  };
+  totalVerifiedJp: number;
+  pendingLogsCount: number;
+  elements: Array<{
+    elementId: string;
+    elementCode: string;
+    elementTitle: string;
+    targetJp: number;
+    verifiedJp: number;
+    autonomyScore: number;
+    score: number;
+  }>;
+  attitudeScore: number | null;
+  isAttitudeIncluded: boolean;
+  finalGrade: number;
+  highestAchievement: string;
+  needsImprovement: string;
+}
+
+export interface EraporSummaryResponse {
+  school: { id: string; name: string };
+  totalStudents: number;
+  studentsWithPendingLogsCount: number;
+  warningMessage: string | null;
+  records: EraporStudentRecord[];
+}
+
+/** GET /schools/:schoolId/erapor (JSON) */
+export async function fetchEraporData(
+  schoolId: string,
+  params?: { departmentId?: string; academicPeriodId?: string },
+  token?: string
+): Promise<EraporSummaryResponse> {
+  const q = new URLSearchParams();
+  if (params?.departmentId) q.set("departmentId", params.departmentId);
+  if (params?.academicPeriodId) q.set("academicPeriodId", params.academicPeriodId);
+  const query = q.toString() ? `?${q.toString()}` : "";
+
+  const res = await fetch(`${API_BASE_URL}/schools/${schoolId}/erapor${query}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memuat rekap e-Rapor");
+  return json.data;
+}
+
+/** GET /schools/:schoolId/erapor?format=csv (Blob Download) */
+export async function downloadEraporCsv(
+  schoolId: string,
+  params?: { departmentId?: string; academicPeriodId?: string },
+  token?: string
+): Promise<Blob> {
+  const q = new URLSearchParams();
+  q.set("format", "csv");
+  if (params?.departmentId) q.set("departmentId", params.departmentId);
+  if (params?.academicPeriodId) q.set("academicPeriodId", params.academicPeriodId);
+
+  const res = await fetch(`${API_BASE_URL}/schools/${schoolId}/erapor?${q.toString()}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.detail || "Gagal mengunduh berkas CSV e-Rapor");
+  }
+  return await res.blob();
+}
+

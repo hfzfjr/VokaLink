@@ -78,3 +78,127 @@ export function calculatePlacementScore(
     requiresMidtermRotation,
   };
 }
+
+export interface CandidateDudi {
+  dudiId: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  remainingQuota: number;
+  supportedCpJp: number;
+}
+
+export interface CandidateStudent {
+  studentId: string;
+  name: string;
+  homeLatitude: number;
+  homeLongitude: number;
+}
+
+export interface StudentDudiMatch {
+  dudiId: string;
+  dudiName: string;
+  totalScore: number;
+  competencyScore: number;
+  distanceScore: number;
+  distanceKm: number;
+  requiresMidtermRotation: boolean;
+  remainingQuota: number;
+}
+
+export interface StudentPlacementRecommendation {
+  studentId: string;
+  studentName: string;
+  matches: StudentDudiMatch[];
+  bestMatch: StudentDudiMatch | null;
+}
+
+export interface GreedyAssignmentResult {
+  assigned: Array<{
+    studentId: string;
+    studentName: string;
+    dudiId: string;
+    dudiName: string;
+    score: StudentDudiMatch;
+  }>;
+  unassigned: Array<{
+    studentId: string;
+    studentName: string;
+    reason: string;
+  }>;
+}
+
+/**
+ * Memberikan peringkat seluruh mitra DUDI untuk 1 orang siswa terurut dari skor tertinggi
+ */
+export function rankDudiForStudent(
+  student: CandidateStudent,
+  dudis: CandidateDudi[],
+  targetTotalJp: number = TOTAL_TARGET_JP
+): StudentDudiMatch[] {
+  return dudis
+    .map((dudi) => {
+      const score = calculatePlacementScore({
+        supportedCpJp: dudi.supportedCpJp,
+        targetTotalJp,
+        studentLat: student.homeLatitude,
+        studentLon: student.homeLongitude,
+        dudiLat: dudi.latitude,
+        dudiLon: dudi.longitude,
+      });
+
+      return {
+        dudiId: dudi.dudiId,
+        dudiName: dudi.name,
+        totalScore: score.totalScore,
+        competencyScore: score.competencyScore,
+        distanceScore: score.distanceScore,
+        distanceKm: score.distanceKm,
+        requiresMidtermRotation: score.requiresMidtermRotation,
+        remainingQuota: dudi.remainingQuota,
+      };
+    })
+    .sort((a, b) => b.totalScore - a.totalScore);
+}
+
+/**
+ * Algoritma greedy assignment penempatan massal dengan penegakan kuota (DESIGN.md §8.1)
+ */
+export function matchPlacementsGreedy(
+  students: CandidateStudent[],
+  dudis: CandidateDudi[],
+  targetTotalJp: number = TOTAL_TARGET_JP
+): GreedyAssignmentResult {
+  const quotaMap = new Map<string, number>();
+  for (const d of dudis) {
+    quotaMap.set(d.dudiId, Math.max(0, d.remainingQuota));
+  }
+
+  const assigned: GreedyAssignmentResult["assigned"] = [];
+  const unassigned: GreedyAssignmentResult["unassigned"] = [];
+
+  for (const student of students) {
+    const ranked = rankDudiForStudent(student, dudis, targetTotalJp);
+    const chosen = ranked.find((r) => (quotaMap.get(r.dudiId) ?? 0) > 0);
+
+    if (chosen) {
+      const currentRemaining = quotaMap.get(chosen.dudiId) ?? 1;
+      quotaMap.set(chosen.dudiId, currentRemaining - 1);
+      assigned.push({
+        studentId: student.studentId,
+        studentName: student.name,
+        dudiId: chosen.dudiId,
+        dudiName: chosen.dudiName,
+        score: chosen,
+      });
+    } else {
+      unassigned.push({
+        studentId: student.studentId,
+        studentName: student.name,
+        reason: "Kuota seluruh mitra DUDI pilihan telah penuh",
+      });
+    }
+  }
+
+  return { assigned, unassigned };
+}

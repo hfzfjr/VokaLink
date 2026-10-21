@@ -10,6 +10,8 @@ const withSerwist = withSerwistInit({
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@vokalink/shared", "@vokalink/core"],
+  // @vokalink/core/crypto uses node:crypto — keep it server-side only
+  serverExternalPackages: [],
   webpack: (config) => {
     config.resolve.extensionAlias = {
       ".js": [".ts", ".tsx", ".js"],
