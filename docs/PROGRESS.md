@@ -52,7 +52,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 | Skema Prisma + migrasi + SQL guard (RLS, trigger immutability) | A | [x] (BUG-001 fixed oleh Orang B) |
 | `curriculum-seed.json` (6 jurusan, 792 JP, min. 12 Job Card) | A | [x] (6 jurusan, 25 elemen CP, 89 Job Cards) |
 | Seeder v1 (sekolah demo, mentor terikat, penempatan) | A | [x] (sekolah demo, guru, 5 siswa, 6 DUDI & penempatan aktif) |
-| Seeder v2 (riwayat 8 minggu, drift, endorsement, paspor) | A | [ ] |
+| Seeder v2 (riwayat 8 minggu, drift, endorsement, paspor) | A | [x] (40 hari log, segel HMAC, 3 kasus drift, rotasi 430 JP, endorsement & paspor publik) |
 | Auth middleware (JWT Supabase, role, tenant guard) | C | [x] |
 | `packages/core` (haversine, skor, drift, rapor, canonical JSON, HMAC) | C | [x] |
 | `packages/shared` (skema Zod, konstanta) | semua | [x] |
@@ -128,14 +128,24 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
     - API endpoint `GET /api/schools/:schoolId/erapor` dengan `?format=json` dan `?format=csv` (tenant guard, hanya data `VERIFIED`, peringatan `PENDING_VERIFICATION`).
     - Frontend `/school/erapor` dengan tabel nilai per siswa, banner peringatan pending, tombol download CSV, modal override nilai guru (A1).
     - 4 integration tests di `apps/api/test/erapor.test.ts`, total 56 tests monorepo lulus 100%.
-    - BUG-001 dinyatakan resolved oleh Orang B (trigger immutability fix).
+    - Resolusi BUG-001 (P0 Critical): Migrasi `20261021184500_fix_bug001_trigger_mentor_id` diterapkan ke Supabase (memperbaiki typo nama kolom `mentor_id` menjadi `verified_by_mentor_id` pada trigger immutability).
+  - Seeder v2 (Riwayat 8 Minggu, Drift, Endorsement & Paspor) (Orang A):
+    - `apps/api/prisma/seed-v2.ts` dan script `pnpm --filter api seed:v2`.
+    - Riwayat 40 hari kerja (8 minggu) per siswa RPL dengan durasi 6-10 JP/hari (< 12 JP/hari BR-002), bukti foto WebP realistis (< 150 KB BR-006), dan segel HMAC-SHA256 (`signature_hash`).
+    - Andi Pratama: 288 JP terverifikasi + 4 hari pending (siap uji batch approve < 10 dtk TC-005), endorsement sikap 95/100, paspor publik `/verify/andi-pratama-rpl-2026`.
+    - Bintang Ramadhan: Skenario `NON_COMPETENCY_OVERLOAD` aktif (40% non-kompetensi dalam 14 hari terakhir) (TC-008).
+    - Citra Maharani: Skenario `SKILL_MONOTONY` aktif (85% jam menumpuk di 1 Elemen CP, 2 elemen lain 0 JP).
+    - Dewi Anggraini: Skenario `APPROVAL_DORMANCY` aktif (7 log pending > 7 hari tanpa validasi mentor).
+    - Eko Saputra: Skenario rotasi mitra (380 JP DUDI A + 50 JP DUDI B = 430 JP total TC-009) dengan riwayat `DriftAlert` resolved dan `InterventionLog` guru, paspor publik `/verify/eko-saputra-rpl-2026`.
+    - Seluruh 6 mentor DUDI diikat dengan kredensial demo (PIN: `1234`, token perangkat).
+    - Demo token batch approve untuk mentor Rizky terbit dan siap dites pada `/v/[token]`.
 - Sedang dikerjakan:
   - Persiapan FR-012 (CV ATS generator & Paspor Keterampilan ber-QR terhubung ke log VERIFIED).
 - Blocker:
   - Tidak ada blocker aktif saat ini.
 - Rencana besok (Hari 3):
   - Integrasi QR code dinamis token mentor (`/v/[token]`) dari portal siswa untuk diverifikasi oleh Orang C (FR-007).
-  - Seeder v2 riwayat 8 minggu + drift + endorsement (Orang A).
+  - Frontend Heatmap & Drift Alert dasbor guru (`/teacher/heatmap`) (FR-008).
 
 ### Hari 1 — Rab 21 Okt 2026
 - Selesai:

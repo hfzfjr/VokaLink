@@ -43,12 +43,12 @@ Aturan:
 
 | ID | Level | Status | Fitur | Judul | Pemilik |
 |---|---|---|---|---|---|
-| BUG-001 | P0 Critical | Open | Database / BR-007 | Trigger immutability block_verified_log_update memakai nama kolom salah mentor_id | Orang A |
+| BUG-001 | P0 Critical | Fixed | Database / BR-007 | Trigger immutability block_verified_log_update memakai nama kolom salah mentor_id | Orang A |
 | BUG-002 | P3 Low | Fixed | PWA / Manifest | Web App Manifest mereferensikan file PNG non-eksistensi menyebabkan 404 pada browser | Orang B |
 
 ### BUG-001 — Trigger block_verified_log_update memakai nama kolom salah mentor_id
 - **Level:** P0 Critical
-- **Status:** Open
+- **Status:** Fixed
 - **Fitur/Modul:** Database Migration / Security Guards (BR-007, P3 Immutability)
 - **Pelapor / Pemilik:** Orang B / Orang A
 - **Ditemukan:** 21 Okt 2026 (Hari 1), audit kode statis file `20261020192102_security_guards/migration.sql`
@@ -62,7 +62,7 @@ Aturan:
   Trigger mengecek kolom `verified_by_mentor_id` dan melempar pesan exception `verified log is immutable` jika kolom tersebut atau data log diverifikasi lainnya diubah.
 - **Catatan / dugaan penyebab:**
   Typo penamaan kolom saat menyusun migration SQL guards di Hari 0/1.
-- **Perbaikan (commit/PR):** - (Memerlukan migration baru oleh Orang A untuk merevisi function trigger).
+- **Perbaikan (commit/PR):** Migration `20261021184500_fix_bug001_trigger_mentor_id/migration.sql` deployed via `prisma migrate deploy`, merevisi function trigger menggunakan `NEW.verified_by_mentor_id IS DISTINCT FROM OLD.verified_by_mentor_id`. Transisi verifikasi log teruji sukses pada Seeder v2.
 
 ### BUG-002 — Web App Manifest mereferensikan file PNG non-eksistensi menyebabkan 404 pada browser
 - **Level:** P3 Low
