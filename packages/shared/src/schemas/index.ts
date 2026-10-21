@@ -246,3 +246,8 @@ export type ResetMentorDeviceInput = z.infer<typeof resetMentorDeviceSchema>;
 // FR-004: Smart Placement & Spatial Compatibility schemas
 // ─────────────────────────────────────────────────────────
 export * from "./placement.js";
+
+// ─────────────────────────────────────────────────────────
+// FR-011: e-Rapor SMK Grade & Narrative Exporter schemas
+// ─────────────────────────────────────────────────────────
+export * from "./erapor.js";

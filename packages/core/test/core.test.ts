@@ -17,6 +17,8 @@ import {
   detectApprovalDormancy,
   calculateElementGrade,
   calculateFinalPklGrade,
+  generateEraporNarratives,
+  generateEraporCsv,
 } from "../src/index.js";
 
 describe("Canonical JSON & HMAC", () => {
@@ -291,5 +293,42 @@ describe("e-Rapor Grades (BR-009)", () => {
     });
     // 90 * 0.80 + 95 * 0.20 = 72 + 19 = 91
     expect(finalScore).toBe(91);
+  });
+
+  it("generates Kurikulum Merdeka narrative descriptions accurately", () => {
+    const narrative = generateEraporNarratives({
+      studentName: "Ahmad Rizky",
+      dudiName: "PT Inovasi Digital",
+      topJobCardTitle: "Implementasi REST API & Microservices",
+      topElementTitle: "Pemrograman Web & Mobile",
+      lowestElementTitle: "Keamanan Sistem & Jaringan",
+      lowestElementScore: 65,
+    });
+
+    expect(narrative.highestAchievement).toContain("Implementasi REST API & Microservices");
+    expect(narrative.highestAchievement).toContain("PT Inovasi Digital");
+    expect(narrative.highestAchievement).toContain("Pemrograman Web & Mobile");
+    expect(narrative.needsImprovement).toContain("Keamanan Sistem & Jaringan");
+    expect(narrative.needsImprovement).toContain("Perlu peningkatan jam praktik");
+  });
+
+  it("generates RFC-compliant e-Rapor CSV string with escaping", () => {
+    const rows = [
+      {
+        nisn: "0012345678",
+        studentName: 'Ahmad "Rizky", S.Kom',
+        dudiName: "PT Teknologi, Inovasi",
+        totalVerifiedJp: 792,
+        finalGrade: 94.5,
+        highestAchievement: "Kompeten dalam web development",
+        needsImprovement: "Konsisten dan baik",
+      },
+    ];
+
+    const csv = generateEraporCsv(rows);
+    expect(csv).toContain("NISN,Nama_Siswa,Nama_Mitra_DUDI");
+    expect(csv).toContain('"Ahmad ""Rizky"", S.Kom"'); // escaped quotes
+    expect(csv).toContain('"PT Teknologi, Inovasi"'); // escaped comma
+    expect(csv).toContain("94.5");
   });
 });

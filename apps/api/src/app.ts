@@ -6,6 +6,7 @@ import { schoolsRouter } from "./routes/schools.js";
 import { curriculumRouter } from "./routes/curriculum.js";
 import { dudiRouter } from "./routes/dudi.js";
 import { placementsRouter } from "./routes/placements.js";
+import { eraporRouter } from "./routes/erapor.js";
 import { errorHandler } from "./middlewares/error-handler.js";
 
 export function createApp(): Express {
@@ -64,6 +65,11 @@ export function createApp(): Express {
   const PLACEMENT_PATH = "/api/schools/:schoolId/placements";
   app.use(PLACEMENT_PATH, placementsRouter);
   app.use(`/api/v1${PLACEMENT_PATH.slice(4)}`, placementsRouter);
+
+  // Automated e-Rapor SMK Grade & Narrative Exporter (FR-011)
+  const ERAPOR_PATH = "/api/schools/:schoolId/erapor";
+  app.use(ERAPOR_PATH, eraporRouter);
+  app.use(`/api/v1${ERAPOR_PATH.slice(4)}`, eraporRouter);
 
   // Global RFC 7807 error handler
   app.use(errorHandler);

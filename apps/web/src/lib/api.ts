@@ -661,3 +661,90 @@ export async function updateStudentCoordinates(
   return json;
 }
 
+// ─────────────────────────────────────────────────────────
+// FR-011: e-Rapor SMK Grade & Narrative Exporter API
+// ─────────────────────────────────────────────────────────
+
+export interface EraporStudentRecord {
+  placementId: string;
+  student: {
+    id: string;
+    fullName: string;
+    identityNumber: string;
+    department: { id: string; name: string } | null;
+  };
+  dudiPartner: {
+    id: string;
+    name: string;
+    city: string;
+  };
+  teacher: {
+    id: string;
+    fullName: string;
+  };
+  totalVerifiedJp: number;
+  pendingLogsCount: number;
+  elements: Array<{
+    elementId: string;
+    elementCode: string;
+    elementTitle: string;
+    targetJp: number;
+    verifiedJp: number;
+    autonomyScore: number;
+    score: number;
+  }>;
+  attitudeScore: number | null;
+  isAttitudeIncluded: boolean;
+  finalGrade: number;
+  highestAchievement: string;
+  needsImprovement: string;
+}
+
+export interface EraporSummaryResponse {
+  school: { id: string; name: string };
+  totalStudents: number;
+  studentsWithPendingLogsCount: number;
+  warningMessage: string | null;
+  records: EraporStudentRecord[];
+}
+
+/** GET /schools/:schoolId/erapor (JSON) */
+export async function fetchEraporData(
+  schoolId: string,
+  params?: { departmentId?: string; academicPeriodId?: string },
+  token?: string
+): Promise<EraporSummaryResponse> {
+  const q = new URLSearchParams();
+  if (params?.departmentId) q.set("departmentId", params.departmentId);
+  if (params?.academicPeriodId) q.set("academicPeriodId", params.academicPeriodId);
+  const query = q.toString() ? `?${q.toString()}` : "";
+
+  const res = await fetch(`${API_BASE_URL}/schools/${schoolId}/erapor${query}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memuat rekap e-Rapor");
+  return json.data;
+}
+
+/** GET /schools/:schoolId/erapor?format=csv (Blob Download) */
+export async function downloadEraporCsv(
+  schoolId: string,
+  params?: { departmentId?: string; academicPeriodId?: string },
+  token?: string
+): Promise<Blob> {
+  const q = new URLSearchParams();
+  q.set("format", "csv");
+  if (params?.departmentId) q.set("departmentId", params.departmentId);
+  if (params?.academicPeriodId) q.set("academicPeriodId", params.academicPeriodId);
+
+  const res = await fetch(`${API_BASE_URL}/schools/${schoolId}/erapor?${q.toString()}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.detail || "Gagal mengunduh berkas CSV e-Rapor");
+  }
+  return await res.blob();
+}
+

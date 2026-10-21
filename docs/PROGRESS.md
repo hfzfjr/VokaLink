@@ -1,7 +1,7 @@
 # PROGRESS — VokaLink
 
 > Papan status hidup. Perbarui setiap malam. Rencana ada di `SPRINT.md`, spesifikasi di `PRD.md`.
-> **Terakhir diperbarui:** 22 Okt 2026 (Hari 2)
+> **Terakhir diperbarui:** 21 Okt 2026 (Hari 2)
 > **Hari sprint saat ini:** 2 dari 10 · **Deadline:** 30 Okt 2026 · **Code freeze:** 28 Okt
 
 Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblokir
@@ -10,10 +10,10 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | Metrik | Nilai |
 |---|---|
-| FR selesai | 4 / 12 |
-| FR Must Have selesai | 4 / 11 |
+| FR selesai | 5 / 12 |
+| FR Must Have selesai | 5 / 11 |
 | TC lulus | 2 / 10 |
-| Bug terbuka (Critical / High) | 1 / 0 |
+| Bug terbuka (Critical / High) | 0 / 0 |
 | Status cut-line | Belum dievaluasi (evaluasi di akhir Hari 7) |
 
 ## 2. Infrastruktur (Hari 0)
@@ -42,14 +42,14 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 | FR-008 | Heatmap & drift alert | C | [ ] | [ ] | [ ] | [ ] | Algoritma drift tuntas di packages/core |
 | FR-009 | Intervensi WA & rotasi mitra | C | [ ] | [ ] | [ ] | [ ] | |
 | FR-010 | Endorsement & quality index (Should) | C | [ ] | [ ] | [ ] | [ ] | Kandidat pertama cut-line |
-| FR-011 | e-Rapor exporter | A | [ ] | [ ] | [ ] | [ ] | Rumus nilai tuntas di packages/core |
+| FR-011 | e-Rapor exporter | A | [x] | [x] | [x] | [x] | Formula BR-009 (0.60×teknis+0.40×sikap), narratif Kurikulum Merdeka, export CSV |
 | FR-012 | CV ATS & paspor publik | B / C | [ ] | [ ] | [~] | [ ] | Layout CV A4 Print CSS siap di sisi klien |
 
 ## 4. Modul Bersama
 
 | Modul | Pemilik | Status |
 |---|---|---|
-| Skema Prisma + migrasi + SQL guard (RLS, trigger immutability) | A | [~] (skema 20 model tuntas & tervalidasi; menunggu fix BUG-001) |
+| Skema Prisma + migrasi + SQL guard (RLS, trigger immutability) | A | [x] (BUG-001 fixed oleh Orang B) |
 | `curriculum-seed.json` (6 jurusan, 792 JP, min. 12 Job Card) | A | [x] (6 jurusan, 25 elemen CP, 89 Job Cards) |
 | Seeder v1 (sekolah demo, mentor terikat, penempatan) | A | [x] (sekolah demo, guru, 5 siswa, 6 DUDI & penempatan aktif) |
 | Seeder v2 (riwayat 8 minggu, drift, endorsement, paspor) | A | [ ] |
@@ -88,7 +88,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | # | Hal | Pemilik | Status |
 |---|---|---|---|
-| BUG-001 | Trigger block_verified_log_update memakai mentor_id bukan verified_by_mentor_id | A | Open (P0 Critical) |
+| BUG-001 | Trigger block_verified_log_update memakai mentor_id bukan verified_by_mentor_id | A | ✅ Resolved oleh Orang B |
 
 Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-12) dan bagian 12.
 
@@ -116,12 +116,19 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
     - API router `/api/schools/:schoolId/placements` (`/candidates`, `POST /`, `POST /batch`, `PATCH /students/:id/coordinates`) dengan tenant guard, validasi kuota penuh (422), deteksi rotasi tengah semester (<50%), dan A1 override manual.
     - Halaman web `/school/placements` dengan tab kandidat rekomendasi, visualisasi skor multi-kriteria, peringatan kuning rotasi tengah semester (WCAG AA), modal konfirmasi penempatan, update koordinat domisili via GPS/manual, dan pratinjau auto-greedy massal.
     - 8 unit & integration tests di `apps/api/test/placements.test.ts` dan 2 unit tests di `packages/core/test/core.test.ts` lulus 100%.
+  - FR-011: e-Rapor SMK Grade & Narrative Exporter (Orang A).
+    - Formula BR-009 murni di `packages/core/src/erapor.ts`: `calculateElementGrade`, `calculateFinalPklGrade`, `generateEraporNarratives`, `generateEraporCsv`.
+    - Narratif Kurikulum Merdeka otomatis menyebut Job Card terbaik + nama DUDI, serta elemen terendah yang perlu bimbingan.
+    - API endpoint `GET /api/schools/:schoolId/erapor` dengan `?format=json` dan `?format=csv` (tenant guard, hanya data `VERIFIED`, peringatan `PENDING_VERIFICATION`).
+    - Frontend `/school/erapor` dengan tabel nilai per siswa, banner peringatan pending, tombol download CSV, modal override nilai guru (A1).
+    - 4 integration tests di `apps/api/test/erapor.test.ts`, total 56 tests monorepo lulus 100%.
+    - BUG-001 dinyatakan resolved oleh Orang B (trigger immutability fix).
 - Sedang dikerjakan:
-  - Persiapan FR-005 & integrasi antrean sinkronisasi FR-006 (Orang B / Orang A).
+  - Persiapan FR-005 & integrasi antrean sinkronisasi FR-006 (Orang B).
 - Blocker:
-  - BUG-001 (P0 Critical): Menunggu migrasi database baru oleh Orang A.
+  - Tidak ada blocker aktif saat ini.
 - Rencana besok (Hari 3):
-  - Integrasi batch sync PWA `/api/v1/logs/sync` dan upload biner bukti WebP (FR-006 & FR-005).
+  - Integrasi batch sync PWA `/api/v1/logs/sync` dan upload biner bukti WebP (FR-005 & FR-006, Orang B).
 
 ### Hari 1 — Rab 21 Okt 2026
 - Selesai:
