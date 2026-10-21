@@ -96,12 +96,16 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
 
 ### Hari 1 — Rab 21 Okt 2026
 - Selesai:
-  - Inisialisasi PWA student shell mobile-first (360px), layout container, dan header status (Orang B).
-  - Bottom Navigation mobile dengan touch targets >= 48px dan elevated action "Catat" (Orang B).
+  - Inisialisasi PWA student shell responsif: optimal di mobile (360px) hingga tablet/desktop (max-w-6xl) (Orang B).
+  - Desktop Navigation Bar terintegrasi pada StudentHeader (`hidden md:flex`) dan Bottom Navigation khusus mobile (`md:hidden`) dengan touch target >= 48px (Orang B).
   - Connectivity Banner 3-state (Offline, Syncing, Synced) dengan useOnlineStatus SSR-safe hook (Orang B).
-  - 4 Halaman antarmuka siswa: /student/home (progress 792 JP), /student/log/new (zero-typing & Tombol Jujur), /student/log/history, dan /student/career-cv (ATS CV Print CSS) (Orang B).
+  - 4 Halaman antarmuka siswa sepenuhnya responsif:
+    - `/student/home`: Grid 12-kolom (Hero identitas siswa, progress bar 792 JP, 3 kartu aksi, & grid 2-kolom log terakhir).
+    - `/student/log/new`: Grid 2-kolom desktop (Kiri: pemilih tanggal & katalog Job Cards mitra; Kanan: Tombol Jujur, slider JP 1-12, autonomy picker, & catatan singkat).
+    - `/student/log/history`: Grid statistik 4 metrik, bilah pencarian & filter status, grid 3-kolom kartu logbook, serta modal interaktif Minta Verifikasi QR (BR-007).
+    - `/student/career-cv`: Layout 12-kolom desktop (Kiri: pratinjau lembar kertas A4 ATS single-column; Kanan: checklist kepatuhan ATS 100%, editor bio profesional, info paspor publik).
   - Resolusi dependensi monorepo dan dev server Next.js aktif di port 3000 (Orang B).
-  - Branch feat/fr-005-student-shell di-push ke GitHub remote.
+  - Branch `feat/fr-005-student-shell` di-push ke GitHub remote.
   - Dataset kurikulum 6 jurusan tervalidasi 792 JP dan seeder v1 siap (Orang A).
 - Sedang dikerjakan:
   - FR-005 (Logger zero-typing & Tombol Jujur) & integrasi offline storage.

@@ -55,7 +55,7 @@ export function ConnectivityBanner({
         aria-live="polite"
         className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md transition-all duration-300"
       >
-        <div className="max-w-md mx-auto px-4 py-2.5 flex items-center justify-between gap-3 text-xs sm:text-sm font-medium">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 text-xs sm:text-sm font-medium">
           <div className="flex items-center gap-2.5">
             <span className="p-1 rounded-full bg-amber-700/50 flex-shrink-0 animate-pulse">
               <WifiOff className="w-4 h-4 text-amber-100" aria-hidden="true" />
@@ -82,7 +82,7 @@ export function ConnectivityBanner({
         aria-live="polite"
         className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md transition-all duration-300"
       >
-        <div className="max-w-md mx-auto px-4 py-2 flex items-center justify-between gap-3 text-xs sm:text-sm font-medium">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between gap-3 text-xs sm:text-sm font-medium">
           <div className="flex items-center gap-2.5">
             <RefreshCw className="w-4 h-4 text-blue-100 animate-spin flex-shrink-0" aria-hidden="true" />
             <span>Menyinkronkan data log ke server...</span>
@@ -105,7 +105,7 @@ export function ConnectivityBanner({
         aria-live="polite"
         className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md transition-all duration-300"
       >
-        <div className="max-w-md mx-auto px-4 py-2 flex items-center gap-2.5 text-xs sm:text-sm font-medium">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2 flex items-center gap-2.5 text-xs sm:text-sm font-medium">
           <CheckCircle2 className="w-4 h-4 text-emerald-100 flex-shrink-0" aria-hidden="true" />
           <span>Seluruh data tersinkronisasi dengan server</span>
         </div>
