@@ -1,0 +1,908 @@
+{
+  "_comment": "curriculum-seed.json — VokaLink v1. 6 jurusan SMK Fase F (Kurikulum Merdeka). Total JP per jurusan = 792. Min 4 elemen CP, min 12 Job Cards per jurusan. Setiap elemen min 2 Job Cards. Kategori non-kompetensi dibuat terpisah (isNonCompetency=true).",
+  "masterDepartments": [
+    {
+      "sectorCode": "AKL",
+      "name": "Akuntansi dan Keuangan Lembaga",
+      "description": "Konsentrasi keahlian bidang akuntansi, perpajakan, keuangan, dan administrasi keuangan lembaga sesuai SKKNI bidang akuntansi."
+    },
+    {
+      "sectorCode": "RPL",
+      "name": "Rekayasa Perangkat Lunak",
+      "description": "Konsentrasi keahlian bidang pengembangan perangkat lunak, pemrograman, dan sistem informasi sesuai SKKNI bidang TIK."
+    },
+    {
+      "sectorCode": "DKV",
+      "name": "Desain Komunikasi Visual",
+      "description": "Konsentrasi keahlian bidang desain grafis, ilustrasi, tipografi, dan produksi media visual sesuai SKKNI bidang desain."
+    },
+    {
+      "sectorCode": "KULINER",
+      "name": "Kuliner",
+      "description": "Konsentrasi keahlian bidang pengolahan makanan, pastry, bakery, dan pelayanan restoran sesuai SKKNI bidang pariwisata."
+    },
+    {
+      "sectorCode": "FARMASI",
+      "name": "Farmasi Klinis dan Komunitas",
+      "description": "Konsentrasi keahlian bidang kefarmasian, pelayanan apotek, dan manajemen perbekalan farmasi sesuai SKKNI bidang kesehatan."
+    },
+    {
+      "sectorCode": "OTOMOTIF",
+      "name": "Teknik Kendaraan Ringan Otomotif",
+      "description": "Konsentrasi keahlian bidang servis dan perawatan kendaraan ringan sesuai SKKNI bidang otomotif."
+    }
+  ],
+  "curriculum": [
+    {
+      "_jurusan": "AKL — Akuntansi dan Keuangan Lembaga (total 792 JP)",
+      "sectorCode": "AKL",
+      "cpElements": [
+        {
+          "code": "AKL-CP-01",
+          "title": "Akuntansi Keuangan — Siklus Transaksi dan Jurnal",
+          "targetJp": 180,
+          "sortOrder": 1,
+          "jobCards": [
+            {
+              "title": "Input transaksi kas dan bank harian",
+              "skkniUnitCode": "M.692000.003.02",
+              "toolsAndSoftware": ["Microsoft Excel", "MYOB", "Accurate"],
+              "actionVerbTemplate": "Menginput [jumlah] transaksi [jenis] ke jurnal kas/bank menggunakan [software]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Membuat jurnal umum dan posting ke buku besar",
+              "skkniUnitCode": "M.692000.004.02",
+              "toolsAndSoftware": ["Microsoft Excel", "MYOB"],
+              "actionVerbTemplate": "Memposting [jumlah] entri jurnal umum ke buku besar akun [nama akun]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Rekonsiliasi rekening koran bank",
+              "skkniUnitCode": "M.692000.005.02",
+              "toolsAndSoftware": ["Microsoft Excel"],
+              "actionVerbTemplate": "Merekonsiliasi laporan bank bulan [bulan] dengan selisih Rp [jumlah]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Mengelola buku besar pembantu piutang",
+              "skkniUnitCode": "M.692000.006.02",
+              "toolsAndSoftware": ["Microsoft Excel", "Accurate"],
+              "actionVerbTemplate": "Memperbarui buku besar pembantu piutang untuk [jumlah] pelanggan",
+              "isNonCompetency": false
+            }
+          ]
+        },
+        {
+          "code": "AKL-CP-02",
+          "title": "Laporan Keuangan — Penyusunan dan Analisis",
+          "targetJp": 180,
+          "sortOrder": 2,
+          "jobCards": [
+            {
+              "title": "Menyusun neraca saldo setelah penyesuaian",
+              "skkniUnitCode": "M.692000.007.02",
+              "toolsAndSoftware": ["Microsoft Excel", "MYOB"],
+              "actionVerbTemplate": "Menyusun neraca saldo disesuaikan untuk periode [bulan/tahun]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Membuat laporan laba rugi perusahaan",
+              "skkniUnitCode": "M.692000.008.02",
+              "toolsAndSoftware": ["Microsoft Excel"],
+              "actionVerbTemplate": "Menyusun laporan laba rugi [jenis perusahaan] periode [tanggal]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Menyusun laporan posisi keuangan (neraca)",
+              "skkniUnitCode": "M.692000.009.02",
+              "toolsAndSoftware": ["Microsoft Excel", "MYOB"],
+              "actionVerbTemplate": "Menyusun neraca per [tanggal] dengan total aset Rp [jumlah]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Menghitung rasio keuangan dasar",
+              "skkniUnitCode": "M.692000.010.02",
+              "toolsAndSoftware": ["Microsoft Excel"],
+              "actionVerbTemplate": "Menghitung [nama rasio] perusahaan periode [tanggal] sebesar [nilai]",
+              "isNonCompetency": false
+            }
+          ]
+        },
+        {
+          "code": "AKL-CP-03",
+          "title": "Perpajakan — Administrasi dan Pelaporan",
+          "targetJp": 144,
+          "sortOrder": 3,
+          "jobCards": [
+            {
+              "title": "Menghitung PPh Pasal 21 karyawan",
+              "skkniUnitCode": "M.692000.015.02",
+              "toolsAndSoftware": ["Microsoft Excel", "e-SPT"],
+              "actionVerbTemplate": "Menghitung PPh 21 untuk [jumlah] karyawan bulan [bulan] total pajak Rp [jumlah]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Mengisi formulir SPT Tahunan",
+              "skkniUnitCode": "M.692000.016.02",
+              "toolsAndSoftware": ["e-Filing DJP", "e-SPT"],
+              "actionVerbTemplate": "Mengisi dan menyiapkan SPT Tahunan [jenis] tahun pajak [tahun]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Membuat faktur pajak PPN",
+              "skkniUnitCode": "M.692000.017.02",
+              "toolsAndSoftware": ["e-Faktur DJP"],
+              "actionVerbTemplate": "Membuat [jumlah] faktur pajak masukan/keluaran bulan [bulan]",
+              "isNonCompetency": false
+            }
+          ]
+        },
+        {
+          "code": "AKL-CP-04",
+          "title": "Administrasi Keuangan dan Penggajian",
+          "targetJp": 144,
+          "sortOrder": 4,
+          "jobCards": [
+            {
+              "title": "Menyusun daftar gaji dan tunjangan karyawan",
+              "skkniUnitCode": "M.692000.020.02",
+              "toolsAndSoftware": ["Microsoft Excel", "HRIS"],
+              "actionVerbTemplate": "Menyusun daftar gaji [jumlah] karyawan divisi [divisi] bulan [bulan]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Mengelola kas kecil (petty cash)",
+              "skkniUnitCode": "M.692000.021.02",
+              "toolsAndSoftware": ["Microsoft Excel"],
+              "actionVerbTemplate": "Mencatat dan merekonsiliasi kas kecil senilai Rp [jumlah] periode [periode]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Memproses pembayaran tagihan vendor",
+              "skkniUnitCode": "M.692000.022.02",
+              "toolsAndSoftware": ["Microsoft Excel", "Internet Banking"],
+              "actionVerbTemplate": "Memproses [jumlah] pembayaran tagihan vendor total Rp [jumlah]",
+              "isNonCompetency": false
+            }
+          ]
+        },
+        {
+          "code": "AKL-CP-05",
+          "title": "Akuntansi Biaya dan Persediaan",
+          "targetJp": 144,
+          "sortOrder": 5,
+          "jobCards": [
+            {
+              "title": "Menghitung harga pokok produksi",
+              "skkniUnitCode": "M.692000.025.02",
+              "toolsAndSoftware": ["Microsoft Excel"],
+              "actionVerbTemplate": "Menghitung HPP produk [nama produk] dengan metode [FIFO/LIFO/Average]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Membuat kartu stok persediaan barang",
+              "skkniUnitCode": "M.692000.026.02",
+              "toolsAndSoftware": ["Microsoft Excel", "Accurate"],
+              "actionVerbTemplate": "Memperbarui kartu stok [nama barang] metode [metode] periode [periode]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Melakukan opname stok fisik gudang",
+              "skkniUnitCode": "M.692000.027.02",
+              "toolsAndSoftware": ["Microsoft Excel", "Barcode Scanner"],
+              "actionVerbTemplate": "Melakukan opname stok [jumlah] SKU di gudang dengan selisih [jumlah] unit",
+              "isNonCompetency": false
+            }
+          ]
+        }
+      ],
+      "nonCompetencyJobCards": [
+        {
+          "title": "Bantuan administrasi umum kantor",
+          "skkniUnitCode": null,
+          "toolsAndSoftware": ["Printer", "Scanner", "Microsoft Office"],
+          "actionVerbTemplate": "Membantu [tugas administrasi] selama [durasi] menit",
+          "isNonCompetency": true
+        }
+      ]
+    },
+    {
+      "_jurusan": "RPL — Rekayasa Perangkat Lunak (total 792 JP)",
+      "sectorCode": "RPL",
+      "cpElements": [
+        {
+          "code": "RPL-CP-01",
+          "title": "Pemrograman Dasar dan Pengembangan Web Frontend",
+          "targetJp": 198,
+          "sortOrder": 1,
+          "jobCards": [
+            {
+              "title": "Membuat komponen UI dengan HTML dan CSS",
+              "skkniUnitCode": "J.620100.020.02",
+              "toolsAndSoftware": ["VS Code", "Chrome DevTools", "Figma"],
+              "actionVerbTemplate": "Membuat [jumlah] komponen [nama komponen] responsif menggunakan [teknologi]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Mengimplementasikan logika JavaScript atau TypeScript",
+              "skkniUnitCode": "J.620100.021.02",
+              "toolsAndSoftware": ["VS Code", "Node.js", "Chrome DevTools"],
+              "actionVerbTemplate": "Mengimplementasikan fungsi [nama fungsi] untuk [fitur] menggunakan [bahasa]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Integrasi endpoint API REST ke halaman frontend",
+              "skkniUnitCode": "J.620100.022.02",
+              "toolsAndSoftware": ["VS Code", "Postman", "Axios"],
+              "actionVerbTemplate": "Mengintegrasikan endpoint [nama API] ke halaman [nama halaman] dengan response handling",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Debugging dan uji antarmuka di browser",
+              "skkniUnitCode": "J.620100.023.02",
+              "toolsAndSoftware": ["Chrome DevTools", "VS Code"],
+              "actionVerbTemplate": "Memperbaiki [jumlah] bug UI pada fitur [nama fitur] menggunakan DevTools",
+              "isNonCompetency": false
+            }
+          ]
+        },
+        {
+          "code": "RPL-CP-02",
+          "title": "Pengembangan Backend dan Database",
+          "targetJp": 198,
+          "sortOrder": 2,
+          "jobCards": [
+            {
+              "title": "Merancang dan membuat tabel database relasional",
+              "skkniUnitCode": "J.620100.025.02",
+              "toolsAndSoftware": ["PostgreSQL", "MySQL", "DBeaver"],
+              "actionVerbTemplate": "Membuat skema tabel [nama tabel] dengan [jumlah] relasi menggunakan [DBMS]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Membuat endpoint API RESTful",
+              "skkniUnitCode": "J.620100.026.02",
+              "toolsAndSoftware": ["Node.js", "Express", "Postman"],
+              "actionVerbTemplate": "Membuat endpoint [METHOD] /[path] untuk [fitur] dengan validasi input",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Implementasi autentikasi dan otorisasi JWT",
+              "skkniUnitCode": "J.620100.027.02",
+              "toolsAndSoftware": ["JWT", "bcrypt", "Node.js"],
+              "actionVerbTemplate": "Mengimplementasikan autentikasi [jenis] menggunakan JWT untuk modul [nama modul]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Menulis query SQL dan optimasi performa",
+              "skkniUnitCode": "J.620100.028.02",
+              "toolsAndSoftware": ["PostgreSQL", "DBeaver", "pgAdmin"],
+              "actionVerbTemplate": "Menulis query [jenis query] untuk [keperluan] dengan execution time kurang dari [target] ms",
+              "isNonCompetency": false
+            }
+          ]
+        },
+        {
+          "code": "RPL-CP-03",
+          "title": "Pengujian Perangkat Lunak dan Version Control",
+          "targetJp": 198,
+          "sortOrder": 3,
+          "jobCards": [
+            {
+              "title": "Menulis unit test dan integration test",
+              "skkniUnitCode": "J.620100.030.02",
+              "toolsAndSoftware": ["Jest", "Vitest", "Supertest"],
+              "actionVerbTemplate": "Menulis [jumlah] test case untuk modul [nama modul] dengan coverage [persentase]%",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Mengelola repository dan workflow Git",
+              "skkniUnitCode": "J.620100.031.02",
+              "toolsAndSoftware": ["Git", "GitHub", "VS Code"],
+              "actionVerbTemplate": "Melakukan [jumlah] commit dengan pesan konvensional untuk fitur [nama fitur]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Code review dan penulisan dokumentasi teknis",
+              "skkniUnitCode": "J.620100.032.02",
+              "toolsAndSoftware": ["GitHub", "Notion", "Markdown"],
+              "actionVerbTemplate": "Melakukan review [jumlah] pull request dan menulis dokumentasi [komponen/API]",
+              "isNonCompetency": false
+            }
+          ]
+        },
+        {
+          "code": "RPL-CP-04",
+          "title": "Deployment dan DevOps Dasar",
+          "targetJp": 198,
+          "sortOrder": 4,
+          "jobCards": [
+            {
+              "title": "Deploy aplikasi ke platform cloud atau hosting",
+              "skkniUnitCode": "J.620100.035.02",
+              "toolsAndSoftware": ["Vercel", "Railway", "Docker", "Ubuntu Server"],
+              "actionVerbTemplate": "Men-deploy [nama aplikasi] ke [platform] dengan konfigurasi CI/CD [pipeline]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Konfigurasi environment dan pipeline CI/CD",
+              "skkniUnitCode": "J.620100.036.02",
+              "toolsAndSoftware": ["GitHub Actions", "Docker", "Nginx"],
+              "actionVerbTemplate": "Mengkonfigurasi pipeline CI/CD untuk [nama repo] dengan [jumlah] stage otomasi",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Monitoring aplikasi dan analisis log error",
+              "skkniUnitCode": "J.620100.037.02",
+              "toolsAndSoftware": ["Sentry", "Logtail", "Grafana"],
+              "actionVerbTemplate": "Menganalisis [jumlah] error log di [environment] dan memperbaiki [jumlah] isu",
+              "isNonCompetency": false
+            }
+          ]
+        }
+      ],
+      "nonCompetencyJobCards": [
+        {
+          "title": "Bantuan administrasi dan operasional kantor IT",
+          "skkniUnitCode": null,
+          "toolsAndSoftware": ["Microsoft Office", "Email"],
+          "actionVerbTemplate": "Membantu [tugas administrasi] selama [durasi] menit",
+          "isNonCompetency": true
+        }
+      ]
+    },
+    {
+      "_jurusan": "DKV — Desain Komunikasi Visual (total 792 JP)",
+      "sectorCode": "DKV",
+      "cpElements": [
+        {
+          "code": "DKV-CP-01",
+          "title": "Desain Grafis dan Identitas Merek",
+          "targetJp": 198,
+          "sortOrder": 1,
+          "jobCards": [
+            {
+              "title": "Membuat aset visual identitas merek",
+              "skkniUnitCode": "M.74100.001.02",
+              "toolsAndSoftware": ["Adobe Illustrator", "Figma", "CorelDRAW"],
+              "actionVerbTemplate": "Membuat [nama aset] identitas merek [nama klien] dalam format [format]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Mendesain materi pemasaran digital (banner, poster, infografis)",
+              "skkniUnitCode": "M.74100.002.02",
+              "toolsAndSoftware": ["Adobe Photoshop", "Canva Pro", "Figma"],
+              "actionVerbTemplate": "Mendesain [jumlah] materi [jenis] untuk kampanye [nama kampanye] ukuran [ukuran]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Menyusun panduan merek (brand guideline)",
+              "skkniUnitCode": "M.74100.003.02",
+              "toolsAndSoftware": ["Adobe InDesign", "Figma", "Notion"],
+              "actionVerbTemplate": "Menyusun brand guideline [nama klien] mencakup [komponen] dalam format PDF",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Desain kemasan produk (packaging design)",
+              "skkniUnitCode": "M.74100.004.02",
+              "toolsAndSoftware": ["Adobe Illustrator", "Adobe Dimension"],
+              "actionVerbTemplate": "Mendesain kemasan produk [nama produk] dengan dimensi [ukuran] versi [jumlah] alternatif",
+              "isNonCompetency": false
+            }
+          ]
+        },
+        {
+          "code": "DKV-CP-02",
+          "title": "Fotografi, Videografi dan Produksi Konten",
+          "targetJp": 198,
+          "sortOrder": 2,
+          "jobCards": [
+            {
+              "title": "Memotret produk dan konten untuk media sosial",
+              "skkniUnitCode": "M.74100.010.02",
+              "toolsAndSoftware": ["Kamera DSLR", "Lightroom", "Adobe Photoshop"],
+              "actionVerbTemplate": "Memotret [jumlah] produk [nama produk] untuk platform [platform] dengan [jenis pencahayaan]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Mengedit dan meretouching foto digital",
+              "skkniUnitCode": "M.74100.011.02",
+              "toolsAndSoftware": ["Adobe Lightroom", "Adobe Photoshop"],
+              "actionVerbTemplate": "Mengedit [jumlah] foto produk/konten dengan teknik [teknik] untuk [platform/klien]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Memproduksi konten video pendek dan reels",
+              "skkniUnitCode": "M.74100.012.02",
+              "toolsAndSoftware": ["Premiere Pro", "CapCut Pro", "After Effects"],
+              "actionVerbTemplate": "Memproduksi video [durasi] detik untuk [platform] topik [topik] dengan [jumlah] revisi",
+              "isNonCompetency": false
+            }
+          ]
+        },
+        {
+          "code": "DKV-CP-03",
+          "title": "Desain UI/UX dan Prototyping Digital",
+          "targetJp": 198,
+          "sortOrder": 3,
+          "jobCards": [
+            {
+              "title": "Membuat wireframe dan prototype aplikasi",
+              "skkniUnitCode": "M.74100.015.02",
+              "toolsAndSoftware": ["Figma", "Adobe XD"],
+              "actionVerbTemplate": "Membuat wireframe [jumlah] halaman untuk [nama proyek] dengan [jumlah] flow utama",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Mendesain antarmuka aplikasi mobile dan web",
+              "skkniUnitCode": "M.74100.016.02",
+              "toolsAndSoftware": ["Figma", "Adobe XD", "Zeplin"],
+              "actionVerbTemplate": "Mendesain [jumlah] layar UI [mobile/web] untuk fitur [nama fitur] dengan [jenis device]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Presentasi desain dan iterasi berdasarkan feedback klien",
+              "skkniUnitCode": "M.74100.017.02",
+              "toolsAndSoftware": ["Figma", "PowerPoint", "Loom"],
+              "actionVerbTemplate": "Mempresentasikan desain [nama proyek] dan mengimplementasikan [jumlah] poin feedback",
+              "isNonCompetency": false
+            }
+          ]
+        },
+        {
+          "code": "DKV-CP-04",
+          "title": "Manajemen Konten dan Media Sosial",
+          "targetJp": 198,
+          "sortOrder": 4,
+          "jobCards": [
+            {
+              "title": "Menyusun kalender editorial konten media sosial",
+              "skkniUnitCode": "M.74100.020.02",
+              "toolsAndSoftware": ["Notion", "Trello", "Meta Business Suite"],
+              "actionVerbTemplate": "Menyusun kalender konten [nama brand] untuk [bulan] mencakup [jumlah] postingan",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Membuat dan menjadwalkan postingan media sosial",
+              "skkniUnitCode": "M.74100.021.02",
+              "toolsAndSoftware": ["Meta Business Suite", "Buffer", "Canva"],
+              "actionVerbTemplate": "Membuat dan menjadwalkan [jumlah] postingan [platform] untuk akun [nama akun]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Menganalisis performa konten dan menyusun laporan insight",
+              "skkniUnitCode": "M.74100.022.02",
+              "toolsAndSoftware": ["Meta Insights", "Google Analytics", "Microsoft Excel"],
+              "actionVerbTemplate": "Menganalisis performa konten [platform] periode [periode] dan menyusun laporan [metrik]",
+              "isNonCompetency": false
+            }
+          ]
+        }
+      ],
+      "nonCompetencyJobCards": [
+        {
+          "title": "Bantuan operasional studio dan gudang alat",
+          "skkniUnitCode": null,
+          "toolsAndSoftware": [],
+          "actionVerbTemplate": "Membantu [tugas operasional] selama [durasi] menit",
+          "isNonCompetency": true
+        }
+      ]
+    },
+    {
+      "_jurusan": "KULINER — Kuliner (total 792 JP)",
+      "sectorCode": "KULINER",
+      "cpElements": [
+        {
+          "code": "KUL-CP-01",
+          "title": "Pengolahan Makanan Kontinental dan Nusantara",
+          "targetJp": 252,
+          "sortOrder": 1,
+          "jobCards": [
+            {
+              "title": "Menyiapkan mise en place masakan",
+              "skkniUnitCode": "I.56092.002.02",
+              "toolsAndSoftware": ["Peralatan Dapur", "Timbangan Digital"],
+              "actionVerbTemplate": "Menyiapkan mise en place [nama masakan] untuk [jumlah] porsi dalam [durasi] menit",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Memasak hidangan utama (main course)",
+              "skkniUnitCode": "I.56092.003.02",
+              "toolsAndSoftware": ["Kompor Profesional", "Oven Konveksi", "Peralatan Dapur"],
+              "actionVerbTemplate": "Memasak [nama hidangan] metode [teknik memasak] untuk [jumlah] porsi",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Mengolah sup, saus, dan kaldu dasar",
+              "skkniUnitCode": "I.56092.004.02",
+              "toolsAndSoftware": ["Panci Stok", "Blender Profesional"],
+              "actionVerbTemplate": "Membuat [nama sup/saus/kaldu] sebanyak [jumlah] liter untuk kebutuhan [hari/acara]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Plating dan penyajian hidangan standar restoran",
+              "skkniUnitCode": "I.56092.005.02",
+              "toolsAndSoftware": ["Peralatan Plating", "Piring Saji"],
+              "actionVerbTemplate": "Melakukan plating [nama hidangan] dengan standar [jenis gaya penyajian] untuk [jumlah] porsi",
+              "isNonCompetency": false
+            }
+          ]
+        },
+        {
+          "code": "KUL-CP-02",
+          "title": "Pastry, Bakery dan Kue",
+          "targetJp": 216,
+          "sortOrder": 2,
+          "jobCards": [
+            {
+              "title": "Membuat adonan roti dan mengoperasikan oven",
+              "skkniUnitCode": "I.56092.010.02",
+              "toolsAndSoftware": ["Mixer Spiral", "Oven Deck", "Proofer"],
+              "actionVerbTemplate": "Membuat [jumlah] buah [nama roti] dengan teknik [jenis adonan] proofing [durasi]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Membuat kue kering dan cookies",
+              "skkniUnitCode": "I.56092.011.02",
+              "toolsAndSoftware": ["Mixer Stand", "Oven Konveksi", "Loyang"],
+              "actionVerbTemplate": "Memproduksi [jumlah] gram [nama kue] dengan hasil [jumlah] buah",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Mendekorasi kue dan cake design",
+              "skkniUnitCode": "I.56092.012.02",
+              "toolsAndSoftware": ["Piping Bag", "Fondant Tools", "Airbrush"],
+              "actionVerbTemplate": "Mendekorasi [nama kue] tema [tema] menggunakan teknik [teknik dekorasi]",
+              "isNonCompetency": false
+            }
+          ]
+        },
+        {
+          "code": "KUL-CP-03",
+          "title": "Food and Beverage Service — Pelayanan Restoran",
+          "targetJp": 216,
+          "sortOrder": 3,
+          "jobCards": [
+            {
+              "title": "Menyiapkan meja dan setting restoran",
+              "skkniUnitCode": "I.55101.002.02",
+              "toolsAndSoftware": ["Table Linen", "Cutlery", "Glassware"],
+              "actionVerbTemplate": "Menyiapkan table setting untuk [jumlah] pax standar [jenis layanan] dalam [durasi] menit",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Melayani tamu dan mengambil pesanan",
+              "skkniUnitCode": "I.55101.003.02",
+              "toolsAndSoftware": ["POS System", "Notepad"],
+              "actionVerbTemplate": "Melayani [jumlah] tamu menggunakan prosedur [jenis pelayanan] dengan waktu layanan [durasi] menit",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Membuat minuman kopi dan non-kopi standar cafe",
+              "skkniUnitCode": "I.55101.004.02",
+              "toolsAndSoftware": ["Mesin Espresso", "Grinder", "Steam Wand"],
+              "actionVerbTemplate": "Membuat [jumlah] gelas [nama minuman] sesuai standar resep dengan latte art [jenis]",
+              "isNonCompetency": false
+            }
+          ]
+        },
+        {
+          "code": "KUL-CP-04",
+          "title": "Higiene, Sanitasi dan Keselamatan Dapur",
+          "targetJp": 108,
+          "sortOrder": 4,
+          "jobCards": [
+            {
+              "title": "Menerapkan prosedur HACCP dan sanitasi dapur",
+              "skkniUnitCode": "I.56092.020.02",
+              "toolsAndSoftware": ["Termometer Makanan", "Checklist HACCP"],
+              "actionVerbTemplate": "Melaksanakan pemeriksaan HACCP [area dapur] dengan [jumlah] titik kontrol",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Membersihkan dan memelihara peralatan dapur",
+              "skkniUnitCode": "I.56092.021.02",
+              "toolsAndSoftware": ["Peralatan Pembersih", "Sanitizer"],
+              "actionVerbTemplate": "Membersihkan dan mensanitasi [nama peralatan] sesuai SOP dalam [durasi] menit",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Menyimpan bahan makanan sesuai standar keamanan pangan",
+              "skkniUnitCode": "I.56092.022.02",
+              "toolsAndSoftware": ["Kulkas Walk-in", "Label Maker"],
+              "actionVerbTemplate": "Menyimpan [nama bahan] dengan pelabelan FIFO di [area penyimpanan]",
+              "isNonCompetency": false
+            }
+          ]
+        }
+      ],
+      "nonCompetencyJobCards": [
+        {
+          "title": "Bantuan kebersihan dan operasional umum restoran",
+          "skkniUnitCode": null,
+          "toolsAndSoftware": ["Peralatan Kebersihan"],
+          "actionVerbTemplate": "Membantu [tugas umum] selama [durasi] menit",
+          "isNonCompetency": true
+        }
+      ]
+    },
+    {
+      "_jurusan": "FARMASI — Farmasi Klinis dan Komunitas (total 792 JP)",
+      "sectorCode": "FARMASI",
+      "cpElements": [
+        {
+          "code": "FAR-CP-01",
+          "title": "Pelayanan Resep dan Dispensing Obat",
+          "targetJp": 216,
+          "sortOrder": 1,
+          "jobCards": [
+            {
+              "title": "Menerima dan skrining resep dokter",
+              "skkniUnitCode": "Q.86FAR01.001.1",
+              "toolsAndSoftware": ["Sistem Informasi Apotek", "MIMS"],
+              "actionVerbTemplate": "Menerima dan melakukan skrining resep [jumlah] item dari dr. [spesialisasi]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Menyiapkan dan meracik obat (dispensing)",
+              "skkniUnitCode": "Q.86FAR01.002.1",
+              "toolsAndSoftware": ["Mortir Stamper", "Timbangan Analitik", "Etiket"],
+              "actionVerbTemplate": "Menyiapkan [jumlah] resep [jenis sediaan] dengan verifikasi dosis [nama obat]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Memberikan konseling penggunaan obat kepada pasien",
+              "skkniUnitCode": "Q.86FAR01.003.1",
+              "toolsAndSoftware": ["Leaflet Obat", "MIMS"],
+              "actionVerbTemplate": "Memberikan konseling cara penggunaan [nama obat] kepada [jumlah] pasien",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Memverifikasi keaslian dan tanggal kadaluwarsa obat",
+              "skkniUnitCode": "Q.86FAR01.004.1",
+              "toolsAndSoftware": ["SIPNAP", "Barcode Scanner"],
+              "actionVerbTemplate": "Memeriksa keaslian dan tanggal kadaluwarsa [jumlah] produk [jenis obat]",
+              "isNonCompetency": false
+            }
+          ]
+        },
+        {
+          "code": "FAR-CP-02",
+          "title": "Pengelolaan Perbekalan Farmasi dan Administrasi",
+          "targetJp": 216,
+          "sortOrder": 2,
+          "jobCards": [
+            {
+              "title": "Mengelola stok dan pengadaan obat (defekta)",
+              "skkniUnitCode": "Q.86FAR01.010.1",
+              "toolsAndSoftware": ["Sistem Informasi Apotek", "Microsoft Excel"],
+              "actionVerbTemplate": "Menyusun daftar defekta [jumlah] item dengan reorder point berdasarkan pola konsumsi",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Penerimaan dan pemeriksaan barang dari distributor PBF",
+              "skkniUnitCode": "Q.86FAR01.011.1",
+              "toolsAndSoftware": ["Faktur PBF", "Sistem Informasi Apotek"],
+              "actionVerbTemplate": "Menerima dan memverifikasi faktur [distributor] [jumlah] item senilai Rp [jumlah]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Membuat laporan penggunaan narkotika dan psikotropika",
+              "skkniUnitCode": "Q.86FAR01.012.1",
+              "toolsAndSoftware": ["SIPNAP", "Microsoft Excel"],
+              "actionVerbTemplate": "Menyusun laporan SIPNAP [jenis] bulan [bulan] sebanyak [jumlah] item",
+              "isNonCompetency": false
+            }
+          ]
+        },
+        {
+          "code": "FAR-CP-03",
+          "title": "Pelayanan Farmasi Klinik dan Monitoring Terapi",
+          "targetJp": 216,
+          "sortOrder": 3,
+          "jobCards": [
+            {
+              "title": "Melakukan rekonsiliasi obat pasien rawat inap",
+              "skkniUnitCode": "Q.86FAR01.015.1",
+              "toolsAndSoftware": ["Rekam Medis", "SIMRS"],
+              "actionVerbTemplate": "Melakukan rekonsiliasi obat [jumlah] pasien dengan [jumlah] item obat terdaftar",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Memonitor dan melaporkan efek samping obat (MESO)",
+              "skkniUnitCode": "Q.86FAR01.016.1",
+              "toolsAndSoftware": ["Form MESO", "VigiFlow"],
+              "actionVerbTemplate": "Memonitor dan melaporkan [jumlah] kejadian MESO dengan kategori [kategori]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Edukasi penggunaan obat dan DAGUSIBU kepada pasien",
+              "skkniUnitCode": "Q.86FAR01.017.1",
+              "toolsAndSoftware": ["Leaflet", "Media Edukasi"],
+              "actionVerbTemplate": "Memberikan edukasi DAGUSIBU kepada [jumlah] pasien tentang [nama obat/golongan]",
+              "isNonCompetency": false
+            }
+          ]
+        },
+        {
+          "code": "FAR-CP-04",
+          "title": "Swamedikasi dan Pelayanan Tanpa Resep (OTC)",
+          "targetJp": 144,
+          "sortOrder": 4,
+          "jobCards": [
+            {
+              "title": "Memberikan rekomendasi obat bebas kepada pasien",
+              "skkniUnitCode": "Q.86FAR01.020.1",
+              "toolsAndSoftware": ["MIMS", "ISO Farmakoterapi"],
+              "actionVerbTemplate": "Memberikan rekomendasi swamedikasi [keluhan] kepada [jumlah] pelanggan",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Mengenali dan merujuk kasus di luar swamedikasi",
+              "skkniUnitCode": "Q.86FAR01.021.1",
+              "toolsAndSoftware": ["MIMS"],
+              "actionVerbTemplate": "Mengidentifikasi [jumlah] kasus yang memerlukan rujukan dokter dari keluhan [jenis]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Mengelola display dan penyimpanan produk OTC",
+              "skkniUnitCode": "Q.86FAR01.022.1",
+              "toolsAndSoftware": ["Planogram", "Label Harga"],
+              "actionVerbTemplate": "Menata display produk OTC [kategori] sesuai planogram dengan [jumlah] SKU",
+              "isNonCompetency": false
+            }
+          ]
+        }
+      ],
+      "nonCompetencyJobCards": [
+        {
+          "title": "Bantuan administrasi umum klinik atau apotek",
+          "skkniUnitCode": null,
+          "toolsAndSoftware": ["Komputer", "Printer"],
+          "actionVerbTemplate": "Membantu [tugas administrasi] selama [durasi] menit",
+          "isNonCompetency": true
+        }
+      ]
+    },
+    {
+      "_jurusan": "OTOMOTIF — Teknik Kendaraan Ringan Otomotif (total 792 JP)",
+      "sectorCode": "OTOMOTIF",
+      "cpElements": [
+        {
+          "code": "OTO-CP-01",
+          "title": "Servis Berkala dan Perawatan Mesin",
+          "targetJp": 216,
+          "sortOrder": 1,
+          "jobCards": [
+            {
+              "title": "Melakukan servis berkala kendaraan (ganti oli dan filter)",
+              "skkniUnitCode": "G.45OTO01.001.2",
+              "toolsAndSoftware": ["Kunci Torsi", "Lift Hidrolik", "Oil Drain"],
+              "actionVerbTemplate": "Melakukan servis berkala [nama kendaraan] [tipe servis] km total [km odometer]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Tune up mesin konvensional dan injeksi",
+              "skkniUnitCode": "G.45OTO01.002.2",
+              "toolsAndSoftware": ["Scan Tool OBD-II", "Multimeter", "Timing Light"],
+              "actionVerbTemplate": "Melakukan tune up mesin [jenis mesin] kendaraan [merek/tipe] dengan [jumlah] poin pemeriksaan",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Mendiagnosis kerusakan mesin dengan scan tool OBD-II",
+              "skkniUnitCode": "G.45OTO01.003.2",
+              "toolsAndSoftware": ["Scan Tool OBD-II", "Oscilloscope", "Laptop Diagnosa"],
+              "actionVerbTemplate": "Mendiagnosis kode DTC [kode] pada kendaraan [merek] dan menentukan tindakan perbaikan",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Overhaul komponen mesin (kepala silinder dan piston)",
+              "skkniUnitCode": "G.45OTO01.004.2",
+              "toolsAndSoftware": ["Kunci Spesial", "Mikrometer", "Dial Gauge"],
+              "actionVerbTemplate": "Melakukan overhaul [nama komponen] mesin [nama mesin] sesuai spesifikasi pabrik",
+              "isNonCompetency": false
+            }
+          ]
+        },
+        {
+          "code": "OTO-CP-02",
+          "title": "Sistem Rem, Suspensi dan Kelistrikan",
+          "targetJp": 216,
+          "sortOrder": 2,
+          "jobCards": [
+            {
+              "title": "Servis sistem rem cakram dan teromol",
+              "skkniUnitCode": "G.45OTO01.010.2",
+              "toolsAndSoftware": ["Kunci Roda", "Dial Gauge", "Micrometer"],
+              "actionVerbTemplate": "Melakukan pemeriksaan dan penyetelan rem [cakram/teromol] kendaraan [merek] sumbu [depan/belakang]",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Memeriksa dan mengganti komponen suspensi",
+              "skkniUnitCode": "G.45OTO01.011.2",
+              "toolsAndSoftware": ["Kunci Torsi", "Ball Joint Separator", "Lift"],
+              "actionVerbTemplate": "Mengganti [nama komponen suspensi] kendaraan [merek/tipe] dan melakukan wheel alignment",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Membaca dan memperbaiki sistem kelistrikan kendaraan",
+              "skkniUnitCode": "G.45OTO01.012.2",
+              "toolsAndSoftware": ["Multimeter Digital", "Wiring Diagram", "Test Lamp"],
+              "actionVerbTemplate": "Menelusuri dan memperbaiki gangguan kelistrikan [sistem] pada kendaraan [merek] menggunakan wiring diagram",
+              "isNonCompetency": false
+            }
+          ]
+        },
+        {
+          "code": "OTO-CP-03",
+          "title": "Sistem Transmisi, Kopling dan Penggerak Roda",
+          "targetJp": 180,
+          "sortOrder": 3,
+          "jobCards": [
+            {
+              "title": "Servis kopling dan pemindah daya manual",
+              "skkniUnitCode": "G.45OTO01.015.2",
+              "toolsAndSoftware": ["Kunci Torsi", "Dial Gauge", "Special Tool Transmisi"],
+              "actionVerbTemplate": "Melakukan pemeriksaan dan penyetelan kopling kendaraan [merek/tipe] sesuai spesifikasi",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Servis transmisi otomatis dan CVT",
+              "skkniUnitCode": "G.45OTO01.016.2",
+              "toolsAndSoftware": ["Scan Tool AT", "Kunci Torsi", "Special Tool"],
+              "actionVerbTemplate": "Melakukan ganti oli dan pemeriksaan transmisi [jenis] kendaraan [merek] dengan [jumlah] titik pemeriksaan",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Memeriksa dan servis sistem penggerak roda (CV Joint)",
+              "skkniUnitCode": "G.45OTO01.017.2",
+              "toolsAndSoftware": ["Kunci Roda", "Grease Gun", "Lift"],
+              "actionVerbTemplate": "Memeriksa dan melumasi CV joint kendaraan [merek] dan menilai kondisi [kondisi]",
+              "isNonCompetency": false
+            }
+          ]
+        },
+        {
+          "code": "OTO-CP-04",
+          "title": "Kendaraan Listrik dan Sistem Modern",
+          "targetJp": 180,
+          "sortOrder": 4,
+          "jobCards": [
+            {
+              "title": "Pemeriksaan dasar sistem kendaraan listrik dan hybrid",
+              "skkniUnitCode": "G.45OTO01.020.2",
+              "toolsAndSoftware": ["Scan Tool EV/HEV", "Insulation Tester", "APD Listrik HV"],
+              "actionVerbTemplate": "Melakukan pemeriksaan sistem HV [komponen] kendaraan hybrid/listrik [merek] sesuai prosedur safety",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Menggunakan dan merawat peralatan bengkel modern",
+              "skkniUnitCode": "G.45OTO01.021.2",
+              "toolsAndSoftware": ["4-Post Lift", "Balancing Machine", "Wheel Aligner"],
+              "actionVerbTemplate": "Mengoperasikan [nama alat modern] untuk kendaraan [merek] sesuai SOP dengan [jumlah] langkah keselamatan",
+              "isNonCompetency": false
+            },
+            {
+              "title": "Estimasi biaya perbaikan dan pembuatan work order bengkel",
+              "skkniUnitCode": "G.45OTO01.022.2",
+              "toolsAndSoftware": ["DMS/WO System", "Microsoft Excel"],
+              "actionVerbTemplate": "Membuat estimasi biaya perbaikan [nama kerusakan] kendaraan [merek] dan work order [nomor WO]",
+              "isNonCompetency": false
+            }
+          ]
+        }
+      ],
+      "nonCompetencyJobCards": [
+        {
+          "title": "Bantuan kebersihan dan operasional umum bengkel",
+          "skkniUnitCode": null,
+          "toolsAndSoftware": ["Peralatan Kebersihan"],
+          "actionVerbTemplate": "Membantu [tugas umum bengkel] selama [durasi] menit",
+          "isNonCompetency": true
+        }
+      ]
+    }
+  ]
+}
