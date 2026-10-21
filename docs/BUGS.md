@@ -43,12 +43,12 @@ Aturan:
 
 | ID | Level | Status | Fitur | Judul | Pemilik |
 |---|---|---|---|---|---|
-| BUG-001 | P0 Critical | Open | Database / BR-007 | Trigger immutability block_verified_log_update memakai nama kolom salah mentor_id | Orang A |
+| BUG-001 | P0 Critical | Fixed | Database / BR-007 | Trigger immutability block_verified_log_update memakai nama kolom salah mentor_id | Orang A |
 | BUG-002 | P3 Low | Fixed | PWA / Manifest | Web App Manifest mereferensikan file PNG non-eksistensi menyebabkan 404 pada browser | Orang B |
 
 ### BUG-001 — Trigger block_verified_log_update memakai nama kolom salah mentor_id
 - **Level:** P0 Critical
-- **Status:** Open
+- **Status:** Fixed
 - **Fitur/Modul:** Database Migration / Security Guards (BR-007, P3 Immutability)
 - **Pelapor / Pemilik:** Orang B / Orang A
 - **Ditemukan:** 21 Okt 2026 (Hari 1), audit kode statis file `20261020192102_security_guards/migration.sql`
@@ -62,7 +62,7 @@ Aturan:
   Trigger mengecek kolom `verified_by_mentor_id` dan melempar pesan exception `verified log is immutable` jika kolom tersebut atau data log diverifikasi lainnya diubah.
 - **Catatan / dugaan penyebab:**
   Typo penamaan kolom saat menyusun migration SQL guards di Hari 0/1.
-- **Perbaikan (commit/PR):** - (Memerlukan migration baru oleh Orang A untuk merevisi function trigger).
+- **Perbaikan (commit/PR):** Migrasi baru `20261021183000_fix_verified_log_immutable_trigger/migration.sql` merevisi fungsi `block_verified_log_update()` agar mengevaluasi kolom `verified_by_mentor_id` serta diverifikasi melalui unit test `apps/api/test/migrations.test.ts`. Selesai di branch `fix/bug-001-immutable-trigger`.
 
 ### BUG-002 — Web App Manifest mereferensikan file PNG non-eksistensi menyebabkan 404 pada browser
 - **Level:** P3 Low

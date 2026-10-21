@@ -13,7 +13,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 | FR selesai | 3 / 12 |
 | FR Must Have selesai | 3 / 11 |
 | TC lulus | 3 / 10 |
-| Bug terbuka (Critical / High) | 1 / 0 |
+| Bug terbuka (Critical / High) | 0 / 0 |
 | Status cut-line | Belum dievaluasi (evaluasi di akhir Hari 7) |
 
 ## 2. Infrastruktur (Hari 0)
@@ -49,7 +49,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | Modul | Pemilik | Status |
 |---|---|---|
-| Skema Prisma + migrasi + SQL guard (RLS, trigger immutability) | A | [~] (skema 20 model tuntas & tervalidasi; menunggu fix BUG-001) |
+| Skema Prisma + migrasi + SQL guard (RLS, trigger immutability) | A | [x] (skema 20 model tuntas & trigger immutability verified_by_mentor_id BUG-001 fixed) |
 | `curriculum-seed.json` (6 jurusan, 792 JP, min. 12 Job Card) | A | [x] (6 jurusan, 25 elemen CP, 89 Job Cards) |
 | Seeder v1 (sekolah demo, mentor terikat, penempatan) | A | [x] (sekolah demo, guru, 5 siswa, 6 DUDI & penempatan aktif) |
 | Seeder v2 (riwayat 8 minggu, drift, endorsement, paspor) | A | [ ] |
@@ -88,7 +88,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | # | Hal | Pemilik | Status |
 |---|---|---|---|
-| BUG-001 | Trigger block_verified_log_update memakai mentor_id bukan verified_by_mentor_id | A | Open (P0 Critical) |
+| BUG-001 | Trigger block_verified_log_update memakai mentor_id bukan verified_by_mentor_id | A | Fixed (P0 Critical) |
 
 Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-12) dan bagian 12.
 
@@ -96,6 +96,7 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
 
 ### Hari 2 — Kam 22 Okt 2026
 - Selesai:
+  - Resolusi BUG-001 (P0 Critical): Migrasi `20261021183000_fix_verified_log_immutable_trigger` merevisi trigger function `block_verified_log_update` agar menggunakan kolom resmi `verified_by_mentor_id` dan lulus audit integrasi `test/migrations.test.ts`.
   - Inisialisasi Serwist Service Worker (`apps/web/src/app/sw.ts`) dengan strategi precache shell, `StaleWhileRevalidate` kurikulum/job cards, `CacheFirst` peta OSM, dan `NetworkOnly` untuk antrean mutasi log (Orang B).
   - Pembuatan Web App Manifest (`manifest.ts` dan `public/manifest.json`) dan aset ikon PWA (`/icons/icon.svg`) (Orang B).
   - Skema database Dexie.js (`apps/web/src/lib/pwa/db.ts`) dengan tabel `logs`, `photos`, dan `refData` sesuai DESIGN.md §7.2 (Orang B).
@@ -109,11 +110,11 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
     - `GET /api/v1/logs/me` (Fase 3: Pull status verifikasi mentor ke IndexedDB).
   - 15 Unit & Integration Tests (`apps/api/test/logs.test.ts`) mencakup seluruh kondisi lolos & tolak Fase 1 & Fase 2, lulus 100% (Orang B).
   - Client Engine `apps/web/src/lib/pwa/sync.ts` & React Hook `apps/web/src/lib/pwa/hooks/useSyncManager.ts` dengan auto-sync saat transisi online & visibilitychange, serta tombol manual "Sinkronkan Sekarang" pada `ConnectivityBanner` (Orang B).
-  - Seluruh rangkaian monorepo lint (0 warning/error), typecheck (strict), dan test (44 test passed) hijau (Orang B).
+  - Seluruh rangkaian monorepo lint (0 warning/error), typecheck (strict), dan test (47 test passed) hijau.
 - Sedang dikerjakan:
   - Persiapan FR-012 (CV ATS generator & Paspor Keterampilan ber-QR terhubung ke log VERIFIED).
 - Blocker:
-  - BUG-001 (P0 Critical): Menunggu migrasi database baru oleh Orang A.
+  - Tidak ada (BUG-001 teratasi).
 - Rencana besok (Hari 3):
   - Integrasi QR code dinamis token mentor (`/v/[token]`) dari portal siswa untuk diverifikasi oleh Orang C.
 
