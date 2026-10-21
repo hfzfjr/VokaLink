@@ -22,6 +22,8 @@ import {
   ShieldCheck,
   ImageIcon,
 } from "lucide-react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "@/lib/pwa/db";
 
 interface LogEntry {
   id: string;
@@ -107,17 +109,47 @@ export default function LogHistoryPage() {
     },
   ];
 
-  const totalVerifiedJp = sampleLogs
+  const offlineLogs = useLiveQuery(() => db.logs.toArray(), [], []);
+
+  const convertedOfflineLogs: LogEntry[] = (offlineLogs || []).map((ol) => ({
+    id: ol.clientLogUuid,
+    date: ol.logDate,
+    title: ol.isNonCompetency
+      ? `Bantuan Operasional (${ol.nonCompetencyCategory || "Non-Jurusan"})`
+      : ol.jobCardIds[0] === "jc-2"
+      ? "Desain Skema Database & Migrasi Prisma"
+      : ol.jobCardIds[0] === "jc-3"
+      ? "Pembuatan Komponen UI Frontend Mobile-First"
+      : ol.jobCardIds[0] === "jc-4"
+      ? "Pengujian Unit Testing & Integrasi API"
+      : "Implementasi REST API & Router Express",
+    durationJp: ol.durationJp,
+    autonomy: ol.autonomyLevel === 3 ? "Mandiri" : ol.autonomyLevel === 2 ? "Terbimbing" : "Observasi",
+    autonomyScore: ol.autonomyLevel === 3 ? 100 : ol.autonomyLevel === 2 ? 88 : 75,
+    skkniCode: ol.isNonCompetency ? undefined : "J.620100.009.01",
+    status: ol.state === "verified" ? "VERIFIED" : "PENDING_VERIFICATION",
+    verifiedAt: ol.verifiedAt || null,
+    mentor: "Rizky Firmansyah",
+    hasPhoto: true,
+    isNonCompetency: ol.isNonCompetency,
+    nonCompetencyCategory: ol.nonCompetencyCategory,
+    notes: ol.shortNote,
+  }));
+
+  // Gabungkan antrean offline lokal dengan riwayat sample
+  const allLogs = [...convertedOfflineLogs, ...sampleLogs];
+
+  const totalVerifiedJp = allLogs
     .filter((l) => l.status === "VERIFIED")
     .reduce((acc, curr) => acc + curr.durationJp, 0);
 
-  const totalPendingJp = sampleLogs
+  const totalPendingJp = allLogs
     .filter((l) => l.status === "PENDING_VERIFICATION")
     .reduce((acc, curr) => acc + curr.durationJp, 0);
 
-  const pendingCount = sampleLogs.filter((l) => l.status === "PENDING_VERIFICATION").length;
+  const pendingCount = allLogs.filter((l) => l.status === "PENDING_VERIFICATION").length;
 
-  const filteredLogs = sampleLogs.filter((log) => {
+  const filteredLogs = allLogs.filter((log) => {
     // Filter status tab
     if (filter === "VERIFIED" && log.status !== "VERIFIED") return false;
     if (filter === "PENDING" && log.status !== "PENDING_VERIFICATION") return false;
