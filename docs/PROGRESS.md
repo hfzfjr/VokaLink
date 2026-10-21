@@ -149,6 +149,12 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
     - 4 integration tests di `apps/api/test/passports.test.ts` lulus 100%. Total 96 tests monorepo hijau 100%.
     - Halaman siswa `/student/career-cv`: Layout dokumen A4 Print CSS satu kolom bebas elemen non-print, 5 kondisi UI (skeleton, empty state jika belum ada log verified, offline banner, error recovery, verified), editor teks bio siswa langsung tersimpan ke paspor, dan QR Code audit stamp.
     - Halaman verifikasi publik `/verify/[passportSlug]`: Lencana hijau TERVERIFIKASI RESMI segel HMAC-SHA256, matriks capaian elemen CP, etos kerja mentor, galeri artefak foto, dan penanganan error dokumen tidak valid (TC-010).
+  - Resolusi Bug Scope Orang B (BUG-003 s.d. BUG-006) (Orang B):
+    - BUG-003 (P1 High): Restrukturisasi payload Fase 1 di `sync.ts` sesuai `dailyLogCreateSchema` Zod (array `items`, `attendanceType: "PRESENT"`, pembagian durasi JP multi-item proporsional, metadata foto SHA-256) dan pembacaan `resJson.results`.
+    - BUG-004 (P1 High): Koreksi pembacaan respons Fase 3 Pull `pullJson.logs`, pencocokan enum status `REVISION_REQUIRED`, dan penyimpanan catatan penolakan/revisi mentor ke IndexedDB.
+    - BUG-005 (P2 Medium): Endpoint `GET /api/v1/students/me/log-context`, integrasi cache Dexie `db.refData` (`key: "student_log_context"`), eliminasi ID mock dummy, penggunaan UUID riil penempatan dan Job Cards, serta fallback offline aman.
+    - BUG-006 (P3 Low): Koreksi instruksi PIN mentor di modal QR menjadi 4 digit (BR-007), serta rendering judul kartu riwayat offline instan via `ol.jobCardTitle`.
+    - Sensor Privasi / Privacy Blur (FR-006 & TC-003): Pipeline Canvas blur filter selektif pada dokumen/monitor rahasia DUDI dengan frosted-glass & watermark badge privasi permanen sebelum konversi WebP.
 - Sedang dikerjakan:
   - Persiapan FR-007 (Verifikasi Zero-Login Mentor QR / WA + PIN oleh Orang C).
 - Blocker:

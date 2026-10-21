@@ -7,7 +7,6 @@
  */
 
 import { db } from "@/lib/pwa/db";
-import type { SyncBatchResponse } from "@vokalink/shared";
 
 const API_BASE_URL =
   process.env["NEXT_PUBLIC_API_URL"] || "http://localhost:3001/api/v1";
@@ -75,20 +74,46 @@ export async function executeTwoPhaseSync(
     const batch = eligibleLogs.slice(0, 20);
 
     if (batch.length > 0) {
-      const payload = {
-        logs: batch.map((log) => ({
-          clientLogUuid: log.clientLogUuid,
-          placementId: log.placementId,
-          logDate: log.logDate,
-          durationJp: log.durationJp,
-          autonomyLevel: log.autonomyLevel,
-          jobCardIds: log.jobCardIds,
-          isNonCompetency: log.isNonCompetency,
-          nonCompetencyCategory: log.nonCompetencyCategory,
-          shortNote: log.shortNote,
-          clientCreatedAt: log.clientCreatedAt,
-        })),
-      };
+      // Format payload sesuai dailyLogCreateSchema & syncLogsBatchSchema (DESIGN.md §7.3)
+      const logsPayload = await Promise.all(
+        batch.map(async (log) => {
+          const photo = await db.photos.get(log.clientLogUuid);
+
+          // Susun items kompetensi atau non-kompetensi
+          const jcIds =
+            log.jobCardIds && log.jobCardIds.length > 0
+              ? log.jobCardIds
+              : ["00000000-0000-0000-0000-000000000037"]; // Fallback UUID non-kompetensi
+
+          const count = jcIds.length;
+          const baseJp = Math.max(1, Math.floor(log.durationJp / count));
+          const remainder = log.durationJp - baseJp * count;
+
+          const items = jcIds.map((jcId, idx) => ({
+            jobCardId: jcId,
+            durationJp: idx === 0 ? baseJp + remainder : baseJp,
+            autonomyLevel: log.autonomyLevel,
+            nonCompetencyCategory: log.isNonCompetency
+              ? ((log.nonCompetencyCategory as any) || "ADMIN_UMUM")
+              : undefined,
+          }));
+
+          return {
+            clientLogUuid: log.clientLogUuid,
+            placementId: log.placementId,
+            logDate: log.logDate,
+            attendanceType: "PRESENT" as const,
+            shortNote: log.shortNote,
+            evidenceSha256: photo?.sha256,
+            evidenceSizeBytes: photo?.sizeBytes,
+            isEvidencePublic: true,
+            clientCreatedAt: log.clientCreatedAt,
+            items,
+          };
+        })
+      );
+
+      const payload = { logs: logsPayload };
 
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -105,11 +130,9 @@ export async function executeTwoPhaseSync(
         });
 
         if (syncRes.ok) {
-          const resJson = (await syncRes.json()) as {
-            status: string;
-            data: SyncBatchResponse;
-          };
-          const results = resJson.data?.results || [];
+          const resJson = await syncRes.json();
+          const results =
+            (resJson as any).results || (resJson as any).data?.results || [];
 
           for (const item of results) {
             const currentLog = batch.find(
@@ -274,7 +297,8 @@ export async function executeTwoPhaseSync(
               status: string;
               verifiedAt?: string | null;
               mentorNotes?: string | null;
-            }> = pullJson.data || [];
+              rejectionReason?: string | null;
+            }> = (pullJson as any).logs || (pullJson as any).data || [];
 
             for (const sLog of serverLogs) {
               const localLog = syncedLogs.find(
@@ -282,20 +306,23 @@ export async function executeTwoPhaseSync(
               );
               if (!localLog) continue;
 
+              const note = sLog.rejectionReason || sLog.mentorNotes || undefined;
+
               if (sLog.status === "VERIFIED" && localLog.state !== "verified") {
                 await db.logs.update(localLog.clientLogUuid, {
                   state: "verified",
                   verifiedAt: sLog.verifiedAt || new Date().toISOString(),
-                  mentorNotes: sLog.mentorNotes || undefined,
+                  mentorNotes: note,
                 });
                 result.verifiedPulledCount++;
               } else if (
-                sLog.status === "REVISION_REQUESTED" &&
+                (sLog.status === "REVISION_REQUIRED" ||
+                  sLog.status === "REVISION_REQUESTED") &&
                 localLog.state !== "revision_required"
               ) {
                 await db.logs.update(localLog.clientLogUuid, {
                   state: "revision_required",
-                  mentorNotes: sLog.mentorNotes || undefined,
+                  mentorNotes: note,
                 });
                 result.verifiedPulledCount++;
               }

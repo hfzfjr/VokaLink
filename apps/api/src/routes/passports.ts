@@ -211,6 +211,104 @@ passportsRouter.patch(
   }
 );
 
+// ─── 3. GET /api/v1/students/me/log-context ───────────────────────────────
+/**
+ * Menyediakan konteks penempatan aktif dan daftar Job Cards jurusan untuk
+ * form logbook offline-first siswa (/student/log/new).
+ */
+passportsRouter.get(
+  "/students/me/log-context",
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const studentIdQuery = req.query["studentId"] as string | undefined;
+
+      let student = null;
+      if (studentIdQuery) {
+        student = await prisma.userProfile.findUnique({
+          where: { id: studentIdQuery },
+          include: {
+            school: true,
+            schoolDepartment: {
+              include: {
+                jobCards: true,
+              },
+            },
+            studentPlacements: {
+              where: { status: "ACTIVE" },
+              include: {
+                dudiPartner: true,
+                dudiMentor: true,
+              },
+            },
+          },
+        });
+      } else {
+        student = await prisma.userProfile.findFirst({
+          where: { role: "STUDENT" },
+          orderBy: { createdAt: "asc" },
+          include: {
+            school: true,
+            schoolDepartment: {
+              include: {
+                jobCards: true,
+              },
+            },
+            studentPlacements: {
+              where: { status: "ACTIVE" },
+              include: {
+                dudiPartner: true,
+                dudiMentor: true,
+              },
+            },
+          },
+        });
+      }
+
+      if (!student) {
+        next(new AppError("Profil siswa tidak ditemukan", 404, "STUDENT_NOT_FOUND"));
+        return;
+      }
+
+      const activePlacement = student.studentPlacements[0] || null;
+      const allJobCards = student.schoolDepartment?.jobCards || [];
+      const technicalJobCards = allJobCards.filter((jc) => !jc.isNonCompetency);
+      const nonCompetencyJobCard = allJobCards.find((jc) => jc.isNonCompetency) || null;
+
+      res.status(200).json({
+        student: {
+          id: student.id,
+          fullName: student.fullName,
+          departmentName: student.schoolDepartment?.name || "Kejuruan",
+          schoolName: student.school.name,
+        },
+        activePlacement: activePlacement
+          ? {
+              id: activePlacement.id,
+              dudiName: activePlacement.dudiPartner.name,
+              dudiCity: activePlacement.dudiPartner.city,
+              mentorName: activePlacement.dudiMentor?.fullName || "Pembimbing Lapangan",
+            }
+          : null,
+        jobCards: technicalJobCards.map((jc) => ({
+          id: jc.id,
+          title: jc.title,
+          tools: jc.toolsAndSoftware,
+          skkni: jc.skkniUnitCode,
+          category: jc.toolsAndSoftware[0] || "Kompetensi Kejuruan",
+        })),
+        nonCompetencyJobCard: nonCompetencyJobCard
+          ? {
+              id: nonCompetencyJobCard.id,
+              title: nonCompetencyJobCard.title,
+            }
+          : null,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 const passportLookupInclude = Prisma.validator<Prisma.SkillPassportDefaultArgs>()({
   include: {
     student: {

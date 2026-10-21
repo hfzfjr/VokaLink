@@ -112,15 +112,17 @@ export default function LogHistoryPage() {
   const convertedOfflineLogs: LogEntry[] = (offlineLogs || []).map((ol) => ({
     id: ol.clientLogUuid,
     date: ol.logDate,
-    title: ol.isNonCompetency
-      ? `Bantuan Operasional (${ol.nonCompetencyCategory || "Non-Jurusan"})`
-      : ol.jobCardIds[0] === "jc-2"
-      ? "Desain Skema Database & Migrasi Prisma"
-      : ol.jobCardIds[0] === "jc-3"
-      ? "Pembuatan Komponen UI Frontend Mobile-First"
-      : ol.jobCardIds[0] === "jc-4"
-      ? "Pengujian Unit Testing & Integrasi API"
-      : "Implementasi REST API & Router Express",
+    title:
+      ol.jobCardTitle ||
+      (ol.isNonCompetency
+        ? `Bantuan Operasional (${ol.nonCompetencyCategory || "Non-Jurusan"})`
+        : ol.jobCardIds[0] === "00000000-0000-0000-0000-000000000033" || ol.jobCardIds[0] === "jc-2"
+        ? "Desain Skema Database & Migrasi Prisma"
+        : ol.jobCardIds[0] === "00000000-0000-0000-0000-000000000032" || ol.jobCardIds[0] === "jc-3"
+        ? "Slicing UI Responsif Tailwind CSS"
+        : ol.jobCardIds[0] === "00000000-0000-0000-0000-000000000035" || ol.jobCardIds[0] === "jc-4"
+        ? "Pengujian Unit Testing & Integrasi API"
+        : "Implementasi REST API & Router Express"),
     durationJp: ol.durationJp,
     autonomy: ol.autonomyLevel === 3 ? "Mandiri" : ol.autonomyLevel === 2 ? "Terbimbing" : "Observasi",
     autonomyScore: ol.autonomyLevel === 3 ? 100 : ol.autonomyLevel === 2 ? 88 : 75,
@@ -500,7 +502,7 @@ export default function LogHistoryPage() {
                 Bebas Akun untuk Mentor (BR-007):
               </p>
               <p className="text-blue-800 text-[11px]">
-                Mentor DUDI tidak perlu membuat akun atau mengunduh aplikasi. Cukup scan QR atau klik tautan WhatsApp, lalu masukkan 6-digit PIN mentor yang terdaftar.
+                Mentor DUDI tidak perlu membuat akun atau mengunduh aplikasi. Cukup scan QR atau klik tautan WhatsApp, lalu masukkan 4 digit PIN mentor yang terdaftar (BR-007).
               </p>
             </div>
 

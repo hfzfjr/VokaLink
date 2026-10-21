@@ -21,11 +21,35 @@ export async function computeSha256(blob: Blob): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+export interface CompressPhotoOptions {
+  maxDimension?: number;
+  webpQuality?: number;
+  applyPrivacyBlur?: boolean;
+  blurArea?: {
+    xRatio: number;
+    yRatio: number;
+    widthRatio: number;
+    heightRatio: number;
+  };
+}
+
 export async function compressEvidencePhoto(
   file: File | Blob,
-  maxDimension = 800,
-  webpQuality = 0.65
+  optionsOrMaxDimension: number | CompressPhotoOptions = 800,
+  legacyQuality = 0.65
 ): Promise<CompressedPhotoResult> {
+  const options: CompressPhotoOptions =
+    typeof optionsOrMaxDimension === "number"
+      ? { maxDimension: optionsOrMaxDimension, webpQuality: legacyQuality }
+      : {
+          maxDimension: optionsOrMaxDimension.maxDimension ?? 800,
+          webpQuality: optionsOrMaxDimension.webpQuality ?? 0.65,
+          applyPrivacyBlur: optionsOrMaxDimension.applyPrivacyBlur ?? false,
+          blurArea: optionsOrMaxDimension.blurArea,
+        };
+
+  const maxDimension = options.maxDimension ?? 800;
+  const webpQuality = options.webpQuality ?? 0.65;
   const originalSizeBytes = file.size;
 
   // 1. Load image into HTMLImageElement
@@ -64,7 +88,51 @@ export async function compressEvidencePhoto(
     throw new Error("Gagal membuat konteks rendering 2D Canvas");
   }
 
+  // Render dasar gambar
   ctx.drawImage(img, 0, 0, width, height);
+
+  // 3b. Terapkan Sensor Privasi / Privacy Blur jika diaktifkan (FR-006 & TC-003)
+  if (options.applyPrivacyBlur) {
+    const bx = options.blurArea
+      ? Math.round(width * options.blurArea.xRatio)
+      : Math.round(width * 0.1);
+    const by = options.blurArea
+      ? Math.round(height * options.blurArea.yRatio)
+      : Math.round(height * 0.35);
+    const bw = options.blurArea
+      ? Math.round(width * options.blurArea.widthRatio)
+      : Math.round(width * 0.8);
+    const bh = options.blurArea
+      ? Math.round(height * options.blurArea.heightRatio)
+      : Math.round(height * 0.35);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(bx, by, bw, bh);
+    ctx.clip();
+    ctx.filter = "blur(14px)";
+    ctx.drawImage(img, 0, 0, width, height);
+    ctx.restore();
+
+    // Visual overlay sensor privasi (frosted glass + dash border)
+    ctx.save();
+    ctx.fillStyle = "rgba(15, 23, 42, 0.15)";
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.strokeStyle = "rgba(239, 68, 68, 0.85)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 4]);
+    ctx.strokeRect(bx, by, bw, bh);
+
+    // Label watermark privasi DUDI
+    ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+    const badgeW = Math.min(170, bw - 10);
+    const badgeH = 22;
+    ctx.fillRect(bx + 6, by + 6, badgeW, badgeH);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 10.5px sans-serif";
+    ctx.fillText("🔒 SENSOR PRIVASI DUDI", bx + 12, by + 21);
+    ctx.restore();
+  }
 
   // 4. Konversi ke Blob WebP (Fallback ke JPEG jika browser tidak mendukung WebP encoder)
   let mimeType = "image/webp";
