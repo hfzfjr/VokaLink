@@ -47,9 +47,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 ## 4. Modul Bersama
 
-| Modul | Pemilik | Status |
-|---|---|---|
-| Skema Prisma + migrasi + SQL guard (RLS, trigger immutability) | A | [x] (BUG-001 fixed oleh Orang B) |
+| Skema Prisma + migrasi + SQL guard (RLS, trigger immutability) | A | [x] (skema 20 model tuntas & trigger immutability verified_by_mentor_id BUG-001 fixed) |
 | `curriculum-seed.json` (6 jurusan, 792 JP, min. 12 Job Card) | A | [x] (6 jurusan, 25 elemen CP, 89 Job Cards) |
 | Seeder v1 (sekolah demo, mentor terikat, penempatan) | A | [x] (sekolah demo, guru, 5 siswa, 6 DUDI & penempatan aktif) |
 | Seeder v2 (riwayat 8 minggu, drift, endorsement, paspor) | A | [ ] |
@@ -88,7 +86,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | # | Hal | Pemilik | Status |
 |---|---|---|---|
-| BUG-001 | Trigger block_verified_log_update memakai mentor_id bukan verified_by_mentor_id | A | ✅ Resolved oleh Orang B |
+| BUG-001 | Trigger block_verified_log_update memakai mentor_id bukan verified_by_mentor_id | A | Fixed (P0 Critical - Resolved oleh Orang B) |
 
 Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-12) dan bagian 12.
 
@@ -96,6 +94,7 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
 
 ### Hari 2 — Kam 22 Okt 2026
 - Selesai:
+  - Resolusi BUG-001 (P0 Critical): Migrasi `20261021183000_fix_verified_log_immutable_trigger` merevisi trigger function `block_verified_log_update` agar menggunakan kolom resmi `verified_by_mentor_id` dan lulus audit integrasi `test/migrations.test.ts` (Orang B).
   - FR-003: Assisted DUDI Onboarding, Pemetaan Kapasitas Lintas Sekolah & Pengikatan Token Kriptografi (Device-Bound PIN) (Orang A / C).
     - API router `/api/dudi` untuk federated directory (BR-011), pendaftaran DUDI baru & pemetaan Job Cards dalam transaksi database.
     - Token aktivasi perangkat kriptografis 72 jam (`SignedLink`) dengan HMAC signature & URL generator terintegrasi WhatsApp share.
@@ -104,6 +103,17 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
     - Halaman direktori DUDI `/school/dudi-directory` dengan 5 state UI (loading, empty, offline, error recovery, unauth), GPS + input koordinat manual, seleksi Job Cards, pendaftaran mentor, dan modal QR code/WhatsApp share link.
     - Halaman aktivasi mentor mobile-first `/v/[token]/activate` khusus HP mentor dengan numpad PIN 4 digit, verifikasi device token, dan persistensi `navigator.storage.persist()`.
     - 11 unit & integration tests di `apps/api/test/dudi.test.ts` lulus 100%.
+  - FR-004: Smart Placement & Spatial Compatibility Scorer (Orang A).
+    - Algoritma pencocokan multi-kriteria berbasis bobot kompetensi (70%) dan jarak Haversine (30%) di `packages/core` dengan batas kuota dan greedy massal.
+    - API router `/api/schools/:schoolId/placements` (`/candidates`, `POST /`, `POST /batch`, `PATCH /students/:id/coordinates`) dengan tenant guard, validasi kuota penuh (422), deteksi rotasi tengah semester (<50%), dan A1 override manual.
+    - Halaman web `/school/placements` dengan tab kandidat rekomendasi, visualisasi skor multi-kriteria, peringatan kuning rotasi tengah semester (WCAG AA), modal konfirmasi penempatan, update koordinat domisili via GPS/manual, dan pratinjau auto-greedy massal.
+    - 8 unit & integration tests di `apps/api/test/placements.test.ts` dan 2 unit tests di `packages/core/test/core.test.ts` lulus 100%.
+  - FR-011: e-Rapor SMK Grade & Narrative Exporter (Orang A).
+    - Formula BR-009 murni di `packages/core/src/erapor.ts`: `calculateElementGrade`, `calculateFinalPklGrade`, `generateEraporNarratives`, `generateEraporCsv`.
+    - Narratif Kurikulum Merdeka otomatis menyebut Job Card terbaik + nama DUDI, serta elemen terendah yang perlu bimbingan.
+    - API endpoint `GET /api/schools/:schoolId/erapor` dengan `?format=json` dan `?format=csv` (tenant guard, hanya data `VERIFIED`, peringatan `PENDING_VERIFICATION`).
+    - Frontend `/school/erapor` dengan tabel nilai per siswa, banner peringatan pending, tombol download CSV, modal override nilai guru (A1).
+    - 4 integration tests di `apps/api/test/erapor.test.ts`, total 56 tests monorepo lulus 100%.
   - Inisialisasi Serwist Service Worker (`apps/web/src/app/sw.ts`) dengan strategi precache shell, `StaleWhileRevalidate` kurikulum/job cards, `CacheFirst` peta OSM, dan `NetworkOnly` untuk antrean mutasi log (Orang B).
   - Pembuatan Web App Manifest (`manifest.ts` dan `public/manifest.json`) dan aset ikon PWA (`/icons/icon.svg`) (Orang B).
   - Skema database Dexie.js (`apps/web/src/lib/pwa/db.ts`) dengan tabel `logs`, `photos`, dan `refData` sesuai DESIGN.md §7.2 (Orang B).
@@ -117,22 +127,11 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
     - `GET /api/v1/logs/me` (Fase 3: Pull status verifikasi mentor ke IndexedDB).
   - 15 Unit & Integration Tests (`apps/api/test/logs.test.ts`) mencakup seluruh kondisi lolos & tolak Fase 1 & Fase 2, lulus 100% (Orang B).
   - Client Engine `apps/web/src/lib/pwa/sync.ts` & React Hook `apps/web/src/lib/pwa/hooks/useSyncManager.ts` dengan auto-sync saat transisi online & visibilitychange, serta tombol manual "Sinkronkan Sekarang" pada `ConnectivityBanner` (Orang B).
-  - FR-004: Smart Placement & Spatial Compatibility Scorer (Orang A).
-    - Algoritma pencocokan multi-kriteria berbasis bobot kompetensi (70%) dan jarak Haversine (30%) di `packages/core` dengan batas kuota dan greedy massal.
-    - API router `/api/schools/:schoolId/placements` (`/candidates`, `POST /`, `POST /batch`, `PATCH /students/:id/coordinates`) dengan tenant guard, validasi kuota penuh (422), deteksi rotasi tengah semester (<50%), dan A1 override manual.
-    - Halaman web `/school/placements` dengan tab kandidat rekomendasi, visualisasi skor multi-kriteria, peringatan kuning rotasi tengah semester (WCAG AA), modal konfirmasi penempatan, update koordinat domisili via GPS/manual, dan pratinjau auto-greedy massal.
-    - 8 unit & integration tests di `apps/api/test/placements.test.ts` dan 2 unit tests di `packages/core/test/core.test.ts` lulus 100%.
-  - FR-011: e-Rapor SMK Grade & Narrative Exporter (Orang A).
-    - Formula BR-009 murni di `packages/core/src/erapor.ts`: `calculateElementGrade`, `calculateFinalPklGrade`, `generateEraporNarratives`, `generateEraporCsv`.
-    - Narratif Kurikulum Merdeka otomatis menyebut Job Card terbaik + nama DUDI, serta elemen terendah yang perlu bimbingan.
-    - API endpoint `GET /api/schools/:schoolId/erapor` dengan `?format=json` dan `?format=csv` (tenant guard, hanya data `VERIFIED`, peringatan `PENDING_VERIFICATION`).
-    - Frontend `/school/erapor` dengan tabel nilai per siswa, banner peringatan pending, tombol download CSV, modal override nilai guru (A1).
-    - 4 integration tests di `apps/api/test/erapor.test.ts`, total 56 tests monorepo lulus 100%.
-    - BUG-001 dinyatakan resolved oleh Orang B (trigger immutability fix).
+  - Seluruh rangkaian monorepo lint (0 warning/error), typecheck (strict), dan test hijau.
 - Sedang dikerjakan:
   - Persiapan FR-012 (CV ATS generator & Paspor Keterampilan ber-QR terhubung ke log VERIFIED).
 - Blocker:
-  - Tidak ada blocker aktif saat ini.
+  - Tidak ada blocker aktif saat ini (BUG-001 terselesaikan).
 - Rencana besok (Hari 3):
   - Integrasi QR code dinamis token mentor (`/v/[token]`) dari portal siswa untuk diverifikasi oleh Orang C (FR-007).
   - Seeder v2 riwayat 8 minggu + drift + endorsement (Orang A).
