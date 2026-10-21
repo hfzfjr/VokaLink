@@ -141,6 +141,7 @@ passportsRouter.get(
         technicalSkills: cvEngineResult.technicalSkills,
         endorsement: latestEndorsement,
         extraActivities: student.skillPassport?.extraActivitiesJson || [],
+        visibility: (student.skillPassport?.visibilityJson as any) || { showPhotos: true, showGrades: true },
         passportSlug,
         verificationUrl: `/verify/${passportSlug}`,
         masterSignatureHash: student.skillPassport?.masterSignatureHash || null,
@@ -388,6 +389,10 @@ passportsRouter.get(
       let technicalJp = 0;
       let nonCompetencyJp = 0;
       const artifactPhotos: string[] = [];
+      const vis = (passport.visibilityJson as { showPhotos?: boolean; showGrades?: boolean } | null) || {
+        showPhotos: true,
+        showGrades: true,
+      };
       const cpElementJpMap = new Map<string, number>();
 
       for (const placement of student.studentPlacements) {
@@ -395,7 +400,7 @@ passportsRouter.get(
           if (log.signatureHash) {
             verifiedLogSignatures.push(log.signatureHash);
           }
-          if (log.evidenceWebpUrl && artifactPhotos.length < 6) {
+          if (log.evidenceWebpUrl && artifactPhotos.length < 6 && vis.showPhotos !== false) {
             artifactPhotos.push(log.evidenceWebpUrl);
           }
 
@@ -440,9 +445,9 @@ passportsRouter.get(
         };
       });
 
-      // Ambil endorsement mitra
+      // Ambil endorsement mitra (dapat disembunyikan jika showGrades false)
       const activePlacement = student.studentPlacements[0];
-      const endorsement = activePlacement?.endorsement
+      const endorsement = activePlacement?.endorsement && vis.showGrades !== false
         ? {
             attitudeScore: activePlacement.endorsement.attitudeScore,
             badges: activePlacement.endorsement.badgesArray,

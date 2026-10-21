@@ -13,6 +13,9 @@ import {
   Info,
   X,
   ArrowRight,
+  HeartPulse,
+  FileText,
+  UserCheck,
 } from "lucide-react";
 import {
   MIN_DAILY_JP,
@@ -71,6 +74,7 @@ const DEFAULT_PLACEMENT_ID = "00000000-0000-0000-0000-000000000051";
 export default function NewLogPage() {
   const today = new Date().toISOString().split("T")[0]!;
   const [selectedDate, setSelectedDate] = useState(today);
+  const [attendanceType, setAttendanceType] = useState<"PRESENT" | "SICK" | "PERMIT">("PRESENT");
   const [isNonCompetency, setIsNonCompetency] = useState(false);
   const [nonCompetencyCategory, setNonCompetencyCategory] = useState("ADMIN_UMUM");
   const [durationJp, setDurationJp] = useState(8);
@@ -94,12 +98,14 @@ export default function NewLogPage() {
   const [compressedPhoto, setCompressedPhoto] = useState<CompressedPhotoResult | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
 
+  // Multi-Job Cards state (1 to 3 job cards per daily log, PRD FR-005 line 428)
+  const [selectedJobCardIds, setSelectedJobCardIds] = useState<string[]>([
+    DEFAULT_JOB_CARDS[0]?.id ?? "00000000-0000-0000-0000-000000000031",
+  ]);
+
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedLogUuid, setSubmittedLogUuid] = useState<string | null>(null);
-  const [selectedJobCardId, setSelectedJobCardId] = useState<string>(
-    DEFAULT_JOB_CARDS[0]?.id ?? "00000000-0000-0000-0000-000000000031"
-  );
 
   // Ambil konteks penempatan dan job cards (Cache first di Dexie.refData, fallback ke server)
   useEffect(() => {
@@ -114,7 +120,7 @@ export default function NewLogPage() {
           if (data.jobCards && data.jobCards.length > 0) {
             setJobCards(data.jobCards);
             const firstId = data.jobCards[0]?.id;
-            if (firstId) setSelectedJobCardId(firstId);
+            if (firstId) setSelectedJobCardIds([firstId]);
           }
           if (data.nonCompetencyJobCard) {
             setNonCompetencyJobCard(data.nonCompetencyJobCard);
@@ -130,12 +136,12 @@ export default function NewLogPage() {
           if (fresh && isMounted) {
             if (fresh.jobCards && fresh.jobCards.length > 0) {
               setJobCards(fresh.jobCards);
-              const firstId = fresh.jobCards[0]?.id;
-              setSelectedJobCardId((prev) =>
-                fresh.jobCards.some((j) => j.id === prev)
-                  ? prev
-                  : (firstId ?? "00000000-0000-0000-0000-000000000031")
-              );
+              setSelectedJobCardIds((prev) => {
+                const valid = prev.filter((id) => fresh.jobCards.some((j) => j.id === id));
+                if (valid.length > 0) return valid;
+                const firstId = fresh.jobCards[0]?.id;
+                return firstId ? [firstId] : [DEFAULT_JOB_CARDS[0]!.id];
+              });
             }
             if (fresh.nonCompetencyJobCard) {
               setNonCompetencyJobCard(fresh.nonCompetencyJobCard);
@@ -162,6 +168,24 @@ export default function NewLogPage() {
       isMounted = false;
     };
   }, []);
+
+  // Multi-card selection toggle handler (1 to 3 job cards, PRD FR-005)
+  const handleToggleJobCard = (cardId: string) => {
+    setSelectedJobCardIds((prev) => {
+      if (prev.includes(cardId)) {
+        if (prev.length <= 1) {
+          return prev; // Pertahankan minimal 1 kartu
+        }
+        return prev.filter((id) => id !== cardId);
+      } else {
+        if (prev.length >= 3) {
+          alert("Maksimal 3 kartu pekerjaan per hari (PRD FR-005). Hapus satu pilihan terlebih dahulu bila ingin mengganti.");
+          return prev;
+        }
+        return [...prev, cardId];
+      }
+    });
+  };
 
   // Proses kompresi foto dan penerapan blur
   const processPhoto = async (file: File, blur: boolean) => {
@@ -203,7 +227,7 @@ export default function NewLogPage() {
     setRawPhotoFile(null);
   };
 
-  // Submit to Dexie IndexedDB (BUG-005 Fixed)
+  // Submit to Dexie IndexedDB (BUG-005 Fixed & Multi-Job Cards & Sakit/Izin)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -213,27 +237,42 @@ export default function NewLogPage() {
       const clientCreatedAt = new Date().toISOString();
 
       const placementId = activePlacement?.id || DEFAULT_PLACEMENT_ID;
-      const technicalCard = jobCards.find((j) => j.id === selectedJobCardId) || jobCards[0];
       const nonCompCard = nonCompetencyJobCard || DEFAULT_NON_COMPETENCY_JC;
 
-      const targetJobCardId = isNonCompetency
-        ? nonCompCard.id
-        : (technicalCard?.id || DEFAULT_JOB_CARDS[0]?.id || "00000000-0000-0000-0000-000000000031");
-      const targetJobCardTitle = isNonCompetency
-        ? `Bantuan Operasional (${nonCompetencyCategory})`
-        : (technicalCard?.title || "Kartu Pekerjaan Kejuruan");
+      let targetJobCardIds: string[];
+      let targetJobCardTitle: string;
+      const isSickOrPermit = attendanceType === "SICK" || attendanceType === "PERMIT";
+
+      if (isSickOrPermit) {
+        targetJobCardIds = [nonCompCard.id];
+        targetJobCardTitle =
+          attendanceType === "SICK"
+            ? "Presensi Sakit (Surat Keterangan Dokter)"
+            : "Presensi Izin Resmi (Dispensasi / Keperluan)";
+      } else if (isNonCompetency) {
+        targetJobCardIds = [nonCompCard.id];
+        targetJobCardTitle = `Bantuan Operasional (${nonCompetencyCategory})`;
+      } else {
+        const chosenCards = jobCards.filter((j) => selectedJobCardIds.includes(j.id));
+        targetJobCardIds = chosenCards.length > 0 ? chosenCards.map((c) => c.id) : [DEFAULT_JOB_CARDS[0]!.id];
+        targetJobCardTitle =
+          chosenCards.length > 0
+            ? chosenCards.map((c) => c.title).join(" + ")
+            : "Kartu Pekerjaan Kejuruan";
+      }
 
       // 1. Simpan Log ke IndexedDB dengan format UUID riil
       await db.logs.add({
         clientLogUuid,
         placementId,
         logDate: selectedDate,
+        attendanceType,
         durationJp,
         autonomyLevel,
-        jobCardIds: [targetJobCardId],
+        jobCardIds: targetJobCardIds,
         jobCardTitle: targetJobCardTitle,
-        isNonCompetency,
-        nonCompetencyCategory: isNonCompetency ? nonCompetencyCategory : undefined,
+        isNonCompetency: isSickOrPermit || isNonCompetency,
+        nonCompetencyCategory: isSickOrPermit ? "ADMIN_UMUM" : isNonCompetency ? nonCompetencyCategory : undefined,
         shortNote: shortNote.trim() || undefined,
         clientCreatedAt,
         state: "queued",
@@ -263,12 +302,16 @@ export default function NewLogPage() {
   const resetForm = () => {
     setSubmittedLogUuid(null);
     setSelectedDate(today);
+    setAttendanceType("PRESENT");
     setIsNonCompetency(false);
+    setSelectedJobCardIds([jobCards[0]?.id || DEFAULT_JOB_CARDS[0]!.id]);
     setDurationJp(8);
     setAutonomyLevel(3);
     setShortNote("");
     handleRemovePhoto();
   };
+
+  const isSickOrPermit = attendanceType === "SICK" || attendanceType === "PERMIT";
 
   return (
     <div className="space-y-5">
@@ -279,7 +322,7 @@ export default function NewLogPage() {
             Catat Jurnal Harian PKL
           </h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Pilih kartu tugas yang telah Anda selesaikan hari ini tanpa perlu mengetik paragraf panjang
+            Pilih presensi kehadiran dan kartu tugas yang telah Anda selesaikan hari ini
           </p>
         </div>
 
@@ -294,9 +337,94 @@ export default function NewLogPage() {
         onSubmit={handleSubmit}
         className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
       >
-        {/* LEFT COLUMN: Date & Job Cards Selection (7 cols on desktop) */}
+        {/* LEFT COLUMN: Attendance, Date, Job Cards Selection (7 cols on desktop) */}
         <div className="lg:col-span-7 space-y-5">
-          {/* 1. Date Selector (BR-003: H to H-3) */}
+          {/* 1. Attendance Segmented Control (PRD FR-005 A2) */}
+          <section className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
+                <UserCheck className="w-4 h-4 text-blue-600" />
+                Status Kehadiran Hari Ini
+              </label>
+              <span className="text-[11px] font-semibold text-slate-400">
+                PRD FR-005 (A2)
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setAttendanceType("PRESENT");
+                }}
+                className={`py-2.5 px-3 rounded-xl text-xs font-bold flex flex-col sm:flex-row items-center justify-center gap-1.5 transition cursor-pointer ${
+                  attendanceType === "PRESENT"
+                    ? "bg-blue-600 text-white shadow-xs ring-2 ring-blue-600/20"
+                    : "bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100"
+                }`}
+              >
+                <UserCheck className="w-4 h-4" />
+                <span>Hadir Praktik</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setAttendanceType("SICK");
+                  setIsNonCompetency(false);
+                }}
+                className={`py-2.5 px-3 rounded-xl text-xs font-bold flex flex-col sm:flex-row items-center justify-center gap-1.5 transition cursor-pointer ${
+                  attendanceType === "SICK"
+                    ? "bg-rose-600 text-white shadow-xs ring-2 ring-rose-600/20"
+                    : "bg-slate-50 text-slate-700 border border-slate-200 hover:bg-rose-50 hover:text-rose-700"
+                }`}
+              >
+                <HeartPulse className="w-4 h-4" />
+                <span>Sakit</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setAttendanceType("PERMIT");
+                  setIsNonCompetency(false);
+                }}
+                className={`py-2.5 px-3 rounded-xl text-xs font-bold flex flex-col sm:flex-row items-center justify-center gap-1.5 transition cursor-pointer ${
+                  attendanceType === "PERMIT"
+                    ? "bg-amber-600 text-white shadow-xs ring-2 ring-amber-600/20"
+                    : "bg-slate-50 text-slate-700 border border-slate-200 hover:bg-amber-50 hover:text-amber-700"
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                <span>Izin Resmi</span>
+              </button>
+            </div>
+
+            {/* Attendance Notice for Sakit / Izin */}
+            {isSickOrPermit && (
+              <div
+                className={`p-3.5 rounded-xl border text-xs leading-relaxed animate-in fade-in duration-150 ${
+                  attendanceType === "SICK"
+                    ? "bg-rose-50/80 border-rose-200 text-rose-900"
+                    : "bg-amber-50/80 border-amber-200 text-amber-900"
+                }`}
+              >
+                <p className="font-bold flex items-center gap-1.5">
+                  <Info className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>
+                    {attendanceType === "SICK"
+                      ? "Presensi Sakit — Unggah Surat Dokter"
+                      : "Presensi Izin — Surat Dispensasi / Keterangan"}
+                  </span>
+                </p>
+                <p className="mt-1 text-[11px] opacity-90">
+                  Status tercatat resmi dan tidak dianggap alpha. Jam tidak dihitung ke akumulasi kompetensi teknis agar metrik drift tetap objektif (PRD FR-005 A2). Mentor industri tetap akan memvalidasi surat ini.
+                </p>
+              </div>
+            )}
+          </section>
+
+          {/* 2. Date Selector (BR-003: H to H-3) */}
           <section className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
             <div className="flex items-center justify-between">
               <label
@@ -324,26 +452,33 @@ export default function NewLogPage() {
             </p>
           </section>
 
-          {/* 2. Job Card Selection (If competency) */}
-          {!isNonCompetency ? (
+          {/* 3. Job Card Selection (If PRESENT & Competency) */}
+          {!isSickOrPermit && !isNonCompetency ? (
             <section className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-blue-600" />
-                  Pilih Kartu Pekerjaan (Job Cards Mitra)
-                </label>
-                <span className="text-xs text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-md">
-                  {jobCards.length} Kartu Aktif
+                <div>
+                  <label className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-blue-600" />
+                    Pilih Kartu Pekerjaan (Multi-Pilihan 1–3 Kartu)
+                  </label>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Pilih hingga 3 kartu tugas yang diselesaikan hari ini (PRD FR-005)
+                  </p>
+                </div>
+                <span className="text-xs text-blue-700 font-bold bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
+                  Terpilih: {selectedJobCardIds.length}/3
                 </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 {jobCards.map((card) => {
-                  const isSelected = selectedJobCardId === card.id;
+                  const isSelected = selectedJobCardIds.includes(card.id);
+                  const orderIndex = selectedJobCardIds.indexOf(card.id);
+
                   return (
                     <div
                       key={card.id}
-                      onClick={() => setSelectedJobCardId(card.id)}
+                      onClick={() => handleToggleJobCard(card.id)}
                       className={`p-4 rounded-2xl border cursor-pointer transition active:scale-[0.99] flex flex-col justify-between ${
                         isSelected
                           ? "bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 shadow-xs"
@@ -356,13 +491,13 @@ export default function NewLogPage() {
                             {card.skkni || "SKKNI Kejuruan"}
                           </span>
                           <div
-                            className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 ${
                               isSelected
-                                ? "bg-blue-600 text-white"
-                                : "border-2 border-slate-300"
+                                ? "bg-blue-600 text-white shadow-xs"
+                                : "border-2 border-slate-300 text-transparent"
                             }`}
                           >
-                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                            {isSelected ? `#${orderIndex + 1}` : ""}
                           </div>
                         </div>
 
@@ -385,8 +520,20 @@ export default function NewLogPage() {
                   );
                 })}
               </div>
+
+              {/* JP Split preview indicator */}
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 flex items-center justify-between">
+                <span className="font-medium text-slate-500">Distribusi Jam Belajar:</span>
+                <span className="font-bold text-blue-700">
+                  {selectedJobCardIds.length === 1
+                    ? `${durationJp} JP penuh untuk 1 tugas`
+                    : selectedJobCardIds.length === 2
+                    ? `${Math.ceil(durationJp / 2)} JP + ${Math.floor(durationJp / 2)} JP (${durationJp} JP total)`
+                    : `Dibagi rata ke 3 tugas (${durationJp} JP total)`}
+                </span>
+              </div>
             </section>
-          ) : (
+          ) : isNonCompetency && !isSickOrPermit ? (
             <section className="bg-amber-50 p-5 rounded-2xl border border-amber-200 space-y-3">
               <div className="flex items-center gap-2 text-amber-900 font-bold text-sm">
                 <Sparkles className="w-4 h-4 text-amber-600" />
@@ -396,53 +543,59 @@ export default function NewLogPage() {
                 Anda memilih kartu non-jurusan. Jam kehadiran ini tetap dihitung penuh memenuhi kewajiban PKL Anda (BR-004), namun tidak akan menambah jam teknis pada CV ATS Anda.
               </p>
             </section>
-          )}
+          ) : null}
 
-          {/* 3. Upload Foto Bukti Praktik (Kompresi WebP Canvas + Sensor Privasi DUDI) */}
+          {/* 4. Upload Foto Bukti Praktik / Surat Keterangan */}
           <section className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
                 <Camera className="w-4 h-4 text-blue-600" />
-                Foto Bukti Kegiatan (Otomatis Kompresi WebP)
+                {attendanceType === "SICK"
+                  ? "Foto Surat Keterangan Dokter (Maks 150 KB)"
+                  : attendanceType === "PERMIT"
+                  ? "Foto Surat Izin / Dispensasi (Maks 150 KB)"
+                  : "Foto Bukti Kegiatan (Otomatis Kompresi WebP)"}
               </label>
               <span className="text-[11px] font-semibold text-slate-400">
                 Maks 150 KB
               </span>
             </div>
 
-            {/* Privacy Blur Toggle Control (FR-006 & TC-003) */}
-            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/90">
-              <div className="flex items-start gap-2.5">
-                <ShieldCheck className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <span>Sensor Privasi / Dokumen Rahasia DUDI</span>
-                    {applyPrivacyBlur && (
-                      <span className="text-[10px] bg-indigo-100 text-indigo-700 font-black px-1.5 py-0.2 rounded">
-                        AKTIF
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-[11px] text-slate-500 leading-snug">
-                    Otomatis buramkan bagian tengah foto (layar monitor/faktur/dokumen klien) sebelum diunggah
-                  </p>
+            {/* Privacy Blur Toggle Control (Only for PRESENT) */}
+            {attendanceType === "PRESENT" && (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/90">
+                <div className="flex items-start gap-2.5">
+                  <ShieldCheck className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <span>Sensor Privasi / Dokumen Rahasia DUDI</span>
+                      {applyPrivacyBlur && (
+                        <span className="text-[10px] bg-indigo-100 text-indigo-700 font-black px-1.5 py-0.2 rounded">
+                          AKTIF
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-[11px] text-slate-500 leading-snug">
+                      Otomatis buramkan bagian tengah foto (layar monitor/faktur/dokumen klien) sebelum diunggah
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleTogglePrivacyBlur(!applyPrivacyBlur)}
-                className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ease-in-out cursor-pointer flex-shrink-0 ${
-                  applyPrivacyBlur ? "bg-indigo-600" : "bg-slate-300"
-                }`}
-                title="Aktifkan/nonaktifkan sensor privasi"
-              >
-                <div
-                  className={`bg-white w-4 h-4 rounded-full shadow-xs transform transition-transform duration-200 ease-in-out ${
-                    applyPrivacyBlur ? "translate-x-5" : "translate-x-0"
+                <button
+                  type="button"
+                  onClick={() => handleTogglePrivacyBlur(!applyPrivacyBlur)}
+                  className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ease-in-out cursor-pointer flex-shrink-0 ${
+                    applyPrivacyBlur ? "bg-indigo-600" : "bg-slate-300"
                   }`}
-                />
-              </button>
-            </div>
+                  title="Aktifkan/nonaktifkan sensor privasi"
+                >
+                  <div
+                    className={`bg-white w-4 h-4 rounded-full shadow-xs transform transition-transform duration-200 ease-in-out ${
+                      applyPrivacyBlur ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+            )}
 
             {photoPreviewUrl && compressedPhoto ? (
               <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
@@ -485,7 +638,11 @@ export default function NewLogPage() {
                   <Camera className="w-5 h-5" />
                 </div>
                 <p className="text-xs font-bold text-slate-800">
-                  {isCompressingPhoto ? "Sedang Mengompresi WebP..." : "Ambil Foto / Pilih dari Galeri"}
+                  {isCompressingPhoto
+                    ? "Sedang Mengompresi WebP..."
+                    : isSickOrPermit
+                    ? "Ambil Foto Surat Keterangan / Resep"
+                    : "Ambil Foto / Pilih dari Galeri"}
                 </p>
                 <p className="text-[11px] text-slate-400 mt-0.5">
                   Metadata lokasi/EXIF otomatis dihapus untuk keamanan privasi Anda
@@ -497,69 +654,71 @@ export default function NewLogPage() {
 
         {/* RIGHT COLUMN: Tombol Jujur, Slider, Autonomy, Submit (5 cols on desktop) */}
         <div className="lg:col-span-5 space-y-5">
-          {/* 4. Tombol Jujur (BR-004: Non-Competency Whistleblower) */}
-          <section className="bg-amber-50/70 p-5 rounded-2xl border border-amber-200/80 shadow-2xs space-y-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-2.5">
-                <span className="p-1.5 rounded-lg bg-amber-500 text-white mt-0.5">
-                  <Sparkles className="w-4 h-4" />
-                </span>
-                <div>
-                  <h3 className="text-xs sm:text-sm font-bold text-slate-900">
-                    Tombol Jujur (Tugas Non-Jurusan)
-                  </h3>
-                  <p className="text-xs text-slate-600 leading-snug mt-0.5">
-                    Ditugaskan pekerjaan di luar keahlian RPL? Laporkan secara aman di sini.
-                  </p>
+          {/* 5. Tombol Jujur (BR-004: Non-Competency Whistleblower - Only when PRESENT) */}
+          {!isSickOrPermit && (
+            <section className="bg-amber-50/70 p-5 rounded-2xl border border-amber-200/80 shadow-2xs space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  <span className="p-1.5 rounded-lg bg-amber-500 text-white mt-0.5">
+                    <Sparkles className="w-4 h-4" />
+                  </span>
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-bold text-slate-900">
+                      Tombol Jujur (Tugas Non-Jurusan)
+                    </h3>
+                    <p className="text-xs text-slate-600 leading-snug mt-0.5">
+                      Ditugaskan pekerjaan di luar keahlian RPL? Laporkan secara aman di sini.
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsNonCompetency(!isNonCompetency)}
-                className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ease-in-out focus:outline-none flex-shrink-0 ${
-                  isNonCompetency ? "bg-amber-600" : "bg-slate-300"
-                }`}
-                aria-pressed={isNonCompetency}
-              >
-                <div
-                  className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${
-                    isNonCompetency ? "translate-x-5" : "translate-x-0"
+                <button
+                  type="button"
+                  onClick={() => setIsNonCompetency(!isNonCompetency)}
+                  className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ease-in-out focus:outline-none flex-shrink-0 ${
+                    isNonCompetency ? "bg-amber-600" : "bg-slate-300"
                   }`}
-                />
-              </button>
-            </div>
-
-            {isNonCompetency && (
-              <div className="pt-3 border-t border-amber-200/60 space-y-2.5 animate-in fade-in duration-200">
-                <label className="text-xs font-bold text-amber-900">
-                  Kategori Pekerjaan yang Diberikan:
-                </label>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  {[
-                    { id: "ADMIN_UMUM", label: "Administrasi Umum" },
-                    { id: "KEBERSIHAN_GUDANG", label: "Kebersihan / Gudang" },
-                    { id: "KURIR", label: "Kurir / Pengantaran" },
-                    { id: "JAGA_TOKO", label: "Jaga Toko / Resepsionis" },
-                  ].map((cat) => (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => setNonCompetencyCategory(cat.id)}
-                      className={`p-2.5 rounded-xl text-left font-medium transition ${
-                        nonCompetencyCategory === cat.id
-                          ? "bg-amber-600 text-white font-bold shadow-xs"
-                          : "bg-white text-slate-700 border border-amber-200 hover:bg-amber-100/50"
-                      }`}
-                    >
-                      {cat.label}
-                    </button>
-                  ))}
-                </div>
+                  aria-pressed={isNonCompetency}
+                >
+                  <div
+                    className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${
+                      isNonCompetency ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
               </div>
-            )}
-          </section>
 
-          {/* 5. Durasi JP Slider (BR-002: 1 to 12 JP) */}
+              {isNonCompetency && (
+                <div className="pt-3 border-t border-amber-200/60 space-y-2.5 animate-in fade-in duration-200">
+                  <label className="text-xs font-bold text-amber-900">
+                    Kategori Pekerjaan yang Diberikan:
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {[
+                      { id: "ADMIN_UMUM", label: "Administrasi Umum" },
+                      { id: "KEBERSIHAN_GUDANG", label: "Kebersihan / Gudang" },
+                      { id: "KURIR", label: "Kurir / Pengantaran" },
+                      { id: "JAGA_TOKO", label: "Jaga Toko / Resepsionis" },
+                    ].map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setNonCompetencyCategory(cat.id)}
+                        className={`p-2.5 rounded-xl text-left font-medium transition ${
+                          nonCompetencyCategory === cat.id
+                            ? "bg-amber-600 text-white font-bold shadow-xs"
+                            : "bg-white text-slate-700 border border-amber-200 hover:bg-amber-100/50"
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* 6. Durasi JP Slider (BR-002: 1 to 12 JP) */}
           <section className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs sm:text-sm font-bold text-slate-800">
@@ -584,52 +743,54 @@ export default function NewLogPage() {
             </div>
           </section>
 
-          {/* 6. Autonomy Level (BR-009) */}
-          <section className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
-            <label className="text-xs sm:text-sm font-bold text-slate-800">
-              Tingkat Kemandirian Pengerjaan Tugas:
-            </label>
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              {[
-                { level: 1 as const, label: "Observasi", score: "Bobot 75", desc: "Melihat / Membantu" },
-                { level: 2 as const, label: "Terbimbing", score: "Bobot 88", desc: "Didampingi Mentor" },
-                { level: 3 as const, label: "Mandiri", score: "Bobot 100", desc: "Mengerjakan Sendiri" },
-              ].map((item) => (
-                <button
-                  key={item.level}
-                  type="button"
-                  onClick={() => setAutonomyLevel(item.level)}
-                  className={`p-3 rounded-2xl text-center flex flex-col items-center justify-center transition ${
-                    autonomyLevel === item.level
-                      ? "bg-blue-600 text-white font-bold shadow-md ring-2 ring-blue-600/30"
-                      : "bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100"
-                  }`}
-                >
-                  <span className="text-xs sm:text-sm font-bold">{item.label}</span>
-                  <span
-                    className={`text-[10px] font-semibold mt-0.5 ${
-                      autonomyLevel === item.level ? "text-blue-100" : "text-blue-600"
+          {/* 7. Autonomy Level (BR-009 - Only for PRESENT) */}
+          {!isSickOrPermit && (
+            <section className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
+              <label className="text-xs sm:text-sm font-bold text-slate-800">
+                Tingkat Kemandirian Pengerjaan Tugas:
+              </label>
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                {[
+                  { level: 1 as const, label: "Observasi", score: "Bobot 75", desc: "Melihat / Membantu" },
+                  { level: 2 as const, label: "Terbimbing", score: "Bobot 88", desc: "Didampingi Mentor" },
+                  { level: 3 as const, label: "Mandiri", score: "Bobot 100", desc: "Mengerjakan Sendiri" },
+                ].map((item) => (
+                  <button
+                    key={item.level}
+                    type="button"
+                    onClick={() => setAutonomyLevel(item.level)}
+                    className={`p-3 rounded-2xl text-center flex flex-col items-center justify-center transition ${
+                      autonomyLevel === item.level
+                        ? "bg-blue-600 text-white font-bold shadow-md ring-2 ring-blue-600/30"
+                        : "bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100"
                     }`}
                   >
-                    {item.score}
-                  </span>
-                  <span
-                    className={`text-[9px] mt-1 line-clamp-1 ${
-                      autonomyLevel === item.level ? "text-blue-200" : "text-slate-400"
-                    }`}
-                  >
-                    {item.desc}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </section>
+                    <span className="text-xs sm:text-sm font-bold">{item.label}</span>
+                    <span
+                      className={`text-[10px] font-semibold mt-0.5 ${
+                        autonomyLevel === item.level ? "text-blue-100" : "text-blue-600"
+                      }`}
+                    >
+                      {item.score}
+                    </span>
+                    <span
+                      className={`text-[9px] mt-1 line-clamp-1 ${
+                        autonomyLevel === item.level ? "text-blue-200" : "text-slate-400"
+                      }`}
+                    >
+                      {item.desc}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
 
-          {/* 7. Catatan Singkat */}
+          {/* 8. Catatan Singkat */}
           <section className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-2">
             <div className="flex items-center justify-between">
               <label htmlFor="short-note" className="text-xs sm:text-sm font-bold text-slate-800">
-                Catatan Singkat (Opsional):
+                {isSickOrPermit ? "Keterangan Sakit / Izin:" : "Catatan Singkat (Opsional):"}
               </label>
               <span className="text-[11px] text-slate-400">
                 {shortNote.length}/250
@@ -641,7 +802,13 @@ export default function NewLogPage() {
               onChange={(e) => setShortNote(e.target.value)}
               maxLength={250}
               rows={2}
-              placeholder="Tuliskan ringkasan kendala atau fitur spesifik yang Anda selesaikan..."
+              placeholder={
+                attendanceType === "SICK"
+                  ? "Tuliskan diagnosa dokter atau kondisi sakit saat ini..."
+                  : attendanceType === "PERMIT"
+                  ? "Tuliskan alasan izin / permohonan dispensasi kegiatan..."
+                  : "Tuliskan ringkasan kendala atau fitur spesifik yang Anda selesaikan..."
+              }
               className="w-full text-xs sm:text-sm p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
             />
           </section>
@@ -677,6 +844,16 @@ export default function NewLogPage() {
 
             <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-600 space-y-1.5 text-left">
               <div className="flex items-center justify-between">
+                <span className="text-slate-400 font-semibold">Status Presensi:</span>
+                <span className="font-bold text-blue-700">
+                  {attendanceType === "PRESENT"
+                    ? "Hadir Praktik"
+                    : attendanceType === "SICK"
+                    ? "Sakit (Surat Dokter)"
+                    : "Izin Resmi"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
                 <span className="text-slate-400 font-semibold">Status Antrean:</span>
                 <span className="font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                   QUEUED (Tersimpan Lokal)
@@ -684,10 +861,15 @@ export default function NewLogPage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-400 font-semibold">Alokasi Waktu:</span>
-                <span className="font-bold text-slate-900">{durationJp} JP ({autonomyLevel === 3 ? "Mandiri" : autonomyLevel === 2 ? "Terbimbing" : "Observasi"})</span>
+                <span className="font-bold text-slate-900">
+                  {durationJp} JP{" "}
+                  {attendanceType === "PRESENT"
+                    ? `(${autonomyLevel === 3 ? "Mandiri" : autonomyLevel === 2 ? "Terbimbing" : "Observasi"})`
+                    : "(Administratif)"}
+                </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-400 font-semibold">Bukti Foto:</span>
+                <span className="text-slate-400 font-semibold">Bukti Foto / Surat:</span>
                 <span className="font-bold text-slate-900">
                   {compressedPhoto ? `WebP (${(compressedPhoto.sizeBytes / 1024).toFixed(1)} KB)` : "Tanpa Foto"}
                 </span>
@@ -698,7 +880,7 @@ export default function NewLogPage() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition"
+                className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
               >
                 Catat Log Lain
               </button>

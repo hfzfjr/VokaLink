@@ -102,7 +102,7 @@ export async function executeTwoPhaseSync(
             clientLogUuid: log.clientLogUuid,
             placementId: log.placementId,
             logDate: log.logDate,
-            attendanceType: "PRESENT" as const,
+            attendanceType: log.attendanceType || ("PRESENT" as const),
             shortNote: log.shortNote,
             evidenceSha256: photo?.sha256,
             evidenceSizeBytes: photo?.sizeBytes,

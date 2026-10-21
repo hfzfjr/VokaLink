@@ -802,6 +802,10 @@ export interface StudentCvResponse {
     year: string;
     description: string;
   }>;
+  visibility?: {
+    showPhotos?: boolean;
+    showGrades?: boolean;
+  };
   passportSlug: string;
   verificationUrl: string;
   masterSignatureHash: string | null;
@@ -858,7 +862,11 @@ export async function fetchStudentCv(studentId?: string): Promise<StudentCvRespo
 
 /** PATCH /students/me/passport */
 export async function updateStudentPassport(
-  data: { summaryBio?: string; extraActivities?: any[] },
+  data: {
+    summaryBio?: string;
+    extraActivities?: any[];
+    visibility?: { showPhotos?: boolean; showGrades?: boolean };
+  },
   studentId?: string
 ): Promise<{ success: boolean; message: string }> {
   const query = studentId ? `?studentId=${encodeURIComponent(studentId)}` : "";
