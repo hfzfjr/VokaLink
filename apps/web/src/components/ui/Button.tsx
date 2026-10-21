@@ -1,132 +1,75 @@
-import { type LucideIcon } from "lucide-react";
+import * as React from "react";
+import { cn } from "@/lib/cn";
+import { Loader2 } from "lucide-react";
 
-/**
- * Button — komponen tombol reusable.
- *
- * Variant:
- * - "primary"   → biru solid (aksi utama)
- * - "secondary" → abu-abu gelap (aksi sekunder)
- * - "outline"   → border abu-abu (aksi tersier)
- * - "ghost"     → tanpa border, hover saja
- * - "danger"    → merah (hapus / destruktif)
- * - "success"   → hijau (konfirmasi / sukses)
- *
- * Size:
- * - "sm"  → teks xs, padding kecil
- * - "md"  → teks sm, padding sedang (default)
- * - "lg"  → teks base, padding besar
- */
-
-type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger" | "success";
-type ButtonSize = "sm" | "md" | "lg";
-
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
-  size?: ButtonSize;
-  /** Ikon Lucide di sisi kiri label */
-  iconLeft?: LucideIcon;
-  /** Ikon Lucide di sisi kanan label */
-  iconRight?: LucideIcon;
-  /** Tampilkan loading spinner dan nonaktifkan tombol */
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?:
+    | "primary"
+    | "secondary"
+    | "outline"
+    | "ghost"
+    | "link"
+    | "danger";
+  size?: "default" | "sm" | "lg" | "mentor";
   loading?: boolean;
-  /** Teks label loading. Default: "Memproses..." */
-  loadingText?: string;
-  /** Render sebagai full-width block */
-  fullWidth?: boolean;
 }
 
-const variantStyles: Record<ButtonVariant, string> = {
-  primary:
-    "bg-blue-600 hover:bg-blue-700 text-white shadow-xs focus-visible:ring-blue-500",
-  secondary:
-    "bg-slate-900 hover:bg-slate-800 text-white shadow-xs focus-visible:ring-slate-700",
-  outline:
-    "border border-slate-200 hover:bg-slate-50 text-slate-700 hover:text-slate-900 focus-visible:ring-slate-300",
-  ghost:
-    "text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus-visible:ring-slate-300",
-  danger:
-    "bg-rose-600 hover:bg-rose-700 text-white shadow-xs focus-visible:ring-rose-500",
-  success:
-    "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs focus-visible:ring-emerald-500",
-};
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  (
+    {
+      className,
+      variant = "primary",
+      size = "default",
+      loading = false,
+      disabled,
+      children,
+      ...props
+    },
+    ref
+  ) => {
+    const variantClasses = {
+      primary:
+        "bg-safety-500 text-ink-900 hover:bg-safety-400 font-semibold focus-visible:ring-safety-500",
+      secondary:
+        "bg-ink-900 text-white hover:bg-ink-700 font-semibold focus-visible:ring-ink-900",
+      outline:
+        "border border-ink-200 bg-white text-ink-900 hover:bg-ink-50 font-semibold focus-visible:ring-ink-900",
+      ghost:
+        "text-ink-700 hover:bg-ink-100 font-medium focus-visible:ring-ink-900",
+      link:
+        "text-safety-700 hover:underline p-0 h-auto font-medium focus-visible:ring-safety-500",
+      danger:
+        "bg-danger-700 text-white hover:bg-danger-700/90 font-semibold focus-visible:ring-danger-700",
+    };
 
-const sizeStyles: Record<ButtonSize, { btn: string; icon: string }> = {
-  sm: { btn: "text-xs px-3 py-1.5 gap-1.5", icon: "w-3.5 h-3.5" },
-  md: { btn: "text-sm px-4 py-2.5 gap-2", icon: "w-4 h-4" },
-  lg: { btn: "text-base px-5 py-3 gap-2.5", icon: "w-5 h-5" },
-};
+    const sizeClasses = {
+      default: "h-12 lg:h-10 px-4 text-sm rounded-lg",
+      sm: "h-9 px-3 text-xs rounded-lg",
+      lg: "h-12 px-6 text-base rounded-lg",
+      mentor: "h-14 px-6 text-base rounded-lg", // 56px area sentuh mentor
+    };
 
-/** Spinner SVG kecil untuk state loading */
-function Spinner({ className }: { className?: string }) {
-  return (
-    <svg
-      className={`animate-spin ${className}`}
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-      />
-    </svg>
-  );
-}
+    return (
+      <button
+        ref={ref}
+        disabled={disabled || loading}
+        className={cn(
+          "inline-flex items-center justify-center gap-2 whitespace-nowrap transition-colors duration-150 disabled:pointer-events-none disabled:opacity-50",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+          variantClasses[variant],
+          variant !== "link" && sizeClasses[size],
+          className
+        )}
+        {...props}
+      >
+        {loading && <Loader2 className="size-4 animate-spin" />}
+        {children}
+      </button>
+    );
+  }
+);
 
-export default function Button({
-  variant = "primary",
-  size = "md",
-  iconLeft: IconLeft,
-  iconRight: IconRight,
-  loading = false,
-  loadingText = "Memproses...",
-  fullWidth = false,
-  disabled,
-  className = "",
-  children,
-  ...rest
-}: ButtonProps) {
-  const { btn, icon } = sizeStyles[size];
-  const isDisabled = disabled || loading;
+Button.displayName = "Button";
 
-  return (
-    <button
-      {...rest}
-      disabled={isDisabled}
-      className={[
-        "inline-flex items-center justify-center rounded-xl font-semibold transition",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
-        variantStyles[variant],
-        btn,
-        fullWidth ? "w-full" : "",
-        isDisabled ? "opacity-50 cursor-not-allowed" : "",
-        className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
-    >
-      {loading ? (
-        <>
-          <Spinner className={icon} />
-          {loadingText}
-        </>
-      ) : (
-        <>
-          {IconLeft && <IconLeft className={icon} />}
-          {children}
-          {IconRight && <IconRight className={icon} />}
-        </>
-      )}
-    </button>
-  );
-}
+export default Button;
