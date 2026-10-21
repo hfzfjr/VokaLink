@@ -12,6 +12,7 @@ export interface OfflineLog {
   clientLogUuid: string; // Primary key (UUID v4)
   placementId: string;
   logDate: string; // YYYY-MM-DD
+  attendanceType?: "PRESENT" | "SICK" | "PERMIT";
   durationJp: number; // 1 - 12 JP (BR-002)
   autonomyLevel: 1 | 2 | 3; // 1: Observasi, 2: Terbimbing, 3: Mandiri (BR-009)
   jobCardIds: string[];

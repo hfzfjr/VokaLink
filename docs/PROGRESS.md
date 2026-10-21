@@ -155,6 +155,11 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
     - BUG-005 (P2 Medium): Endpoint `GET /api/v1/students/me/log-context`, integrasi cache Dexie `db.refData` (`key: "student_log_context"`), eliminasi ID mock dummy, penggunaan UUID riil penempatan dan Job Cards, serta fallback offline aman.
     - BUG-006 (P3 Low): Koreksi instruksi PIN mentor di modal QR menjadi 4 digit (BR-007), serta rendering judul kartu riwayat offline instan via `ol.jobCardTitle`.
     - Sensor Privasi / Privacy Blur (FR-006 & TC-003): Pipeline Canvas blur filter selektif pada dokumen/monitor rahasia DUDI dengan frosted-glass & watermark badge privasi permanen sebelum konversi WebP.
+  - Implementasi Fitur Lanjutan Scope Orang B (FR-005 & FR-012) (Orang B):
+    - Multi-Job Cards Selection (PRD FR-005 baris 428): Siswa dapat memilih 1 hingga 3 job cards per log harian di `/student/log/new` dengan indikator urutan `#1`, `#2`, `#3`, preview pembagian durasi JP proporsional, dan penguncian jika melebihi kuota 3 kartu.
+    - Presensi Sakit / Izin (PRD FR-005 A2 baris 439): Kontrol segmen kehadiran (`Hadir Praktik`, `Sakit`, `Izin Resmi`), panduan unggah foto surat dokter/izin resmi, dan pemetaan otomatis ke kategori non-kompetensi `ADMIN_UMUM` agar tidak mendistorsi metrik drift teknis.
+    - Live Student Dashboard & Pure SVG Radar CP Chart (PRD FR-005 baris 420 & 983): Integrasi live Dexie IndexedDB (`useLiveQuery`), penghitungan real-time JP terverifikasi vs pending, visualisasi 5 sumbu SKKNI dengan Spider Radar Chart SVG murni (0 KB external bundle) dan progress bar capaian tiap elemen CP.
+    - Kontrol Privasi Paspor Keahlian Publik (PRD FR-012 A1 baris 841): Toggle switch `showPhotos` (Galeri Bukti) dan `showGrades` (Nilai Sikap Mentor) di sidebar `/student/career-cv`, integrasi mutasi API `PATCH /api/v1/students/me/passport` dengan fallback offline andal.
 - Sedang dikerjakan:
   - Persiapan FR-007 (Verifikasi Zero-Login Mentor QR / WA + PIN oleh Orang C).
 - Blocker:
