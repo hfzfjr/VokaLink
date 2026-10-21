@@ -880,3 +880,40 @@ export async function fetchPublicPassport(slug: string): Promise<PublicPassportR
   return json;
 }
 
+export interface StudentLogContextResponse {
+  student: {
+    id: string;
+    fullName: string;
+    departmentName: string;
+    schoolName: string;
+  };
+  activePlacement: {
+    id: string;
+    dudiName: string;
+    dudiCity: string;
+    mentorName: string;
+  } | null;
+  jobCards: Array<{
+    id: string;
+    title: string;
+    tools: string[];
+    skkni?: string | null;
+    category: string;
+  }>;
+  nonCompetencyJobCard: {
+    id: string;
+    title: string;
+  } | null;
+}
+
+/** GET /students/me/log-context */
+export async function fetchStudentLogContext(
+  studentId?: string
+): Promise<StudentLogContextResponse> {
+  const query = studentId ? `?studentId=${encodeURIComponent(studentId)}` : "";
+  const res = await fetch(`${API_BASE_URL}/students/me/log-context${query}`);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memuat konteks penempatan dan job card");
+  return json;
+}
+

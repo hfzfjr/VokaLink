@@ -15,6 +15,7 @@ export interface OfflineLog {
   durationJp: number; // 1 - 12 JP (BR-002)
   autonomyLevel: 1 | 2 | 3; // 1: Observasi, 2: Terbimbing, 3: Mandiri (BR-009)
   jobCardIds: string[];
+  jobCardTitle?: string;
   isNonCompetency: boolean;
   nonCompetencyCategory?: string;
   shortNote?: string;

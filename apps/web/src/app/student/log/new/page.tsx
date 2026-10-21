@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Calendar,
@@ -20,6 +20,53 @@ import {
 } from "@vokalink/shared";
 import { db } from "@/lib/pwa/db";
 import { compressEvidencePhoto, type CompressedPhotoResult } from "@/lib/pwa/photo";
+import { fetchStudentLogContext, type StudentLogContextResponse } from "@/lib/api";
+
+interface JobCardItem {
+  id: string;
+  title: string;
+  tools: string[];
+  skkni?: string | null;
+  category: string;
+}
+
+const DEFAULT_JOB_CARDS: JobCardItem[] = [
+  {
+    id: "00000000-0000-0000-0000-000000000031",
+    title: "Implementasi REST API & Router Express",
+    tools: ["Express", "TypeScript"],
+    skkni: "J.620100.009.01",
+    category: "Backend Development",
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000032",
+    title: "Slicing UI Responsif Tailwind CSS",
+    tools: ["Next.js", "Tailwind CSS"],
+    skkni: "J.620100.012.01",
+    category: "Frontend UI/UX",
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000033",
+    title: "Desain Skema Database & Migrasi Prisma",
+    tools: ["PostgreSQL", "Prisma ORM"],
+    skkni: "J.620100.010.01",
+    category: "Database & Storage",
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000035",
+    title: "Pengujian Unit Testing & Integrasi API",
+    tools: ["Vitest", "Supertest"],
+    skkni: "J.620100.015.01",
+    category: "Quality Assurance",
+  },
+];
+
+const DEFAULT_NON_COMPETENCY_JC = {
+  id: "00000000-0000-0000-0000-000000000037",
+  title: "Bantuan Operasional Umum",
+};
+
+const DEFAULT_PLACEMENT_ID = "00000000-0000-0000-0000-000000000051";
 
 export default function NewLogPage() {
   const today = new Date().toISOString().split("T")[0]!;
@@ -30,7 +77,19 @@ export default function NewLogPage() {
   const [autonomyLevel, setAutonomyLevel] = useState<1 | 2 | 3>(3);
   const [shortNote, setShortNote] = useState("");
 
-  // Photo state
+  // Context state (Placement & Job Cards)
+  const [jobCards, setJobCards] = useState<JobCardItem[]>(DEFAULT_JOB_CARDS);
+  const [nonCompetencyJobCard, setNonCompetencyJobCard] = useState(DEFAULT_NON_COMPETENCY_JC);
+  const [activePlacement, setActivePlacement] = useState<{
+    id: string;
+    dudiName: string;
+    dudiCity: string;
+    mentorName: string;
+  } | null>(null);
+
+  // Photo state & Privacy Blur (FR-006 & TC-003)
+  const [rawPhotoFile, setRawPhotoFile] = useState<File | null>(null);
+  const [applyPrivacyBlur, setApplyPrivacyBlur] = useState(false);
   const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
   const [compressedPhoto, setCompressedPhoto] = useState<CompressedPhotoResult | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
@@ -38,57 +97,102 @@ export default function NewLogPage() {
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedLogUuid, setSubmittedLogUuid] = useState<string | null>(null);
+  const [selectedJobCardId, setSelectedJobCardId] = useState<string>(
+    DEFAULT_JOB_CARDS[0]?.id ?? "00000000-0000-0000-0000-000000000031"
+  );
 
-  const sampleJobCards = [
-    {
-      id: "jc-1",
-      title: "Implementasi REST API & Router Express",
-      tools: ["Express", "TypeScript"],
-      skkni: "J.620100.009.01",
-      category: "Backend Development",
-    },
-    {
-      id: "jc-2",
-      title: "Desain Skema Database & Migrasi Prisma",
-      tools: ["PostgreSQL", "Prisma ORM"],
-      skkni: "J.620100.010.01",
-      category: "Database & Storage",
-    },
-    {
-      id: "jc-3",
-      title: "Pembuatan Komponen UI Frontend Mobile-First",
-      tools: ["Next.js", "Tailwind CSS"],
-      skkni: "J.620100.012.01",
-      category: "Frontend UI/UX",
-    },
-    {
-      id: "jc-4",
-      title: "Pengujian Unit Testing & Integrasi API",
-      tools: ["Vitest", "Supertest"],
-      skkni: "J.620100.015.01",
-      category: "Quality Assurance",
-    },
-  ];
+  // Ambil konteks penempatan dan job cards (Cache first di Dexie.refData, fallback ke server)
+  useEffect(() => {
+    let isMounted = true;
 
-  const [selectedJobCardId, setSelectedJobCardId] = useState(sampleJobCards[0]!.id);
+    async function loadLogContext() {
+      try {
+        // 1. Coba baca dari cache offline Dexie
+        const cached = await db.refData.get("student_log_context");
+        if (cached && cached.data && isMounted) {
+          const data = cached.data as StudentLogContextResponse;
+          if (data.jobCards && data.jobCards.length > 0) {
+            setJobCards(data.jobCards);
+            const firstId = data.jobCards[0]?.id;
+            if (firstId) setSelectedJobCardId(firstId);
+          }
+          if (data.nonCompetencyJobCard) {
+            setNonCompetencyJobCard(data.nonCompetencyJobCard);
+          }
+          if (data.activePlacement) {
+            setActivePlacement(data.activePlacement);
+          }
+        }
 
-  // Handle Photo selection & compression
-  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+        // 2. Jika online, perbarui dari server
+        if (typeof navigator !== "undefined" && navigator.onLine) {
+          const fresh = await fetchStudentLogContext();
+          if (fresh && isMounted) {
+            if (fresh.jobCards && fresh.jobCards.length > 0) {
+              setJobCards(fresh.jobCards);
+              const firstId = fresh.jobCards[0]?.id;
+              setSelectedJobCardId((prev) =>
+                fresh.jobCards.some((j) => j.id === prev)
+                  ? prev
+                  : (firstId ?? "00000000-0000-0000-0000-000000000031")
+              );
+            }
+            if (fresh.nonCompetencyJobCard) {
+              setNonCompetencyJobCard(fresh.nonCompetencyJobCard);
+            }
+            if (fresh.activePlacement) {
+              setActivePlacement(fresh.activePlacement);
+            }
 
+            // Simpan ke IndexedDB untuk penggunaan offline berikutnya
+            await db.refData.put({
+              key: "student_log_context",
+              data: fresh,
+              cachedAt: Date.now(),
+            });
+          }
+        }
+      } catch (err) {
+        console.warn("Menggunakan fallback konteks job cards:", err);
+      }
+    }
+
+    loadLogContext();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Proses kompresi foto dan penerapan blur
+  const processPhoto = async (file: File, blur: boolean) => {
     try {
       setIsCompressingPhoto(true);
-      const result = await compressEvidencePhoto(file);
+      const result = await compressEvidencePhoto(file, { applyPrivacyBlur: blur });
       setCompressedPhoto(result);
 
       if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
       const preview = URL.createObjectURL(result.blob);
       setPhotoPreviewUrl(preview);
     } catch (err) {
-      alert("Gagal mengompresi foto: " + (err instanceof Error ? err.message : String(err)));
+      alert("Gagal memproses foto: " + (err instanceof Error ? err.message : String(err)));
     } finally {
       setIsCompressingPhoto(false);
+    }
+  };
+
+  // Handle Photo selection
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setRawPhotoFile(file);
+    await processPhoto(file, applyPrivacyBlur);
+  };
+
+  // Toggle sensor privasi / blur secara dinamis
+  const handleTogglePrivacyBlur = async (newBlurVal: boolean) => {
+    setApplyPrivacyBlur(newBlurVal);
+    if (rawPhotoFile) {
+      await processPhoto(rawPhotoFile, newBlurVal);
     }
   };
 
@@ -96,9 +200,10 @@ export default function NewLogPage() {
     if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
     setPhotoPreviewUrl(null);
     setCompressedPhoto(null);
+    setRawPhotoFile(null);
   };
 
-  // Submit to Dexie IndexedDB
+  // Submit to Dexie IndexedDB (BUG-005 Fixed)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -107,14 +212,26 @@ export default function NewLogPage() {
       const clientLogUuid = crypto.randomUUID();
       const clientCreatedAt = new Date().toISOString();
 
-      // 1. Simpan Log ke IndexedDB
+      const placementId = activePlacement?.id || DEFAULT_PLACEMENT_ID;
+      const technicalCard = jobCards.find((j) => j.id === selectedJobCardId) || jobCards[0];
+      const nonCompCard = nonCompetencyJobCard || DEFAULT_NON_COMPETENCY_JC;
+
+      const targetJobCardId = isNonCompetency
+        ? nonCompCard.id
+        : (technicalCard?.id || DEFAULT_JOB_CARDS[0]?.id || "00000000-0000-0000-0000-000000000031");
+      const targetJobCardTitle = isNonCompetency
+        ? `Bantuan Operasional (${nonCompetencyCategory})`
+        : (technicalCard?.title || "Kartu Pekerjaan Kejuruan");
+
+      // 1. Simpan Log ke IndexedDB dengan format UUID riil
       await db.logs.add({
         clientLogUuid,
-        placementId: "placement-demo-rpl",
+        placementId,
         logDate: selectedDate,
         durationJp,
         autonomyLevel,
-        jobCardIds: isNonCompetency ? [] : [selectedJobCardId],
+        jobCardIds: [targetJobCardId],
+        jobCardTitle: targetJobCardTitle,
         isNonCompetency,
         nonCompetencyCategory: isNonCompetency ? nonCompetencyCategory : undefined,
         shortNote: shortNote.trim() || undefined,
@@ -216,12 +333,12 @@ export default function NewLogPage() {
                   Pilih Kartu Pekerjaan (Job Cards Mitra)
                 </label>
                 <span className="text-xs text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-md">
-                  {sampleJobCards.length} Kartu Aktif
+                  {jobCards.length} Kartu Aktif
                 </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                {sampleJobCards.map((card) => {
+                {jobCards.map((card) => {
                   const isSelected = selectedJobCardId === card.id;
                   return (
                     <div
@@ -236,7 +353,7 @@ export default function NewLogPage() {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-md">
-                            {card.skkni}
+                            {card.skkni || "SKKNI Kejuruan"}
                           </span>
                           <div
                             className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
@@ -281,7 +398,7 @@ export default function NewLogPage() {
             </section>
           )}
 
-          {/* 3. Upload Foto Bukti Praktik (Kompresi WebP Canvas) */}
+          {/* 3. Upload Foto Bukti Praktik (Kompresi WebP Canvas + Sensor Privasi DUDI) */}
           <section className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -291,6 +408,40 @@ export default function NewLogPage() {
               <span className="text-[11px] font-semibold text-slate-400">
                 Maks 150 KB
               </span>
+            </div>
+
+            {/* Privacy Blur Toggle Control (FR-006 & TC-003) */}
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/90">
+              <div className="flex items-start gap-2.5">
+                <ShieldCheck className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <span>Sensor Privasi / Dokumen Rahasia DUDI</span>
+                    {applyPrivacyBlur && (
+                      <span className="text-[10px] bg-indigo-100 text-indigo-700 font-black px-1.5 py-0.2 rounded">
+                        AKTIF
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-[11px] text-slate-500 leading-snug">
+                    Otomatis buramkan bagian tengah foto (layar monitor/faktur/dokumen klien) sebelum diunggah
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleTogglePrivacyBlur(!applyPrivacyBlur)}
+                className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ease-in-out cursor-pointer flex-shrink-0 ${
+                  applyPrivacyBlur ? "bg-indigo-600" : "bg-slate-300"
+                }`}
+                title="Aktifkan/nonaktifkan sensor privasi"
+              >
+                <div
+                  className={`bg-white w-4 h-4 rounded-full shadow-xs transform transition-transform duration-200 ease-in-out ${
+                    applyPrivacyBlur ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
             </div>
 
             {photoPreviewUrl && compressedPhoto ? (
@@ -304,7 +455,7 @@ export default function NewLogPage() {
                   <button
                     type="button"
                     onClick={handleRemovePhoto}
-                    className="absolute top-2 right-2 p-1.5 rounded-full bg-slate-900/80 text-white hover:bg-rose-600 transition"
+                    className="absolute top-2 right-2 p-1.5 rounded-full bg-slate-900/80 text-white hover:bg-rose-600 transition cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>

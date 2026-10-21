@@ -45,6 +45,10 @@ Aturan:
 |---|---|---|---|---|---|
 | BUG-001 | P0 Critical | Fixed | Database / BR-007 | Trigger immutability block_verified_log_update memakai nama kolom salah mentor_id | Orang A |
 | BUG-002 | P3 Low | Fixed | PWA / Manifest | Web App Manifest mereferensikan file PNG non-eksistensi menyebabkan 404 pada browser | Orang B |
+| BUG-003 | P1 High | Open | Offline Sync (FR-006) | Ketidaksesuaian struktur payload sync.ts dengan skema backend syncLogsBatchSchema (Fase 1) | Orang B |
+| BUG-004 | P1 High | Open | Offline Sync (FR-006/007) | Kegagalan penarikan status verifikasi mentor (Fase 3 Pull) akibat format data dan typo enum | Orang B |
+| BUG-005 | P2 Medium | Open | Student Form (FR-005) | Form jurnal baru memakai ID dummy non-UUID (placement-demo-rpl & jc-1) yang ditolak backend | Orang B |
+| BUG-006 | P3 Low | Open | Student Portal (FR-007) | Typo instruksi PIN pada modal QR minta verifikasi (6 digit bukannya 4 digit) | Orang B |
 
 ### BUG-001 — Trigger block_verified_log_update memakai nama kolom salah mentor_id
 - **Level:** P0 Critical
@@ -80,6 +84,81 @@ Aturan:
 - **Catatan / dugaan penyebab:**
   Spesifikasi ukuran file PNG dideklarasikan di `manifest.ts` sebelum berkas biner PNG dibuat.
 - **Perbaikan (commit/PR):** Commit `569c840` dan `daac6f0`: Menyediakan aset vektor SVG resmi `/icons/icon.svg` dan memperbarui `manifest.ts` serta `public/manifest.json` mendeklarasikan ikon SVG dengan mode `any` dan `maskable` sesuai standar modern PWA W3C.
+
+### BUG-003 — Ketidaksesuaian struktur payload sync.ts dengan skema backend syncLogsBatchSchema (Fase 1)
+- **Level:** P1 High
+- **Status:** Fixed
+- **Fitur/Modul:** Offline Sync Engine (FR-006 & DESIGN.md §7.3)
+- **Pelapor / Pemilik:** Orang B / Orang B
+- **Ditemukan:** 22 Okt 2026, audit implementasi sinkronisasi logbook
+- **Langkah reproduksi:**
+  1. Catat entri logbook baru saat offline pada `/student/log/new`.
+  2. Buka jaringan online atau tekan "Sinkronkan Sekarang" pada `ConnectivityBanner`.
+  3. Klien memanggil fungsi `executeTwoPhaseSync` pada `apps/web/src/lib/pwa/sync.ts`.
+- **Hasil aktual:**
+  Endpoint `POST /api/v1/logs/sync` melempar HTTP 422 `VALIDATION_ERROR` karena payload klien mengirimkan properti rata (`durationJp`, `autonomyLevel`, `jobCardIds`, `nonCompetencyCategory`) tanpa membungkusnya ke dalam struktur `items: [...]` dan tanpa menyertakan `attendanceType: "PRESENT"`. Selain itu, baris 108 membaca `resJson.data?.results`, padahal API server Express mengembalikan objek `{ results, processedCount, ... }` tanpa pembungkus `.data`.
+- **Hasil seharusnya (rujukan PRD/BR/TC):**
+  Payload sinkronisasi Fase 1 membentuk objek `items` dan `attendanceType` sesuai skema `dailyLogCreateSchema` di `@vokalink/shared`, serta membaca `resJson.results` dengan benar agar log lokal berstatus `meta_synced` / `synced`.
+- **Catatan / dugaan penyebab:**
+  Perbedaan model antarmuka antara Dexie `OfflineLog` (yang dirancang flat untuk performa IndexedDB) dengan `dailyLogCreateSchema` di server.
+- **Perbaikan (commit/PR):** Direvisi pada `apps/web/src/lib/pwa/sync.ts`: merekonstruksi array `items` sesuai Zod `dailyLogCreateSchema` (membagi durasi JP secara proporsional bila multi-item), menyertakan `attendanceType: "PRESENT"`, menyematkan `evidenceSha256` dan `evidenceSizeBytes` dari `db.photos`, serta membaca hasil respons Express `resJson.results || resJson.data?.results`. Lolos typecheck dan pengujian sinkronisasi.
+
+### BUG-004 — Kegagalan penarikan status verifikasi mentor (Fase 3 Pull) akibat format data dan typo enum
+- **Level:** P1 High
+- **Status:** Fixed
+- **Fitur/Modul:** Offline Sync Engine (FR-006 & FR-007)
+- **Pelapor / Pemilik:** Orang B / Orang B
+- **Ditemukan:** 22 Okt 2026, audit logika penarikan status verifikasi
+- **Langkah reproduksi:**
+  1. Siswa memiliki log lokal yang telah berstatus `synced`.
+  2. Mentor industri memvalidasi log menjadi `VERIFIED` atau `REVISION_REQUIRED`.
+  3. Klien menjalankan Fase 3 PULL pada `apps/web/src/lib/pwa/sync.ts`.
+- **Hasil aktual:**
+  1. Baris 277 membaca `pullJson.data`, padahal endpoint `GET /api/v1/logs/me` mengembalikan `{ count, logs }`, sehingga `serverLogs` selalu bernilai array kosong `[]`.
+  2. Baris 293 membandingkan `sLog.status === "REVISION_REQUESTED"`, padahal nilai enum baku di Prisma dan `@vokalink/shared` adalah `REVISION_REQUIRED`.
+  Status log pada IndexedDB siswa tidak pernah terbarui menjadi `verified` maupun `revision_required`.
+- **Hasil seharusnya (rujukan PRD/BR/TC):**
+  Klien membaca `pullJson.logs` dan mencocokkan status `VERIFIED` serta `REVISION_REQUIRED` untuk memperbarui status lokal IndexedDB secara reaktif.
+- **Catatan / dugaan penyebab:**
+  Asumsi pembungkus `.data` Axios-style yang tidak cocok dengan Express JSON handler dan typo penamaan enum status.
+- **Perbaikan (commit/PR):** Direvisi pada `apps/web/src/lib/pwa/sync.ts`: membaca `pullJson.logs || pullJson.data`, mendukung evaluasi enum `sLog.status === "REVISION_REQUIRED" || sLog.status === "REVISION_REQUESTED"`, serta mengekstrak catatan revisi dari `sLog.rejectionReason || sLog.mentorNotes`.
+
+### BUG-005 — Form jurnal baru memakai ID dummy non-UUID (placement-demo-rpl & jc-1) yang ditolak backend
+- **Level:** P2 Medium
+- **Status:** Fixed
+- **Fitur/Modul:** Student Zero-Typing Logger (FR-005)
+- **Pelapor / Pemilik:** Orang B / Orang B
+- **Ditemukan:** 22 Okt 2026, audit integrasi database form siswa
+- **Langkah reproduksi:**
+  1. Siswa mengisi formulir jurnal pada `/student/log/new` dan menekan Simpan.
+  2. Log tersimpan di IndexedDB dengan `placementId: "placement-demo-rpl"` dan `jobCardIds: ["jc-1"]`.
+  3. Engine sinkronisasi mencoba mengirim batch log ke server `POST /api/v1/logs/sync`.
+- **Hasil aktual:**
+  Zod validator backend `dailyLogCreateSchema` menolak log dengan pesan `Invalid uuid` karena `"placement-demo-rpl"` dan `"jc-1"` bukan format UUID.
+- **Hasil seharusnya (rujukan PRD/BR/TC):**
+  Formulir jurnal menggunakan UUID penempatan nyata siswa dan UUID Job Card resmi dari database (atau disinkronkan ke `db.refData` saat online).
+- **Catatan / dugaan penyebab:**
+  Mock placeholder yang dipasang saat pembuatan prototipe antarmuka awal belum dihubungkan ke data master.
+- **Perbaikan (commit/PR):** Dibuat endpoint `GET /api/v1/students/me/log-context` di backend, helper `fetchStudentLogContext` di `apps/web/src/lib/api.ts`, serta integrasi cache Dexie `db.refData` (`key: "student_log_context"`). Formulir `/student/log/new` kini memuat ID penempatan dan kartu pekerjaan UUID riil, menyimpan `jobCardTitle` lokal, serta mendukung fallback UUID valid saat offline total.
+
+### BUG-006 — Typo instruksi PIN pada modal QR minta verifikasi (6 digit bukannya 4 digit)
+- **Level:** P3 Low
+- **Status:** Fixed
+- **Fitur/Modul:** Student Log History (FR-005 / FR-007)
+- **Pelapor / Pemilik:** Orang B / Orang B
+- **Ditemukan:** 22 Okt 2026, peninjauan teks antarmuka
+- **Langkah reproduksi:**
+  1. Buka `/student/log/history`.
+  2. Tekan tombol "Minta Verifikasi QR".
+  3. Baca teks instruksi di bawah kode QR.
+- **Hasil aktual:**
+  Teks tertulis: *"lalu masukkan 6-digit PIN mentor yang terdaftar"*.
+- **Hasil seharusnya (rujukan PRD/BR/TC):**
+  Teks menyebutkan *"PIN 4 digit"* sesuai aturan bisnis BR-007 dan konstanta `PIN_LENGTH = 4`.
+- **Catatan / dugaan penyebab:**
+  Salah ketik (typo) teks penjelasan modal.
+- **Perbaikan (commit/PR):** Direvisi pada `apps/web/src/app/student/log/history/page.tsx`: teks diperbarui menjadi *"masukkan 4 digit PIN mentor yang terdaftar (BR-007)"*. Logika resolusi judul riwayat offline juga dihubungkan dengan `ol.jobCardTitle` untuk rendering instan.
+
 
 ## 5. Catatan Dokumen (ketidaksinkronan yang diketahui)
 
