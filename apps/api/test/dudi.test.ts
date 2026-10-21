@@ -4,7 +4,7 @@ import { createApp } from "../src/app.js";
 import {
   createSignedToken,
   hashSha256Hex,
-} from "@vokalink/core";
+} from "@vokalink/core/crypto";
 
 const TEST_SCHOOL_ID = "00000000-0000-0000-0000-000000000002";
 const TEST_DUDI_ID = "00000000-0000-0000-0000-000000000050";

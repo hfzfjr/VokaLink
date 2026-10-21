@@ -8,7 +8,7 @@ import {
   hashSha256Hex,
   generateSalt,
   hashPinWithScrypt,
-} from "@vokalink/core";
+} from "@vokalink/core/crypto";
 import {
   createDudiPartnerSchema,
   createDudiMentorSchema,

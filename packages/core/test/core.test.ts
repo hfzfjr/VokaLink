@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import {
-  canonicalJson,
   sealObjectWithHmac,
   createSignedToken,
   parseAndVerifySignedToken,
@@ -8,6 +7,9 @@ import {
   verifyPinWithScrypt,
   generateSalt,
   hashSha256Hex,
+} from "../src/crypto.js";
+import {
+  canonicalJson,
   calculateHaversineDistanceKm,
   calculatePlacementScore,
   rankDudiForStudent,
