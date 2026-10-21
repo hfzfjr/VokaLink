@@ -4,6 +4,7 @@
 > **Hierarki kebenaran:** `PRD.md` (fitur, data, aturan bisnis) > `DESIGN.md` (cara membangun) > kode.
 > Jika DESIGN bertentangan dengan PRD pada fitur/aturan bisnis, PRD menang dan DESIGN harus diperbaiki.
 > Revisi ini menggantikan DESIGN lama (arsitektur Express + PostgreSQL mandiri) dan disesuaikan dengan PRD v1.0 (12 FR, 5 aktor).
+> **Bab 13 (Design System & UI) wajib dibaca sebelum mengubah apa pun di `apps/web`.** Token visual hanya didefinisikan sekali di `apps/web/tailwind.config.ts`. Rencana refactor UI bertahap ada di `docs/UI-REFACTOR.md`.
 
 ## Daftar Isi
 1. Prinsip & Keputusan Arsitektur
@@ -18,6 +19,7 @@
 10. Struktur Repo, CI/CD, Pengujian
 11. Ketahanan & Observabilitas
 12. Keputusan yang Sudah Final & Sisa Terbuka
+13. Design System & UI
 
 ---
 
@@ -49,6 +51,7 @@
 | ADR-10 | Foto bukti wajib untuk level Mandiri dan Terbimbing; opsional untuk Observasi dan izin/sakit | Sesuai default TBD-03 PRD |
 | ADR-11 | JSON API memakai **camelCase**; kolom DB memakai **snake_case** via `@map` Prisma | Padanan nama PRD: `client_log_uuid` jadi `clientLogUuid` di API |
 | ADR-12 | Sinkron log **dua fase**: metadata `POST /logs/sync`, lalu foto `PUT /logs/:uuid/evidence` | Permintaan kecil, mudah dilanjutkan saat sinyal putus |
+| ADR-13 | Satu design system (Bab 13): token warna dan font hanya di `tailwind.config.ts` (Tailwind v3), komponen bersama di `components/ui` | Konsistensi lintas halaman dan agent. Warna mentah Tailwind dan gaya ad-hoc per halaman dilarang |
 
 ---
 
@@ -490,3 +493,220 @@ vokalink/
 | Q2 | Radius/cek geografis untuk verifikasi tatap muka | Tidak dipakai di MVP (PRD tidak mensyaratkan) |
 | Q3 | Penyimpanan backup foto di luar Supabase | Tidak, cukup bucket Supabase |
 | Q4 | Notifikasi push | Out-of-scope (Post-MVP) |
+
+---
+
+## 13. Design System & UI
+
+> Berlaku untuk seluruh `apps/web`. Sumber tunggal: token di `apps/web/tailwind.config.ts` dan komponen di `apps/web/src/components/ui/`. Halaman tidak boleh membuat gaya sendiri. Urutan refactor ada di `docs/UI-REFACTOR.md`. Bila bab ini bertentangan dengan PRD pada teks baku atau aturan bisnis, PRD menang.
+
+### 13.1 Arah visual dan prinsip
+
+Tema **"Bengkel & K3"**: tenang, tegas, praktis, seperti papan kerja di bengkel dan rambu keselamatan. Bukan SaaS biru-ungu bergradien.
+
+| # | Prinsip | Artinya |
+|---|---|---|
+| U1 | Satu layar, satu tugas | Tiap layar punya 1 aksi utama (maksimal 1 tombol oranye terisi). Aksi lain berupa outline atau teks |
+| U2 | Ringkas dulu, detail belakangan | Tampilkan hasil dan langkah berikutnya. Alasan, rumus, aturan, dan hash masuk ke "Detail" (disclosure) |
+| U3 | Bahasa pengguna | Tanpa kode internal (FR-, BR-, ADR-) dan istilah teknis (IndexedDB, QUEUED, HMAC, SHA-256) di layar utama |
+| U4 | Datar dan jelas | Tanpa gradien, blur, bayangan tebal, dan ikon dalam kotak pastel. Struktur dibangun dari garis, jarak, dan tipografi |
+| U5 | Warna punya arti | Navy = struktur, oranye = aksi, hijau/kuning/merah/biru = status. Tidak ada warna dekoratif lain |
+| U6 | Desktop punya layout sendiri | Bukan layout mobile yang dilebarkan (lihat 13.6) |
+| U7 | Bisa dipakai di bawah matahari dan HP murah | Kontras WCAG AA, teks minimal 12 px, area sentuh sesuai AGENTS.md |
+
+### 13.2 Warna (token)
+
+Pakai hanya nama token di bawah. Kelas warna mentah Tailwind (`blue-600`, `slate-100`, `indigo-*`, dst.) dilarang.
+
+| Token | Hex | Pakai untuk |
+|---|---|---|
+| `paper` | `#FAF8F5` | Latar halaman |
+| `white` | `#FFFFFF` | Permukaan kartu, input |
+| `line` | `#E7E1D8` | Garis dan border kartu (hangat) |
+| `ink-950` | `#081827` | Footer gelap, teks di atas oranye bila perlu kontras tinggi |
+| `ink-900` | `#0F2A43` | **Warna utama**: teks utama, judul, tombol sekunder, sidebar |
+| `ink-700` | `#1E4468` | Hover elemen navy, ikon |
+| `ink-500` | `#4A6A8A` | Teks sekunder, label (kontras 5,3:1 di atas `paper`) |
+| `ink-300` | `#A9BBCD` | Placeholder, garis nonaktif |
+| `ink-200` | `#D3DEE9` | Border input |
+| `ink-100` | `#E8EEF4` | Track progress, skeleton, hover baris |
+| `ink-50` | `#F3F6F9` | Latar blok sekunder |
+| `safety-500` | `#F97316` | **Aksen aksi**: tombol utama (teks `ink-900`, kontras 5,2:1), penanda fokus |
+| `safety-400` | `#FB923C` | Hover tombol utama |
+| `safety-700` | `#C2410C` | Teks tautan aksen di atas terang (kontras 5,2:1) |
+| `safety-100` / `safety-50` | `#FFEDD5` / `#FFF7ED` | Latar sorotan lembut |
+| `ok-700` / `ok-100` | `#15803D` / `#DCFCE7` | Terverifikasi, berhasil, heatmap ≥ 75% |
+| `warn-700` / `warn-100` | `#A16207` / `#FEF3C7` | Menunggu, offline, heatmap 1 sampai 74% |
+| `danger-700` / `danger-100` | `#B91C1C` / `#FEE2E2` | Perlu diperbaiki, drift, tanda tangan tidak valid |
+| `info-700` / `info-100` | `#1D4ED8` / `#DBEAFE` | Menyinkronkan (banner PRD §8.2) |
+
+Aturan pakai:
+- Teks `-700` selalu di atas latar `-100` atau putih. Jangan memakai `safety-500` sebagai warna teks kecil di atas putih.
+- Status wajib berisi **ikon + teks**, bukan hanya warna (WCAG AA, AGENTS.md).
+- Heatmap: 0% `ink-100`, 1 sampai 74% `warn-100`, ≥ 75% `ok-100`, lencana `DRIFT_WARNING` memakai `danger`. Tiap sel tetap menampilkan angka dan ikon.
+- Tidak ada mode gelap pada MVP.
+
+`apps/web/tailwind.config.ts` (Tailwind **v3.4**, jangan dimigrasi ke v4):
+```ts
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
+  theme: {
+    extend: {
+      colors: {
+        paper: "#FAF8F5",
+        line: "#E7E1D8",
+        ink: { 50: "#F3F6F9", 100: "#E8EEF4", 200: "#D3DEE9", 300: "#A9BBCD", 500: "#4A6A8A", 700: "#1E4468", 900: "#0F2A43", 950: "#081827" },
+        safety: { 50: "#FFF7ED", 100: "#FFEDD5", 400: "#FB923C", 500: "#F97316", 700: "#C2410C" },
+        ok: { 100: "#DCFCE7", 700: "#15803D" },
+        warn: { 100: "#FEF3C7", 700: "#A16207" },
+        danger: { 100: "#FEE2E2", 700: "#B91C1C" },
+        info: { 100: "#DBEAFE", 700: "#1D4ED8" },
+      },
+      fontFamily: {
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
+      },
+      maxWidth: { page: "80rem" },
+    },
+  },
+  plugins: [],
+};
+export default config;
+```
+
+### 13.3 Tipografi
+
+- **Plus Jakarta Sans** untuk semua teks (judul dan isi). **JetBrains Mono** hanya untuk NISN, kode SKKNI, dan hash.
+- Dimuat dengan `next/font/google` (self-host saat build, ikut ter-precache Serwist sehingga aman offline). Dilarang memuat font lewat `<link>` ke Google Fonts.
+
+`apps/web/src/app/layout.tsx`:
+```tsx
+import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+const sans = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
+const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
+// <html lang="id" className={`${sans.variable} ${mono.variable}`}>
+// <body className="min-h-screen bg-paper font-sans text-ink-900 antialiased selection:bg-safety-500 selection:text-ink-900">
+// viewport.themeColor = "#0F2A43"
+```
+`globals.css` cukup berisi tiga direktif `@tailwind` dan `-webkit-tap-highlight-color: transparent`. Variabel `--background`/`--foreground` dan `font-family: system-ui` dihapus.
+
+| Peran | Kelas | Catatan |
+|---|---|---|
+| Display (hero landing) | `text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05]` | Hanya di landing |
+| H1 halaman | `text-2xl lg:text-3xl font-bold tracking-tight` | 1 per halaman |
+| H2 seksi | `text-lg lg:text-xl font-semibold` | |
+| H3 judul kartu | `text-base font-semibold` | |
+| Isi | `text-sm lg:text-base` | 14 px mobile, 16 px desktop. Paragraf `max-w-prose` |
+| Label/keterangan | `text-xs font-medium text-ink-500` | **Ukuran terkecil yang diizinkan: 12 px** |
+| Angka besar | `text-3xl font-bold tabular-nums` | Semua angka tabel dan statistik `tabular-nums` |
+| Kode/NISN/hash | `font-mono text-xs` | |
+
+### 13.4 Bentuk, jarak, ikon, gerak
+
+- **Jarak:** skala 4 px. Antar seksi `space-y-6 lg:space-y-8`. Padding kartu `p-4 lg:p-5`. Wadah halaman: `mx-auto w-full max-w-page px-4 sm:px-6 lg:px-8`.
+- **Bentuk:** kartu `rounded-xl border border-line bg-white` tanpa bayangan. Input dan tombol `rounded-lg`. Pill status `rounded-full`. Radius maksimum `rounded-2xl` (hanya modal/sheet). `shadow-sm` hanya untuk popover dan modal.
+- **Ikon:** `lucide-react`, `size-5` (20 px), `strokeWidth` 1.75, mewarisi warna teks. Tidak ditaruh dalam kotak berwarna sebagai hiasan kartu.
+- **Gerak:** `transition-colors duration-150`. Hormati `motion-reduce`. Tanpa `hover:scale`/`active:scale`.
+- **Fokus:** `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-safety-500 focus-visible:ring-offset-2`.
+
+### 13.5 Komponen bersama (`apps/web/src/components/ui/`)
+
+Halaman hanya menyusun komponen ini. Butuh varian baru: tambahkan ke komponen, jangan menyalin kelas ke halaman. Util `cn()` (clsx + tailwind-merge) di `src/lib/cn.ts`.
+
+| Komponen | Spesifikasi |
+|---|---|
+| `Button` | `primary`: `bg-safety-500 text-ink-900 hover:bg-safety-400 font-semibold` (maks 1 per layar). `secondary`: `bg-ink-900 text-white hover:bg-ink-700`. `outline`: `border border-ink-200 bg-white hover:bg-ink-50`. `ghost`, `link` (`text-safety-700 hover:underline`), `danger` (`bg-danger-700 text-white`). Tinggi `h-12` (< lg), `lg:h-10` untuk antarmuka padat desktop, `h-14` aksi utama mentor. Status loading menampilkan spinner dan teks |
+| `Card` | `rounded-xl border border-line bg-white p-4 lg:p-5`. Judul H3 + isi. Tanpa gradien |
+| `StatusPill` | Ikon + teks, `rounded-full px-2.5 py-1 text-xs font-semibold`, warna `-700` di atas `-100`. Pemetaan di 13.7 |
+| `Field` | Label di atas, `h-12 rounded-lg border-ink-200`, bantuan `text-xs text-ink-500`, error `text-danger-700` dengan ikon |
+| `Stat` | Angka `text-3xl font-bold tabular-nums`, label `text-xs text-ink-500`, tanpa kotak ikon. Maksimal 4 per baris |
+| `ProgressBar` | Track `ink-100`, isi `ink-900`, tinggi 8 px, `role="progressbar"` lengkap |
+| `DataTable` | Tabel di ≥ md, daftar kartu bertumpuk di < md. Header `text-xs font-medium text-ink-500`, hover baris `ink-50` |
+| `Banner` | Varian `warn` (offline), `info` (menyinkronkan), `ok` (berhasil). Ikon + 1 kalimat |
+| `Disclosure` | "Lihat detail" untuk rumus, aturan, hash. Dasar prinsip U2 |
+| `EmptyState` | 1 kalimat + 1 aksi |
+| `Skeleton` | Blok `bg-ink-100 animate-pulse`. Satu-satunya tempat `animate-pulse` |
+| `PageHeader` | H1 + 1 kalimat + maksimal 1 aksi |
+| `Stepper` | Penanda langkah "Langkah 2 dari 3" untuk form panjang |
+
+### 13.6 Layout per aktor
+
+| Area | Mobile (< lg) | Desktop (≥ lg) |
+|---|---|---|
+| Landing `/` | 1 kolom, nav atas ringkas | Hero 2 kolom (teks + contoh produk), `max-w-page` |
+| Siswa `/student/*` | 1 kolom + `BottomNav` maksimal 4 item (Beranda, Catat, Riwayat, CV) | Header atas + 2 kolom: konten utama fleksibel dan panel ringkas 320 px (sticky). `BottomNav` disembunyikan. Lebar maksimal `max-w-5xl` |
+| Form catat `/student/log/new` | `Stepper` 3 langkah: (1) pilih tugas, (2) durasi dan kemandirian, (3) bukti dan kirim. Satu langkah per layar | Langkah di kiri, ringkasan log di kanan. Isi sama, tanpa menambah informasi |
+| Sekolah `/school/*` dan Guru `/teacher/*` | Top bar + drawer menu | `AppShell`: sidebar 248 px (`ink-900`, teks putih) + top bar + konten `max-w-page`. Daftar berupa tabel. Heatmap memakai lebar penuh |
+| Mentor `/v/[token]/*` | 1 kolom `max-w-md`, tanpa navigasi, 1 keputusan per layar, aksi utama `h-14` | Tetap 1 kolom `max-w-md` di tengah |
+| Publik `/verify/[slug]` | Dokumen 1 kolom | Dokumen `max-w-3xl`, ramah cetak (Print CSS A4, ADR-09) |
+
+Titik uji tetap: **360, 768, 1280 px**. Lebar 1920 px tidak boleh meregangkan konten (batasi dengan `max-w-page`).
+
+### 13.7 Status dan kondisi UI
+
+Tiap halaman asinkron menangani 5 kondisi (AGENTS.md): loading (`Skeleton`), empty (`EmptyState`), offline/syncing (`Banner`), error (pesan + tombol pulih), unauthorized.
+
+| Kode internal | Label di UI | Warna | Ikon (lucide) |
+|---|---|---|---|
+| `queued`, `meta_synced` | Belum terkirim | `warn` | `Clock` |
+| `synced`, `PENDING_VERIFICATION` | Menunggu mentor | `warn` | `Hourglass` |
+| `VERIFIED` | Terverifikasi | `ok` | `ShieldCheck` |
+| `REVISION_REQUIRED` | Perlu diperbaiki | `danger` | `RotateCcw` |
+| `DRIFT_WARNING` | Perlu perhatian | `danger` | `TriangleAlert` |
+| `NOT_STARTED` | Belum mulai | `ink` | `Circle` |
+
+Banner sinkron (PRD §8.2): offline `warn` "Kamu sedang offline. Catatan aman di HP."; menyinkronkan `info` "Mengirim n catatan…"; berhasil `ok` "Semua catatan sudah tersimpan."
+
+### 13.8 Aturan konten
+
+- **Batas informasi:** maksimal 3 kelompok informasi di atas lipatan, 4 KPI per dasbor, 5 item menu.
+- **Judul** maksimal 6 kata. **Deskripsi** maksimal 1 kalimat (sekitar 100 karakter). Penjelasan aturan lewat `Disclosure`, bukan paragraf.
+- **Tombol** diawali kata kerja: "Catat hari ini", "Minta verifikasi", "Daftarkan sekolah".
+- **Sapaan:** siswa memakai "kamu"; guru, sekolah, mentor, dan HRD memakai "Anda". Kalimat baku dari PRD tetap dipakai apa adanya.
+- **Tanggal** "21 Okt 2026". Angka memakai `tabular-nums`.
+- **Kamus istilah** (jangan tampilkan → tampilkan):
+
+| Jangan tampilkan | Tampilkan |
+|---|---|
+| IndexedDB, Dexie, QUEUED | "Tersimpan di HP", "Belum terkirim" |
+| SHA-256, HMAC, `signature_hash` | "Segel digital" (hash penuh hanya di `Disclosure` "Detail teknis" pada `/verify/[slug]`) |
+| Job Card | "Kartu tugas" |
+| `FR-xxx`, `BR-xxx`, `ADR-xxx` | Dihapus dari UI |
+| Sandbox, Judge Switcher | Hanya di `DemoBar` tipis (atas halaman) dan footer landing, tidak di judul |
+
+- Data contoh tidak ditanam di JSX halaman. Taruh di `src/lib/mock/` sampai API tersambung.
+
+### 13.9 Larangan (dapat diperiksa dengan grep)
+
+Hasil grep berikut di `apps/web/src` harus **nol** (kecuali di `DemoBar` dan `Disclosure` detail teknis untuk istilah teknis):
+
+| Pola | Alasan |
+|---|---|
+| `bg-gradient`, `from-`, `via-`, `to-` pada kelas warna | Tanpa gradien |
+| `blur-`, `backdrop-blur` | Tanpa efek kaca/blob |
+| `rounded-3xl`, `rounded-[` | Radius maksimum `rounded-2xl` |
+| `text-[9px]`, `text-[10px]`, `text-[11px]` | Minimal 12 px |
+| `blue-`, `indigo-`, `purple-`, `emerald-`, `amber-`, `slate-`, `rose-`, `sky-`, `violet-` | Pakai token 13.2 |
+| `shadow-md`, `shadow-lg`, `shadow-xl`, `shadow-2xl` pada kartu | Datar |
+| `hover:scale-`, `active:scale-`, `group-hover:scale-` | Tanpa gerak dekoratif |
+| `animate-pulse` di luar `Skeleton` | Konsisten |
+| String UI berisi `FR-`, `BR-`, `ADR-`, `IndexedDB`, `QUEUED`, `HMAC` | Aturan konten 13.8 |
+
+### 13.10 Struktur landing page
+
+1. **Nav:** logo, "Masuk", "Daftarkan sekolah" (primary).
+2. **Hero:** 1 judul (maks 2 baris), 1 paragraf, CTA utama "Daftarkan sekolah", CTA sekunder "Coba demo".
+3. **Strip bukti:** 3 angka (mis. 792 JP, kurang dari 10 detik verifikasi, 100% bisa offline).
+4. **Alur 3 langkah:** Catat → Verifikasi → Paspor kompetensi.
+5. **Untuk siapa:** siswa, guru, sekolah, mentor dan HRD sebagai baris berselang-seling, bukan 4 kartu identik.
+6. **Kepercayaan:** satu blok tentang verifikasi dua faktor dan segel digital.
+7. **CTA penutup + footer** ringkas. Tautan "Judge Demo" pindah ke footer.
+
+### 13.11 Aturan kerja agent untuk UI
+
+1. Baca bab ini dan `docs/UI-REFACTOR.md` sebelum menyentuh `apps/web`.
+2. Refactor UI hanya mengubah tampilan: jangan ubah logika bisnis, state, handler, Dexie, panggilan API, atau `packages/*`.
+3. Jangan menambah warna, ukuran font, atau varian di luar bab ini. Butuh yang baru: berhenti dan laporkan.
+4. Sebelum PR UI: `pnpm lint && pnpm typecheck`, grep larangan 13.9 nol hasil, tangkapan layar 360/768/1280 px dilampirkan.

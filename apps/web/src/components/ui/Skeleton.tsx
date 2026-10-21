@@ -1,235 +1,159 @@
-/**
- * Skeleton — komponen loading placeholder.
- *
- * Varian:
- * - "text"      → baris teks (default, tinggi ~1em)
- * - "title"     → judul besar (~1.5em)
- * - "rect"      → kotak persegi/custom (gunakan prop w & h)
- * - "rounded"   → persegi panjang dengan rounded-xl
- * - "circle"    → bulat (avatar / ikon)
- * - "card"      → kartu penuh dengan padding internal
- * - "button"    → placeholder tombol
- */
+import * as React from "react";
+import { cn } from "@/lib/cn";
 
-const BASE = "animate-pulse bg-slate-200";
+// ─── Base class ─────────────────────────────────────────────────────────────────
+// SATU-SATUNYA tempat animate-pulse diizinkan per DESIGN.md 13.9
+const BASE = "animate-pulse bg-ink-100";
 
-// ─────────────────────────────────────────────
-// Primitives
-// ─────────────────────────────────────────────
+// ─── Primitives ─────────────────────────────────────────────────────────────────
 
-/** Baris teks pendek/penuh */
 export function SkeletonText({
-  width = "w-full",
-  className = "",
+  className,
 }: {
-  width?: string;
   className?: string;
 }) {
   return (
-    <div className={`${BASE} h-4 rounded-md ${width} ${className}`} />
+    <div className={cn(`${BASE} h-4 rounded-md w-full`, className)} />
   );
 }
 
-/** Judul / heading besar */
-export function SkeletonTitle({
-  width = "w-3/5",
-  className = "",
-}: {
-  width?: string;
-  className?: string;
-}) {
+export function SkeletonTitle({ className }: { className?: string }) {
   return (
-    <div className={`${BASE} h-6 rounded-md ${width} ${className}`} />
+    <div className={cn(`${BASE} h-6 rounded-md w-3/5`, className)} />
   );
 }
 
-/** Kotak persegi panjang dengan rounded-xl — cocok untuk gambar / banner */
-export function SkeletonRounded({
-  height = "h-40",
-  width = "w-full",
-  className = "",
-}: {
-  height?: string;
-  width?: string;
-  className?: string;
-}) {
+export function SkeletonRect({ className }: { className?: string }) {
+  return <div className={cn(`${BASE} rounded-md`, className)} />;
+}
+
+export function SkeletonRounded({ className }: { className?: string }) {
   return (
-    <div className={`${BASE} rounded-2xl ${height} ${width} ${className}`} />
+    <div className={cn(`${BASE} rounded-xl h-40 w-full`, className)} />
   );
 }
 
-/** Kotak murni (gunakan className untuk ukuran) */
-export function SkeletonRect({
-  className = "",
-}: {
-  className?: string;
-}) {
-  return <div className={`${BASE} rounded-md ${className}`} />;
-}
-
-/** Lingkaran — untuk avatar atau ikon */
-export function SkeletonCircle({
-  size = "w-10 h-10",
-  className = "",
-}: {
-  size?: string;
-  className?: string;
-}) {
+export function SkeletonCircle({ className }: { className?: string }) {
   return (
-    <div className={`${BASE} rounded-full ${size} ${className}`} />
+    <div className={cn(`${BASE} rounded-full w-10 h-10 shrink-0`, className)} />
   );
 }
 
-/** Placeholder tombol */
-export function SkeletonButton({
-  width = "w-28",
-  className = "",
-}: {
-  width?: string;
-  className?: string;
-}) {
+/** Avatar alias */
+export function SkeletonAvatar({ className }: { className?: string }) {
+  return <SkeletonCircle className={cn("w-10 h-10", className)} />;
+}
+
+export function SkeletonButton({ className }: { className?: string }) {
   return (
-    <div className={`${BASE} h-10 rounded-xl ${width} ${className}`} />
+    <div className={cn(`${BASE} h-12 rounded-lg w-28`, className)} />
   );
 }
 
-// ─────────────────────────────────────────────
-// Preset Komposit
-// ─────────────────────────────────────────────
+// ─── Composites ─────────────────────────────────────────────────────────────────
 
-/** Kartu KPI (StatCard) — icon + label + nilai */
-export function SkeletonStatCard({ className = "" }: { className?: string }) {
+export function SkeletonCard({ className }: { className?: string }) {
   return (
-    <div className={`p-4 rounded-2xl bg-white border border-slate-200 flex items-center gap-3 ${className}`}>
-      <SkeletonCircle size="w-11 h-11" className="rounded-xl" />
-      <div className="flex-1 space-y-2">
-        <SkeletonText width="w-20" />
-        <SkeletonTitle width="w-10" />
-      </div>
+    <div
+      className={cn(
+        "rounded-xl border border-line bg-white p-4 lg:p-5 space-y-3",
+        className
+      )}
+    >
+      <SkeletonTitle />
+      <SkeletonText className="w-2/3" />
+      <SkeletonText className="w-full" />
+      <SkeletonButton className="w-32" />
     </div>
   );
 }
 
-/** Baris tabel atau list item — avatar + dua baris teks */
-export function SkeletonListRow({ className = "" }: { className?: string }) {
+export function SkeletonListRow({ className }: { className?: string }) {
   return (
-    <div className={`flex items-center gap-3 py-3 ${className}`}>
-      <SkeletonCircle size="w-9 h-9" />
+    <div className={cn("flex items-center gap-3 py-3", className)}>
+      <SkeletonCircle />
       <div className="flex-1 space-y-1.5">
-        <SkeletonText width="w-2/5" />
-        <SkeletonText width="w-1/4" />
+        <SkeletonText className="w-2/5" />
+        <SkeletonText className="w-1/4" />
       </div>
     </div>
   );
 }
 
-/** Kartu konten umum — ikon + judul + deskripsi + tombol */
-export function SkeletonCard({ className = "" }: { className?: string }) {
+export function SkeletonStatStrip({ className }: { className?: string }) {
   return (
-    <div className={`p-5 rounded-2xl bg-white border border-slate-200 space-y-3 ${className}`}>
-      <div className="flex items-center gap-3">
-        <SkeletonCircle size="w-10 h-10" className="rounded-xl" />
-        <div className="flex-1 space-y-2">
-          <SkeletonTitle width="w-2/3" />
-          <SkeletonText width="w-1/2" />
+    <div className={cn("grid grid-cols-2 lg:grid-cols-4 gap-6", className)}>
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="space-y-2">
+          <SkeletonText className="h-8 w-3/4" />
+          <SkeletonText className="h-3 w-1/2" />
         </div>
-      </div>
-      <SkeletonText />
-      <SkeletonText width="w-4/5" />
-      <SkeletonButton />
-    </div>
-  );
-}
-
-/** Grid KPI default dashboard — 4 StatCard */
-export function SkeletonStatGrid({
-  cols = 4,
-  className = "",
-}: {
-  cols?: 2 | 3 | 4;
-  className?: string;
-}) {
-  const colClass =
-    cols === 2
-      ? "grid-cols-2"
-      : cols === 3
-      ? "grid-cols-2 sm:grid-cols-3"
-      : "grid-cols-2 sm:grid-cols-4";
-  return (
-    <div className={`grid ${colClass} gap-4 ${className}`}>
-      {Array.from({ length: cols }).map((_, i) => (
-        <SkeletonStatCard key={i} />
       ))}
     </div>
   );
 }
 
-// ─────────────────────────────────────────────
-// Default export: Skeleton generik fleksibel
-// ─────────────────────────────────────────────
+// ─── Skeleton all-in-one ────────────────────────────────────────────────────────
 
-type SkeletonVariant =
+export type SkeletonVariant =
   | "text"
   | "title"
-  | "rounded"
   | "rect"
+  | "rounded"
   | "circle"
+  | "avatar"
   | "button"
-  | "stat-card"
-  | "list-row"
   | "card"
-  | "stat-grid";
+  | "list-row"
+  | "stat-strip";
 
-interface SkeletonProps {
+export interface SkeletonProps {
   variant?: SkeletonVariant;
-  /** Lebar (Tailwind class). Berlaku untuk: text, title, button */
+  /** CSS width value, e.g. "60%" or "120px" — untuk backward compat */
   width?: string;
-  /** Tinggi (Tailwind class). Berlaku untuk: rounded, rect */
+  /** CSS height value, e.g. "28px" — untuk backward compat */
   height?: string;
-  /** Ukuran (Tailwind class w-x h-x). Berlaku untuk: circle */
-  size?: string;
-  /** Jumlah kolom. Berlaku untuk: stat-grid */
-  cols?: 2 | 3 | 4;
   className?: string;
 }
 
 /**
- * Komponen Skeleton all-in-one.
+ * Komponen Skeleton all-in-one (satu-satunya tempat animate-pulse).
  *
  * @example
  * <Skeleton variant="text" />
- * <Skeleton variant="stat-card" />
- * <Skeleton variant="stat-grid" cols={4} />
- * <Skeleton variant="circle" size="w-12 h-12" />
+ * <Skeleton variant="card" />
+ * <Skeleton variant="avatar" />
  */
-export default function Skeleton({
-  variant = "text",
-  width,
-  height,
-  size,
-  cols,
-  className = "",
-}: SkeletonProps) {
+export function Skeleton({ variant = "text", width, height, className }: SkeletonProps) {
+  const wrapStyle: React.CSSProperties | undefined =
+    width || height ? { width, height } : undefined;
+
+  // If width/height given, we need a wrapper to apply the style
+  const wrap = (el: React.ReactNode) =>
+    wrapStyle ? <div style={wrapStyle}>{el}</div> : <>{el}</>;
+
   switch (variant) {
     case "title":
-      return <SkeletonTitle width={width} className={className} />;
-    case "rounded":
-      return <SkeletonRounded height={height} width={width} className={className} />;
+      return wrap(<SkeletonTitle className={className} />);
     case "rect":
-      return <SkeletonRect className={className} />;
+      return wrap(<SkeletonRect className={className} />);
+    case "rounded":
+      return wrap(<SkeletonRounded className={className} />);
     case "circle":
-      return <SkeletonCircle size={size} className={className} />;
+      return wrap(<SkeletonCircle className={className} />);
+    case "avatar":
+      return wrap(<SkeletonAvatar className={className} />);
     case "button":
-      return <SkeletonButton width={width} className={className} />;
-    case "stat-card":
-      return <SkeletonStatCard className={className} />;
-    case "list-row":
-      return <SkeletonListRow className={className} />;
+      return wrap(<SkeletonButton className={className} />);
     case "card":
       return <SkeletonCard className={className} />;
-    case "stat-grid":
-      return <SkeletonStatGrid cols={cols} className={className} />;
+    case "list-row":
+      return <SkeletonListRow className={className} />;
+    case "stat-strip":
+      return <SkeletonStatStrip className={className} />;
     default:
-      return <SkeletonText width={width} className={className} />;
+      return wrap(<SkeletonText className={className} />);
   }
 }
+
+export default Skeleton;

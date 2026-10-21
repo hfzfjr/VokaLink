@@ -7,7 +7,8 @@ const TEST_STUDENT_ID = "00000000-0000-0000-0000-000000000021";
 const TEST_SCHOOL_ID = "00000000-0000-0000-0000-000000000002";
 const TEST_DUDI_ID = "00000000-0000-0000-0000-000000000050";
 const TEST_PASSPORT_SLUG = "andi-pratama-rpl-2026";
-const TEST_SECRET = "vokalink_dev_server_crypto_secret_32bytes_min!";
+const TEST_SECRET =
+  process.env.SERVER_CRYPTO_SECRET || "vokalink_dev_server_crypto_secret_32bytes_min!";
 
 const mockStudentProfile = {
   id: TEST_STUDENT_ID,

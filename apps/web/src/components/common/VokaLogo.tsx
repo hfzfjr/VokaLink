@@ -10,9 +10,9 @@ interface VokaLogoProps {
 }
 
 const sizeMap = {
-  sm: { box: "w-7 h-7 rounded-md text-sm", text: "text-sm" },
-  md: { box: "w-8 h-8 rounded-lg text-base", text: "text-base" },
-  lg: { box: "w-10 h-10 rounded-xl text-lg", text: "text-lg" },
+  sm: { box: "size-7 rounded-md text-sm", text: "text-sm" },
+  md: { box: "size-8 rounded-lg text-base", text: "text-base" },
+  lg: { box: "size-10 rounded-xl text-lg", text: "text-lg" },
 };
 
 export default function VokaLogo({
@@ -24,14 +24,14 @@ export default function VokaLogo({
   const { box, text } = sizeMap[size];
 
   const inner = (
-    <span className={`flex items-center gap-2 ${className}`}>
+    <span className={`inline-flex items-center gap-2.5 ${className}`}>
       <span
-        className={`${box} bg-blue-600 flex items-center justify-center text-white font-black shadow-xs shrink-0`}
+        className={`${box} bg-ink-900 border border-ink-700 flex items-center justify-center text-safety-500 font-extrabold shrink-0 tracking-tighter`}
       >
         V
       </span>
       {showText && (
-        <span className={`font-extrabold text-slate-900 tracking-tight ${text}`}>
+        <span className={`font-extrabold text-ink-900 tracking-tight ${text}`}>
           VokaLink
         </span>
       )}
