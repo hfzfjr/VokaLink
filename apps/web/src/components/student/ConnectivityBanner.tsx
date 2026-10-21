@@ -2,8 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { WifiOff, RefreshCw, CheckCircle2, AlertTriangle, ShieldCheck } from "lucide-react";
-import { useOnlineStatus } from "@/hooks/useOnlineStatus";
-import { usePendingLogs } from "@/lib/pwa/hooks/usePendingLogs";
+import { useSyncManager } from "@/lib/pwa/hooks/useSyncManager";
 import { requestStoragePersistence } from "@/lib/pwa/persistence";
 
 export type SyncState = "idle" | "syncing" | "synced";
@@ -19,9 +18,16 @@ export function ConnectivityBanner({
   syncState = "idle",
   pendingCount: propPendingCount,
 }: ConnectivityBannerProps) {
-  const isOnline = useOnlineStatus();
-  const { pendingCount: dexiePendingCount, isHighBacklog } = usePendingLogs();
-  const activePendingCount = propPendingCount ?? dexiePendingCount;
+  const {
+    isOnline,
+    pendingCount: hookPendingCount,
+    isHighBacklog,
+    isSyncing,
+    syncNow,
+  } = useSyncManager();
+
+  const activePendingCount = propPendingCount ?? hookPendingCount;
+  const activeIsSyncing = isSyncing || syncState === "syncing";
 
   const [showSyncedNotification, setShowSyncedNotification] = useState(false);
   const [wasOffline, setWasOffline] = useState(false);
@@ -68,18 +74,29 @@ export function ConnectivityBanner({
         aria-live="assertive"
         className="w-full bg-gradient-to-r from-rose-600 to-amber-600 text-white shadow-md transition-all duration-300"
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 text-xs sm:text-sm font-medium">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm font-medium">
           <div className="flex items-center gap-2.5">
             <span className="p-1 rounded-full bg-white/20 flex-shrink-0 animate-bounce">
               <AlertTriangle className="w-4 h-4 text-white" aria-hidden="true" />
             </span>
             <span>
-              <strong className="font-bold">Perhatian:</strong> {activePendingCount} logbook belum tersinkron ke server. Buka aplikasi saat sinyal stabil untuk menyinkronkan.
+              <strong className="font-bold">Perhatian:</strong> {activePendingCount} logbook belum tersinkron ke server.
             </span>
           </div>
-          <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-[11px] font-black uppercase tracking-wider">
-            Antrean Tinggi
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => syncNow(true)}
+              disabled={activeIsSyncing}
+              className="px-3 py-1 rounded-lg bg-white text-rose-700 font-extrabold text-xs hover:bg-rose-50 transition active:scale-95 disabled:opacity-70 cursor-pointer flex items-center gap-1.5 shadow-xs"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${activeIsSyncing ? "animate-spin" : ""}`} />
+              <span>{activeIsSyncing ? "Menyinkronkan..." : "Sinkronkan Sekarang"}</span>
+            </button>
+            <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-[11px] font-black uppercase tracking-wider hidden sm:inline-block">
+              Antrean Tinggi
+            </span>
+          </div>
         </div>
       </aside>
     );
@@ -113,23 +130,36 @@ export function ConnectivityBanner({
   }
 
   // 3. SYNCING STATE (Biru/Blue)
-  if (syncState === "syncing" || (isOnline && activePendingCount > 0)) {
+  if (activeIsSyncing || (isOnline && activePendingCount > 0)) {
     return (
       <aside
         role="status"
         aria-live="polite"
         className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md transition-all duration-300"
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between gap-3 text-xs sm:text-sm font-medium">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm font-medium">
           <div className="flex items-center gap-2.5">
             <RefreshCw className="w-4 h-4 text-blue-100 animate-spin flex-shrink-0" aria-hidden="true" />
             <span>
-              Menyinkronkan data logbook ke cloud... ({activePendingCount} item)
+              {activeIsSyncing
+                ? `Menyinkronkan data logbook ke cloud... (${activePendingCount} item)`
+                : `${activePendingCount} item siap disinkronkan ke server`}
             </span>
           </div>
-          <span className="px-2 py-0.5 rounded-full bg-blue-700/60 text-[11px] font-bold text-blue-100 border border-blue-400/30 whitespace-nowrap">
-            Auto-Sync
-          </span>
+          <div className="flex items-center gap-2">
+            {!activeIsSyncing && (
+              <button
+                type="button"
+                onClick={() => syncNow()}
+                className="px-2.5 py-0.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition cursor-pointer"
+              >
+                Sinkronkan
+              </button>
+            )}
+            <span className="px-2 py-0.5 rounded-full bg-blue-700/60 text-[11px] font-bold text-blue-100 border border-blue-400/30 whitespace-nowrap">
+              {activeIsSyncing ? "Syncing..." : "Auto-Sync"}
+            </span>
+          </div>
         </div>
       </aside>
     );

@@ -7,6 +7,7 @@ import { curriculumRouter } from "./routes/curriculum.js";
 import { dudiRouter } from "./routes/dudi.js";
 import { placementsRouter } from "./routes/placements.js";
 import { eraporRouter } from "./routes/erapor.js";
+import { logsRouter } from "./routes/logs.js";
 import { errorHandler } from "./middlewares/error-handler.js";
 
 export function createApp(): Express {
@@ -70,6 +71,10 @@ export function createApp(): Express {
   const ERAPOR_PATH = "/api/schools/:schoolId/erapor";
   app.use(ERAPOR_PATH, eraporRouter);
   app.use(`/api/v1${ERAPOR_PATH.slice(4)}`, eraporRouter);
+
+  // Daily Logs & Offline Sync (FR-005, FR-006 & DESIGN.md §7.3)
+  app.use("/api/logs", logsRouter);
+  app.use("/api/v1/logs", logsRouter);
 
   // Global RFC 7807 error handler
   app.use(errorHandler);

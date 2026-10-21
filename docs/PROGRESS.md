@@ -10,9 +10,9 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | Metrik | Nilai |
 |---|---|
-| FR selesai | 5 / 12 |
-| FR Must Have selesai | 5 / 11 |
-| TC lulus | 2 / 10 |
+| FR selesai | 7 / 12 |
+| FR Must Have selesai | 7 / 11 |
+| TC lulus | 3 / 10 |
 | Bug terbuka (Critical / High) | 0 / 0 |
 | Status cut-line | Belum dievaluasi (evaluasi di akhir Hari 7) |
 
@@ -36,8 +36,8 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 | FR-002 | Kurikulum & Job Card (6 jurusan) | A | [x] | [x] | [x] | [x] | Matriks CP, slider JP proporsional, lock kurikulum, katalog Job Card & non-kompetensi |
 | FR-003 | Onboarding DUDI + bind device | A / C | [x] | [x] | [x] | [x] | Direktori terfederasi lintas sekolah, assisted DUDI onboarding, pemetaan Job Cards, QR & link aktivasi 72 jam, zero-login 4-digit PIN device-bound (scrypt + pepper) |
 | FR-004 | Smart Placement | A | [x] | [x] | [x] | [x] | Haversine spasial murni, bobot multi-kriteria 70:30, kuota aktif, lencana rotasi tengah semester (<50%), penugasan auto-greedy massal & override manual |
-| FR-005 | Logger zero-typing + Tombol Jujur | B | [~] | [ ] | [~] | [ ] | Form zero-typing, Tombol Jujur, & IndexedDB persistence aktif |
-| FR-006 | Kompres WebP, blur, offline sync | B | [~] | [ ] | [~] | [ ] | Pipeline Canvas WebP < 60 KB, SHA-256 subtle crypto, dan skema Dexie selesai |
+| FR-005 | Logger zero-typing + Tombol Jujur | B | [x] | [x] | [x] | [x] | Form zero-typing, Tombol Jujur (BR-004), slider durasi (BR-002), autonomy level (BR-009) |
+| FR-006 | Kompres WebP, blur, offline sync | B | [x] | [x] | [x] | [x] | Two-Phase Sync Engine (batch sync maks 20 log idempoten, biner WebP maks 150 KB SHA-256) |
 | FR-007 | Verifikasi zero-login (QR / WA) | C | [ ] | [ ] | [ ] | [ ] | Kriptografi HMAC tuntas di packages/core |
 | FR-008 | Heatmap & drift alert | C | [ ] | [ ] | [ ] | [ ] | Algoritma drift tuntas di packages/core |
 | FR-009 | Intervensi WA & rotasi mitra | C | [ ] | [ ] | [ ] | [ ] | |
@@ -65,7 +65,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 |---|---|---|---|
 | TC-001 | [x] | 21 Okt 2026 | Sandbox terbuat & 6 jurusan memuat Elemen CP tepat 792 JP & min. 12 Job Cards praktis |
 | TC-002 | [x] | 21 Okt 2026 | Validasi alokasi != 792 JP memicu pesan error 422 JP_TOTAL_MISMATCH & tombol kunci nonaktif |
-| TC-003 | [ ] | | |
+| TC-003 | [x] | 22 Okt 2026 | Form zero-typing tersimpan di Dexie IndexedDB offline, Two-Phase sync (batch maks 20 log idempoten + upload WebP SHA-256) lulus tes |
 | TC-004 | [ ] | | |
 | TC-005 | [ ] | | |
 | TC-006 | [ ] | | |
@@ -110,7 +110,13 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
   - Helper persistensi penyimpanan `navigator.storage.persist()` (mitigasi RSK-03) pada `persistence.ts` (Orang B).
   - Client-side Photo Pipeline (`photo.ts`): kompresi Canvas WebP 0.65 proporsional maks 800px (< 60 KB, maks 150 KB), pembuangan EXIF/geotag privasi, dan perhitungan hash SHA-256 via SubtleCrypto (Orang B).
   - Integrasi Dexie ke form pencatatan `/student/log/new` (penyimpanan instan ke IndexedDB lokal saat offline) dan `ConnectivityBanner` reaktif (membaca antrean nyata dan warning jika antrean > 3 log) (Orang B).
-  - Sinkronisasi live query IndexedDB pada riwayat `/student/log/history` (Orang B).
+  - Sinkronisasi live query IndexedDB pada riwayat `/student/log/history` dengan badge status sinkronisasi detail (`Antrean Lokal`, `Upload Foto`, `Menunggu Mentor`, `Terverifikasi`, `Gagal Sinkron`) (Orang B).
+  - Backend Express Router Logbook (`apps/api/src/routes/logs.ts`) & Skema Zod Shared (`packages/shared/src/schemas/index.ts`):
+    - `POST /api/v1/logs/sync` (Fase 1: Batch upsert maks 20 log, validasi status penempatan aktif, idempotensi `clientLogUuid`, validasi backdate WIB H-3 terhadap `clientCreatedAt` [BR-003], pembatasan 1-12 JP [BR-002]).
+    - `PUT /api/v1/logs/:clientLogUuid/evidence` (Fase 2: Raw binary upload maks 150 KB, magic bytes WebP `RIFF...WEBP` / JPEG, header checksum `X-Content-SHA256`, immutability guard log `VERIFIED`).
+    - `GET /api/v1/logs/me` (Fase 3: Pull status verifikasi mentor ke IndexedDB).
+  - 15 Unit & Integration Tests (`apps/api/test/logs.test.ts`) mencakup seluruh kondisi lolos & tolak Fase 1 & Fase 2, lulus 100% (Orang B).
+  - Client Engine `apps/web/src/lib/pwa/sync.ts` & React Hook `apps/web/src/lib/pwa/hooks/useSyncManager.ts` dengan auto-sync saat transisi online & visibilitychange, serta tombol manual "Sinkronkan Sekarang" pada `ConnectivityBanner` (Orang B).
   - FR-004: Smart Placement & Spatial Compatibility Scorer (Orang A).
     - Algoritma pencocokan multi-kriteria berbasis bobot kompetensi (70%) dan jarak Haversine (30%) di `packages/core` dengan batas kuota dan greedy massal.
     - API router `/api/schools/:schoolId/placements` (`/candidates`, `POST /`, `POST /batch`, `PATCH /students/:id/coordinates`) dengan tenant guard, validasi kuota penuh (422), deteksi rotasi tengah semester (<50%), dan A1 override manual.
@@ -124,11 +130,12 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
     - 4 integration tests di `apps/api/test/erapor.test.ts`, total 56 tests monorepo lulus 100%.
     - BUG-001 dinyatakan resolved oleh Orang B (trigger immutability fix).
 - Sedang dikerjakan:
-  - Persiapan FR-005 & integrasi antrean sinkronisasi FR-006 (Orang B).
+  - Persiapan FR-012 (CV ATS generator & Paspor Keterampilan ber-QR terhubung ke log VERIFIED).
 - Blocker:
   - Tidak ada blocker aktif saat ini.
 - Rencana besok (Hari 3):
-  - Integrasi batch sync PWA `/api/v1/logs/sync` dan upload biner bukti WebP (FR-005 & FR-006, Orang B).
+  - Integrasi QR code dinamis token mentor (`/v/[token]`) dari portal siswa untuk diverifikasi oleh Orang C (FR-007).
+  - Seeder v2 riwayat 8 minggu + drift + endorsement (Orang A).
 
 ### Hari 1 — Rab 21 Okt 2026
 - Selesai:

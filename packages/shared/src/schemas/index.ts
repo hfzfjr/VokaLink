@@ -42,6 +42,40 @@ export const dailyLogCreateSchema = z.object({
   ),
 });
 
+export type DailyLogCreateInput = z.infer<typeof dailyLogCreateSchema>;
+
+/**
+ * FR-006 & DESIGN.md §7.3: Batch Sync Schema (Maks 20 logs)
+ */
+export const syncLogsBatchSchema = z.object({
+  logs: z
+    .array(dailyLogCreateSchema)
+    .min(1, "Minimal 1 log untuk disinkronkan")
+    .max(20, "Batch maksimal 20 log per permintaan (DESIGN.md §7.3)"),
+});
+
+export type SyncLogsBatchInput = z.infer<typeof syncLogsBatchSchema>;
+
+export const syncItemResultSchema = z.object({
+  clientLogUuid: z.string().uuid(),
+  status: z.enum(["accepted", "duplicate", "rejected"]),
+  serverLogId: z.string().uuid().optional(),
+  errorCode: z.string().optional(),
+  message: z.string().optional(),
+});
+
+export type SyncItemResult = z.infer<typeof syncItemResultSchema>;
+
+export const syncBatchResponseSchema = z.object({
+  processedCount: z.number(),
+  acceptedCount: z.number(),
+  duplicateCount: z.number(),
+  rejectedCount: z.number(),
+  results: z.array(syncItemResultSchema),
+});
+
+export type SyncBatchResponse = z.infer<typeof syncBatchResponseSchema>;
+
 export const mentorDeviceCheckSchema = z.object({
   deviceToken: z.string().min(16).nullable().optional(),
 });

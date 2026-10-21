@@ -7,22 +7,16 @@ import {
   Layers,
   Sparkles,
   Camera,
-  AlertCircle,
   ShieldCheck,
   Check,
   Clock,
   Info,
-  ImageIcon,
   X,
-  FileCheck2,
   ArrowRight,
-  Database,
 } from "lucide-react";
 import {
   MIN_DAILY_JP,
   MAX_DAILY_JP,
-  MAX_BACKDATE_DAYS,
-  NON_COMPETENCY_JOB_CARD_TITLE,
 } from "@vokalink/shared";
 import { db } from "@/lib/pwa/db";
 import { compressEvidencePhoto, type CompressedPhotoResult } from "@/lib/pwa/photo";
