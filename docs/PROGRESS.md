@@ -10,8 +10,8 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | Metrik | Nilai |
 |---|---|
-| FR selesai | 2 / 12 |
-| FR Must Have selesai | 2 / 11 |
+| FR selesai | 3 / 12 |
+| FR Must Have selesai | 3 / 11 |
 | TC lulus | 2 / 10 |
 | Bug terbuka (Critical / High) | 1 / 0 |
 | Status cut-line | Belum dievaluasi (evaluasi di akhir Hari 7) |
@@ -34,7 +34,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 |---|---|---|---|---|---|---|---|
 | FR-001 | Onboarding multi-sekolah + demo | A | [x] | [x] | [x] | [x] | Multi-step SaaS onboarding, clone kurikulum 792 JP, demo sandbox loader |
 | FR-002 | Kurikulum & Job Card (6 jurusan) | A | [x] | [x] | [x] | [x] | Matriks CP, slider JP proporsional, lock kurikulum, katalog Job Card & non-kompetensi |
-| FR-003 | Onboarding DUDI + bind device | A / C | [ ] | [ ] | [ ] | [ ] | |
+| FR-003 | Onboarding DUDI + bind device | A / C | [x] | [x] | [x] | [x] | Direktori terfederasi lintas sekolah, assisted DUDI onboarding, pemetaan Job Cards, QR & link aktivasi 72 jam, zero-login 4-digit PIN device-bound (scrypt + pepper) |
 | FR-004 | Smart Placement | A | [ ] | [ ] | [ ] | [ ] | Rumus inti tuntas di packages/core |
 | FR-005 | Logger zero-typing + Tombol Jujur | B | [~] | [ ] | [~] | [ ] | Form zero-typing, Tombol Jujur, & IndexedDB persistence aktif |
 | FR-006 | Kompres WebP, blur, offline sync | B | [~] | [ ] | [~] | [ ] | Pipeline Canvas WebP < 60 KB, SHA-256 subtle crypto, dan skema Dexie selesai |
@@ -96,6 +96,14 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
 
 ### Hari 2 — Kam 22 Okt 2026
 - Selesai:
+  - FR-003: Assisted DUDI Onboarding, Pemetaan Kapasitas Lintas Sekolah & Pengikatan Token Kriptografi (Device-Bound PIN) (Orang A / C).
+    - API router `/api/dudi` untuk federated directory (BR-011), pendaftaran DUDI baru & pemetaan Job Cards dalam transaksi database.
+    - Token aktivasi perangkat kriptografis 72 jam (`SignedLink`) dengan HMAC signature & URL generator terintegrasi WhatsApp share.
+    - Zero-login device binding endpoint (`/verify/:token/activate`) dengan pengikatan device token browser (SHA-256) & pengamanan PIN 4-digit dengan scrypt + per-mentor salt + PIN_PEPPER di server.
+    - Mekanisme A2 reset token perangkat jika HP mentor hilang atau berganti (`/mentors/:mentorId/reset-device`).
+    - Halaman direktori DUDI `/school/dudi-directory` dengan 5 state UI (loading, empty, offline, error recovery, unauth), GPS + input koordinat manual, seleksi Job Cards, pendaftaran mentor, dan modal QR code/WhatsApp share link.
+    - Halaman aktivasi mentor mobile-first `/v/[token]/activate` khusus HP mentor dengan numpad PIN 4 digit, verifikasi device token, dan persistensi `navigator.storage.persist()`.
+    - 11 unit & integration tests di `apps/api/test/dudi.test.ts` lulus 100%.
   - Inisialisasi Serwist Service Worker (`apps/web/src/app/sw.ts`) dengan strategi precache shell, `StaleWhileRevalidate` kurikulum/job cards, `CacheFirst` peta OSM, dan `NetworkOnly` untuk antrean mutasi log (Orang B).
   - Pembuatan Web App Manifest (`manifest.ts` dan `public/manifest.json`) dan aset ikon PWA (`/icons/icon.svg`) (Orang B).
   - Skema database Dexie.js (`apps/web/src/lib/pwa/db.ts`) dengan tabel `logs`, `photos`, dan `refData` sesuai DESIGN.md §7.2 (Orang B).
@@ -105,11 +113,11 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
   - Sinkronisasi live query IndexedDB pada riwayat `/student/log/history` (Orang B).
   - Branch `feat/fr-006-serwist-dexie-pwa` aktif dan lolos typecheck & test monorepo (Orang B).
 - Sedang dikerjakan:
-  - FR-006 (Integrasi sinkronisasi batch `/api/v1/logs/sync` dengan backend Express).
+  - FR-004: Smart Placement & Spatial Compatibility Scorer (Orang A).
 - Blocker:
   - BUG-001 (P0 Critical): Menunggu migrasi database baru oleh Orang A.
 - Rencana besok (Hari 3):
-  - Implementasi sinkronisasi idempoten otomatis saat online (`useSyncManager`): POST batch logs (maks 20) dan upload biner bukti WebP satu per satu ke backend.
+  - Implementasi Smart Placement & Spatial Compatibility Scorer (FR-004) dengan formula komputasi Haversine dan cakupan kompetensi di `packages/core`.
 
 ### Hari 1 — Rab 21 Okt 2026
 - Selesai:

@@ -327,3 +327,150 @@ export async function deleteJobCard(
   if (!res.ok) throw new Error(json.detail || "Gagal menghapus Job Card");
   return json;
 }
+
+// ─────────────────────────────────────────────────────────
+// FR-003: Assisted DUDI Onboarding & Mentor Device Binding
+// ─────────────────────────────────────────────────────────
+
+export interface DudiPartnerItem {
+  id: string;
+  name: string;
+  sectorCategory: string;
+  address: string;
+  city: string;
+  latitude: number;
+  longitude: number;
+  maxQuota: number;
+  qualityIndexScore: number | null;
+  mentorsCount: number;
+  capabilitiesCount: number;
+  placementsCount: number;
+  mentors: Array<{
+    id: string;
+    fullName: string;
+    jobTitle: string;
+    whatsappNumber: string;
+    isDeviceBound: boolean;
+  }>;
+}
+
+export interface DudiDetailData extends DudiPartnerItem {
+  supportedJobCards: Array<{
+    id: string;
+    title: string;
+    skkniUnitCode: string | null;
+    toolsAndSoftware: string[];
+    isNonCompetency: boolean;
+    cpElement: { id: string; code: string; title: string } | null;
+  }>;
+}
+
+/** GET /dudi — Direktori mitra terfederasi */
+export async function fetchDudiPartners(
+  params?: { search?: string; city?: string; sectorCategory?: string },
+  token?: string
+): Promise<DudiPartnerItem[]> {
+  const query = new URLSearchParams();
+  if (params?.search) query.set("search", params.search);
+  if (params?.city) query.set("city", params.city);
+  if (params?.sectorCategory) query.set("sectorCategory", params.sectorCategory);
+
+  const res = await fetch(`${API_BASE_URL}/dudi?${query.toString()}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memuat direktori DUDI");
+  return json.data;
+}
+
+/** GET /dudi/:id — Detail DUDI + job cards yang dicentang */
+export async function fetchDudiDetail(
+  dudiId: string,
+  token: string
+): Promise<DudiDetailData> {
+  const res = await fetch(`${API_BASE_URL}/dudi/${dudiId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memuat detail mitra DUDI");
+  return json.data;
+}
+
+/** POST /dudi — Pendaftaran DUDI baru & checklist Job Cards */
+export async function createDudiPartner(
+  payload: {
+    name: string;
+    sectorCategory: string;
+    address: string;
+    city: string;
+    latitude: number;
+    longitude: number;
+    maxQuota: number;
+    supportedJobCardIds: string[];
+  },
+  token: string
+) {
+  const res = await fetch(`${API_BASE_URL}/dudi`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal mendaftarkan mitra DUDI");
+  return json;
+}
+
+/** POST /dudi/:dudiId/mentors — Daftarkan mentor & buat tautan aktivasi 72 jam */
+export async function createDudiMentor(
+  dudiId: string,
+  payload: {
+    fullName: string;
+    jobTitle: string;
+    whatsappNumber: string;
+  },
+  token: string
+) {
+  const res = await fetch(`${API_BASE_URL}/dudi/${dudiId}/mentors`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal mendaftarkan mentor");
+  return json;
+}
+
+/** POST /dudi/mentors/:mentorId/reset-device — Reset ikatan perangkat (A2) */
+export async function resetMentorDevice(mentorId: string, token: string) {
+  const res = await fetch(`${API_BASE_URL}/dudi/mentors/${mentorId}/reset-device`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal mereset perangkat mentor");
+  return json;
+}
+
+/** GET /dudi/verify/:token/activate — Review aktivasi untuk layar HP mentor */
+export async function fetchActivationDetails(token: string) {
+  const res = await fetch(`${API_BASE_URL}/dudi/verify/${token}/activate`);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Tautan aktivasi tidak valid atau kedaluwarsa");
+  return json.data;
+}
+
+/** POST /dudi/verify/:token/activate — Ikat perangkat mentor dengan PIN */
+export async function activateMentorDevice(
+  token: string,
+  payload: { deviceToken: string; pin: string }
+) {
+  const res = await fetch(`${API_BASE_URL}/dudi/verify/${token}/activate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal mengaktifkan perangkat mentor");
+  return json;
+}
+

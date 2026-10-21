@@ -4,6 +4,10 @@ import {
   sealObjectWithHmac,
   createSignedToken,
   parseAndVerifySignedToken,
+  hashPinWithScrypt,
+  verifyPinWithScrypt,
+  generateSalt,
+  hashSha256Hex,
   calculateHaversineDistanceKm,
   calculatePlacementScore,
   detectNonCompetencyOverload,
@@ -48,6 +52,33 @@ describe("Canonical JSON & HMAC", () => {
     const tampered = token.slice(0, -3) + "xyz";
     const tamperedResult = parseAndVerifySignedToken(tampered, secret);
     expect(tamperedResult.valid).toBe(false);
+  });
+
+  it("hashes and verifies 4-digit PIN using scrypt with salt and pepper", () => {
+    const pin = "1234";
+    const salt = generateSalt(16);
+    const pepper = "server_super_secret_pin_pepper_32bytes!";
+
+    const hash = hashPinWithScrypt(pin, salt, pepper);
+    expect(typeof hash).toBe("string");
+    expect(hash.length).toBe(128); // 64 bytes = 128 hex chars
+
+    // Verifikasi PIN benar
+    const isCorrect = verifyPinWithScrypt(pin, salt, pepper, hash);
+    expect(isCorrect).toBe(true);
+
+    // Verifikasi PIN salah
+    const isWrong = verifyPinWithScrypt("9999", salt, pepper, hash);
+    expect(isWrong).toBe(false);
+
+    // Verifikasi pepper salah
+    const isWrongPepper = verifyPinWithScrypt(pin, salt, "wrong_pepper", hash);
+    expect(isWrongPepper).toBe(false);
+  });
+
+  it("computes standard SHA-256 hex correctly", () => {
+    const hash = hashSha256Hex("hello-vokalink");
+    expect(hash).toBe("aa93432e844deade566358df5c20a985ebfa72a718b087a7d7be7742dbbf41a9");
   });
 });
 

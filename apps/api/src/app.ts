@@ -4,6 +4,7 @@ import helmet from "helmet";
 import { healthRouter } from "./routes/health.js";
 import { schoolsRouter } from "./routes/schools.js";
 import { curriculumRouter } from "./routes/curriculum.js";
+import { dudiRouter } from "./routes/dudi.js";
 import { errorHandler } from "./middlewares/error-handler.js";
 
 export function createApp(): Express {
@@ -53,6 +54,10 @@ export function createApp(): Express {
   const CURR_PATH = "/api/schools/:schoolId/departments/:deptId/curriculum";
   app.use(CURR_PATH, curriculumRouter);
   app.use(`/api/v1${CURR_PATH.slice(4)}`, curriculumRouter);
+
+  // DUDI Onboarding, Directory & Mentor Device Binding (FR-003)
+  app.use("/api/dudi", dudiRouter);
+  app.use("/api/v1/dudi", dudiRouter);
 
   // Global RFC 7807 error handler
   app.use(errorHandler);
