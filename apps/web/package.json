@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
     "@vokalink/core": "workspace:*",
     "@vokalink/shared": "workspace:*",
     "clsx": "^2.1.1",

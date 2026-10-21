@@ -10,8 +10,8 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | Metrik | Nilai |
 |---|---|
-| FR selesai | 0 / 12 |
-| FR Must Have selesai | 0 / 11 |
+| FR selesai | 1 / 12 |
+| FR Must Have selesai | 1 / 11 |
 | TC lulus | 0 / 10 |
 | Bug terbuka (Critical / High) | 0 / 0 |
 | Status cut-line | Belum dievaluasi (evaluasi di akhir Hari 7) |
@@ -32,7 +32,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | FR | Fitur | Pemilik | Status | Backend | Frontend | Tes | Catatan |
 |---|---|---|---|---|---|---|---|
-| FR-001 | Onboarding multi-sekolah + demo | A | [ ] | [ ] | [ ] | [ ] | |
+| FR-001 | Onboarding multi-sekolah + demo | A | [x] | [x] | [x] | [x] | Multi-step SaaS onboarding, clone kurikulum 792 JP, demo sandbox loader |
 | FR-002 | Kurikulum & Job Card (6 jurusan) | A | [ ] | [ ] | [ ] | [ ] | |
 | FR-003 | Onboarding DUDI + bind device | A / C | [ ] | [ ] | [ ] | [ ] | |
 | FR-004 | Smart Placement | A | [ ] | [ ] | [ ] | [ ] | |
@@ -49,15 +49,15 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | Modul | Pemilik | Status |
 |---|---|---|
-| Skema Prisma + migrasi + SQL guard (RLS, trigger immutability) | A | [~] (skema 20 model tuntas & tervalidasi) |
-| `curriculum-seed.json` (6 jurusan, 792 JP, min. 12 Job Card) | A | [ ] |
-| Seeder v1 (sekolah demo, mentor terikat, penempatan) | A | [ ] |
+| Skema Prisma + migrasi + SQL guard (RLS, trigger immutability) | A | [x] (20 tabel RLS, triggers & check constraints aktif) |
+| `curriculum-seed.json` (6 jurusan, 792 JP, min. 12 Job Card) | A | [x] (6 jurusan, 25 elemen CP, 89 Job Cards) |
+| Seeder v1 (sekolah demo, mentor terikat, penempatan) | A | [x] (sekolah demo, guru, 5 siswa, 6 DUDI & penempatan aktif) |
 | Seeder v2 (riwayat 8 minggu, drift, endorsement, paspor) | A | [ ] |
 | Auth middleware (JWT Supabase, role, tenant guard) | C | [x] |
 | `packages/core` (haversine, skor, drift, rapor, canonical JSON, HMAC) | C | [x] |
 | `packages/shared` (skema Zod, konstanta) | semua | [x] |
 | PWA shell (Serwist, Dexie, banner konektivitas) | B | [ ] |
-| Judge Demo Switcher | A | [~] (halaman depan siap) |
+| Judge Demo Switcher | A | [x] (Landing page, login switcher, sandbox loader & mock accounts) |
 
 ## 5. Status Uji Penerimaan
 

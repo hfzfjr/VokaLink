@@ -79,14 +79,28 @@ export const endorsementSubmitSchema = z.object({
 });
 
 export const schoolRegisterSchema = z.object({
-  npsn: z.string().length(8).regex(/^\d{8}$/, "NPSN harus 8 digit numerik"),
-  name: z.string().min(3).max(150),
-  province: z.string().min(2).max(80),
-  city: z.string().min(2).max(80),
+  npsn: z.string().length(8).regex(/^\d{8}$/, "NPSN wajib terdiri dari 8 digit angka."),
+  name: z.string().min(3, "Nama sekolah minimal 3 karakter").max(150),
+  province: z.string().min(2, "Provinsi wajib diisi").max(80),
+  city: z.string().min(2, "Kabupaten/Kota wajib diisi").max(80),
   latitude: z.number().min(-11).max(6).optional(),
   longitude: z.number().min(95).max(141).optional(),
-  adminEmail: z.string().email(),
-  adminPassword: z.string().min(6),
-  adminFullName: z.string().min(3).max(120),
+  adminEmail: z.string().email("Format email admin tidak valid"),
+  adminPassword: z.string().min(8, "Kata sandi minimal 8 karakter"),
+  adminFullName: z.string().min(3, "Nama admin minimal 3 karakter").max(120),
+  selectedDepartmentSectorCodes: z
+    .array(z.string())
+    .min(1, "Pilih minimal 1 konsentrasi keahlian yang aktif di sekolah"),
+  academicPeriodName: z.string().min(3).default("PKL Semester Genap 2025/2026"),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal harus YYYY-MM-DD").optional(),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal harus YYYY-MM-DD").optional(),
+  targetTotalJp: z
+    .number()
+    .int()
+    .min(300, "Target total JP minimal 300 JP")
+    .max(1200, "Target total JP maksimal 1200 JP")
+    .default(792),
   isDemoSandbox: z.boolean().default(false),
 });
+
+export type SchoolRegisterInput = z.infer<typeof schoolRegisterSchema>;

@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.4.1",
+    "@supabase/supabase-js": "^2.118.0",
     "@vokalink/core": "workspace:*",
     "@vokalink/shared": "workspace:*",
     "cors": "^2.8.5",
