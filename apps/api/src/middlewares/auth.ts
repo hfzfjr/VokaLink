@@ -61,12 +61,24 @@ export async function requireAuth(
 
     const sub = payload.sub;
     const appMetadata = (payload["app_metadata"] ?? {}) as Record<string, unknown>;
-    const userRole = (appMetadata["role"] ?? "STUDENT") as UserRole;
-    const schoolId = (appMetadata["school_id"] ?? "") as string;
+    let userRole = (appMetadata["role"] ?? "STUDENT") as UserRole;
+    let schoolId = (appMetadata["school_id"] ?? "") as string;
 
     if (!sub) {
       next(new AppError("Token sub tidak valid", 401, "UNAUTHORIZED"));
       return;
+    }
+
+    if (!schoolId) {
+      const { prisma } = await import("../lib/prisma.js");
+      const profile = await prisma.userProfile.findUnique({
+        where: { id: sub },
+        select: { schoolId: true, role: true },
+      });
+      if (profile) {
+        schoolId = profile.schoolId;
+        userRole = profile.role as UserRole;
+      }
     }
 
     req.user = {

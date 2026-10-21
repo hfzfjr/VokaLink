@@ -7,6 +7,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { TOTAL_TARGET_JP } from "@vokalink/shared";
+import VokaLogo from "@/components/common/VokaLogo";
 
 export default function Home() {
   return (
@@ -14,26 +15,29 @@ export default function Home() {
       {/* Header */}
       <header className="w-full flex items-center justify-between py-4 border-b border-slate-200">
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
-            V
-          </div>
-          <div>
-            <h1 className="font-extrabold text-lg tracking-tight text-slate-900 leading-none">
-              VokaLink
-            </h1>
-            <p className="text-xs text-slate-500 font-medium">
-              Ekosistem PKL SMK Terkoneksi
-            </p>
-          </div>
+          <VokaLogo size="md" />
+          <p className="text-xs text-slate-500 font-medium hidden sm:block">
+            Ekosistem PKL SMK Terkoneksi
+          </p>
         </div>
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-100">
-          <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-          UINIC 8.0 Demo Sandbox
+        <div className="flex items-center gap-2">
+          <Link
+            href="/register-school"
+            className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition"
+          >
+            Daftar Sekolah
+          </Link>
+          <Link
+            href="/login"
+            className="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition"
+          >
+            Masuk
+          </Link>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="text-center my-10 space-y-4">
+      <section className="text-center my-8 space-y-4">
         <div className="inline-block px-3 py-1 bg-amber-50 text-amber-800 rounded-md text-xs font-semibold border border-amber-200">
           Permendikbudristek No. 12/2024 · Target {TOTAL_TARGET_JP} JP Kurikulum Merdeka
         </div>
@@ -48,6 +52,21 @@ export default function Home() {
           verifikasi penyelia tanpa akun (&lt;10 dtk), deteksi penyimpangan
           kurikulum real-time, e-Rapor, dan Paspor Kompetensi ber-QR.
         </p>
+
+        <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/register-school"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-sm transition"
+          >
+            Daftarkan Sekolah Baru <ArrowRight className="w-4 h-4" />
+          </Link>
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold transition"
+          >
+            Judge Demo Switcher (Simulasi Peran)
+          </Link>
+        </div>
       </section>
 
       {/* Role Switcher Demo Cards */}

@@ -10,9 +10,9 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | Metrik | Nilai |
 |---|---|
-| FR selesai | 0 / 12 |
-| FR Must Have selesai | 0 / 11 |
-| TC lulus | 0 / 10 |
+| FR selesai | 2 / 12 |
+| FR Must Have selesai | 2 / 11 |
+| TC lulus | 2 / 10 |
 | Bug terbuka (Critical / High) | 1 / 0 |
 | Status cut-line | Belum dievaluasi (evaluasi di akhir Hari 7) |
 
@@ -32,11 +32,11 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | FR | Fitur | Pemilik | Status | Backend | Frontend | Tes | Catatan |
 |---|---|---|---|---|---|---|---|
-| FR-001 | Onboarding multi-sekolah + demo | A | [ ] | [ ] | [ ] | [ ] | |
-| FR-002 | Kurikulum & Job Card (6 jurusan) | A | [~] | [x] | [ ] | [ ] | Seed 6 jurusan 792 JP tuntas di DB |
+| FR-001 | Onboarding multi-sekolah + demo | A | [x] | [x] | [x] | [x] | Multi-step SaaS onboarding, clone kurikulum 792 JP, demo sandbox loader |
+| FR-002 | Kurikulum & Job Card (6 jurusan) | A | [x] | [x] | [x] | [x] | Matriks CP, slider JP proporsional, lock kurikulum, katalog Job Card & non-kompetensi |
 | FR-003 | Onboarding DUDI + bind device | A / C | [ ] | [ ] | [ ] | [ ] | |
 | FR-004 | Smart Placement | A | [ ] | [ ] | [ ] | [ ] | Rumus inti tuntas di packages/core |
-| FR-005 | Logger zero-typing + Tombol Jujur | B | [~] | [ ] | [~] | [ ] | Form zero-typing, Tombol Jujur, & IndexedDB persistence aktif di feat/fr-006-serwist-dexie-pwa |
+| FR-005 | Logger zero-typing + Tombol Jujur | B | [~] | [ ] | [~] | [ ] | Form zero-typing, Tombol Jujur, & IndexedDB persistence aktif |
 | FR-006 | Kompres WebP, blur, offline sync | B | [~] | [ ] | [~] | [ ] | Pipeline Canvas WebP < 60 KB, SHA-256 subtle crypto, dan skema Dexie selesai |
 | FR-007 | Verifikasi zero-login (QR / WA) | C | [ ] | [ ] | [ ] | [ ] | Kriptografi HMAC tuntas di packages/core |
 | FR-008 | Heatmap & drift alert | C | [ ] | [ ] | [ ] | [ ] | Algoritma drift tuntas di packages/core |
@@ -50,21 +50,21 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 | Modul | Pemilik | Status |
 |---|---|---|
 | Skema Prisma + migrasi + SQL guard (RLS, trigger immutability) | A | [~] (skema 20 model tuntas & tervalidasi; menunggu fix BUG-001) |
-| `curriculum-seed.json` (6 jurusan, 792 JP, min. 12 Job Card) | A | [x] |
-| Seeder v1 (sekolah demo, mentor terikat, penempatan) | A | [x] |
+| `curriculum-seed.json` (6 jurusan, 792 JP, min. 12 Job Card) | A | [x] (6 jurusan, 25 elemen CP, 89 Job Cards) |
+| Seeder v1 (sekolah demo, mentor terikat, penempatan) | A | [x] (sekolah demo, guru, 5 siswa, 6 DUDI & penempatan aktif) |
 | Seeder v2 (riwayat 8 minggu, drift, endorsement, paspor) | A | [ ] |
 | Auth middleware (JWT Supabase, role, tenant guard) | C | [x] |
 | `packages/core` (haversine, skor, drift, rapor, canonical JSON, HMAC) | C | [x] |
 | `packages/shared` (skema Zod, konstanta) | semua | [x] |
 | PWA shell (Serwist, Dexie, banner konektivitas) | B | [x] (Service Worker Serwist, Web App Manifest, Dexie DB logs/photos/refData, & banner antrean tuntas) |
-| Judge Demo Switcher | A | [x] (halaman depan siap dan terhubung ke portal siswa) |
+| Judge Demo Switcher | A | [x] (Landing page, login switcher, sandbox loader & mock accounts) |
 
 ## 5. Status Uji Penerimaan
 
 | TC | Status | Tanggal | Catatan |
 |---|---|---|---|
-| TC-001 | [ ] | | |
-| TC-002 | [ ] | | |
+| TC-001 | [x] | 21 Okt 2026 | Sandbox terbuat & 6 jurusan memuat Elemen CP tepat 792 JP & min. 12 Job Cards praktis |
+| TC-002 | [x] | 21 Okt 2026 | Validasi alokasi != 792 JP memicu pesan error 422 JP_TOTAL_MISMATCH & tombol kunci nonaktif |
 | TC-003 | [ ] | | |
 | TC-004 | [ ] | | |
 | TC-005 | [ ] | | |
@@ -113,33 +113,19 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
 
 ### Hari 1 — Rab 21 Okt 2026
 - Selesai:
+  - FR-001: Multi-tenant School Onboarding, master department seeding, sandbox loader (Orang A).
+  - FR-002: Pre-loaded Multi-Sector Curriculum Engine, router kurikulum, update bobot JP dengan validasi sum === targetTotalJp 792 JP, lock matriks, katalog Job Cards praktis & kategori sistem non-kompetensi (Orang A).
+  - Halaman web `/school/curriculum` responsif mobile-first dengan slider proporsional, modal tambah Job Card, 5 kondisi UI (skeleton, empty, offline banner, error recovery, unauthenticated) (Orang A).
+  - 12 unit & integration test untuk kurikulum (`apps/api/test/curriculum.test.ts`), TC-001 & TC-002 lulus 100% (Orang A).
   - Inisialisasi PWA student shell responsif: optimal di mobile (360px) hingga tablet/desktop (max-w-6xl) (Orang B).
   - Desktop Navigation Bar terintegrasi pada StudentHeader (`hidden md:flex`) dan Bottom Navigation khusus mobile (`md:hidden`) dengan touch target >= 48px (Orang B).
   - Connectivity Banner 3-state (Offline, Syncing, Synced) dengan useOnlineStatus SSR-safe hook (Orang B).
-  - 4 Halaman antarmuka siswa sepenuhnya responsif:
-    - `/student/home`: Grid 12-kolom (Hero identitas siswa, progress bar 792 JP, 3 kartu aksi, & grid 2-kolom log terakhir).
-    - `/student/log/new`: Grid 2-kolom desktop (Kiri: pemilih tanggal & katalog Job Cards mitra; Kanan: Tombol Jujur, slider JP 1-12, autonomy picker, & catatan singkat).
-    - `/student/log/history`: Grid statistik 4 metrik, bilah pencarian & filter status, grid 3-kolom kartu logbook, serta modal interaktif Minta Verifikasi QR (BR-007).
-    - `/student/career-cv`: Layout 12-kolom desktop (Kiri: pratinjau lembar kertas A4 ATS single-column; Kanan: checklist kepatuhan ATS 100%, editor bio profesional, info paspor publik).
-  - Resolusi dependensi monorepo dan dev server Next.js aktif di port 3000 (Orang B).
-  - Branch `feat/fr-005-student-shell` di-push ke GitHub remote.
-  - Dataset kurikulum 6 jurusan tervalidasi 792 JP dan seeder v1 siap (Orang A).
+  - 4 Halaman antarmuka siswa sepenuhnya responsif: `/student/home`, `/student/log/new`, `/student/log/history`, `/student/career-cv` (Orang B).
 - Sedang dikerjakan:
-  - FR-005 (Logger zero-typing & Tombol Jujur) & integrasi offline storage.
+  - Persiapan FR-003 (Assisted DUDI Onboarding, Pemetaan Kapasitas & Device-Bound PIN).
 - Blocker:
   - BUG-001 (P0 Critical): Trigger SQL immutability block_verified_log_update salah mereferensikan kolom mentor_id (menunggu migrasi baru oleh Orang A).
-- Rencana besok (Hari 2):
-  - Setup Serwist PWA (sw.ts, manifest.json) dan Dexie.js (db.ts) untuk tabel logs, photos, dan refData.
-  - Hubungkan form logbook ke penyimpanan lokal IndexedDB.
 
 ### Hari 0 — Sel 20 Okt 2026
 - Dokumen PRD, DESIGN (direvisi mengikuti PRD, Express, Prisma, Supabase), SPRINT, PROGRESS, BUGS, dan AGENTS dibuat.
-- Target malam ini: inisialisasi repo dan infrastruktur (bagian 2).
-
-<!-- Format entri berikutnya:
-### Hari N — <hari> <tanggal>
-- Selesai: ...
-- Sedang dikerjakan: ...
-- Blocker: ...
-- Rencana besok: ...
--->
+- Inisialisasi repo, pnpm workspaces, Supabase, Prisma schema, Express Coolify setup, dan seeder v1 selesai.

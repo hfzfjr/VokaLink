@@ -79,14 +79,91 @@ export const endorsementSubmitSchema = z.object({
 });
 
 export const schoolRegisterSchema = z.object({
-  npsn: z.string().length(8).regex(/^\d{8}$/, "NPSN harus 8 digit numerik"),
-  name: z.string().min(3).max(150),
-  province: z.string().min(2).max(80),
-  city: z.string().min(2).max(80),
+  npsn: z.string().length(8).regex(/^\d{8}$/, "NPSN wajib terdiri dari 8 digit angka."),
+  name: z.string().min(3, "Nama sekolah minimal 3 karakter").max(150),
+  province: z.string().min(2, "Provinsi wajib diisi").max(80),
+  city: z.string().min(2, "Kabupaten/Kota wajib diisi").max(80),
   latitude: z.number().min(-11).max(6).optional(),
   longitude: z.number().min(95).max(141).optional(),
-  adminEmail: z.string().email(),
-  adminPassword: z.string().min(6),
-  adminFullName: z.string().min(3).max(120),
+  adminEmail: z.string().email("Format email admin tidak valid"),
+  adminPassword: z.string().min(8, "Kata sandi minimal 8 karakter"),
+  adminFullName: z.string().min(3, "Nama admin minimal 3 karakter").max(120),
+  selectedDepartmentSectorCodes: z
+    .array(z.string())
+    .min(1, "Pilih minimal 1 konsentrasi keahlian yang aktif di sekolah"),
+  academicPeriodName: z.string().min(3).default("PKL Semester Genap 2025/2026"),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal harus YYYY-MM-DD").optional(),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal harus YYYY-MM-DD").optional(),
+  targetTotalJp: z
+    .number()
+    .int()
+    .min(300, "Target total JP minimal 300 JP")
+    .max(1200, "Target total JP maksimal 1200 JP")
+    .default(792),
   isDemoSandbox: z.boolean().default(false),
 });
+
+export type SchoolRegisterInput = z.infer<typeof schoolRegisterSchema>;
+
+// ─────────────────────────────────────────────────────────
+// FR-002: Curriculum & Job Card schemas
+// ─────────────────────────────────────────────────────────
+
+/** Satu baris elemen CP beserta target JP yang ingin di-update */
+export const cpElementUpdateSchema = z.object({
+  id: z.string().uuid(),
+  targetJp: z
+    .number()
+    .int()
+    .min(1, "Target JP per elemen minimal 1 JP")
+    .max(792, "Target JP per elemen tidak boleh melebihi 792 JP"),
+});
+
+/**
+ * Body PUT /departments/:deptId/curriculum
+ * Memperbarui bobot target JP seluruh elemen CP sekaligus.
+ * Server memvalidasi: sum(targetJp) === period.targetTotalJp
+ */
+export const updateCpElementsSchema = z.object({
+  elements: z
+    .array(cpElementUpdateSchema)
+    .min(1, "Minimal 1 elemen CP harus disertakan"),
+});
+
+export type UpdateCpElementsInput = z.infer<typeof updateCpElementsSchema>;
+
+/** Body POST /departments/:deptId/job-cards — tambah Job Card baru */
+export const addJobCardSchema = z.object({
+  cpElementId: z
+    .string()
+    .uuid("cpElementId harus UUID valid")
+    .nullable()
+    .optional(),
+  title: z
+    .string()
+    .min(3, "Judul Job Card minimal 3 karakter")
+    .max(60, "Gunakan bahasa praktis maksimal 60 karakter agar mudah dibaca di layar HP"),
+  skkniUnitCode: z
+    .string()
+    .max(40)
+    .nullable()
+    .optional(),
+  toolsAndSoftware: z
+    .array(z.string().max(60))
+    .max(10)
+    .default([]),
+  actionVerbTemplate: z
+    .string()
+    .max(250)
+    .default(""),
+  isNonCompetency: z.boolean().default(false),
+});
+
+export type AddJobCardInput = z.infer<typeof addJobCardSchema>;
+
+/** Body PATCH /job-cards/:id — update sebagian Job Card */
+export const updateJobCardSchema = addJobCardSchema.partial().omit({
+  isNonCompetency: true,
+});
+
+export type UpdateJobCardInput = z.infer<typeof updateJobCardSchema>;
