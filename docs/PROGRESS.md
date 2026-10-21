@@ -1,8 +1,8 @@
 # PROGRESS — VokaLink
 
 > Papan status hidup. Perbarui setiap malam. Rencana ada di `SPRINT.md`, spesifikasi di `PRD.md`.
-> **Terakhir diperbarui:** 21 Okt 2026 (Hari 1)
-> **Hari sprint saat ini:** 1 dari 10 · **Deadline:** 30 Okt 2026 · **Code freeze:** 28 Okt
+> **Terakhir diperbarui:** 22 Okt 2026 (Hari 2)
+> **Hari sprint saat ini:** 2 dari 10 · **Deadline:** 30 Okt 2026 · **Code freeze:** 28 Okt
 
 Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblokir
 
@@ -36,8 +36,8 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 | FR-002 | Kurikulum & Job Card (6 jurusan) | A | [~] | [x] | [ ] | [ ] | Seed 6 jurusan 792 JP tuntas di DB |
 | FR-003 | Onboarding DUDI + bind device | A / C | [ ] | [ ] | [ ] | [ ] | |
 | FR-004 | Smart Placement | A | [ ] | [ ] | [ ] | [ ] | Rumus inti tuntas di packages/core |
-| FR-005 | Logger zero-typing + Tombol Jujur | B | [~] | [ ] | [~] | [ ] | PWA shell, layout 48px, form zero-typing, & CV ATS siap di feat/fr-005-student-shell |
-| FR-006 | Kompres WebP, blur, offline sync | B | [ ] | [ ] | [ ] | [ ] | |
+| FR-005 | Logger zero-typing + Tombol Jujur | B | [~] | [ ] | [~] | [ ] | Form zero-typing, Tombol Jujur, & IndexedDB persistence aktif di feat/fr-006-serwist-dexie-pwa |
+| FR-006 | Kompres WebP, blur, offline sync | B | [~] | [ ] | [~] | [ ] | Pipeline Canvas WebP < 60 KB, SHA-256 subtle crypto, dan skema Dexie selesai |
 | FR-007 | Verifikasi zero-login (QR / WA) | C | [ ] | [ ] | [ ] | [ ] | Kriptografi HMAC tuntas di packages/core |
 | FR-008 | Heatmap & drift alert | C | [ ] | [ ] | [ ] | [ ] | Algoritma drift tuntas di packages/core |
 | FR-009 | Intervensi WA & rotasi mitra | C | [ ] | [ ] | [ ] | [ ] | |
@@ -56,7 +56,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 | Auth middleware (JWT Supabase, role, tenant guard) | C | [x] |
 | `packages/core` (haversine, skor, drift, rapor, canonical JSON, HMAC) | C | [x] |
 | `packages/shared` (skema Zod, konstanta) | semua | [x] |
-| PWA shell (Serwist, Dexie, banner konektivitas) | B | [~] (layout mobile 360px, bottom nav 48px, connectivity banner 3-state siap) |
+| PWA shell (Serwist, Dexie, banner konektivitas) | B | [x] (Service Worker Serwist, Web App Manifest, Dexie DB logs/photos/refData, & banner antrean tuntas) |
 | Judge Demo Switcher | A | [x] (halaman depan siap dan terhubung ke portal siswa) |
 
 ## 5. Status Uji Penerimaan
@@ -93,6 +93,23 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-12) dan bagian 12.
 
 ## 8. Log Harian
+
+### Hari 2 — Kam 22 Okt 2026
+- Selesai:
+  - Inisialisasi Serwist Service Worker (`apps/web/src/app/sw.ts`) dengan strategi precache shell, `StaleWhileRevalidate` kurikulum/job cards, `CacheFirst` peta OSM, dan `NetworkOnly` untuk antrean mutasi log (Orang B).
+  - Pembuatan Web App Manifest (`manifest.ts` dan `public/manifest.json`) dan aset ikon PWA (`/icons/icon.svg`) (Orang B).
+  - Skema database Dexie.js (`apps/web/src/lib/pwa/db.ts`) dengan tabel `logs`, `photos`, dan `refData` sesuai DESIGN.md §7.2 (Orang B).
+  - Helper persistensi penyimpanan `navigator.storage.persist()` (mitigasi RSK-03) pada `persistence.ts` (Orang B).
+  - Client-side Photo Pipeline (`photo.ts`): kompresi Canvas WebP 0.65 proporsional maks 800px (< 60 KB, maks 150 KB), pembuangan EXIF/geotag privasi, dan perhitungan hash SHA-256 via SubtleCrypto (Orang B).
+  - Integrasi Dexie ke form pencatatan `/student/log/new` (penyimpanan instan ke IndexedDB lokal saat offline) dan `ConnectivityBanner` reaktif (membaca antrean nyata dan warning jika antrean > 3 log) (Orang B).
+  - Sinkronisasi live query IndexedDB pada riwayat `/student/log/history` (Orang B).
+  - Branch `feat/fr-006-serwist-dexie-pwa` aktif dan lolos typecheck & test monorepo (Orang B).
+- Sedang dikerjakan:
+  - FR-006 (Integrasi sinkronisasi batch `/api/v1/logs/sync` dengan backend Express).
+- Blocker:
+  - BUG-001 (P0 Critical): Menunggu migrasi database baru oleh Orang A.
+- Rencana besok (Hari 3):
+  - Implementasi sinkronisasi idempoten otomatis saat online (`useSyncManager`): POST batch logs (maks 20) dan upload biner bukti WebP satu per satu ke backend.
 
 ### Hari 1 — Rab 21 Okt 2026
 - Selesai:
