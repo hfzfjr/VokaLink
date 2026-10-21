@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual, randomBytes } from "node:crypto";
+import { createHmac, createHash, scryptSync, timingSafeEqual, randomBytes } from "node:crypto";
 import { canonicalJson } from "./canonical-json.js";
 
 /**
@@ -121,4 +121,53 @@ export function parseAndVerifySignedToken(
  */
 export function generateRandomHex(bytes = 32): string {
   return randomBytes(bytes).toString("hex");
+}
+
+/**
+ * Computes SHA-256 hash in hexadecimal format
+ */
+export function hashSha256Hex(data: string | Buffer): string {
+  return createHash("sha256").update(data).digest("hex");
+}
+
+/**
+ * Generates a cryptographically secure random salt in hex format
+ */
+export function generateSalt(bytes = 16): string {
+  return randomBytes(bytes).toString("hex");
+}
+
+/**
+ * Hashes a 4-digit PIN using scrypt with per-mentor salt and server-wide PIN_PEPPER
+ * Cost parameters: N=16384, r=8, p=1, keylen=64 (industry standard for password/PIN hashing)
+ */
+export function hashPinWithScrypt(
+  pin: string,
+  salt: string,
+  pepper: string
+): string {
+  const saltedInput = `${pin}|${pepper}`;
+  const derivedKey = scryptSync(saltedInput, salt, 64, {
+    N: 16384,
+    r: 8,
+    p: 1,
+  });
+  return derivedKey.toString("hex");
+}
+
+/**
+ * Verifies a 4-digit PIN against its stored scrypt hash using timing-safe comparison
+ */
+export function verifyPinWithScrypt(
+  pin: string,
+  salt: string,
+  pepper: string,
+  expectedHash: string
+): boolean {
+  try {
+    const computedHash = hashPinWithScrypt(pin, salt, pepper);
+    return constantTimeCompare(computedHash, expectedHash);
+  } catch {
+    return false;
+  }
 }

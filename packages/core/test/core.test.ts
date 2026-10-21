@@ -1,16 +1,26 @@
 import { describe, it, expect } from "vitest";
 import {
-  canonicalJson,
   sealObjectWithHmac,
   createSignedToken,
   parseAndVerifySignedToken,
+  hashPinWithScrypt,
+  verifyPinWithScrypt,
+  generateSalt,
+  hashSha256Hex,
+} from "../src/crypto.js";
+import {
+  canonicalJson,
   calculateHaversineDistanceKm,
   calculatePlacementScore,
+  rankDudiForStudent,
+  matchPlacementsGreedy,
   detectNonCompetencyOverload,
   detectSkillMonotony,
   detectApprovalDormancy,
   calculateElementGrade,
   calculateFinalPklGrade,
+  generateEraporNarratives,
+  generateEraporCsv,
 } from "../src/index.js";
 
 describe("Canonical JSON & HMAC", () => {
@@ -48,6 +58,33 @@ describe("Canonical JSON & HMAC", () => {
     const tampered = token.slice(0, -3) + "xyz";
     const tamperedResult = parseAndVerifySignedToken(tampered, secret);
     expect(tamperedResult.valid).toBe(false);
+  });
+
+  it("hashes and verifies 4-digit PIN using scrypt with salt and pepper", () => {
+    const pin = "1234";
+    const salt = generateSalt(16);
+    const pepper = "server_super_secret_pin_pepper_32bytes!";
+
+    const hash = hashPinWithScrypt(pin, salt, pepper);
+    expect(typeof hash).toBe("string");
+    expect(hash.length).toBe(128); // 64 bytes = 128 hex chars
+
+    // Verifikasi PIN benar
+    const isCorrect = verifyPinWithScrypt(pin, salt, pepper, hash);
+    expect(isCorrect).toBe(true);
+
+    // Verifikasi PIN salah
+    const isWrong = verifyPinWithScrypt("9999", salt, pepper, hash);
+    expect(isWrong).toBe(false);
+
+    // Verifikasi pepper salah
+    const isWrongPepper = verifyPinWithScrypt(pin, salt, "wrong_pepper", hash);
+    expect(isWrongPepper).toBe(false);
+  });
+
+  it("computes standard SHA-256 hex correctly", () => {
+    const hash = hashSha256Hex("hello-vokalink");
+    expect(hash).toBe("aa93432e844deade566358df5c20a985ebfa72a718b087a7d7be7742dbbf41a9");
   });
 });
 
@@ -87,6 +124,89 @@ describe("Haversine Distance & Smart Placement (BR-005, BR-006)", () => {
 
     expect(result.competencyScore).toBeLessThan(50);
     expect(result.requiresMidtermRotation).toBe(true);
+  });
+
+  it("ranks candidate DUDIs for a student ordered by totalScore descending", () => {
+    const student = {
+      studentId: "s-1",
+      name: "Ahmad Rizky",
+      homeLatitude: -7.2575,
+      homeLongitude: 112.7521,
+    };
+
+    const dudis = [
+      {
+        dudiId: "d-far",
+        name: "PT Jauh Banget",
+        latitude: -7.50, // ~30 km
+        longitude: 112.75,
+        remainingQuota: 3,
+        supportedCpJp: 400,
+      },
+      {
+        dudiId: "d-near-high",
+        name: "PT Dekat & Lengkap",
+        latitude: -7.26, // ~0.5 km
+        longitude: 112.752,
+        remainingQuota: 2,
+        supportedCpJp: 792,
+      },
+      {
+        dudiId: "d-near-low",
+        name: "PT Dekat Tapi Rendah",
+        latitude: -7.26,
+        longitude: 112.752,
+        remainingQuota: 5,
+        supportedCpJp: 200,
+      },
+    ];
+
+    const ranked = rankDudiForStudent(student, dudis, 792);
+    expect(ranked[0]?.dudiId).toBe("d-near-high");
+    expect(ranked[0]?.totalScore).toBe(100);
+    expect(ranked[0]?.requiresMidtermRotation).toBe(false);
+
+    // The lowest competency one requires midterm rotation
+    const lowMatch = ranked.find((r) => r.dudiId === "d-near-low");
+    expect(lowMatch?.requiresMidtermRotation).toBe(true);
+  });
+
+  it("performs greedy placement assignment respecting quota limits", () => {
+    const students = [
+      { studentId: "s-1", name: "Siswa 1", homeLatitude: -7.2575, homeLongitude: 112.7521 },
+      { studentId: "s-2", name: "Siswa 2", homeLatitude: -7.2576, homeLongitude: 112.7522 },
+      { studentId: "s-3", name: "Siswa 3", homeLatitude: -7.2577, homeLongitude: 112.7523 },
+    ];
+
+    const dudis = [
+      {
+        dudiId: "d-limited",
+        name: "PT Kuota 1 Orang",
+        latitude: -7.26,
+        longitude: 112.752,
+        remainingQuota: 1, // Only 1 slot!
+        supportedCpJp: 792,
+      },
+      {
+        dudiId: "d-backup",
+        name: "PT Kuota Cadangan",
+        latitude: -7.28,
+        longitude: 112.75,
+        remainingQuota: 5,
+        supportedCpJp: 600,
+      },
+    ];
+
+    const result = matchPlacementsGreedy(students, dudis, 792);
+
+    expect(result.assigned.length).toBe(3);
+    expect(result.unassigned.length).toBe(0);
+
+    // First student gets the 1 slot at d-limited
+    expect(result.assigned[0]?.dudiId).toBe("d-limited");
+    // Next students fall back to d-backup because d-limited quota is exhausted
+    expect(result.assigned[1]?.dudiId).toBe("d-backup");
+    expect(result.assigned[2]?.dudiId).toBe("d-backup");
   });
 });
 
@@ -175,5 +295,42 @@ describe("e-Rapor Grades (BR-009)", () => {
     });
     // 90 * 0.80 + 95 * 0.20 = 72 + 19 = 91
     expect(finalScore).toBe(91);
+  });
+
+  it("generates Kurikulum Merdeka narrative descriptions accurately", () => {
+    const narrative = generateEraporNarratives({
+      studentName: "Ahmad Rizky",
+      dudiName: "PT Inovasi Digital",
+      topJobCardTitle: "Implementasi REST API & Microservices",
+      topElementTitle: "Pemrograman Web & Mobile",
+      lowestElementTitle: "Keamanan Sistem & Jaringan",
+      lowestElementScore: 65,
+    });
+
+    expect(narrative.highestAchievement).toContain("Implementasi REST API & Microservices");
+    expect(narrative.highestAchievement).toContain("PT Inovasi Digital");
+    expect(narrative.highestAchievement).toContain("Pemrograman Web & Mobile");
+    expect(narrative.needsImprovement).toContain("Keamanan Sistem & Jaringan");
+    expect(narrative.needsImprovement).toContain("Perlu peningkatan jam praktik");
+  });
+
+  it("generates RFC-compliant e-Rapor CSV string with escaping", () => {
+    const rows = [
+      {
+        nisn: "0012345678",
+        studentName: 'Ahmad "Rizky", S.Kom',
+        dudiName: "PT Teknologi, Inovasi",
+        totalVerifiedJp: 792,
+        finalGrade: 94.5,
+        highestAchievement: "Kompeten dalam web development",
+        needsImprovement: "Konsisten dan baik",
+      },
+    ];
+
+    const csv = generateEraporCsv(rows);
+    expect(csv).toContain("NISN,Nama_Siswa,Nama_Mitra_DUDI");
+    expect(csv).toContain('"Ahmad ""Rizky"", S.Kom"'); // escaped quotes
+    expect(csv).toContain('"PT Teknologi, Inovasi"'); // escaped comma
+    expect(csv).toContain("94.5");
   });
 });

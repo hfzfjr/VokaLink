@@ -4,6 +4,9 @@ import helmet from "helmet";
 import { healthRouter } from "./routes/health.js";
 import { schoolsRouter } from "./routes/schools.js";
 import { curriculumRouter } from "./routes/curriculum.js";
+import { dudiRouter } from "./routes/dudi.js";
+import { placementsRouter } from "./routes/placements.js";
+import { eraporRouter } from "./routes/erapor.js";
 import { logsRouter } from "./routes/logs.js";
 import { errorHandler } from "./middlewares/error-handler.js";
 
@@ -54,6 +57,20 @@ export function createApp(): Express {
   const CURR_PATH = "/api/schools/:schoolId/departments/:deptId/curriculum";
   app.use(CURR_PATH, curriculumRouter);
   app.use(`/api/v1${CURR_PATH.slice(4)}`, curriculumRouter);
+
+  // DUDI Onboarding, Directory & Mentor Device Binding (FR-003)
+  app.use("/api/dudi", dudiRouter);
+  app.use("/api/v1/dudi", dudiRouter);
+
+  // Smart Placement & Spatial Compatibility Scorer (FR-004)
+  const PLACEMENT_PATH = "/api/schools/:schoolId/placements";
+  app.use(PLACEMENT_PATH, placementsRouter);
+  app.use(`/api/v1${PLACEMENT_PATH.slice(4)}`, placementsRouter);
+
+  // Automated e-Rapor SMK Grade & Narrative Exporter (FR-011)
+  const ERAPOR_PATH = "/api/schools/:schoolId/erapor";
+  app.use(ERAPOR_PATH, eraporRouter);
+  app.use(`/api/v1${ERAPOR_PATH.slice(4)}`, eraporRouter);
 
   // Daily Logs & Offline Sync (FR-005, FR-006 & DESIGN.md §7.3)
   app.use("/api/logs", logsRouter);
