@@ -474,3 +474,190 @@ export async function activateMentorDevice(
   return json;
 }
 
+// ─────────────────────────────────────────────────────────
+// FR-004: Smart Placement & Spatial Compatibility API
+// ─────────────────────────────────────────────────────────
+
+export interface PlacementCandidateStudent {
+  studentId: string;
+  fullName: string;
+  identityNumber: string;
+  department: { id: string; name: string } | null;
+  hasCustomCoordinates: boolean;
+  homeLatitude: number;
+  homeLongitude: number;
+  isPlaced: boolean;
+  activePlacementId: string | null;
+  recommendations: Array<{
+    dudiId: string;
+    dudiName: string;
+    totalScore: number;
+    competencyScore: number;
+    distanceScore: number;
+    distanceKm: number;
+    requiresMidtermRotation: boolean;
+    remainingQuota: number;
+  }>;
+  bestRecommendation: {
+    dudiId: string;
+    dudiName: string;
+    totalScore: number;
+    competencyScore: number;
+    distanceScore: number;
+    distanceKm: number;
+    requiresMidtermRotation: boolean;
+    remainingQuota: number;
+  } | null;
+}
+
+export interface PlacementCandidateData {
+  period: { id: string; name: string; targetTotalJp: number } | null;
+  schoolCoordinates: { latitude: number; longitude: number };
+  students: PlacementCandidateStudent[];
+  teachers: Array<{ id: string; fullName: string; identityNumber: string }>;
+  dudis: Array<{
+    id: string;
+    name: string;
+    sectorCategory: string;
+    address: string;
+    city: string;
+    latitude: number;
+    longitude: number;
+    maxQuota: number;
+    activePlacementsCount: number;
+    remainingQuota: number;
+    mentors: Array<{ id: string; fullName: string; jobTitle: string; isBound: boolean }>;
+  }>;
+}
+
+export interface PlacementRecordItem {
+  id: string;
+  academicPeriod: { id: string; name: string };
+  student: {
+    id: string;
+    fullName: string;
+    identityNumber: string;
+    whatsappNumber: string | null;
+    schoolDepartment: { id: string; name: string } | null;
+  };
+  teacher: { id: string; fullName: string; identityNumber: string };
+  dudiPartner: {
+    id: string;
+    name: string;
+    sectorCategory: string;
+    city: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+  };
+  dudiMentor: {
+    id: string;
+    fullName: string;
+    jobTitle: string;
+    isDeviceBound: boolean;
+  } | null;
+  compatibilityScore: number;
+  coverageScore: number;
+  distanceKm: number;
+  requiresMidtermRotation: boolean;
+  status: string;
+  rotationSequence: number;
+  logsCount: number;
+  createdAt: string;
+}
+
+/** GET /schools/:schoolId/placements/candidates */
+export async function fetchPlacementCandidates(
+  schoolId: string,
+  departmentId?: string,
+  token?: string
+): Promise<PlacementCandidateData> {
+  const query = departmentId ? `?departmentId=${departmentId}` : "";
+  const res = await fetch(`${API_BASE_URL}/schools/${schoolId}/placements/candidates${query}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memuat kandidat penempatan siswa");
+  return json.data;
+}
+
+/** GET /schools/:schoolId/placements */
+export async function fetchPlacements(
+  schoolId: string,
+  params?: { departmentId?: string; status?: string },
+  token?: string
+): Promise<PlacementRecordItem[]> {
+  const q = new URLSearchParams();
+  if (params?.departmentId) q.set("departmentId", params.departmentId);
+  if (params?.status) q.set("status", params.status);
+  const query = q.toString() ? `?${q.toString()}` : "";
+
+  const res = await fetch(`${API_BASE_URL}/schools/${schoolId}/placements${query}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memuat daftar penempatan");
+  return json.data;
+}
+
+/** POST /schools/:schoolId/placements */
+export async function createPlacement(
+  schoolId: string,
+  payload: any,
+  token?: string
+) {
+  const res = await fetch(`${API_BASE_URL}/schools/${schoolId}/placements`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal menyimpan penempatan siswa");
+  return json;
+}
+
+/** POST /schools/:schoolId/placements/batch */
+export async function batchCreatePlacements(
+  schoolId: string,
+  payload: { placements: any[] },
+  token?: string
+) {
+  const res = await fetch(`${API_BASE_URL}/schools/${schoolId}/placements/batch`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal menyimpan penempatan massal");
+  return json;
+}
+
+/** PATCH /schools/:schoolId/placements/students/:studentId/coordinates */
+export async function updateStudentCoordinates(
+  schoolId: string,
+  studentId: string,
+  payload: { homeLatitude: number; homeLongitude: number },
+  token?: string
+) {
+  const res = await fetch(
+    `${API_BASE_URL}/schools/${schoolId}/placements/students/${studentId}/coordinates`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memperbarui koordinat siswa");
+  return json;
+}
+

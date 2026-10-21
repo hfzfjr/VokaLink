@@ -241,3 +241,8 @@ export const resetMentorDeviceSchema = z.object({
 });
 
 export type ResetMentorDeviceInput = z.infer<typeof resetMentorDeviceSchema>;
+
+// ─────────────────────────────────────────────────────────
+// FR-004: Smart Placement & Spatial Compatibility schemas
+// ─────────────────────────────────────────────────────────
+export * from "./placement.js";

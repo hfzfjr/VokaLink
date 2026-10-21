@@ -5,6 +5,7 @@ import { healthRouter } from "./routes/health.js";
 import { schoolsRouter } from "./routes/schools.js";
 import { curriculumRouter } from "./routes/curriculum.js";
 import { dudiRouter } from "./routes/dudi.js";
+import { placementsRouter } from "./routes/placements.js";
 import { errorHandler } from "./middlewares/error-handler.js";
 
 export function createApp(): Express {
@@ -58,6 +59,11 @@ export function createApp(): Express {
   // DUDI Onboarding, Directory & Mentor Device Binding (FR-003)
   app.use("/api/dudi", dudiRouter);
   app.use("/api/v1/dudi", dudiRouter);
+
+  // Smart Placement & Spatial Compatibility Scorer (FR-004)
+  const PLACEMENT_PATH = "/api/schools/:schoolId/placements";
+  app.use(PLACEMENT_PATH, placementsRouter);
+  app.use(`/api/v1${PLACEMENT_PATH.slice(4)}`, placementsRouter);
 
   // Global RFC 7807 error handler
   app.use(errorHandler);

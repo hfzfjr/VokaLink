@@ -10,6 +10,8 @@ import {
   hashSha256Hex,
   calculateHaversineDistanceKm,
   calculatePlacementScore,
+  rankDudiForStudent,
+  matchPlacementsGreedy,
   detectNonCompetencyOverload,
   detectSkillMonotony,
   detectApprovalDormancy,
@@ -118,6 +120,89 @@ describe("Haversine Distance & Smart Placement (BR-005, BR-006)", () => {
 
     expect(result.competencyScore).toBeLessThan(50);
     expect(result.requiresMidtermRotation).toBe(true);
+  });
+
+  it("ranks candidate DUDIs for a student ordered by totalScore descending", () => {
+    const student = {
+      studentId: "s-1",
+      name: "Ahmad Rizky",
+      homeLatitude: -7.2575,
+      homeLongitude: 112.7521,
+    };
+
+    const dudis = [
+      {
+        dudiId: "d-far",
+        name: "PT Jauh Banget",
+        latitude: -7.50, // ~30 km
+        longitude: 112.75,
+        remainingQuota: 3,
+        supportedCpJp: 400,
+      },
+      {
+        dudiId: "d-near-high",
+        name: "PT Dekat & Lengkap",
+        latitude: -7.26, // ~0.5 km
+        longitude: 112.752,
+        remainingQuota: 2,
+        supportedCpJp: 792,
+      },
+      {
+        dudiId: "d-near-low",
+        name: "PT Dekat Tapi Rendah",
+        latitude: -7.26,
+        longitude: 112.752,
+        remainingQuota: 5,
+        supportedCpJp: 200,
+      },
+    ];
+
+    const ranked = rankDudiForStudent(student, dudis, 792);
+    expect(ranked[0]?.dudiId).toBe("d-near-high");
+    expect(ranked[0]?.totalScore).toBe(100);
+    expect(ranked[0]?.requiresMidtermRotation).toBe(false);
+
+    // The lowest competency one requires midterm rotation
+    const lowMatch = ranked.find((r) => r.dudiId === "d-near-low");
+    expect(lowMatch?.requiresMidtermRotation).toBe(true);
+  });
+
+  it("performs greedy placement assignment respecting quota limits", () => {
+    const students = [
+      { studentId: "s-1", name: "Siswa 1", homeLatitude: -7.2575, homeLongitude: 112.7521 },
+      { studentId: "s-2", name: "Siswa 2", homeLatitude: -7.2576, homeLongitude: 112.7522 },
+      { studentId: "s-3", name: "Siswa 3", homeLatitude: -7.2577, homeLongitude: 112.7523 },
+    ];
+
+    const dudis = [
+      {
+        dudiId: "d-limited",
+        name: "PT Kuota 1 Orang",
+        latitude: -7.26,
+        longitude: 112.752,
+        remainingQuota: 1, // Only 1 slot!
+        supportedCpJp: 792,
+      },
+      {
+        dudiId: "d-backup",
+        name: "PT Kuota Cadangan",
+        latitude: -7.28,
+        longitude: 112.75,
+        remainingQuota: 5,
+        supportedCpJp: 600,
+      },
+    ];
+
+    const result = matchPlacementsGreedy(students, dudis, 792);
+
+    expect(result.assigned.length).toBe(3);
+    expect(result.unassigned.length).toBe(0);
+
+    // First student gets the 1 slot at d-limited
+    expect(result.assigned[0]?.dudiId).toBe("d-limited");
+    // Next students fall back to d-backup because d-limited quota is exhausted
+    expect(result.assigned[1]?.dudiId).toBe("d-backup");
+    expect(result.assigned[2]?.dudiId).toBe("d-backup");
   });
 });
 

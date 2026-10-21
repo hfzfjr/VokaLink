@@ -10,8 +10,8 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | Metrik | Nilai |
 |---|---|
-| FR selesai | 3 / 12 |
-| FR Must Have selesai | 3 / 11 |
+| FR selesai | 4 / 12 |
+| FR Must Have selesai | 4 / 11 |
 | TC lulus | 2 / 10 |
 | Bug terbuka (Critical / High) | 1 / 0 |
 | Status cut-line | Belum dievaluasi (evaluasi di akhir Hari 7) |
@@ -35,7 +35,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 | FR-001 | Onboarding multi-sekolah + demo | A | [x] | [x] | [x] | [x] | Multi-step SaaS onboarding, clone kurikulum 792 JP, demo sandbox loader |
 | FR-002 | Kurikulum & Job Card (6 jurusan) | A | [x] | [x] | [x] | [x] | Matriks CP, slider JP proporsional, lock kurikulum, katalog Job Card & non-kompetensi |
 | FR-003 | Onboarding DUDI + bind device | A / C | [x] | [x] | [x] | [x] | Direktori terfederasi lintas sekolah, assisted DUDI onboarding, pemetaan Job Cards, QR & link aktivasi 72 jam, zero-login 4-digit PIN device-bound (scrypt + pepper) |
-| FR-004 | Smart Placement | A | [ ] | [ ] | [ ] | [ ] | Rumus inti tuntas di packages/core |
+| FR-004 | Smart Placement | A | [x] | [x] | [x] | [x] | Haversine spasial murni, bobot multi-kriteria 70:30, kuota aktif, lencana rotasi tengah semester (<50%), penugasan auto-greedy massal & override manual |
 | FR-005 | Logger zero-typing + Tombol Jujur | B | [~] | [ ] | [~] | [ ] | Form zero-typing, Tombol Jujur, & IndexedDB persistence aktif |
 | FR-006 | Kompres WebP, blur, offline sync | B | [~] | [ ] | [~] | [ ] | Pipeline Canvas WebP < 60 KB, SHA-256 subtle crypto, dan skema Dexie selesai |
 | FR-007 | Verifikasi zero-login (QR / WA) | C | [ ] | [ ] | [ ] | [ ] | Kriptografi HMAC tuntas di packages/core |
@@ -111,13 +111,17 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
   - Client-side Photo Pipeline (`photo.ts`): kompresi Canvas WebP 0.65 proporsional maks 800px (< 60 KB, maks 150 KB), pembuangan EXIF/geotag privasi, dan perhitungan hash SHA-256 via SubtleCrypto (Orang B).
   - Integrasi Dexie ke form pencatatan `/student/log/new` (penyimpanan instan ke IndexedDB lokal saat offline) dan `ConnectivityBanner` reaktif (membaca antrean nyata dan warning jika antrean > 3 log) (Orang B).
   - Sinkronisasi live query IndexedDB pada riwayat `/student/log/history` (Orang B).
-  - Branch `feat/fr-006-serwist-dexie-pwa` aktif dan lolos typecheck & test monorepo (Orang B).
-- Sedang dikerjakan:
   - FR-004: Smart Placement & Spatial Compatibility Scorer (Orang A).
+    - Algoritma pencocokan multi-kriteria berbasis bobot kompetensi (70%) dan jarak Haversine (30%) di `packages/core` dengan batas kuota dan greedy massal.
+    - API router `/api/schools/:schoolId/placements` (`/candidates`, `POST /`, `POST /batch`, `PATCH /students/:id/coordinates`) dengan tenant guard, validasi kuota penuh (422), deteksi rotasi tengah semester (<50%), dan A1 override manual.
+    - Halaman web `/school/placements` dengan tab kandidat rekomendasi, visualisasi skor multi-kriteria, peringatan kuning rotasi tengah semester (WCAG AA), modal konfirmasi penempatan, update koordinat domisili via GPS/manual, dan pratinjau auto-greedy massal.
+    - 8 unit & integration tests di `apps/api/test/placements.test.ts` dan 2 unit tests di `packages/core/test/core.test.ts` lulus 100%.
+- Sedang dikerjakan:
+  - Persiapan FR-005 & integrasi antrean sinkronisasi FR-006 (Orang B / Orang A).
 - Blocker:
   - BUG-001 (P0 Critical): Menunggu migrasi database baru oleh Orang A.
 - Rencana besok (Hari 3):
-  - Implementasi Smart Placement & Spatial Compatibility Scorer (FR-004) dengan formula komputasi Haversine dan cakupan kompetensi di `packages/core`.
+  - Integrasi batch sync PWA `/api/v1/logs/sync` dan upload biner bukti WebP (FR-006 & FR-005).
 
 ### Hari 1 — Rab 21 Okt 2026
 - Selesai:
