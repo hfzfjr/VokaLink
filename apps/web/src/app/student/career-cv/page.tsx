@@ -5,16 +5,13 @@ import {
   Printer,
   QrCode,
   ShieldCheck,
-  Building2,
   Lock,
   Sparkles,
   ExternalLink,
   CheckCircle,
   FileCheck,
-  Copy,
   Check,
   Share2,
-  Info,
 } from "lucide-react";
 import Link from "next/link";
 

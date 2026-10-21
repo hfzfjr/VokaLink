@@ -1,7 +1,7 @@
 "use client";
 
 import { useLiveQuery } from "dexie-react-hooks";
-import { db, type OfflineLog } from "@/lib/pwa/db";
+import { db } from "@/lib/pwa/db";
 
 export function usePendingLogs() {
   const pendingLogs = useLiveQuery(
