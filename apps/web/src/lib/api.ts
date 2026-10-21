@@ -171,3 +171,159 @@ export async function fetchCurrentSchool(token: string) {
   }
   return json.data;
 }
+
+// ─────────────────────────────────────────────────────────
+// FR-002: Curriculum & Job Card API helpers
+// ─────────────────────────────────────────────────────────
+
+export interface JobCardItem {
+  id: string;
+  title: string;
+  skkniUnitCode: string | null;
+  toolsAndSoftware: string[];
+  actionVerbTemplate: string;
+  isNonCompetency: boolean;
+}
+
+export interface CpElementItem {
+  id: string;
+  code: string;
+  title: string;
+  targetJp: number;
+  sortOrder: number;
+  jobCards: JobCardItem[];
+}
+
+export interface CurriculumData {
+  department: {
+    id: string;
+    sectorCode: string;
+    name: string;
+    isLocked: boolean;
+  };
+  activePeriod: { name: string; targetTotalJp: number };
+  currentTotalJp: number;
+  jpDelta: number; // positif = kurang, negatif = lebih
+  elements: CpElementItem[];
+  nonCompetencyCards: JobCardItem[];
+}
+
+/** GET /schools/:schoolId/departments/:deptId/curriculum */
+export async function fetchCurriculum(
+  schoolId: string,
+  deptId: string,
+  token: string
+): Promise<CurriculumData> {
+  const res = await fetch(
+    `${API_BASE_URL}/schools/${schoolId}/departments/${deptId}/curriculum`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memuat kurikulum");
+  return json.data;
+}
+
+/** PUT /schools/:schoolId/departments/:deptId/curriculum */
+export async function updateCpElements(
+  schoolId: string,
+  deptId: string,
+  elements: { id: string; targetJp: number }[],
+  token: string
+) {
+  const res = await fetch(
+    `${API_BASE_URL}/schools/${schoolId}/departments/${deptId}/curriculum`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ elements }),
+    }
+  );
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || json.title || "Gagal menyimpan bobot JP");
+  return json;
+}
+
+/** POST /schools/:schoolId/departments/:deptId/curriculum/lock */
+export async function lockCurriculum(
+  schoolId: string,
+  deptId: string,
+  token: string
+) {
+  const res = await fetch(
+    `${API_BASE_URL}/schools/${schoolId}/departments/${deptId}/curriculum/lock`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    }
+  );
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal mengunci kurikulum");
+  return json;
+}
+
+/** POST /schools/:schoolId/departments/:deptId/curriculum/job-cards */
+export async function addJobCard(
+  schoolId: string,
+  deptId: string,
+  payload: {
+    cpElementId?: string | null;
+    title: string;
+    skkniUnitCode?: string | null;
+    toolsAndSoftware?: string[];
+    actionVerbTemplate?: string;
+    isNonCompetency?: boolean;
+  },
+  token: string
+) {
+  const res = await fetch(
+    `${API_BASE_URL}/schools/${schoolId}/departments/${deptId}/curriculum/job-cards`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    }
+  );
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal menambahkan Job Card");
+  return json;
+}
+
+/** PATCH /schools/:schoolId/departments/:deptId/curriculum/job-cards/:jcId */
+export async function updateJobCard(
+  schoolId: string,
+  deptId: string,
+  jcId: string,
+  payload: Partial<{ title: string; skkniUnitCode: string; toolsAndSoftware: string[] }>,
+  token: string
+) {
+  const res = await fetch(
+    `${API_BASE_URL}/schools/${schoolId}/departments/${deptId}/curriculum/job-cards/${jcId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    }
+  );
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memperbarui Job Card");
+  return json;
+}
+
+/** DELETE /schools/:schoolId/departments/:deptId/curriculum/job-cards/:jcId */
+export async function deleteJobCard(
+  schoolId: string,
+  deptId: string,
+  jcId: string,
+  token: string
+) {
+  const res = await fetch(
+    `${API_BASE_URL}/schools/${schoolId}/departments/${deptId}/curriculum/job-cards/${jcId}`,
+    {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal menghapus Job Card");
+  return json;
+}

@@ -104,3 +104,66 @@ export const schoolRegisterSchema = z.object({
 });
 
 export type SchoolRegisterInput = z.infer<typeof schoolRegisterSchema>;
+
+// ─────────────────────────────────────────────────────────
+// FR-002: Curriculum & Job Card schemas
+// ─────────────────────────────────────────────────────────
+
+/** Satu baris elemen CP beserta target JP yang ingin di-update */
+export const cpElementUpdateSchema = z.object({
+  id: z.string().uuid(),
+  targetJp: z
+    .number()
+    .int()
+    .min(1, "Target JP per elemen minimal 1 JP")
+    .max(792, "Target JP per elemen tidak boleh melebihi 792 JP"),
+});
+
+/**
+ * Body PUT /departments/:deptId/curriculum
+ * Memperbarui bobot target JP seluruh elemen CP sekaligus.
+ * Server memvalidasi: sum(targetJp) === period.targetTotalJp
+ */
+export const updateCpElementsSchema = z.object({
+  elements: z
+    .array(cpElementUpdateSchema)
+    .min(1, "Minimal 1 elemen CP harus disertakan"),
+});
+
+export type UpdateCpElementsInput = z.infer<typeof updateCpElementsSchema>;
+
+/** Body POST /departments/:deptId/job-cards — tambah Job Card baru */
+export const addJobCardSchema = z.object({
+  cpElementId: z
+    .string()
+    .uuid("cpElementId harus UUID valid")
+    .nullable()
+    .optional(),
+  title: z
+    .string()
+    .min(3, "Judul Job Card minimal 3 karakter")
+    .max(60, "Gunakan bahasa praktis maksimal 60 karakter agar mudah dibaca di layar HP"),
+  skkniUnitCode: z
+    .string()
+    .max(40)
+    .nullable()
+    .optional(),
+  toolsAndSoftware: z
+    .array(z.string().max(60))
+    .max(10)
+    .default([]),
+  actionVerbTemplate: z
+    .string()
+    .max(250)
+    .default(""),
+  isNonCompetency: z.boolean().default(false),
+});
+
+export type AddJobCardInput = z.infer<typeof addJobCardSchema>;
+
+/** Body PATCH /job-cards/:id — update sebagian Job Card */
+export const updateJobCardSchema = addJobCardSchema.partial().omit({
+  isNonCompetency: true,
+});
+
+export type UpdateJobCardInput = z.infer<typeof updateJobCardSchema>;

@@ -10,9 +10,9 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | Metrik | Nilai |
 |---|---|
-| FR selesai | 1 / 12 |
-| FR Must Have selesai | 1 / 11 |
-| TC lulus | 0 / 10 |
+| FR selesai | 2 / 12 |
+| FR Must Have selesai | 2 / 11 |
+| TC lulus | 2 / 10 |
 | Bug terbuka (Critical / High) | 0 / 0 |
 | Status cut-line | Belum dievaluasi (evaluasi di akhir Hari 7) |
 
@@ -33,7 +33,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 | FR | Fitur | Pemilik | Status | Backend | Frontend | Tes | Catatan |
 |---|---|---|---|---|---|---|---|
 | FR-001 | Onboarding multi-sekolah + demo | A | [x] | [x] | [x] | [x] | Multi-step SaaS onboarding, clone kurikulum 792 JP, demo sandbox loader |
-| FR-002 | Kurikulum & Job Card (6 jurusan) | A | [ ] | [ ] | [ ] | [ ] | |
+| FR-002 | Kurikulum & Job Card (6 jurusan) | A | [x] | [x] | [x] | [x] | Matriks CP, slider JP proporsional, lock kurikulum, katalog Job Card & non-kompetensi |
 | FR-003 | Onboarding DUDI + bind device | A / C | [ ] | [ ] | [ ] | [ ] | |
 | FR-004 | Smart Placement | A | [ ] | [ ] | [ ] | [ ] | |
 | FR-005 | Logger zero-typing + Tombol Jujur | B | [ ] | [ ] | [ ] | [ ] | |
@@ -63,8 +63,8 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | TC | Status | Tanggal | Catatan |
 |---|---|---|---|
-| TC-001 | [ ] | | |
-| TC-002 | [ ] | | |
+| TC-001 | [x] | 21 Okt 2026 | Sandbox terbuat & 6 jurusan memuat Elemen CP tepat 792 JP & min. 12 Job Cards praktis |
+| TC-002 | [x] | 21 Okt 2026 | Validasi alokasi != 792 JP memicu pesan error 422 JP_TOTAL_MISMATCH & tombol kunci nonaktif |
 | TC-003 | [ ] | | |
 | TC-004 | [ ] | | |
 | TC-005 | [ ] | | |
@@ -96,12 +96,15 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
 
 ### Hari 0 — Sel 20 Okt 2026
 - Dokumen PRD, DESIGN (direvisi mengikuti PRD, Express, Prisma, Supabase), SPRINT, PROGRESS, BUGS, dan AGENTS dibuat.
-- Target malam ini: inisialisasi repo dan infrastruktur (bagian 2).
+- Inisialisasi repo, pnpm workspaces, Supabase, Prisma schema, Express Coolify setup, dan seeder v1 selesai.
 
-<!-- Format entri berikutnya:
-### Hari N — <hari> <tanggal>
-- Selesai: ...
-- Sedang dikerjakan: ...
-- Blocker: ...
-- Rencana besok: ...
--->
+### Hari 1 — Rab 21 Okt 2026
+- Selesai:
+  - FR-001 (Multi-tenant School Onboarding, master department seeding, sandbox loader).
+  - FR-002 (Pre-loaded Multi-Sector Curriculum Engine, router kurikulum, update bobot JP dengan validasi sum === targetTotalJp 792 JP, lock matriks, katalog Job Cards praktis & kategori sistem non-kompetensi).
+  - Halaman web `/school/curriculum` responsif mobile-first dengan slider proporsional, modal tambah Job Card, 5 kondisi UI (skeleton, empty, offline banner, error recovery, unauthenticated).
+  - 12 unit & integration test untuk kurikulum (`apps/api/test/curriculum.test.ts`), TC-001 & TC-002 lulus 100%.
+- Sedang dikerjakan: Persiapan FR-003 (Assisted DUDI Onboarding, Pemetaan Kapasitas & Device-Bound PIN).
+- Blocker: Tidak ada.
+- Rencana lanjut: Memulai implementasi FR-003.
+

@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import { healthRouter } from "./routes/health.js";
 import { schoolsRouter } from "./routes/schools.js";
+import { curriculumRouter } from "./routes/curriculum.js";
 import { errorHandler } from "./middlewares/error-handler.js";
 
 export function createApp(): Express {
@@ -47,6 +48,11 @@ export function createApp(): Express {
   // School onboarding and management routes
   app.use("/api/schools", schoolsRouter);
   app.use("/api/v1/schools", schoolsRouter);
+
+  // Curriculum & Job Cards (FR-002) — nested under schools
+  const CURR_PATH = "/api/schools/:schoolId/departments/:deptId/curriculum";
+  app.use(CURR_PATH, curriculumRouter);
+  app.use(`/api/v1${CURR_PATH.slice(4)}`, curriculumRouter);
 
   // Global RFC 7807 error handler
   app.use(errorHandler);
