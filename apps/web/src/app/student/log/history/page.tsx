@@ -7,17 +7,14 @@ import {
   CheckCircle,
   Clock,
   QrCode,
-  Share2,
   FileText,
   Search,
-  Filter,
   PlusCircle,
   X,
   ExternalLink,
   Copy,
   Check,
   Sparkles,
-  AlertTriangle,
   ChevronRight,
   ShieldCheck,
   ImageIcon,
@@ -40,6 +37,7 @@ interface LogEntry {
   isNonCompetency?: boolean;
   nonCompetencyCategory?: string;
   notes?: string;
+  syncState?: "queued" | "meta_synced" | "synced" | "verified" | "revision_required" | "failed";
 }
 
 export default function LogHistoryPage() {
@@ -134,6 +132,7 @@ export default function LogHistoryPage() {
     isNonCompetency: ol.isNonCompetency,
     nonCompetencyCategory: ol.nonCompetencyCategory,
     notes: ol.shortNote,
+    syncState: ol.state,
   }));
 
   // Gabungkan antrean offline lokal dengan riwayat sample
@@ -345,16 +344,34 @@ export default function LogHistoryPage() {
                       className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-extrabold border uppercase tracking-wider ${
                         isVerified
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : "bg-amber-50 text-amber-700 border-amber-200"
+                          : log.syncState === "queued"
+                          ? "bg-amber-50 text-amber-700 border-amber-200"
+                          : log.syncState === "meta_synced"
+                          ? "bg-sky-50 text-sky-700 border-sky-200"
+                          : log.syncState === "failed"
+                          ? "bg-rose-50 text-rose-700 border-rose-200"
+                          : "bg-blue-50 text-blue-700 border-blue-200"
                       }`}
                     >
                       {isVerified ? (
                         <>
                           <CheckCircle className="w-3 h-3" /> Terverifikasi
                         </>
+                      ) : log.syncState === "queued" ? (
+                        <>
+                          <Clock className="w-3 h-3" /> Antrean Lokal
+                        </>
+                      ) : log.syncState === "meta_synced" ? (
+                        <>
+                          <Clock className="w-3 h-3 animate-spin" /> Upload Foto
+                        </>
+                      ) : log.syncState === "failed" ? (
+                        <>
+                          <Clock className="w-3 h-3" /> Gagal Sinkron
+                        </>
                       ) : (
                         <>
-                          <Clock className="w-3 h-3" /> Menunggu
+                          <Clock className="w-3 h-3" /> Menunggu Mentor
                         </>
                       )}
                     </span>

@@ -44,6 +44,7 @@ Aturan:
 | ID | Level | Status | Fitur | Judul | Pemilik |
 |---|---|---|---|---|---|
 | BUG-001 | P0 Critical | Open | Database / BR-007 | Trigger immutability block_verified_log_update memakai nama kolom salah mentor_id | Orang A |
+| BUG-002 | P3 Low | Fixed | PWA / Manifest | Web App Manifest mereferensikan file PNG non-eksistensi menyebabkan 404 pada browser | Orang B |
 
 ### BUG-001 — Trigger block_verified_log_update memakai nama kolom salah mentor_id
 - **Level:** P0 Critical
@@ -62,6 +63,23 @@ Aturan:
 - **Catatan / dugaan penyebab:**
   Typo penamaan kolom saat menyusun migration SQL guards di Hari 0/1.
 - **Perbaikan (commit/PR):** - (Memerlukan migration baru oleh Orang A untuk merevisi function trigger).
+
+### BUG-002 — Web App Manifest mereferensikan file PNG non-eksistensi menyebabkan 404 pada browser
+- **Level:** P3 Low
+- **Status:** Fixed
+- **Fitur/Modul:** PWA / Web App Manifest (FR-006)
+- **Pelapor / Pemilik:** Orang B / Orang B
+- **Ditemukan:** 21 Okt 2026 (Hari 2), pengujian audit Service Worker & peramban
+- **Langkah reproduksi:**
+  1. Jalankan `next dev` dan buka endpoint manifest `/manifest.webmanifest`.
+  2. Peramban mencoba melakukan prefetch pada aset ikon PNG `icon-192x192.png` dan `icon-512x512.png`.
+- **Hasil aktual:**
+  Peramban mencatat log HTTP 404 Not Found karena file PNG statis belum dibuat pada folder `public/icons/`.
+- **Hasil seharusnya (rujukan PRD/BR/TC):**
+  Manifest PWA mendeklarasikan aset ikon yang valid dan mengembalikan status HTTP 200 OK tanpa error 404 pada konsol peramban.
+- **Catatan / dugaan penyebab:**
+  Spesifikasi ukuran file PNG dideklarasikan di `manifest.ts` sebelum berkas biner PNG dibuat.
+- **Perbaikan (commit/PR):** Commit `569c840` dan `daac6f0`: Menyediakan aset vektor SVG resmi `/icons/icon.svg` dan memperbarui `manifest.ts` serta `public/manifest.json` mendeklarasikan ikon SVG dengan mode `any` dan `maskable` sesuai standar modern PWA W3C.
 
 ## 5. Catatan Dokumen (ketidaksinkronan yang diketahui)
 

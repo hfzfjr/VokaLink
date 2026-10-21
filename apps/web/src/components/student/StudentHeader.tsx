@@ -10,7 +10,6 @@ import {
   PlusCircle,
   BookOpen,
   FileCheck2,
-  User,
 } from "lucide-react";
 import { clsx } from "clsx";
 

@@ -10,6 +10,8 @@ out/
 *.tsbuildinfo
 .turbo/
 .vercel/
+**/public/sw.js*
+**/public/swe-worker*
 
 # env dan secret (hanya .env.example yang boleh masuk repo)
 .env
