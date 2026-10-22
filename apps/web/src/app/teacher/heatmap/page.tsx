@@ -15,10 +15,22 @@ import {
   ShieldAlert,
   X,
   AlertOctagon,
+  Sparkles,
+  Repeat,
+  Send,
+  Calendar,
+  MapPin,
+  ExternalLink,
+  Check,
+  RotateCcw,
+  FileText,
 } from "lucide-react";
 import {
   fetchTeacherHeatmap,
   triggerEvaluateDriftAlerts,
+  fetchInterventionDraft,
+  submitIntervention,
+  executePlacementRotation,
 } from "@/lib/api";
 import type {
   HeatmapResponse,
@@ -39,6 +51,18 @@ export default function TeacherHeatmapPage() {
 
   // Student Detail Modal state
   const [selectedStudent, setSelectedStudent] = useState<HeatmapStudentRow | null>(null);
+
+  // FR-009: Smart Intervention & Rotation Modal state
+  const [interventionStudent, setInterventionStudent] = useState<HeatmapStudentRow | null>(null);
+  const [interventionAlert, setInterventionAlert] = useState<DriftAlertItem | null>(null);
+  const [interventionTab, setInterventionTab] = useState<"WA_COORDINATION" | "SITE_VISIT" | "DUDI_ROTATION">("WA_COORDINATION");
+  const [draftMessage, setDraftMessage] = useState("");
+  const [isDraftLoading, setIsDraftLoading] = useState(false);
+  const [isSubmittingIntervention, setIsSubmittingIntervention] = useState(false);
+  const [interventionSuccessMsg, setInterventionSuccessMsg] = useState<string | null>(null);
+  const [targetDudiId, setTargetDudiId] = useState("");
+  const [rotationReason, setRotationReason] = useState("");
+  const [siteVisitDate, setSiteVisitDate] = useState("");
 
   // Load heatmap data from API
   const loadHeatmapData = useCallback(async () => {
@@ -70,6 +94,115 @@ export default function TeacherHeatmapPage() {
       alert(err.message || "Gagal menjalankan evaluasi drift");
     } finally {
       setIsEvaluating(false);
+    }
+  };
+
+  // FR-009: Buka Modal Intervensi & Ambil Draf Otomatis
+  const openInterventionModal = async (
+    student: HeatmapStudentRow,
+    alert?: DriftAlertItem
+  ) => {
+    setInterventionStudent(student);
+    setInterventionAlert(alert || student.driftAlerts[0] || null);
+    setInterventionTab("WA_COORDINATION");
+    setInterventionSuccessMsg(null);
+    setTargetDudiId("");
+    setRotationReason("");
+    setSiteVisitDate(new Date(Date.now() + 3 * 86400000).toISOString().split("T")[0] || "");
+    setIsDraftLoading(true);
+
+    try {
+      const draft = await fetchInterventionDraft({
+        studentId: student.studentId,
+        placementId: student.placement.id,
+        driftAlertId: alert?.id || student.driftAlerts[0]?.id,
+        alertType: (alert?.alertType || student.driftAlerts[0]?.alertType || "GENERAL") as any,
+      });
+      setDraftMessage(draft.messageText);
+    } catch {
+      setDraftMessage(
+        `Yth. Bapak/Ibu ${student.placement.mentorName}, ${student.placement.dudiName}\n\nSalam hormat, saya Guru Pembimbing dari ${student.fullName}. Mohon waktu koordinasi terkait capaian kompetensi magang ananda.`
+      );
+    } finally {
+      setIsDraftLoading(false);
+    }
+  };
+
+  // FR-009: Eksekusi Kirim WhatsApp & Catat Log Intervensi
+  const handleSendWaIntervention = async () => {
+    if (!interventionStudent) return;
+    setIsSubmittingIntervention(true);
+    try {
+      await submitIntervention({
+        studentId: interventionStudent.studentId,
+        placementId: interventionStudent.placement.id,
+        driftAlertId: interventionAlert?.id,
+        actionType: "WA_COORDINATION",
+        messageSent: draftMessage,
+      });
+
+      const rawPhone = interventionStudent.placement.mentorPhone || "";
+      const phone = rawPhone.replace(/\D/g, "");
+      const normalizedPhone = phone.startsWith("0") ? "62" + phone.slice(1) : phone;
+      if (normalizedPhone) {
+        const waUrl = `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(draftMessage)}`;
+        window.open(waUrl, "_blank");
+      }
+
+      setInterventionSuccessMsg("Pesan koordinasi berhasil dicatat dan jendela WhatsApp telah dibuka!");
+      await loadHeatmapData();
+    } catch (err: any) {
+      alert(err.message || "Gagal mencatat intervensi pembimbing");
+    } finally {
+      setIsSubmittingIntervention(false);
+    }
+  };
+
+  // FR-009: Catat Kunjungan Lapangan
+  const handleRecordSiteVisit = async () => {
+    if (!interventionStudent) return;
+    setIsSubmittingIntervention(true);
+    try {
+      await submitIntervention({
+        studentId: interventionStudent.studentId,
+        placementId: interventionStudent.placement.id,
+        driftAlertId: interventionAlert?.id,
+        actionType: "SITE_VISIT",
+        messageSent: `Rencana kunjungan supervisi lapangan dijadwalkan pada ${siteVisitDate || "minggu depan"}. Catatan agenda: ${draftMessage}`,
+      });
+      setInterventionSuccessMsg("Jadwal kunjungan supervisi lapangan berhasil disimpan ke riwayat intervensi!");
+      await loadHeatmapData();
+    } catch (err: any) {
+      alert(err.message || "Gagal mencatat jadwal kunjungan lapangan");
+    } finally {
+      setIsSubmittingIntervention(false);
+    }
+  };
+
+  // FR-009: Eksekusi Rotasi Mitra DUDI Tengah Semester (TC-009)
+  const handleExecuteRotation = async () => {
+    if (!interventionStudent || !targetDudiId) {
+      alert("Pilih mitra DUDI tujuan baru terlebih dahulu");
+      return;
+    }
+    setIsSubmittingIntervention(true);
+    try {
+      const res = await executePlacementRotation({
+        studentId: interventionStudent.studentId,
+        fromPlacementId: interventionStudent.placement.id,
+        toDudiId: targetDudiId,
+        driftAlertId: interventionAlert?.id,
+        reason: rotationReason || "Rotasi tengah semester untuk pemenuhan elemen kompetensi kurikulum (TC-009).",
+      });
+
+      setInterventionSuccessMsg(
+        `Sukses! Siswa berhasil dirotasi ke ${res.newPlacement.dudiName}. Total ${res.cumulativeVerifiedJp} JP terverifikasi tetap tersimpan utuh di portofolio siswa (TC-009).`
+      );
+      await loadHeatmapData();
+    } catch (err: any) {
+      alert(err.message || "Gagal mengeksekusi rotasi mitra DUDI");
+    } finally {
+      setIsSubmittingIntervention(false);
     }
   };
 
@@ -354,28 +487,23 @@ export default function TeacherHeatmapPage() {
                       {alert.metricSnapshot.detectedReason || "Terdeteksi deviasi ketercapaian kompetensi."}
                     </p>
 
-                    <div className="pt-1 flex items-center justify-between border-t border-slate-100/80">
+                    <div className="pt-2 flex items-center justify-between border-t border-slate-100/80">
                       <button
                         type="button"
                         onClick={() => setSelectedStudent(student)}
                         className="text-[11px] font-bold text-blue-600 hover:text-blue-800 cursor-pointer"
                       >
-                        Lihat Rincian Jam →
+                        Lihat Jam Kerja →
                       </button>
 
-                      {student.placement.mentorPhone && (
-                        <a
-                          href={`https://wa.me/${student.placement.mentorPhone.replace(/^0/, "62")}?text=${encodeURIComponent(
-                            `Halo Bapak/Ibu ${student.placement.mentorName} dari ${student.placement.dudiName}, saya Guru Pembimbing dari ${student.fullName}. Mohon waktu koordinasi terkait capaian magang ananda.`
-                          )}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200 cursor-pointer"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          <span>Draf WA</span>
-                        </a>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => openInterventionModal(student, alert)}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg shadow-2xs transition cursor-pointer"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Tindak Lanjuti / Rotasi →</span>
+                      </button>
                     </div>
                   </div>
                 );
@@ -759,20 +887,326 @@ export default function TeacherHeatmapPage() {
               </div>
             </div>
 
-            {/* Quick WA Action */}
-            {selectedStudent.placement.mentorPhone && (
-              <div className="pt-2">
-                <a
-                  href={`https://wa.me/${selectedStudent.placement.mentorPhone.replace(/^0/, "62")}?text=${encodeURIComponent(
-                    `Halo Bapak/Ibu ${selectedStudent.placement.mentorName} dari ${selectedStudent.placement.dudiName}, saya Guru Pembimbing dari ${selectedStudent.fullName}. Mohon waktu koordinasi terkait capaian magang ananda.`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span>Kirim Pesan Koordinasi WhatsApp ke Mentor</span>
-                </a>
+            {/* Quick Action Buttons */}
+            <div className="pt-2 space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const st = selectedStudent;
+                  setSelectedStudent(null);
+                  openInterventionModal(st);
+                }}
+                className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Buka Smart Intervention Dispatcher & Rotasi (FR-009)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────────────
+          MODAL 2: Smart Intervention Dispatcher & Mid-Term Rotation (FR-009)
+          ───────────────────────────────────────────────────────────────────────── */}
+      {interventionStudent && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl border border-slate-100 space-y-5 my-8">
+            {/* Header Modal */}
+            <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+                    <Sparkles className="w-5 h-5" />
+                  </span>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-slate-900">
+                      Smart Intervention Dispatcher
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Bimbingan & Rotasi Mitra untuk <span className="font-bold text-slate-800">{interventionStudent.fullName}</span> ({interventionStudent.nisn})
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setInterventionStudent(null);
+                  setInterventionSuccessMsg(null);
+                }}
+                className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Banner Sukses Jika Aksi Berhasil */}
+            {interventionSuccessMsg && (
+              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-start gap-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-bold">Aksi Berhasil Diproses!</p>
+                  <p>{interventionSuccessMsg}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Profil Singkat Penempatan Saat Ini */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mitra DUDI Aktif:</p>
+                  <p className="font-extrabold text-slate-800 text-sm">{interventionStudent.placement.dudiName}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mentor Pembimbing:</p>
+                  <p className="font-bold text-slate-800">
+                    {interventionStudent.placement.mentorName}{" "}
+                    <span className="font-mono text-emerald-600 font-semibold">({interventionStudent.placement.mentorPhone || "WA Siap"})</span>
+                  </p>
+                </div>
+              </div>
+              {interventionAlert && (
+                <div className="pt-2 border-t border-slate-200/60 flex items-center gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Pemicu Anomali:</span>
+                  <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 text-[10px] font-extrabold">
+                    {interventionAlert.alertType}
+                  </span>
+                  <span className="text-[11px] text-slate-600 truncate">
+                    {interventionAlert.metricSnapshot.detectedReason}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Navigasi Tab Tipe Intervensi */}
+            <div className="flex border-b border-slate-200 gap-2">
+              <button
+                type="button"
+                onClick={() => setInterventionTab("WA_COORDINATION")}
+                className={`pb-3 px-3 text-xs font-bold border-b-2 flex items-center gap-2 transition cursor-pointer ${
+                  interventionTab === "WA_COORDINATION"
+                    ? "border-emerald-600 text-emerald-700"
+                    : "border-transparent text-slate-400 hover:text-slate-700"
+                }`}
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Koordinasi WhatsApp</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setInterventionTab("SITE_VISIT")}
+                className={`pb-3 px-3 text-xs font-bold border-b-2 flex items-center gap-2 transition cursor-pointer ${
+                  interventionTab === "SITE_VISIT"
+                    ? "border-blue-600 text-blue-700"
+                    : "border-transparent text-slate-400 hover:text-slate-700"
+                }`}
+              >
+                <Calendar className="w-4 h-4" />
+                <span>Kunjungan Lapangan</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setInterventionTab("DUDI_ROTATION")}
+                className={`pb-3 px-3 text-xs font-bold border-b-2 flex items-center gap-2 transition cursor-pointer ${
+                  interventionTab === "DUDI_ROTATION"
+                    ? "border-amber-600 text-amber-700"
+                    : "border-transparent text-slate-400 hover:text-slate-700"
+                }`}
+              >
+                <Repeat className="w-4 h-4" />
+                <span>Rotasi Mitra (TC-009)</span>
+              </button>
+            </div>
+
+            {/* Tab 1: Koordinasi WhatsApp */}
+            {interventionTab === "WA_COORDINATION" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-slate-700">Draf Pesan Koordinasi Otomatis (Data-Driven):</span>
+                  <span className="text-slate-400 text-[11px] font-medium">Bisa disunting sebelum kirim</span>
+                </div>
+
+                <div className="relative">
+                  {isDraftLoading ? (
+                    <div className="h-44 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-xs text-slate-400">
+                      <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                      Menyusun pesan sopan berbasis data capaian...
+                    </div>
+                  ) : (
+                    <textarea
+                      rows={7}
+                      value={draftMessage}
+                      onChange={(e) => setDraftMessage(e.target.value)}
+                      className="w-full text-xs p-4 rounded-2xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-sans leading-relaxed text-slate-800 resize-none"
+                      placeholder="Draf pesan koordinasi..."
+                    />
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                  <span className="text-[11px] text-slate-500">
+                    Format nomor tujuan: <span className="font-mono font-bold">{interventionStudent.placement.mentorPhone || "08..."}</span>
+                  </span>
+
+                  <button
+                    type="button"
+                    disabled={isSubmittingIntervention || !draftMessage.trim()}
+                    onClick={handleSendWaIntervention}
+                    className="w-full sm:w-auto h-12 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition disabled:opacity-50 cursor-pointer"
+                  >
+                    {isSubmittingIntervention ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Mencatat Intervensi...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        <span>Kirim via WhatsApp & Catat Intervensi</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 2: Kunjungan Lapangan (Site Visit) */}
+            {interventionTab === "SITE_VISIT" && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Tanggal Rencana Supervisi:
+                    </label>
+                    <input
+                      type="date"
+                      value={siteVisitDate}
+                      onChange={(e) => setSiteVisitDate(e.target.value)}
+                      className="w-full text-xs p-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Lokasi Kunjungan:
+                    </label>
+                    <input
+                      type="text"
+                      disabled
+                      value={`${interventionStudent.placement.dudiName}`}
+                      className="w-full text-xs p-3 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Agenda Pembahasan / Catatan Bimbingan:
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={draftMessage}
+                    onChange={(e) => setDraftMessage(e.target.value)}
+                    className="w-full text-xs p-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans text-slate-800 resize-none"
+                    placeholder="Contoh: Evaluasi langsung penugasan teknis dengan pimpinan unit, sinkronisasi jadwal rotasi pekerjaan..."
+                  />
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="button"
+                    disabled={isSubmittingIntervention}
+                    onClick={handleRecordSiteVisit}
+                    className="h-12 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition disabled:opacity-50 cursor-pointer"
+                  >
+                    {isSubmittingIntervention ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Menyimpan Jadwal...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Calendar className="w-4 h-4" />
+                        <span>Simpan Jadwal Kunjungan Lapangan</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 3: Rotasi Mitra DUDI Tengah Semester (TC-009) */}
+            {interventionTab === "DUDI_ROTATION" && (
+              <div className="space-y-4">
+                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-amber-800">
+                    <Repeat className="w-4 h-4" />
+                    <span>Prinsip Rotasi Mitra Berkelanjutan (Aturan Bisnis BR-010 & TC-009)</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-amber-900/90">
+                    Siswa telah mengumpulkan <span className="font-extrabold">{interventionStudent.totalVerifiedJp} JP</span> terverifikasi di <span className="font-bold">{interventionStudent.placement.dudiName}</span>. 
+                    Saat rotasi dieksekusi, status penempatan lama menjadi <span className="font-mono font-bold">ROTATED_OUT</span>, seluruh jam tetap tersimpan utuh di e-Rapor dan CV ATS, serta kedua mitra DUDI akan tercantum resmi pada portofolio karier siswa.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Pilih Mitra DUDI Tujuan Baru:
+                    </label>
+                    <select
+                      value={targetDudiId}
+                      onChange={(e) => setTargetDudiId(e.target.value)}
+                      className="w-full text-xs p-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold text-slate-800 cursor-pointer"
+                    >
+                      <option value="">-- Pilih Mitra DUDI Pelengkap --</option>
+                      {dudiOptions
+                        .filter((d) => d.id !== interventionStudent.placement.dudiId)
+                        .map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.name} (Kapasitas Elemen Tersedia)
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Alasan Rotasi Resmi (Audit Trail):
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={rotationReason}
+                      onChange={(e) => setRotationReason(e.target.value)}
+                      placeholder="Contoh: Pemenuhan kompetensi pengujian QA dan Cloud CI/CD yang tidak tersedia di DUDI pertama."
+                      className="w-full text-xs p-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500 font-sans text-slate-800 resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="button"
+                    disabled={isSubmittingIntervention || !targetDudiId}
+                    onClick={handleExecuteRotation}
+                    className="h-12 px-6 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition disabled:opacity-50 cursor-pointer"
+                  >
+                    {isSubmittingIntervention ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Memproses Rotasi...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Repeat className="w-4 h-4" />
+                        <span>Konfirmasi Eksekusi Rotasi Mitra DUDI (TC-009)</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             )}
           </div>

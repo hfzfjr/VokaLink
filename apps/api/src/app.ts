@@ -11,6 +11,7 @@ import { logsRouter } from "./routes/logs.js";
 import { passportsRouter } from "./routes/passports.js";
 import { verifyRouter } from "./routes/verify.js";
 import { teachersRouter } from "./routes/teachers.js";
+import { interventionsRouter } from "./routes/interventions.js";
 import { errorHandler } from "./middlewares/error-handler.js";
 
 export function createApp(): Express {
@@ -91,6 +92,14 @@ export function createApp(): Express {
   app.use("/api/teachers", teachersRouter);
   app.use("/api/v1/teachers", teachersRouter);
   app.use("/api/schools/:schoolId/heatmap", teachersRouter);
+
+  // Smart Intervention Dispatcher & Mid-Term Rotation (FR-009)
+  app.use("/api/interventions", interventionsRouter);
+  app.use("/api/v1/interventions", interventionsRouter);
+  app.use("/api/teachers/interventions", interventionsRouter);
+  app.use("/api/v1/teachers/interventions", interventionsRouter);
+  app.use("/api/placements", interventionsRouter);
+  app.use("/api/v1/placements", interventionsRouter);
 
   // Global RFC 7807 error handler
   app.use(errorHandler);

@@ -1,7 +1,16 @@
 /**
  * API client helper for VokaLink frontend
  */
-import type { SchoolRegisterInput, ProblemDetails, HeatmapResponse } from "@vokalink/shared";
+import type {
+  SchoolRegisterInput,
+  ProblemDetails,
+  HeatmapResponse,
+  GenerateInterventionDraftInput,
+  InterventionDraftResult,
+  CreateInterventionInput,
+  RotatePlacementInput,
+  RotationExecutionResult,
+} from "@vokalink/shared";
 
 const API_BASE_URL =
   process.env["NEXT_PUBLIC_API_URL"] || "http://localhost:3001/api/v1";
@@ -1114,5 +1123,60 @@ export async function triggerEvaluateDriftAlerts(): Promise<{
   if (!res.ok) throw new Error(json.detail || "Gagal mengevaluasi algoritma drift");
   return json;
 }
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * FR-009: Smart Intervention Dispatcher & Mid-Term Rotation API
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+export async function fetchInterventionDraft(
+  params: GenerateInterventionDraftInput
+): Promise<InterventionDraftResult> {
+  const res = await fetch(`${API_BASE_URL}/interventions/draft`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal menyusun draf pesan koordinasi");
+  return json;
+}
+
+export async function submitIntervention(
+  data: CreateInterventionInput
+): Promise<{ success: boolean; intervention: any; message: string }> {
+  const res = await fetch(`${API_BASE_URL}/interventions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal mencatat intervensi pembimbing");
+  return json;
+}
+
+export async function executePlacementRotation(
+  data: RotatePlacementInput
+): Promise<RotationExecutionResult> {
+  const res = await fetch(`${API_BASE_URL}/placements/rotate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal mengeksekusi rotasi mitra DUDI");
+  return json;
+}
+
+export async function fetchInterventions(): Promise<{ interventions: any[] }> {
+  const res = await fetch(`${API_BASE_URL}/interventions`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memuat riwayat intervensi");
+  return json;
+}
+
 
 

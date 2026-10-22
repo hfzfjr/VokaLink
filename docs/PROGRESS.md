@@ -10,9 +10,9 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | Metrik | Nilai |
 |---|---|
-| FR selesai | 10 / 12 |
-| FR Must Have selesai | 10 / 11 |
-| TC lulus | 8 / 10 |
+| FR selesai | 11 / 12 |
+| FR Must Have selesai | 11 / 11 |
+| TC lulus | 9 / 10 |
 | Bug terbuka (Critical / High) | 0 / 0 |
 | Status cut-line | Belum dievaluasi (evaluasi di akhir Hari 7) |
 
@@ -40,7 +40,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 | FR-006 | Kompres WebP, blur, offline sync | B | [x] | [x] | [x] | [x] | Two-Phase Sync Engine (batch sync maks 20 log idempoten, biner WebP maks 150 KB SHA-256) |
 | FR-007 | Verifikasi zero-login (QR / WA) | C | [x] | [x] | [x] | [x] | Dual-factor auth (device token + PIN scrypt), batch approve < 10 dtk, segel HMAC-SHA256, lockout 15 mnt, TC-005, TC-006, TC-007 lulus |
 | FR-008 | Heatmap & drift alert | C | [x] | [x] | [x] | [x] | Matriks live CP siswa binaan, deteksi 3 anomali drift, modal workload 14 hari & draft WA mentor |
-| FR-009 | Intervensi WA & rotasi mitra | C | [ ] | [ ] | [ ] | [ ] | |
+| FR-009 | Intervensi WA & rotasi mitra | C | [x] | [x] | [x] | [x] | Generator draf WhatsApp berbasis data anomali drift & kontak mentor, pencatatan log intervensi (WA, Kunjungan, Rotasi), rotasi tengah semester 380 JP + 50 JP = 430 JP utuh (TC-009), modal interaktif guru |
 | FR-010 | Endorsement & quality index (Should) | C | [ ] | [ ] | [ ] | [ ] | Kandidat pertama cut-line |
 | FR-011 | e-Rapor exporter | A | [x] | [x] | [x] | [x] | Formula BR-009 (0.60×teknis+0.40×sikap), narratif Kurikulum Merdeka, export CSV |
 | FR-012 | CV ATS & paspor publik | B / C | [x] | [x] | [x] | [x] | Pure CV generator Google XYZ, isolasi log VERIFIED (BR-010), filter Tombol Jujur (BR-004), layout A4 Print CSS, router /students/me/cv & /passports/:slug, publik /verify/[passportSlug] segel HMAC-SHA256 |
@@ -71,7 +71,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 | TC-006 | [x] | 22 Okt 2026 | Tautan dibuka di HP tanpa device token mentor diblokir 403 DEVICE_MISMATCH + SecurityFlag UNTRUSTED_DEVICE |
 | TC-007 | [x] | 22 Okt 2026 | Salah PIN 5x berturut-turut memicu penguncian akun verifikasi 15 menit + SecurityFlag PIN_LOCKOUT |
 | TC-008 | [x] | 22 Okt 2026 | Deteksi anomali drift otomatis pada 3 pola: NON_COMPETENCY_OVERLOAD, SKILL_MONOTONY, APPROVAL_DORMANCY |
-| TC-009 | [ ] | | |
+| TC-009 | [x] | 22 Okt 2026 | Rotasi mitra DUDI tengah semester mempertahankan total akumulasi jam terverifikasi (380 JP DUDI A + 50 JP DUDI B = 430 JP utuh) tanpa reset |
 | TC-010 | [x] | 22 Okt 2026 | CV ATS terkunci pada data VERIFIED (BR-010), non-kompetensi dikeluarkan dari klaim teknis (BR-004), QR membuka paspor terverifikasi publik ber-HMAC |
 
 ## 6. Metrik Non-Fungsional
@@ -182,13 +182,23 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
       - Matriks Responsif Desktop ($\ge$ lg) spreadsheet dengan kolom siswa beku (sticky), scroll horizontal elemen CP, persentase capaian berwarna + ikon WCAG AA, dan progress bar total JP.
       - Tampilan Mobile/Tablet (< lg) berupa kartu adaptif per siswa dengan badge mini CP.
       - Modal Detail Siswa: distribusi beban kerja 14 hari terakhir (Teknis vs Tombol Jujur Non-Kompetensi), rincian JP tiap elemen CP, dan tombol hubungi mentor DUDI.
-    - 9 integration tests di `apps/api/test/heatmap.test.ts` lulus 100%. Total 114 tests monorepo hijau 100%.
+    - 9 integration tests di `apps/api/test/heatmap.test.ts` lulus 100%.
+  - FR-009: Smart Intervention Dispatcher & Mid-Term Cross-DUDI Rotation Manager (Orang C).
+    - Skema Zod & tipe di `packages/shared/src/schemas/intervention.ts`: validasi input pencatatan intervensi, rotasi mitra DUDI, dan permohonan draf komunikasi.
+    - Modul domain murni di `packages/core/src/intervention.ts`: normalisasi nomor telepon seluler Indonesia (`08...` / `+62...` -> `628...`), builder tautan WhatsApp `https://wa.me/...`, dan generator template pesan koordinasi berbasis data kuantitatif anomali drift (`NON_COMPETENCY_OVERLOAD`, `SKILL_MONOTONY`, `APPROVAL_DORMANCY`, `GENERAL`).
+    - Backend Express API di `apps/api/src/routes/interventions.ts` & `placements.ts`:
+      - `POST /api/v1/interventions/draft`: menyusun draf pesan WhatsApp personal real-time beserta tautan sekali klik.
+      - `POST /api/v1/interventions`: pencatatan log intervensi guru (`InterventionLog`) dan transisi status peringatan drift (`DriftAlert`) ke `INTERVENED`.
+      - `POST /api/v1/placements/:id/rotate` (dan `/api/v1/placements/rotate`): transaksi atomik database rotasi mitra DUDI tengah semester, validasi kuota aktif, penandaan status penempatan lama `ROTATED_OUT` dan baru `ACTIVE` dengan `rotatedFromId` & `rotationSequence + 1`, resolusi drift alert, pencatatan log `DUDI_ROTATION`, serta menjaga akumulasi jam terverifikasi tetap utuh tanpa reset (380 JP DUDI A + 50 JP DUDI B = 430 JP utuh [TC-009]).
+      - `GET /api/v1/interventions`: memuat riwayat tindakan intervensi guru.
+    - 8 unit tests di `packages/core/test/intervention.test.ts` & 9 integration tests di `apps/api/test/interventions.test.ts` lulus 100%. Total 131 tests monorepo hijau 100%.
+    - Frontend Portal Guru `/teacher/heatmap`: Modal interaktif Smart Intervention Dispatcher dengan 3 tab (💬 Koordinasi WhatsApp langsung buka `wa.me`, 🏫 Kunjungan Lapangan / Site Visit, 🔄 Rotasi Mitra DUDI dengan peringatan akumulasi JP utuh), terhubung ke kartu Prioritas Intervensi dan Modal Detail Siswa.
 - Sedang dikerjakan:
-  - Persiapan FR-009 (Smart Intervention Dispatcher & Rotasi Mitra oleh Orang C).
+  - Persiapan FR-010 (1-Click Soft Skills Endorsement & DUDI Partnership Quality Audit oleh Orang C).
 - Blocker:
   - Tidak ada blocker aktif saat ini.
 - Rencana besok (Hari 3):
-  - FR-009: Smart Intervention Dispatcher (WhatsApp deep link generator & mid-term cross-DUDI rotation manager) (Orang C).
+  - FR-010: 1-Click Soft Skills Endorsement & DUDI Partnership Quality Audit (Orang C).
 
 ### Hari 1 — Rab 21 Okt 2026
 - Selesai:
