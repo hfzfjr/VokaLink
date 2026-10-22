@@ -55,29 +55,31 @@ export function errorHandler(
     return;
   }
 
-  if (err instanceof AppError) {
+  if (err instanceof AppError || typeof (err as any).statusCode === "number") {
+    const statusCode = (err as any).statusCode || 500;
+    const code = (err as any).code || "INTERNAL_ERROR";
     const problem: ProblemDetails = {
-      type: `https://vokalink.id/errors/${err.code.toLowerCase()}`,
+      type: `https://vokalink.id/errors/${code.toLowerCase()}`,
       title: err.message,
-      status: err.statusCode,
-      code: err.code,
+      status: statusCode,
+      code,
       detail: err.message,
       instance: req.originalUrl,
-      errors: err.errors,
+      errors: (err as any).errors,
     };
 
-    res.status(err.statusCode).contentType("application/problem+json").json(problem);
+    res.status(statusCode).contentType("application/problem+json").json(problem);
     return;
   }
 
   // Fallback 500
-  const isDev = process.env["NODE_ENV"] === "development";
+  const isDev = process.env["NODE_ENV"] !== "production";
   const problem: ProblemDetails = {
     type: "https://vokalink.id/errors/internal-error",
     title: "Terjadi Kesalahan Server",
     status: 500,
     code: "INTERNAL_SERVER_ERROR",
-    detail: isDev ? err.message : "Terjadi kesalahan internal pada sistem kami.",
+    detail: isDev ? `${err.message}` : "Terjadi kesalahan internal pada sistem kami.",
     instance: req.originalUrl,
   };
 
