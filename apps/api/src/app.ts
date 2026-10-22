@@ -12,6 +12,7 @@ import { passportsRouter } from "./routes/passports.js";
 import { verifyRouter } from "./routes/verify.js";
 import { teachersRouter } from "./routes/teachers.js";
 import { interventionsRouter } from "./routes/interventions.js";
+import { endorsementsRouter } from "./routes/endorsements.js";
 import { errorHandler } from "./middlewares/error-handler.js";
 
 export function createApp(): Express {
@@ -100,6 +101,10 @@ export function createApp(): Express {
   app.use("/api/v1/teachers/interventions", interventionsRouter);
   app.use("/api/placements", interventionsRouter);
   app.use("/api/v1/placements", interventionsRouter);
+
+  // 1-Click Soft Skills Endorsement (FR-010)
+  app.use("/api/endorsements", endorsementsRouter);
+  app.use("/api/v1/endorsements", endorsementsRouter);
 
   // Global RFC 7807 error handler
   app.use(errorHandler);
