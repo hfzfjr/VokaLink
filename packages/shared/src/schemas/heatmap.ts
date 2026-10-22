@@ -98,3 +98,29 @@ export interface HeatmapResponse {
     };
   };
 }
+
+/**
+ * FR-007 A2 & TC-006: Audit Keamanan Pengesahan Mentor untuk Dasbor Guru
+ */
+export interface SecurityFlagItem {
+  id: string;
+  placementId: string;
+  mentorId: string;
+  studentId: string;
+  studentName: string;
+  nisn: string;
+  dudiName: string;
+  mentorName: string;
+  kind: "UNTRUSTED_DEVICE" | "PIN_LOCKOUT" | "TOKEN_REUSE";
+  meta?: {
+    reason?: string;
+    note?: string;
+    attemptedAt?: string;
+    userAgent?: string;
+    failedAttempts?: number;
+    lockedUntil?: string;
+    [key: string]: any;
+  } | null;
+  createdAt: string;
+  acknowledgedAt?: string | null;
+}

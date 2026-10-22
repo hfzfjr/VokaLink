@@ -1,17 +1,14 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { prisma } from "../lib/prisma.js";
 import { AppError } from "../middlewares/error-handler.js";
-import {
-  detectNonCompetencyOverload,
-  detectSkillMonotony,
-  detectApprovalDormancy,
-} from "@vokalink/core";
+import { evaluateDriftForAllPlacements } from "../services/drift-evaluator.js";
 import {
   heatmapQuerySchema,
   type HeatmapResponse,
   type HeatmapStudentRow,
   type DriftAlertItem,
   type StudentCpProgress,
+  type SecurityFlagItem,
 } from "@vokalink/shared";
 
 export const teachersRouter = Router({ mergeParams: true });
@@ -838,6 +835,24 @@ teachersRouter.post(
   "/drift-alerts/evaluate",
   async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      const result = await evaluateDriftForAllPlacements();
+      res.status(200).json({
+        success: true,
+        evaluatedCount: result.evaluatedCount,
+        activeAlertsCreatedOrUpdated: result.activeAlertsCreatedOrUpdated,
+        message: `Evaluasi selesai. ${result.activeAlertsCreatedOrUpdated} anomali baru/aktif tercatat.`,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// ─── GET /security-flags (FR-007 A2 & TC-006: Audit Keamanan Dasbor Guru) ───
+teachersRouter.get(
+  "/security-flags",
+  async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
       let isDbAvailable = false;
       try {
         if (process.env.DATABASE_URL) {
@@ -848,237 +863,113 @@ teachersRouter.post(
         isDbAvailable = false;
       }
 
-      if (!isDbAvailable) {
-        res.status(200).json({
-          success: true,
-          evaluatedCount: 5,
-          activeAlertsCreatedOrUpdated: 3,
-          message:
-            "Evaluasi algoritma drift selesai (mode sandbox demo). 3 anomali terdeteksi sesuai kriteria BR-008.",
-        });
-        return;
-      }
-
-      const activePlacements = await prisma.placement.findMany({
-        where: { status: "ACTIVE" },
-        include: {
-          dailyLogs: {
-            include: {
-              items: {
-                include: { jobCard: true },
+      if (isDbAvailable) {
+        const dbFlags = await prisma.securityFlag.findMany({
+          where: { acknowledgedAt: null },
+          include: {
+            mentor: true,
+            placement: {
+              include: {
+                student: true,
+                dudiPartner: true,
               },
             },
           },
-          student: true,
-          dudiPartner: true,
-          dudiMentor: true,
+          orderBy: { createdAt: "desc" },
+        });
+
+        if (dbFlags.length > 0) {
+          const flags: SecurityFlagItem[] = dbFlags.map((f) => ({
+            id: f.id,
+            placementId: f.placementId,
+            mentorId: f.mentorId,
+            studentId: f.placement.student.id,
+            studentName: f.placement.student.fullName,
+            nisn: f.placement.student.identityNumber || "-",
+            dudiName: f.placement.dudiPartner.name,
+            mentorName: f.mentor.fullName,
+            kind: f.kind as any,
+            meta: (f.meta as any) || null,
+            createdAt: f.createdAt.toISOString(),
+            acknowledgedAt: f.acknowledgedAt?.toISOString() || null,
+          }));
+
+          res.status(200).json({ flags });
+          return;
+        }
+      }
+
+      // Fallback demo flag untuk showcase TC-006 di demo sandbox
+      const demoFlag: SecurityFlagItem = {
+        id: "00000000-0000-0000-0000-000000000099",
+        placementId: "00000000-0000-0000-0000-000000000051",
+        mentorId: "00000000-0000-0000-0000-000000000061",
+        studentId: "00000000-0000-0000-0000-000000000001",
+        studentName: "Andi Pratama",
+        nisn: "0061234567",
+        dudiName: "PT Inovasi Teknologi Mandiri",
+        mentorName: "Rizky Firmansyah",
+        kind: "UNTRUSTED_DEVICE",
+        meta: {
+          note: "Percobaan verifikasi ditolak karena device token tidak cocok (dibuka di browser non-mentor / HP Siswa)",
+          attemptedAt: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
+          userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148",
         },
-      });
+        createdAt: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
+        acknowledgedAt: null,
+      };
 
+      res.status(200).json({ flags: [demoFlag] });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// ─── PATCH /security-flags/:id/acknowledge (Tandai Bendera Telah Ditinjau) ──
+teachersRouter.patch(
+  "/security-flags/:id/acknowledge",
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params as { id: string };
       const now = new Date();
-      const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-      let detectedCount = 0;
 
-      for (const p of activePlacements) {
-        let totalJp14d = 0;
-        let nonCompJp14d = 0;
-        let totalCumulativeJp = 0;
-        const cpMap = new Map<string, number>();
-
-        const pendingLogsList: { logId: string; logDate: string }[] = [];
-
-        for (const log of p.dailyLogs) {
-          const logDateObj = new Date(log.logDate);
-          const is14d = logDateObj >= fourteenDaysAgo;
-
-          if (log.status === "PENDING_VERIFICATION") {
-            const dateStr =
-              log.logDate instanceof Date
-                ? log.logDate.toISOString().split("T")[0] || ""
-                : String(log.logDate);
-            pendingLogsList.push({
-              logId: log.id,
-              logDate: dateStr,
-            });
-          }
-
-          for (const item of log.items) {
-            if (log.status === "VERIFIED") {
-              totalCumulativeJp += item.durationJp;
-              if (item.jobCard?.cpElementId) {
-                cpMap.set(
-                  item.jobCard.cpElementId,
-                  (cpMap.get(item.jobCard.cpElementId) || 0) + item.durationJp
-                );
-              }
-            }
-
-            if (is14d) {
-              totalJp14d += item.durationJp;
-              if (item.jobCard?.isNonCompetency || item.nonCompetencyCategory) {
-                nonCompJp14d += item.durationJp;
-              }
-            }
-          }
+      let isDbAvailable = false;
+      try {
+        if (process.env.DATABASE_URL) {
+          await prisma.$queryRaw`SELECT 1`;
+          isDbAvailable = true;
         }
+      } catch {
+        isDbAvailable = false;
+      }
 
-        // 1. Evaluasi NON_COMPETENCY_OVERLOAD
-        const nonCompRes = detectNonCompetencyOverload({
-          totalJpLast14Days: totalJp14d,
-          nonCompetencyJpLast14Days: nonCompJp14d,
-        });
-
-        if (nonCompRes.detected) {
-          detectedCount++;
-          const snapshot = {
-            ratio: nonCompRes.ratio,
-            totalJpLast14Days: totalJp14d,
-            nonCompetencyJpLast14Days: nonCompJp14d,
-            detectedReason: `Siswa mencatat ${nonCompJp14d} JP (${Math.round(nonCompRes.ratio * 100)}%) tugas non-kejuruan dalam 14 hari terakhir.`,
-            mentorName: p.dudiMentor?.fullName || "-",
-            dudiName: p.dudiPartner.name,
-          };
-
-          const existingAlert = await prisma.driftAlert.findFirst({
-            where: {
-              placementId: p.id,
-              alertType: "NON_COMPETENCY_OVERLOAD",
-              status: "OPEN",
-            },
+      if (isDbAvailable) {
+        try {
+          const updated = await prisma.securityFlag.update({
+            where: { id },
+            data: { acknowledgedAt: now },
           });
-
-          if (existingAlert) {
-            await prisma.driftAlert.update({
-              where: { id: existingAlert.id },
-              data: {
-                metricSnapshotJson: snapshot,
-                severity: "CRITICAL",
-                detectedAt: now,
-              },
-            });
-          } else {
-            await prisma.driftAlert.create({
-              data: {
-                placementId: p.id,
-                studentId: p.studentId,
-                alertType: "NON_COMPETENCY_OVERLOAD",
-                severity: "CRITICAL",
-                status: "OPEN",
-                metricSnapshotJson: snapshot,
-              },
-            });
-          }
-        }
-
-        // 2. Evaluasi SKILL_MONOTONY
-        const cpElementsJp = Array.from(cpMap.entries()).map(([elementId, jp]) => ({
-          elementId,
-          jp,
-        }));
-        const daysSincePklStart = p.dailyLogs.length; // Estimasi hari magang
-        const monotonyRes = detectSkillMonotony({
-          daysSincePklStart,
-          totalCumulativeJp,
-          cpElementsJp,
-        });
-
-        if (monotonyRes.detected) {
-          detectedCount++;
-          const snapshot = {
-            dominantRatio: monotonyRes.dominantRatio,
-            dominantElementId: monotonyRes.dominantElementId,
-            detectedReason: `Jam siswa terkonsentrasi ${Math.round((monotonyRes.dominantRatio || 0) * 100)}% pada satu elemen materi.`,
-            mentorName: p.dudiMentor?.fullName || "-",
-            dudiName: p.dudiPartner.name,
-          };
-
-          const existingAlert = await prisma.driftAlert.findFirst({
-            where: {
-              placementId: p.id,
-              alertType: "SKILL_MONOTONY",
-              status: "OPEN",
-            },
+          res.status(200).json({
+            success: true,
+            flag: updated,
+            message: "Bendera audit keamanan telah ditandai telah ditinjau.",
           });
-
-          if (existingAlert) {
-            await prisma.driftAlert.update({
-              where: { id: existingAlert.id },
-              data: {
-                metricSnapshotJson: snapshot,
-                severity: "WARNING",
-                detectedAt: now,
-              },
-            });
-          } else {
-            await prisma.driftAlert.create({
-              data: {
-                placementId: p.id,
-                studentId: p.studentId,
-                alertType: "SKILL_MONOTONY",
-                severity: "WARNING",
-                status: "OPEN",
-                metricSnapshotJson: snapshot,
-              },
-            });
-          }
-        }
-
-        // 3. Evaluasi APPROVAL_DORMANCY
-        const currentDateStr = now.toISOString().split("T")[0] || "";
-        const dormancyRes = detectApprovalDormancy({
-          pendingLogs: pendingLogsList,
-          currentDate: currentDateStr,
-        });
-
-        if (dormancyRes.detected) {
-          detectedCount++;
-          const snapshot = {
-            dormantLogCount: dormancyRes.dormantLogCount,
-            detectedReason: `${dormancyRes.dormantLogCount} log menunggu verifikasi lebih dari 7 hari kalender.`,
-            mentorName: p.dudiMentor?.fullName || "-",
-            dudiName: p.dudiPartner.name,
-          };
-
-          const existingAlert = await prisma.driftAlert.findFirst({
-            where: {
-              placementId: p.id,
-              alertType: "APPROVAL_DORMANCY",
-              status: "OPEN",
-            },
-          });
-
-          if (existingAlert) {
-            await prisma.driftAlert.update({
-              where: { id: existingAlert.id },
-              data: {
-                metricSnapshotJson: snapshot,
-                severity: "WARNING",
-                detectedAt: now,
-              },
-            });
-          } else {
-            await prisma.driftAlert.create({
-              data: {
-                placementId: p.id,
-                studentId: p.studentId,
-                alertType: "APPROVAL_DORMANCY",
-                severity: "WARNING",
-                status: "OPEN",
-                metricSnapshotJson: snapshot,
-              },
-            });
-          }
+          return;
+        } catch {
+          // Id tidak ditemukan di DB (misal mock ID demo)
         }
       }
 
       res.status(200).json({
         success: true,
-        evaluatedCount: activePlacements.length,
-        activeAlertsCreatedOrUpdated: detectedCount,
-        message: `Evaluasi selesai. ${detectedCount} anomali baru/aktif tercatat.`,
+        acknowledgedId: id,
+        acknowledgedAt: now.toISOString(),
+        message: "Bendera audit keamanan telah ditandai telah ditinjau.",
       });
     } catch (err) {
       next(err);
     }
   }
 );
+

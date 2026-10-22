@@ -14,6 +14,7 @@ import type {
   EndorsementSubmitInput,
   DudiQualityAuditResponse,
   DudiQualityMetricItem,
+  SecurityFlagItem,
 } from "@vokalink/shared";
 
 export type {
@@ -21,6 +22,7 @@ export type {
   EndorsementSubmitInput,
   DudiQualityAuditResponse,
   DudiQualityMetricItem,
+  SecurityFlagItem,
 };
 
 const API_BASE_URL =
@@ -1132,6 +1134,31 @@ export async function triggerEvaluateDriftAlerts(): Promise<{
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json.detail || "Gagal mengevaluasi algoritma drift");
+  return json;
+}
+
+/**
+ * FR-007 A2 & TC-006: Audit Keamanan Dasbor Guru
+ */
+export async function fetchSecurityFlags(): Promise<{ flags: SecurityFlagItem[] }> {
+  const res = await fetch(`${API_BASE_URL}/teachers/security-flags`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memuat bendera audit keamanan");
+  return json;
+}
+
+export async function acknowledgeSecurityFlag(
+  id: string
+): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE_URL}/teachers/security-flags/${id}/acknowledge`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal menandai bendera audit");
   return json;
 }
 
