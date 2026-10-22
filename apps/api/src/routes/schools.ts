@@ -68,10 +68,10 @@ schoolsRouter.post(
           errors[path] = errors[path] ?? [];
           errors[path].push(issue.message);
         }
-        res.status(400).json({
+        res.status(422).json({
           type: "https://vokalink.id/errors/validation",
           title: "Validasi Gagal",
-          status: 400,
+          status: 422,
           detail: "Data formulir pendaftaran sekolah tidak valid",
           code: "VALIDATION_ERROR",
           errors,

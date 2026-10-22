@@ -119,7 +119,7 @@ describe("Schools API (FR-001)", () => {
         .post("/api/schools/register")
         .send({ ...validPayload, npsn: "12345" });
 
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(422);
       expect(res.body.code).toBe("VALIDATION_ERROR");
       expect(res.body.errors.npsn).toBeDefined();
     });
@@ -129,7 +129,7 @@ describe("Schools API (FR-001)", () => {
         .post("/api/schools/register")
         .send({ ...validPayload, selectedDepartmentSectorCodes: [] });
 
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(422);
       expect(res.body.code).toBe("VALIDATION_ERROR");
       expect(res.body.errors.selectedDepartmentSectorCodes).toBeDefined();
     });

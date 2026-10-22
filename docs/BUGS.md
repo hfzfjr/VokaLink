@@ -49,6 +49,8 @@ Aturan:
 | BUG-004 | P1 High | Fixed | Offline Sync (FR-006/007) | Kegagalan penarikan status verifikasi mentor (Fase 3 Pull) akibat format data dan typo enum | Orang B |
 | BUG-005 | P2 Medium | Fixed | Student Form (FR-005) | Form jurnal baru memakai ID dummy non-UUID (placement-demo-rpl & jc-1) yang ditolak backend | Orang B |
 | BUG-006 | P3 Low | Fixed | Student Portal (FR-007) | Typo instruksi PIN pada modal QR minta verifikasi (6 digit bukannya 4 digit) | Orang B |
+| BUG-007 | P3 Low | Fixed | API Error Handler / DESIGN §9.4 | Global error handler ZodError dan registrasi sekolah mengembalikan status 400 bukannya 422 | Orang C |
+| BUG-008 | P2 Medium | Fixed | Teacher Heatmap (FR-008) | On-demand drift evaluate memicu duplikasi alert OPEN jika dijalankan berkali-kali dan GET /drift-alerts belum query DB | Orang C |
 
 ### BUG-001 — Trigger block_verified_log_update memakai nama kolom salah mentor_id
 - **Level:** P0 Critical
@@ -158,6 +160,41 @@ Aturan:
 - **Catatan / dugaan penyebab:**
   Salah ketik (typo) teks penjelasan modal.
 - **Perbaikan (commit/PR):** Direvisi pada `apps/web/src/app/student/log/history/page.tsx`: teks diperbarui menjadi *"masukkan 4 digit PIN mentor yang terdaftar (BR-007)"*. Logika resolusi judul riwayat offline juga dihubungkan dengan `ol.jobCardTitle` untuk rendering instan.
+
+### BUG-007 — Global error handler ZodError dan registrasi sekolah mengembalikan status 400 bukannya 422
+- **Level:** P3 Low
+- **Status:** Fixed
+- **Fitur/Modul:** API Error Handler / REST Standards (`DESIGN.md` §9.4)
+- **Pelapor / Pemilik:** Orang C / Orang C
+- **Ditemukan:** 22 Okt 2026, audit menyeluruh konsistensi kode
+- **Langkah reproduksi:**
+  1. Kirim request dengan format body salah ke endpoint yang mengandalkan global `ZodError` atau `POST /api/schools/register`.
+  2. Periksa status HTTP kode pada respons.
+- **Hasil aktual:**
+  API mengembalikan status HTTP 400 Bad Request.
+- **Hasil seharusnya (rujukan PRD/BR/TC):**
+  Sesuai `docs/DESIGN.md` §9.4 baris 383 (`validation_failed 422`), error validasi semantik payload RFC 7807 mengembalikan HTTP 422 Unprocessable Entity dengan kode `VALIDATION_ERROR`.
+- **Catatan / dugaan penyebab:**
+  Scaffold awal di Hari 0 menggunakan default Express 400 Bad Request sebelum penyelarasan ke standar REST 422.
+- **Perbaikan (commit/PR):** Direvisi pada `apps/api/src/middlewares/error-handler.ts` (mengembalikan 422 untuk instance `ZodError`), diselaraskan pada `apps/api/src/routes/schools.ts`, serta diperbarui ekspektasi di `apps/api/test/schools.test.ts`. 114 test lulus 100%.
+
+### BUG-008 — On-demand drift evaluate memicu duplikasi alert OPEN jika dijalankan berkali-kali dan GET /drift-alerts belum query DB
+- **Level:** P2 Medium
+- **Status:** Fixed
+- **Fitur/Modul:** Teacher Heatmap & Drift Alert Engine (FR-008)
+- **Pelapor / Pemilik:** Orang C / Orang C
+- **Ditemukan:** 22 Okt 2026, audit logika persistensi database
+- **Langkah reproduksi:**
+  1. Buka portal guru dan tekan tombol "Evaluasi Ulang Live" (`POST /api/v1/teachers/drift-alerts/evaluate`) beberapa kali pada database aktif.
+  2. Buka endpoint `GET /api/v1/teachers/drift-alerts`.
+- **Hasil aktual:**
+  1. `POST /evaluate` memanggil `prisma.driftAlert.create()` setiap kali deteksi aktif tanpa memeriksa alert `OPEN` yang sudah ada, sehingga membuat baris duplikat.
+  2. `GET /drift-alerts` hanya membaca fungsi pembantu mock `getMockHeatmapData()` tanpa melakukan query ke tabel `drift_alerts`.
+- **Hasil seharusnya (rujukan PRD/BR/TC):**
+  Evaluasi drift bersifat idempoten (meng-update snapshot anomali jika sudah ada status `OPEN`), dan `GET /drift-alerts` membaca relasi database saat database aktif dengan fallback mock aman.
+- **Catatan / dugaan penyebab:**
+  Implementasi awal fokus pada pengujian unit fallback sebelum penambahan layer query relasional Prisma.
+- **Perbaikan (commit/PR):** Diperbarui pada `apps/api/src/routes/teachers.ts`: menambahkan pengecekan `prisma.driftAlert.findFirst` dan update snapshot untuk mencegah duplikasi, serta mengintegrasikan query `prisma.driftAlert.findMany` relasional dengan sorting tingkat urgensi anomali. Lolos typecheck dan 114 test lulus.
 
 
 ## 5. Catatan Dokumen (ketidaksinkronan yang diketahui)

@@ -745,6 +745,66 @@ teachersRouter.get(
   "/drift-alerts",
   async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      const priorityOrder: Record<string, number> = {
+        NON_COMPETENCY_OVERLOAD: 1,
+        SKILL_MONOTONY: 2,
+        APPROVAL_DORMANCY: 3,
+      };
+
+      // Cek apakah database tersedia
+      let isDbAvailable = false;
+      try {
+        if (process.env.DATABASE_URL) {
+          await prisma.$queryRaw`SELECT 1`;
+          isDbAvailable = true;
+        }
+      } catch {
+        isDbAvailable = false;
+      }
+
+      if (isDbAvailable) {
+        const dbAlerts = await prisma.driftAlert.findMany({
+          where: { status: "OPEN" },
+          include: {
+            student: true,
+            placement: {
+              include: {
+                dudiPartner: true,
+                dudiMentor: true,
+              },
+            },
+          },
+          orderBy: { detectedAt: "desc" },
+        });
+
+        if (dbAlerts.length > 0) {
+          const allAlerts = dbAlerts.map((alert) => ({
+            id: alert.id,
+            placementId: alert.placementId,
+            studentId: alert.studentId,
+            alertType: alert.alertType,
+            severity: alert.severity,
+            status: alert.status,
+            metricSnapshot: alert.metricSnapshotJson,
+            detectedAt: alert.detectedAt.toISOString(),
+            studentName: alert.student.fullName,
+            nisn: alert.student.identityNumber || "-",
+            dudiName: alert.placement.dudiPartner.name,
+            mentorName: alert.placement.dudiMentor?.fullName || "-",
+            mentorPhone: alert.placement.dudiMentor?.whatsappNumber || "-",
+          }));
+
+          allAlerts.sort(
+            (a, b) =>
+              (priorityOrder[a.alertType] || 99) - (priorityOrder[b.alertType] || 99)
+          );
+
+          res.status(200).json({ alerts: allAlerts });
+          return;
+        }
+      }
+
+      // Fallback data demo seed-v2 jika database kosong atau offline
       const mockData = getMockHeatmapData();
       const allAlerts: any[] = [];
 
@@ -760,13 +820,6 @@ teachersRouter.get(
           });
         }
       }
-
-      // Urutkan berdasarkan tingkat keparahan: NON_COMPETENCY_OVERLOAD > SKILL_MONOTONY > APPROVAL_DORMANCY
-      const priorityOrder: Record<string, number> = {
-        NON_COMPETENCY_OVERLOAD: 1,
-        SKILL_MONOTONY: 2,
-        APPROVAL_DORMANCY: 3,
-      };
 
       allAlerts.sort(
         (a, b) =>
@@ -877,23 +930,44 @@ teachersRouter.post(
 
         if (nonCompRes.detected) {
           detectedCount++;
-          await prisma.driftAlert.create({
-            data: {
+          const snapshot = {
+            ratio: nonCompRes.ratio,
+            totalJpLast14Days: totalJp14d,
+            nonCompetencyJpLast14Days: nonCompJp14d,
+            detectedReason: `Siswa mencatat ${nonCompJp14d} JP (${Math.round(nonCompRes.ratio * 100)}%) tugas non-kejuruan dalam 14 hari terakhir.`,
+            mentorName: p.dudiMentor?.fullName || "-",
+            dudiName: p.dudiPartner.name,
+          };
+
+          const existingAlert = await prisma.driftAlert.findFirst({
+            where: {
               placementId: p.id,
-              studentId: p.studentId,
               alertType: "NON_COMPETENCY_OVERLOAD",
-              severity: "CRITICAL",
               status: "OPEN",
-              metricSnapshotJson: {
-                ratio: nonCompRes.ratio,
-                totalJpLast14Days: totalJp14d,
-                nonCompetencyJpLast14Days: nonCompJp14d,
-                detectedReason: `Siswa mencatat ${nonCompJp14d} JP (${Math.round(nonCompRes.ratio * 100)}%) tugas non-kejuruan dalam 14 hari terakhir.`,
-                mentorName: p.dudiMentor?.fullName || "-",
-                dudiName: p.dudiPartner.name,
-              },
             },
           });
+
+          if (existingAlert) {
+            await prisma.driftAlert.update({
+              where: { id: existingAlert.id },
+              data: {
+                metricSnapshotJson: snapshot,
+                severity: "CRITICAL",
+                detectedAt: now,
+              },
+            });
+          } else {
+            await prisma.driftAlert.create({
+              data: {
+                placementId: p.id,
+                studentId: p.studentId,
+                alertType: "NON_COMPETENCY_OVERLOAD",
+                severity: "CRITICAL",
+                status: "OPEN",
+                metricSnapshotJson: snapshot,
+              },
+            });
+          }
         }
 
         // 2. Evaluasi SKILL_MONOTONY
@@ -910,22 +984,43 @@ teachersRouter.post(
 
         if (monotonyRes.detected) {
           detectedCount++;
-          await prisma.driftAlert.create({
-            data: {
+          const snapshot = {
+            dominantRatio: monotonyRes.dominantRatio,
+            dominantElementId: monotonyRes.dominantElementId,
+            detectedReason: `Jam siswa terkonsentrasi ${Math.round((monotonyRes.dominantRatio || 0) * 100)}% pada satu elemen materi.`,
+            mentorName: p.dudiMentor?.fullName || "-",
+            dudiName: p.dudiPartner.name,
+          };
+
+          const existingAlert = await prisma.driftAlert.findFirst({
+            where: {
               placementId: p.id,
-              studentId: p.studentId,
               alertType: "SKILL_MONOTONY",
-              severity: "WARNING",
               status: "OPEN",
-              metricSnapshotJson: {
-                dominantRatio: monotonyRes.dominantRatio,
-                dominantElementId: monotonyRes.dominantElementId,
-                detectedReason: `Jam siswa terkonsentrasi ${Math.round((monotonyRes.dominantRatio || 0) * 100)}% pada satu elemen materi.`,
-                mentorName: p.dudiMentor?.fullName || "-",
-                dudiName: p.dudiPartner.name,
-              },
             },
           });
+
+          if (existingAlert) {
+            await prisma.driftAlert.update({
+              where: { id: existingAlert.id },
+              data: {
+                metricSnapshotJson: snapshot,
+                severity: "WARNING",
+                detectedAt: now,
+              },
+            });
+          } else {
+            await prisma.driftAlert.create({
+              data: {
+                placementId: p.id,
+                studentId: p.studentId,
+                alertType: "SKILL_MONOTONY",
+                severity: "WARNING",
+                status: "OPEN",
+                metricSnapshotJson: snapshot,
+              },
+            });
+          }
         }
 
         // 3. Evaluasi APPROVAL_DORMANCY
@@ -937,21 +1032,42 @@ teachersRouter.post(
 
         if (dormancyRes.detected) {
           detectedCount++;
-          await prisma.driftAlert.create({
-            data: {
+          const snapshot = {
+            dormantLogCount: dormancyRes.dormantLogCount,
+            detectedReason: `${dormancyRes.dormantLogCount} log menunggu verifikasi lebih dari 7 hari kalender.`,
+            mentorName: p.dudiMentor?.fullName || "-",
+            dudiName: p.dudiPartner.name,
+          };
+
+          const existingAlert = await prisma.driftAlert.findFirst({
+            where: {
               placementId: p.id,
-              studentId: p.studentId,
               alertType: "APPROVAL_DORMANCY",
-              severity: "WARNING",
               status: "OPEN",
-              metricSnapshotJson: {
-                dormantLogCount: dormancyRes.dormantLogCount,
-                detectedReason: `${dormancyRes.dormantLogCount} log menunggu verifikasi lebih dari 7 hari kalender.`,
-                mentorName: p.dudiMentor?.fullName || "-",
-                dudiName: p.dudiPartner.name,
-              },
             },
           });
+
+          if (existingAlert) {
+            await prisma.driftAlert.update({
+              where: { id: existingAlert.id },
+              data: {
+                metricSnapshotJson: snapshot,
+                severity: "WARNING",
+                detectedAt: now,
+              },
+            });
+          } else {
+            await prisma.driftAlert.create({
+              data: {
+                placementId: p.id,
+                studentId: p.studentId,
+                alertType: "APPROVAL_DORMANCY",
+                severity: "WARNING",
+                status: "OPEN",
+                metricSnapshotJson: snapshot,
+              },
+            });
+          }
         }
       }
 
