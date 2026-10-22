@@ -285,3 +285,8 @@ export * from "./placement.js";
 // FR-011: e-Rapor SMK Grade & Narrative Exporter schemas
 // ─────────────────────────────────────────────────────────
 export * from "./erapor.js";
+
+// ─────────────────────────────────────────────────────────
+// FR-008: Live Competency Heatmap & Drift Alert schemas
+// ─────────────────────────────────────────────────────────
+export * from "./heatmap.js";

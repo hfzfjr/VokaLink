@@ -1,7 +1,7 @@
 /**
  * API client helper for VokaLink frontend
  */
-import type { SchoolRegisterInput, ProblemDetails } from "@vokalink/shared";
+import type { SchoolRegisterInput, ProblemDetails, HeatmapResponse } from "@vokalink/shared";
 
 const API_BASE_URL =
   process.env["NEXT_PUBLIC_API_URL"] || "http://localhost:3001/api/v1";
@@ -1062,4 +1062,57 @@ export async function generateVerificationLink(data: {
   if (!res.ok) throw new Error(json.detail || "Gagal membuat tautan verifikasi");
   return json;
 }
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * FR-008: Live Competency Heatmap & Drift Alert API (Portal Guru)
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+export async function fetchTeacherHeatmap(params?: {
+  departmentId?: string;
+  dudiId?: string;
+  driftOnly?: boolean;
+}): Promise<HeatmapResponse> {
+  const query = new URLSearchParams();
+  if (params?.departmentId) query.set("departmentId", params.departmentId);
+  if (params?.dudiId) query.set("dudiId", params.dudiId);
+  if (params?.driftOnly) query.set("driftOnly", "true");
+
+  const qs = query.toString();
+  const url = `${API_BASE_URL}/teachers/heatmap${qs ? `?${qs}` : ""}`;
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memuat matriks heatmap kompetensi");
+  return json;
+}
+
+export async function fetchTeacherDriftAlerts(): Promise<{ alerts: any[] }> {
+  const res = await fetch(`${API_BASE_URL}/teachers/drift-alerts`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memuat daftar peringatan drift");
+  return json;
+}
+
+export async function triggerEvaluateDriftAlerts(): Promise<{
+  success: boolean;
+  evaluatedCount: number;
+  activeAlertsCreatedOrUpdated: number;
+  message: string;
+}> {
+  const res = await fetch(`${API_BASE_URL}/teachers/drift-alerts/evaluate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal mengevaluasi algoritma drift");
+  return json;
+}
+
 

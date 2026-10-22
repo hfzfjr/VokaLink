@@ -10,6 +10,7 @@ import { eraporRouter } from "./routes/erapor.js";
 import { logsRouter } from "./routes/logs.js";
 import { passportsRouter } from "./routes/passports.js";
 import { verifyRouter } from "./routes/verify.js";
+import { teachersRouter } from "./routes/teachers.js";
 import { errorHandler } from "./middlewares/error-handler.js";
 
 export function createApp(): Express {
@@ -85,6 +86,11 @@ export function createApp(): Express {
   // Dual-Mode Zero-Login Mentor Verification (FR-007, BR-007)
   app.use("/api/verify", verifyRouter);
   app.use("/api/v1/verify", verifyRouter);
+
+  // Live Competency Heatmap & Drift Alert (FR-008, BR-008)
+  app.use("/api/teachers", teachersRouter);
+  app.use("/api/v1/teachers", teachersRouter);
+  app.use("/api/schools/:schoolId/heatmap", teachersRouter);
 
   // Global RFC 7807 error handler
   app.use(errorHandler);

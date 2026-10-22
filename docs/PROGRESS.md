@@ -10,9 +10,9 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | Metrik | Nilai |
 |---|---|
-| FR selesai | 9 / 12 |
-| FR Must Have selesai | 9 / 11 |
-| TC lulus | 7 / 10 |
+| FR selesai | 10 / 12 |
+| FR Must Have selesai | 10 / 11 |
+| TC lulus | 8 / 10 |
 | Bug terbuka (Critical / High) | 0 / 0 |
 | Status cut-line | Belum dievaluasi (evaluasi di akhir Hari 7) |
 
@@ -39,7 +39,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 | FR-005 | Logger zero-typing + Tombol Jujur | B | [x] | [x] | [x] | [x] | Form zero-typing, Tombol Jujur (BR-004), slider durasi (BR-002), autonomy level (BR-009) |
 | FR-006 | Kompres WebP, blur, offline sync | B | [x] | [x] | [x] | [x] | Two-Phase Sync Engine (batch sync maks 20 log idempoten, biner WebP maks 150 KB SHA-256) |
 | FR-007 | Verifikasi zero-login (QR / WA) | C | [x] | [x] | [x] | [x] | Dual-factor auth (device token + PIN scrypt), batch approve < 10 dtk, segel HMAC-SHA256, lockout 15 mnt, TC-005, TC-006, TC-007 lulus |
-| FR-008 | Heatmap & drift alert | C | [ ] | [ ] | [ ] | [ ] | Algoritma drift tuntas di packages/core |
+| FR-008 | Heatmap & drift alert | C | [x] | [x] | [x] | [x] | Matriks live CP siswa binaan, deteksi 3 anomali drift, modal workload 14 hari & draft WA mentor |
 | FR-009 | Intervensi WA & rotasi mitra | C | [ ] | [ ] | [ ] | [ ] | |
 | FR-010 | Endorsement & quality index (Should) | C | [ ] | [ ] | [ ] | [ ] | Kandidat pertama cut-line |
 | FR-011 | e-Rapor exporter | A | [x] | [x] | [x] | [x] | Formula BR-009 (0.60×teknis+0.40×sikap), narratif Kurikulum Merdeka, export CSV |
@@ -70,7 +70,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 | TC-005 | [x] | 22 Okt 2026 | Batch approve log siswa < 10 dtk dengan segel HMAC-SHA256 |
 | TC-006 | [x] | 22 Okt 2026 | Tautan dibuka di HP tanpa device token mentor diblokir 403 DEVICE_MISMATCH + SecurityFlag UNTRUSTED_DEVICE |
 | TC-007 | [x] | 22 Okt 2026 | Salah PIN 5x berturut-turut memicu penguncian akun verifikasi 15 menit + SecurityFlag PIN_LOCKOUT |
-| TC-008 | [ ] | | |
+| TC-008 | [x] | 22 Okt 2026 | Deteksi anomali drift otomatis pada 3 pola: NON_COMPETENCY_OVERLOAD, SKILL_MONOTONY, APPROVAL_DORMANCY |
 | TC-009 | [ ] | | |
 | TC-010 | [x] | 22 Okt 2026 | CV ATS terkunci pada data VERIFIED (BR-010), non-kompetensi dikeluarkan dari klaim teknis (BR-004), QR membuka paspor terverifikasi publik ber-HMAC |
 
@@ -169,13 +169,26 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
     - Halaman Mentor Mobile-First `/v/[token]` (`apps/web/src/app/v/[token]/page.tsx`): Area sentuh tombol aksi minimal 56px, kartu review kegiatan siswa beserta foto WebP, tombol batch approval < 10 detik (TC-005), numpad PIN pad 4 digit, modal revisi/penolakan, dan celebration screen resmi.
     - Integrasi modal riwayat siswa `/student/log/history` dengan generator tautan dinamis dan tombol langsung kirim WhatsApp (`wa.me`).
     - 9 integration tests di `apps/api/test/verify.test.ts` lulus 100%. Total 105 tests monorepo hijau 100%.
+  - FR-008: Live Competency Heatmap & Algorithmic Drift Alert Engine (Orang C):
+    - Shared Zod schemas & TypeScript types di `packages/shared/src/schemas/heatmap.ts` (`heatmapQuerySchema`, `HeatmapResponse`, `HeatmapStudentRow`, `StudentCpProgress`, `DriftAlertItem`, `CpElementSummary`).
+    - Express Router di `apps/api/src/routes/teachers.ts`:
+      - `GET /api/v1/teachers/heatmap` (dan `/api/schools/:schoolId/heatmap`): agregasi jam terverifikasi per elemen CP, perhitungan persentase capaian terhadap target JP kurikulum, status elemen (`NOT_STARTED`, `IN_PROGRESS`, `ACHIEVED`), penanda `hasDriftWarning`, dan fallback seed data deterministik.
+      - `GET /api/v1/teachers/drift-alerts`: daftar anomali aktif diurutkan berdasarkan tingkat urgensi/severity (`NON_COMPETENCY_OVERLOAD` > `SKILL_MONOTONY` > `APPROVAL_DORMANCY`).
+      - `POST /api/v1/teachers/drift-alerts/evaluate`: evaluasi on-demand mesin deteksi drift murni `evaluateStudentDrift` dari `packages/core`.
+    - Halaman Guru Responsif `/teacher/heatmap` (`apps/web/src/app/teacher/heatmap/page.tsx`):
+      - Kartu ringkasan metrik KPI (Total Siswa Binaan, Siswa Peringatan Drift, Rata-rata Capaian CP, Rincian 3 Jenis Anomali).
+      - Panel Prioritas Intervensi interaktif dengan tombol langsung draft pesan WhatsApp ke mentor DUDI terkait.
+      - Toolbar filter: pencarian siswa/DUDI, dropdown mitra DUDI, toggle "Hanya yang Bermasalah (Drift)", dan tombol evaluasi ulang live.
+      - Matriks Responsif Desktop ($\ge$ lg) spreadsheet dengan kolom siswa beku (sticky), scroll horizontal elemen CP, persentase capaian berwarna + ikon WCAG AA, dan progress bar total JP.
+      - Tampilan Mobile/Tablet (< lg) berupa kartu adaptif per siswa dengan badge mini CP.
+      - Modal Detail Siswa: distribusi beban kerja 14 hari terakhir (Teknis vs Tombol Jujur Non-Kompetensi), rincian JP tiap elemen CP, dan tombol hubungi mentor DUDI.
+    - 9 integration tests di `apps/api/test/heatmap.test.ts` lulus 100%. Total 114 tests monorepo hijau 100%.
 - Sedang dikerjakan:
-  - Persiapan FR-008 (Heatmap & Algorithmic Drift Alert oleh Orang C).
+  - Persiapan FR-009 (Smart Intervention Dispatcher & Rotasi Mitra oleh Orang C).
 - Blocker:
   - Tidak ada blocker aktif saat ini.
 - Rencana besok (Hari 3):
-  - Integrasi QR code dinamis token mentor (`/v/[token]`) dari portal siswa untuk diverifikasi oleh Orang C (FR-007).
-  - Frontend Heatmap & Drift Alert dasbor guru (`/teacher/heatmap`) (FR-008).
+  - FR-009: Smart Intervention Dispatcher (WhatsApp deep link generator & mid-term cross-DUDI rotation manager) (Orang C).
 
 ### Hari 1 — Rab 21 Okt 2026
 - Selesai:
