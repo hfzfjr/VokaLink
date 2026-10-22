@@ -19,11 +19,6 @@ import {
   Repeat,
   Send,
   Calendar,
-  MapPin,
-  ExternalLink,
-  Check,
-  RotateCcw,
-  FileText,
 } from "lucide-react";
 import {
   fetchTeacherHeatmap,
