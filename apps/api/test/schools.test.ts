@@ -233,7 +233,7 @@ describe("Schools API (FR-001)", () => {
             createdAt: new Date(),
           },
         ],
-      });
+      } as any);
 
       const res = await request(app).post("/api/schools/demo-sandbox");
       expect(res.status).toBe(200);
