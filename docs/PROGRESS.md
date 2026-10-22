@@ -1,7 +1,7 @@
 # PROGRESS — VokaLink
 
 > Papan status hidup. Perbarui setiap malam. Rencana ada di `SPRINT.md`, spesifikasi di `PRD.md`.
-> **Terakhir diperbarui:** 21 Okt 2026 (Hari 2)
+> **Terakhir diperbarui:** 22 Okt 2026 (Hari 2)
 > **Hari sprint saat ini:** 2 dari 10 · **Deadline:** 30 Okt 2026 · **Code freeze:** 28 Okt
 
 Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblokir
