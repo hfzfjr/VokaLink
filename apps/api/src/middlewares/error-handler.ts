@@ -44,14 +44,14 @@ export function errorHandler(
     const problem: ProblemDetails = {
       type: "https://vokalink.id/errors/validation-error",
       title: "Validasi Input Gagal",
-      status: 400,
+      status: 422,
       code: "VALIDATION_ERROR",
       detail: "Satu atau lebih data yang dikirim tidak memenuhi format yang valid.",
       instance: req.originalUrl,
       errors: fieldErrors,
     };
 
-    res.status(400).contentType("application/problem+json").json(problem);
+    res.status(422).contentType("application/problem+json").json(problem);
     return;
   }
 
