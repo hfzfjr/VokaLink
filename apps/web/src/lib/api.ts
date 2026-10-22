@@ -10,7 +10,18 @@ import type {
   CreateInterventionInput,
   RotatePlacementInput,
   RotationExecutionResult,
+  EndorsementDetailResponse,
+  EndorsementSubmitInput,
+  DudiQualityAuditResponse,
+  DudiQualityMetricItem,
 } from "@vokalink/shared";
+
+export type {
+  EndorsementDetailResponse,
+  EndorsementSubmitInput,
+  DudiQualityAuditResponse,
+  DudiQualityMetricItem,
+};
 
 const API_BASE_URL =
   process.env["NEXT_PUBLIC_API_URL"] || "http://localhost:3001/api/v1";
@@ -1175,6 +1186,67 @@ export async function fetchInterventions(): Promise<{ interventions: any[] }> {
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json.detail || "Gagal memuat riwayat intervensi");
+  return json;
+}
+
+// ─────────────────────────────────────────────────────────
+// FR-010: 1-Click Soft Skills Endorsement & DUDI Quality Index
+// ─────────────────────────────────────────────────────────
+
+export async function fetchEndorsementDetails(
+  token: string
+): Promise<EndorsementDetailResponse> {
+  const res = await fetch(`${API_BASE_URL}/endorsements/${encodeURIComponent(token)}`);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memuat formulir endorsement");
+  return json;
+}
+
+export async function submitEndorsement(
+  token: string,
+  payload: EndorsementSubmitInput
+): Promise<{ message: string; endorsement: any }> {
+  const res = await fetch(`${API_BASE_URL}/endorsements/${encodeURIComponent(token)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal mengesahkan endorsement etos kerja");
+  return json;
+}
+
+export async function generateEndorsementLink(
+  placementId: string,
+  studentId?: string
+): Promise<{
+  token: string;
+  url: string;
+  endorseUrl: string;
+  waLink: string;
+  expiresAt: string;
+  studentName: string;
+  mentorName: string;
+}> {
+  const res = await fetch(`${API_BASE_URL}/endorsements/generate-link`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ placementId, studentId }),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal menerbitkan tautan endorsement");
+  return json;
+}
+
+export async function fetchDudiQualityIndex(params?: {
+  sectorCategory?: string;
+}): Promise<DudiQualityAuditResponse> {
+  const query = params?.sectorCategory
+    ? `?sectorCategory=${encodeURIComponent(params.sectorCategory)}`
+    : "";
+  const res = await fetch(`${API_BASE_URL}/dudi/quality-index${query}`);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memuat audit mutu kemitraan DUDI");
   return json;
 }
 

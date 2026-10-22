@@ -51,8 +51,25 @@ export const ERAPOR_AUTONOMY_WEIGHTS: Record<number, number> = {
 export const ERAPOR_WEIGHT_TECHNICAL = 0.80;
 export const ERAPOR_WEIGHT_ATTITUDE = 0.20;
 
-// BR-010: Endorsement Batasan Lencana
+// BR-010 & FR-010: Endorsement Batasan Lencana & Standar Lencana Etos Kerja
 export const MAX_ENDORSEMENT_BADGES = 3;
+
+export const WORK_ETHIC_BADGES = [
+  "Ketelitian & Akurasi Kerja Tinggi",
+  "Cepat Menguasai Prosedur & Alat Baru",
+  "Inisiatif Mandiri & Pemecahan Masalah",
+  "Disiplin Waktu & Kepatuhan SOP/K3",
+  "Komunikasi Efektif & Kerjasama Tim",
+] as const;
+
+export type WorkEthicBadge = (typeof WORK_ETHIC_BADGES)[number];
+
+// FR-010 & DESIGN.md §8.6: DUDI Quality Index Weights & Thresholds
+export const DUDI_QUALITY_WEIGHT_RELEVANCE = 0.50; // 50% Rasio Jam Relevan
+export const DUDI_QUALITY_WEIGHT_SPEED = 0.30;     // 30% Kecepatan Validasi
+export const DUDI_QUALITY_WEIGHT_COVERAGE = 0.20;  // 20% Cakupan Realisasi CP
+export const DUDI_QUALITY_EXCELLENT_THRESHOLD = 80; // >= 80: Mitra Unggulan
+export const DUDI_QUALITY_EVALUATION_THRESHOLD = 50; // 50-79: Perlu Evaluasi, < 50: Zona Merah
 
 // BR-012: Kuota Ukuran Bukti Foto
 export const MAX_EVIDENCE_SIZE_BYTES = 153600; // 150 KB

@@ -4,7 +4,6 @@ import {
   MIN_DAILY_JP,
   MAX_EVIDENCE_SIZE_BYTES,
   PIN_LENGTH,
-  MAX_ENDORSEMENT_BADGES,
 } from "../constants/index.js";
 
 export const authLoginSchema = z.object({
@@ -101,16 +100,6 @@ export const mentorVerifyExecuteSchema = z.object({
     .optional(),
 });
 
-export const endorsementSubmitSchema = z.object({
-  attitudeScore: z.number().int().min(1).max(100),
-  selectedBadges: z
-    .array(z.string().min(1).max(80))
-    .min(1)
-    .max(MAX_ENDORSEMENT_BADGES),
-  endorsementQuote: z.string().max(300).optional(),
-  deviceToken: z.string().min(16),
-  pin: z.string().length(PIN_LENGTH).regex(/^\d{4}$/, "PIN harus 4 digit angka"),
-});
 
 export const schoolRegisterSchema = z.object({
   npsn: z.string().length(8).regex(/^\d{8}$/, "NPSN wajib terdiri dari 8 digit angka."),
@@ -295,3 +284,8 @@ export * from "./heatmap.js";
 // FR-009: Smart Intervention Dispatcher & Mid-Term Rotation
 // ─────────────────────────────────────────────────────────
 export * from "./intervention.js";
+
+// ─────────────────────────────────────────────────────────
+// FR-010: 1-Click Soft Skills Endorsement & DUDI Quality Index
+// ─────────────────────────────────────────────────────────
+export * from "./endorsement.js";

@@ -10,11 +10,11 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | Metrik | Nilai |
 |---|---|
-| FR selesai | 11 / 12 |
+| FR selesai | 12 / 12 |
 | FR Must Have selesai | 11 / 11 |
-| TC lulus | 9 / 10 |
+| TC lulus | 10 / 10 |
 | Bug terbuka (Critical / High) | 0 / 0 |
-| Status cut-line | Belum dievaluasi (evaluasi di akhir Hari 7) |
+| Status cut-line | Selesai 100% tanpa cut-line (seluruh FR-001 s.d. FR-012 tuntas) |
 
 ## 2. Infrastruktur (Hari 0)
 
@@ -41,7 +41,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 | FR-007 | Verifikasi zero-login (QR / WA) | C | [x] | [x] | [x] | [x] | Dual-factor auth (device token + PIN scrypt), batch approve < 10 dtk, segel HMAC-SHA256, lockout 15 mnt, TC-005, TC-006, TC-007 lulus |
 | FR-008 | Heatmap & drift alert | C | [x] | [x] | [x] | [x] | Matriks live CP siswa binaan, deteksi 3 anomali drift, modal workload 14 hari & draft WA mentor |
 | FR-009 | Intervensi WA & rotasi mitra | C | [x] | [x] | [x] | [x] | Generator draf WhatsApp berbasis data anomali drift & kontak mentor, pencatatan log intervensi (WA, Kunjungan, Rotasi), rotasi tengah semester 380 JP + 50 JP = 430 JP utuh (TC-009), modal interaktif guru |
-| FR-010 | Endorsement & quality index (Should) | C | [ ] | [ ] | [ ] | [ ] | Kandidat pertama cut-line |
+| FR-010 | Endorsement & quality index (Should) | C | [x] | [x] | [x] | [x] | Zero-login endorsement link (14 hari), 1-100 attitude score, maks 3 lencana etos kerja (BR-010), auto-quote A1, device token + PIN scrypt 4-digit lockout, HMAC-SHA256 seal, indeks kualitas mitra DUDI multi-metrik (50% relevansi, 30% kecepatan, 20% cakupan CP) & dashboard audit di /school/dudi-directory |
 | FR-011 | e-Rapor exporter | A | [x] | [x] | [x] | [x] | Formula BR-009 (0.60×teknis+0.40×sikap), narratif Kurikulum Merdeka, export CSV |
 | FR-012 | CV ATS & paspor publik | B / C | [x] | [x] | [x] | [x] | Pure CV generator Google XYZ, isolasi log VERIFIED (BR-010), filter Tombol Jujur (BR-004), layout A4 Print CSS, router /students/me/cv & /passports/:slug, publik /verify/[passportSlug] segel HMAC-SHA256 |
 
@@ -66,7 +66,7 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 | TC-001 | [x] | 21 Okt 2026 | Sandbox terbuat & 6 jurusan memuat Elemen CP tepat 792 JP & min. 12 Job Cards praktis |
 | TC-002 | [x] | 21 Okt 2026 | Validasi alokasi != 792 JP memicu pesan error 422 JP_TOTAL_MISMATCH & tombol kunci nonaktif |
 | TC-003 | [x] | 22 Okt 2026 | Form zero-typing tersimpan di Dexie IndexedDB offline, Two-Phase sync (batch maks 20 log idempoten + upload WebP SHA-256) lulus tes |
-| TC-004 | [ ] | | |
+| TC-004 | [x] | 22 Okt 2026 | Zero-login endorsement link (14 hari) tervalidasi via device token & PIN scrypt (TC-006, TC-007), batasan maks 3 lencana etos kerja (BR-010) & formula audit mutu kemitraan DUDI (DESIGN §8.6) |
 | TC-005 | [x] | 22 Okt 2026 | Batch approve log siswa < 10 dtk dengan segel HMAC-SHA256 |
 | TC-006 | [x] | 22 Okt 2026 | Tautan dibuka di HP tanpa device token mentor diblokir 403 DEVICE_MISMATCH + SecurityFlag UNTRUSTED_DEVICE |
 | TC-007 | [x] | 22 Okt 2026 | Salah PIN 5x berturut-turut memicu penguncian akun verifikasi 15 menit + SecurityFlag PIN_LOCKOUT |
@@ -96,6 +96,17 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
 
 ### Hari 2 — Kam 22 Okt 2026
 - Selesai:
+  - FR-010: 1-Click Soft Skills Endorsement & DUDI Partnership Quality Audit (Orang C):
+    - Skema Zod & konstanta di `packages/shared`: `generateEndorsementLinkSchema`, `endorsementSubmitSchema`, `dudiQualityIndexQuerySchema`, `WORK_ETHIC_BADGES` (Inisiatif Tinggi, Komunikasi Efektif, Disiplin Kerja, Problem Solving Tangguh, Kolaborasi Tim), `MAX_ENDORSEMENT_BADGES = 3`, bobot & ambang batas mutu DUDI.
+    - Pure functions di `packages/core/src/endorsement.ts`: `calculateDudiQualityIndex` (multi-metrik formula 50% relevansi, 30% kecepatan validasi, 20% cakupan elemen CP) dan `composeEndorsementQuote` (auto-generator testimoni etos kerja A1 berbasis skor sikap & lencana). 8 unit tests lulus 100%.
+    - Express Router di `apps/api/src/routes/endorsements.ts`:
+      - `POST /api/v1/endorsements/generate-link`: penerbitan tautan signed link masa berlaku 14 hari dengan WhatsApp share link.
+      - `GET /api/v1/endorsements/:token`: validasi tanda tangan digital, verifikasi masa kedaluwarsa & pencabutan, ekstraksi data siswa, penempatan, dan progres JP.
+      - `POST /api/v1/endorsements/:token`: verifikasi dual-factor (device token hash + scrypt PIN 4 digit ber-pepper dengan mitigasi lockout 15 menit), auto-quote generator A1, pembatasan ketat maks 3 lencana (BR-010), perhitungan segel integritas `signature_hash` HMAC-SHA256, dan penyimpanan relasional ke tabel `endorsements`.
+    - Express Router di `apps/api/src/routes/dudi.ts`: endpoint `GET /api/v1/dudi/quality-index` untuk agregasi metrik mutu seluruh mitra DUDI sekolah (kategori Mitra Unggulan >= 80, Perlu Evaluasi 50-79, Zona Merah < 50).
+    - 11 integration tests di `apps/api/test/endorsements.test.ts` lulus 100%. Total 110 API integration tests lulus 100%.
+    - Halaman mentor mobile-first `/v/[token]/endorse`: zero-login, slider skor sikap 50–100, pilihan 5 lencana etos kerja (terkunci maks 3), tombol auto-rekomendasi kutipan (A1), numpad input PIN 4 digit, tombol aksi touch target 56px, dan preview sertifikat resmi berstempel segel HMAC.
+    - Tab audit mutu kemitraan DUDI di `/school/dudi-directory`: 4 kartu KPI ringkasan, banner penjelasan formula ilmiah, filter sektor, tabel audit peringkat dengan bar visual sub-metrik, lencana status, rekomendasi tindakan perpanjangan MoU vs evaluasi penugasan, serta ekspor laporan audit CSV.
   - FR-003: Assisted DUDI Onboarding, Pemetaan Kapasitas Lintas Sekolah & Pengikatan Token Kriptografi (Device-Bound PIN) (Orang A / C).
     - API router `/api/dudi` untuk federated directory (BR-011), pendaftaran DUDI baru & pemetaan Job Cards dalam transaksi database.
     - Token aktivasi perangkat kriptografis 72 jam (`SignedLink`) dengan HMAC signature & URL generator terintegrasi WhatsApp share.

@@ -24,6 +24,9 @@ import {
   Check,
   Copy,
   ExternalLink,
+  Award,
+  TrendingUp,
+  FileSpreadsheet,
 } from "lucide-react";
 import Navbar, { NavbarButton } from "@/components/layout/Navbar";
 import Skeleton from "@/components/ui/Skeleton";
@@ -33,7 +36,10 @@ import {
   createDudiPartner,
   createDudiMentor,
   resetMentorDevice,
+  fetchDudiQualityIndex,
   type DudiPartnerItem,
+  type DudiQualityAuditResponse,
+  type DudiQualityMetricItem,
 } from "@/lib/api";
 
 // Fallback seed jika offline / backend belum menyala
@@ -123,6 +129,12 @@ export default function DudiDirectoryPage() {
   const [selectedCity, setSelectedCity] = useState("Semua");
   const [token] = useState("mock-token");
 
+  // FR-010: Quality Index & Tab State
+  const [activeTab, setActiveTab] = useState<"DIRECTORY" | "QUALITY_INDEX">("DIRECTORY");
+  const [qualityAuditData, setQualityAuditData] = useState<DudiQualityAuditResponse | null>(null);
+  const [isQualityLoading, setIsQualityLoading] = useState(false);
+  const [qualitySectorFilter, setQualitySectorFilter] = useState("Semua");
+
   // Notifications
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -193,6 +205,27 @@ export default function DudiDirectoryPage() {
   useEffect(() => {
     loadPartners();
   }, [selectedCity]);
+
+  // FR-010: Muat Audit Mutu Kemitraan DUDI
+  const loadQualityAudit = async () => {
+    setIsQualityLoading(true);
+    try {
+      const res = await fetchDudiQualityIndex({
+        sectorCategory: qualitySectorFilter === "Semua" ? undefined : qualitySectorFilter,
+      });
+      setQualityAuditData(res);
+    } catch (err: any) {
+      console.warn("Quality index fallback:", err);
+    } finally {
+      setIsQualityLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "QUALITY_INDEX") {
+      loadQualityAudit();
+    }
+  }, [activeTab, qualitySectorFilter]);
 
   // Handle filter submit
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -332,6 +365,59 @@ export default function DudiDirectoryPage() {
     }
   };
 
+  const handleExportCsv = () => {
+    if (!qualityAuditData || qualityAuditData.partners.length === 0) return;
+    const headers = [
+      "ID Mitra",
+      "Nama Mitra DUDI",
+      "Sektor",
+      "Kota",
+      "Jumlah Siswa",
+      "Total JP",
+      "JP Kompetensi",
+      "Rasio Relevansi (%)",
+      "Rata-rata Validasi (Hari)",
+      "Skor Kecepatan",
+      "Cakupan CP Didukung",
+      "CP Tercapai",
+      "Skor Cakupan",
+      "Skor Mutu Akhir",
+      "Kategori",
+      "Rekomendasi",
+    ];
+    const rows = qualityAuditData.partners.map((p: DudiQualityMetricItem) => [
+      p.dudiId,
+      `"${p.dudiName.replace(/"/g, '""')}"`,
+      `"${p.sectorCategory}"`,
+      `"${p.city}"`,
+      p.studentCount,
+      p.totalJp,
+      p.competencyJp,
+      p.relevanceRatio,
+      p.avgValidationDays,
+      p.speedScore,
+      p.supportedCpCount,
+      p.achievedCpCount,
+      p.coverageScore,
+      p.overallQualityScore,
+      `"${p.category}"`,
+      `"${p.recommendation}"`,
+    ]);
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [headers.join(","), ...rows.map((r: (string | number)[]) => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute(
+      "download",
+      `Audit_Mutu_DUDI_${new Date().toISOString().slice(0, 10)}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Filter list DUDI secara lokal bila pencarian teks aktif
   const filteredPartners = partners.filter((p) => {
     const matchSearch =
@@ -430,185 +516,506 @@ export default function DudiDirectoryPage() {
           </div>
         )}
 
-        {/* Search & City Filter Bar */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center gap-3">
-          <form onSubmit={handleSearchSubmit} className="relative flex-1 w-full">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Cari nama usaha, sektor industri, atau jalan..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
-          </form>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <select
-              value={selectedCity}
-              onChange={(e) => setSelectedCity(e.target.value)}
-              className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 focus:outline-none"
-            >
-              <option value="Semua">Semua Kota</option>
-              <option value="Surabaya">Surabaya</option>
-              <option value="Sidoarjo">Sidoarjo</option>
-              <option value="Gresik">Gresik</option>
-              <option value="Malang">Malang</option>
-            </select>
-          </div>
+        {/* Navigation Tabs (FR-003 vs FR-010) */}
+        <div className="flex border-b border-slate-200 gap-2">
+          <button
+            onClick={() => setActiveTab("DIRECTORY")}
+            className={`pb-3 px-3 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition ${
+              activeTab === "DIRECTORY"
+                ? "border-emerald-600 text-emerald-800"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <Building2 className="w-4 h-4" />
+            Direktori &amp; Onboarding
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+              {filteredPartners.length}
+            </span>
+          </button>
+          <button
+            onClick={() => setActiveTab("QUALITY_INDEX")}
+            className={`pb-3 px-3 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition ${
+              activeTab === "QUALITY_INDEX"
+                ? "border-emerald-600 text-emerald-800"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <TrendingUp className="w-4 h-4" />
+            Audit Mutu Kemitraan DUDI
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+              FR-010 · Indeks Kualitas
+            </span>
+          </button>
         </div>
 
-        {/* Directory Grid */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="p-5 rounded-3xl bg-white border border-slate-200 space-y-3">
-                <Skeleton width="70%" height="22px" />
-                <Skeleton width="40%" height="14px" />
-                <Skeleton width="100%" height="48px" />
+        {activeTab === "DIRECTORY" ? (
+          <>
+            {/* Search & City Filter Bar */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center gap-3">
+              <form onSubmit={handleSearchSubmit} className="relative flex-1 w-full">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Cari nama usaha, sektor industri, atau jalan..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </form>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <select
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
+                  className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 focus:outline-none"
+                >
+                  <option value="Semua">Semua Kota</option>
+                  <option value="Surabaya">Surabaya</option>
+                  <option value="Sidoarjo">Sidoarjo</option>
+                  <option value="Gresik">Gresik</option>
+                  <option value="Malang">Malang</option>
+                </select>
               </div>
-            ))}
-          </div>
-        ) : filteredPartners.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 p-8 space-y-4">
-            <div className="w-16 h-16 rounded-3xl bg-slate-100 text-slate-500 flex items-center justify-center mx-auto">
-              <Building2 className="w-8 h-8" />
             </div>
-            <div>
-              <h3 className="font-bold text-slate-900 text-base">Tidak ada mitra DUDI yang cocok</h3>
-              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                Coba sesuaikan kata kunci pencarian atau daftarkan tempat usaha baru.
+
+            {/* Directory Grid */}
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="p-5 rounded-3xl bg-white border border-slate-200 space-y-3">
+                    <Skeleton width="70%" height="22px" />
+                    <Skeleton width="40%" height="14px" />
+                    <Skeleton width="100%" height="48px" />
+                  </div>
+                ))}
+              </div>
+            ) : filteredPartners.length === 0 ? (
+              <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 p-8 space-y-4">
+                <div className="w-16 h-16 rounded-3xl bg-slate-100 text-slate-500 flex items-center justify-center mx-auto">
+                  <Building2 className="w-8 h-8" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Tidak ada mitra DUDI yang cocok</h3>
+                  <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                    Coba sesuaikan kata kunci pencarian atau daftarkan tempat usaha baru.
+                  </p>
+                </div>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    resetForm();
+                    setIsAddModalOpen(true);
+                  }}
+                  className="text-xs font-bold"
+                >
+                  Onboarding Mitra Baru
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredPartners.map((partner) => (
+                  <div
+                    key={partner.id}
+                    className="bg-white rounded-3xl border border-slate-200 p-5 shadow-xs hover:border-emerald-300 hover:shadow-md transition flex flex-col justify-between space-y-4"
+                  >
+                    <div>
+                      {/* Category & Quality Score Badge */}
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                          {partner.sectorCategory}
+                        </span>
+                        {partner.qualityIndexScore && (
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-mono">
+                            ⭐ {partner.qualityIndexScore}
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="font-extrabold text-slate-900 text-sm leading-snug line-clamp-1">
+                        {partner.name}
+                      </h3>
+
+                      <div className="mt-1.5 flex items-start gap-1.5 text-xs text-slate-500">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                        <span className="line-clamp-2 leading-relaxed">
+                          {partner.address}, {partner.city}
+                        </span>
+                      </div>
+
+                      {/* Capabilities & Quota Pill Summary */}
+                      <div className="mt-3 grid grid-cols-3 gap-2 py-2.5 px-3 rounded-2xl bg-slate-50 border border-slate-100 text-center">
+                        <div>
+                          <span className="text-[10px] text-slate-400 block font-semibold">Kapasitas</span>
+                          <span className="text-xs font-extrabold text-blue-700">
+                            {partner.capabilitiesCount} JC
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-400 block font-semibold">Kuota PKL</span>
+                          <span className="text-xs font-extrabold text-slate-800">
+                            {partner.maxQuota} Siswa
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-400 block font-semibold">Penempatan</span>
+                          <span className="text-xs font-extrabold text-emerald-700">
+                            {partner.placementsCount} Aktif
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mentor Section */}
+                    <div className="border-t border-slate-100 pt-3 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-700 flex items-center gap-1">
+                          <Users className="w-3.5 h-3.5 text-emerald-600" />
+                          Mentor Industri ({partner.mentors.length}):
+                        </span>
+                      </div>
+
+                      {partner.mentors.length === 0 ? (
+                        <div className="text-[11px] text-amber-700 bg-amber-50 p-2 rounded-xl border border-amber-100">
+                          Belum ada mentor terdaftar di lokasi ini.
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {partner.mentors.map((m) => (
+                            <div
+                              key={m.id}
+                              className="p-2 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between gap-2 text-xs"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <span className="font-bold text-slate-900 block truncate text-[11px]">
+                                  {m.fullName}
+                                </span>
+                                <span className="text-[10px] text-slate-500 block truncate">
+                                  {m.jobTitle}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-1 shrink-0">
+                                {m.isDeviceBound ? (
+                                  <span
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full"
+                                    title="Perangkat HP mentor telah terikat resmi"
+                                  >
+                                    <ShieldCheck className="w-3 h-3" />
+                                    Terikat
+                                  </span>
+                                ) : (
+                                  <span
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-full"
+                                    title="Belum melakukan aktivasi HP"
+                                  >
+                                    <ShieldAlert className="w-3 h-3" />
+                                    Menunggu
+                                  </span>
+                                )}
+
+                                {/* Reset token device jika HP berganti (A2) */}
+                                <button
+                                  onClick={() => handleResetMentorDevice(m.id, m.fullName, partner.name)}
+                                  className="p-1 text-slate-400 hover:text-blue-600 hover:bg-white rounded transition"
+                                  title="Reset Ikatan Perangkat (Pergantian HP)"
+                                >
+                                  <RotateCcw className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          /* FR-010: Quality Audit Tab Content */
+          <div className="space-y-6">
+            {/* Filter and Action Bar */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <span className="text-xs font-bold text-slate-600 whitespace-nowrap">Filter Sektor:</span>
+                <select
+                  value={qualitySectorFilter}
+                  onChange={(e) => setQualitySectorFilter(e.target.value)}
+                  className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 focus:outline-none w-full sm:w-64"
+                >
+                  <option value="Semua">Semua Sektor Industri</option>
+                  <option value="Teknologi Informasi & Software">Teknologi Informasi & Software</option>
+                  <option value="Akuntansi & Keuangan">Akuntansi & Keuangan</option>
+                  <option value="Desain Komunikasi Visual & Kreatif">Desain Komunikasi Visual & Kreatif</option>
+                  <option value="Otomotif & Manufaktur">Otomotif & Manufaktur</option>
+                  <option value="Kuliner & Perhotelan">Kuliner & Perhotelan</option>
+                  <option value="Kesehatan & Farmasi">Kesehatan & Farmasi</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button
+                  onClick={loadQualityAudit}
+                  disabled={isQualityLoading}
+                  className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold shadow-xs transition inline-flex items-center gap-1.5"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isQualityLoading ? "animate-spin" : ""}`} />
+                  Segarkan
+                </button>
+                <Button
+                  variant="secondary"
+                  onClick={handleExportCsv}
+                  disabled={!qualityAuditData || qualityAuditData.partners.length === 0}
+                  className="text-xs font-bold"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5 inline text-emerald-600" />
+                  Ekspor Audit CSV
+                </Button>
+              </div>
+            </div>
+
+            {/* KPI Summary Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-1">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Mitra Ternilai</span>
+                  <Building2 className="w-4 h-4 text-slate-400" />
+                </div>
+                <div className="text-2xl font-black text-slate-900">
+                  {qualityAuditData?.summary.totalDudi ?? 0}
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Rata-rata: <span className="font-bold text-slate-700">{qualityAuditData?.summary.avgQualityScore ?? 0}</span> / 100
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200 shadow-xs space-y-1">
+                <div className="flex items-center justify-between text-emerald-700">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Mitra Unggulan</span>
+                  <Award className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div className="text-2xl font-black text-emerald-900">
+                  {qualityAuditData?.summary.excellentCount ?? 0}
+                </div>
+                <p className="text-[11px] text-emerald-700 font-medium">
+                  Skor ≥ 80 · Prioritas Kuota
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200 shadow-xs space-y-1">
+                <div className="flex items-center justify-between text-amber-700">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Perlu Evaluasi</span>
+                  <AlertTriangle className="w-4 h-4 text-amber-600" />
+                </div>
+                <div className="text-2xl font-black text-amber-900">
+                  {qualityAuditData?.summary.evaluationCount ?? 0}
+                </div>
+                <p className="text-[11px] text-amber-700 font-medium">
+                  Skor 50 - 79 · Rotasi Job Card
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-rose-50/60 border border-rose-200 shadow-xs space-y-1">
+                <div className="flex items-center justify-between text-rose-700">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Zona Merah</span>
+                  <ShieldAlert className="w-4 h-4 text-rose-600" />
+                </div>
+                <div className="text-2xl font-black text-rose-900">
+                  {qualityAuditData?.summary.redZoneCount ?? 0}
+                </div>
+                <p className="text-[11px] text-rose-700 font-medium">
+                  Skor &lt; 50 · Tinjau Ulang MoU
+                </p>
+              </div>
+            </div>
+
+            {/* Formula Explanation Card */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 text-xs text-slate-700 space-y-2">
+              <div className="flex items-center gap-2 font-bold text-blue-900">
+                <TrendingUp className="w-4 h-4 text-blue-700" />
+                <span>Formula Indeks Kualitas Kemitraan DUDI (BR-010 · DESIGN.md §8.6)</span>
+              </div>
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                Skor gabungan dihitung objektif berdasarkan data lapangan terverifikasi:
+                <strong className="text-slate-800"> 50% Kesesuaian Kurikulum</strong> (rasio jam kompetensi vs non-kompetensi),
+                <strong className="text-slate-800"> 30% Kecepatan Respon Mentor</strong> (latensi validasi log harian), dan
+                <strong className="text-slate-800"> 20% Cakupan Elemen CP</strong> (persentase capaian pembelajaran SKKNI yang terrealisasi).
               </p>
             </div>
-            <Button
-              variant="primary"
-              onClick={() => {
-                resetForm();
-                setIsAddModalOpen(true);
-              }}
-              className="text-xs font-bold"
-            >
-              Onboarding Mitra Baru
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredPartners.map((partner) => (
-              <div
-                key={partner.id}
-                className="bg-white rounded-3xl border border-slate-200 p-5 shadow-xs hover:border-emerald-300 hover:shadow-md transition flex flex-col justify-between space-y-4"
-              >
-                <div>
-                  {/* Category & Quality Score Badge */}
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                      {partner.sectorCategory}
-                    </span>
-                    {partner.qualityIndexScore && (
-                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-mono">
-                        ⭐ {partner.qualityIndexScore}
-                      </span>
-                    )}
+
+            {/* Audit Table / List */}
+            {isQualityLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="p-5 rounded-3xl bg-white border border-slate-200 space-y-3">
+                    <Skeleton width="50%" height="20px" />
+                    <Skeleton width="100%" height="40px" />
                   </div>
+                ))}
+              </div>
+            ) : !qualityAuditData || qualityAuditData.partners.length === 0 ? (
+              <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 p-8 space-y-3">
+                <Building2 className="w-12 h-12 text-slate-400 mx-auto" />
+                <h3 className="font-bold text-slate-900 text-sm">Belum Ada Data Audit</h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  Belum ada catatan log harian terverifikasi pada mitra di sektor yang dipilih.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {qualityAuditData.partners.map((partner: DudiQualityMetricItem, index: number) => {
+                  const isExcellent = partner.category === "Mitra Unggulan";
+                  const isEvaluation = partner.category === "Mitra Perlu Evaluasi Penugasan";
+                  const badgeStyle = isExcellent
+                    ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                    : isEvaluation
+                    ? "bg-amber-100 text-amber-800 border-amber-300"
+                    : "bg-rose-100 text-rose-800 border-rose-300";
 
-                  <h3 className="font-extrabold text-slate-900 text-sm leading-snug line-clamp-1">
-                    {partner.name}
-                  </h3>
-
-                  <div className="mt-1.5 flex items-start gap-1.5 text-xs text-slate-500">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                    <span className="line-clamp-2 leading-relaxed">
-                      {partner.address}, {partner.city}
-                    </span>
-                  </div>
-
-                  {/* Capabilities & Quota Pill Summary */}
-                  <div className="mt-3 grid grid-cols-3 gap-2 py-2.5 px-3 rounded-2xl bg-slate-50 border border-slate-100 text-center">
-                    <div>
-                      <span className="text-[10px] text-slate-400 block font-semibold">Kapasitas</span>
-                      <span className="text-xs font-extrabold text-blue-700">
-                        {partner.capabilitiesCount} JC
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block font-semibold">Kuota PKL</span>
-                      <span className="text-xs font-extrabold text-slate-800">
-                        {partner.maxQuota} Siswa
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block font-semibold">Penempatan</span>
-                      <span className="text-xs font-extrabold text-emerald-700">
-                        {partner.placementsCount} Aktif
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Mentor Section */}
-                <div className="border-t border-slate-100 pt-3 space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-700 flex items-center gap-1">
-                      <Users className="w-3.5 h-3.5 text-emerald-600" />
-                      Mentor Industri ({partner.mentors.length}):
-                    </span>
-                  </div>
-
-                  {partner.mentors.length === 0 ? (
-                    <div className="text-[11px] text-amber-700 bg-amber-50 p-2 rounded-xl border border-amber-100">
-                      Belum ada mentor terdaftar di lokasi ini.
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {partner.mentors.map((m) => (
-                        <div
-                          key={m.id}
-                          className="p-2 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between gap-2 text-xs"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <span className="font-bold text-slate-900 block truncate text-[11px]">
-                              {m.fullName}
-                            </span>
-                            <span className="text-[10px] text-slate-500 block truncate">
-                              {m.jobTitle}
-                            </span>
+                  return (
+                    <div
+                      key={partner.dudiId}
+                      className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs hover:border-slate-300 transition space-y-4"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 font-extrabold text-xs flex items-center justify-center shrink-0">
+                            #{index + 1}
                           </div>
-
-                          <div className="flex items-center gap-1 shrink-0">
-                            {m.isDeviceBound ? (
-                              <span
-                                className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full"
-                                title="Perangkat HP mentor telah terikat resmi"
-                              >
-                                <ShieldCheck className="w-3 h-3" />
-                                Terikat
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-extrabold text-slate-900 text-sm">
+                                {partner.dudiName}
+                              </h3>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                                {partner.sectorCategory}
                               </span>
-                            ) : (
-                              <span
-                                className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-full"
-                                title="Belum melakukan aktivasi HP"
-                              >
-                                <ShieldAlert className="w-3 h-3" />
-                                Menunggu
+                              <span className="text-[10px] text-slate-500 flex items-center gap-1">
+                                <MapPin className="w-3 h-3 text-slate-400" />
+                                {partner.city}
                               </span>
-                            )}
-
-                            {/* Reset token device jika HP berganti (A2) */}
-                            <button
-                              onClick={() => handleResetMentorDevice(m.id, m.fullName, partner.name)}
-                              className="p-1 text-slate-400 hover:text-blue-600 hover:bg-white rounded transition"
-                              title="Reset Ikatan Perangkat (Pergantian HP)"
-                            >
-                              <RotateCcw className="w-3 h-3" />
-                            </button>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              {partner.studentCount} siswa penempatan aktif · {partner.totalJp} total JP log dicatat
+                            </p>
                           </div>
                         </div>
-                      ))}
+
+                        {/* Overall Score & Badge */}
+                        <div className="flex items-center gap-3 self-end sm:self-auto">
+                          <div className="text-right">
+                            <span className="text-[10px] text-slate-400 block font-semibold">Skor Mutu</span>
+                            <span className="text-lg font-black text-slate-900">
+                              {partner.overallQualityScore}
+                              <span className="text-xs font-normal text-slate-400"> /100</span>
+                            </span>
+                          </div>
+                          <span
+                            className={`text-xs font-extrabold px-3 py-1.5 rounded-xl border flex items-center gap-1.5 ${badgeStyle}`}
+                          >
+                            {isExcellent && <Award className="w-3.5 h-3.5" />}
+                            {isEvaluation && <AlertTriangle className="w-3.5 h-3.5" />}
+                            {!isExcellent && !isEvaluation && <ShieldAlert className="w-3.5 h-3.5" />}
+                            {partner.category}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 3 Sub-metric breakdowns */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100 text-xs">
+                        {/* 1. Kurikulum Relevan (50%) */}
+                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-semibold text-slate-600">
+                              Kesesuaian Job Card (50%)
+                            </span>
+                            <span className="font-extrabold text-slate-900 font-mono text-[11px]">
+                              {partner.relevanceRatio}%
+                            </span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${
+                                partner.relevanceRatio >= 80
+                                  ? "bg-emerald-500"
+                                  : partner.relevanceRatio >= 50
+                                  ? "bg-amber-500"
+                                  : "bg-rose-500"
+                              }`}
+                              style={{ width: `${Math.min(100, partner.relevanceRatio)}%` }}
+                            />
+                          </div>
+                          <p className="text-[10px] text-slate-500">
+                            {partner.competencyJp} JP kejuruan dari {partner.totalJp} total JP
+                          </p>
+                        </div>
+
+                        {/* 2. Kecepatan Mentor (30%) */}
+                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-semibold text-slate-600">
+                              Kecepatan Mentor (30%)
+                            </span>
+                            <span className="font-extrabold text-slate-900 font-mono text-[11px]">
+                              {partner.speedScore} pts
+                            </span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-blue-500 rounded-full"
+                              style={{ width: `${Math.min(100, partner.speedScore)}%` }}
+                            />
+                          </div>
+                          <p className="text-[10px] text-slate-500">
+                            Rata-rata respon validasi: {partner.avgValidationDays} hari
+                          </p>
+                        </div>
+
+                        {/* 3. Cakupan Elemen CP (20%) */}
+                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-semibold text-slate-600">
+                              Cakupan Elemen CP (20%)
+                            </span>
+                            <span className="font-extrabold text-slate-900 font-mono text-[11px]">
+                              {partner.coverageScore} pts
+                            </span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-purple-500 rounded-full"
+                              style={{ width: `${Math.min(100, partner.coverageScore)}%` }}
+                            />
+                          </div>
+                          <p className="text-[10px] text-slate-500">
+                            {partner.achievedCpCount} dari {partner.supportedCpCount} elemen CP terealisasi
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Rekomendasi Audit */}
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <span className="font-bold text-slate-700">Rekomendasi Tindakan:</span>
+                          <span
+                            className={`font-semibold ${
+                              isExcellent
+                                ? "text-emerald-700"
+                                : isEvaluation
+                                ? "text-amber-700"
+                                : "text-rose-700"
+                            }`}
+                          >
+                            {partner.recommendation}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </div>
+                  );
+                })}
               </div>
-            ))}
+            )}
           </div>
         )}
       </main>
