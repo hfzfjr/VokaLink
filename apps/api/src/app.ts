@@ -9,6 +9,7 @@ import { placementsRouter } from "./routes/placements.js";
 import { eraporRouter } from "./routes/erapor.js";
 import { logsRouter } from "./routes/logs.js";
 import { passportsRouter } from "./routes/passports.js";
+import { verifyRouter } from "./routes/verify.js";
 import { errorHandler } from "./middlewares/error-handler.js";
 
 export function createApp(): Express {
@@ -80,6 +81,10 @@ export function createApp(): Express {
   // Student ATS-CV & Public Skill Passport (FR-012, TC-010)
   app.use("/api", passportsRouter);
   app.use("/api/v1", passportsRouter);
+
+  // Dual-Mode Zero-Login Mentor Verification (FR-007, BR-007)
+  app.use("/api/verify", verifyRouter);
+  app.use("/api/v1/verify", verifyRouter);
 
   // Global RFC 7807 error handler
   app.use(errorHandler);

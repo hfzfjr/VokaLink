@@ -17,7 +17,6 @@ import {
   TrendingUp,
   Target,
   Layers,
-  FileCheck,
 } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { TOTAL_TARGET_JP } from "@vokalink/shared";

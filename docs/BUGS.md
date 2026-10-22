@@ -45,10 +45,10 @@ Aturan:
 |---|---|---|---|---|---|
 | BUG-001 | P0 Critical | Fixed | Database / BR-007 | Trigger immutability block_verified_log_update memakai nama kolom salah mentor_id | Orang A |
 | BUG-002 | P3 Low | Fixed | PWA / Manifest | Web App Manifest mereferensikan file PNG non-eksistensi menyebabkan 404 pada browser | Orang B |
-| BUG-003 | P1 High | Open | Offline Sync (FR-006) | Ketidaksesuaian struktur payload sync.ts dengan skema backend syncLogsBatchSchema (Fase 1) | Orang B |
-| BUG-004 | P1 High | Open | Offline Sync (FR-006/007) | Kegagalan penarikan status verifikasi mentor (Fase 3 Pull) akibat format data dan typo enum | Orang B |
-| BUG-005 | P2 Medium | Open | Student Form (FR-005) | Form jurnal baru memakai ID dummy non-UUID (placement-demo-rpl & jc-1) yang ditolak backend | Orang B |
-| BUG-006 | P3 Low | Open | Student Portal (FR-007) | Typo instruksi PIN pada modal QR minta verifikasi (6 digit bukannya 4 digit) | Orang B |
+| BUG-003 | P1 High | Fixed | Offline Sync (FR-006) | Ketidaksesuaian struktur payload sync.ts dengan skema backend syncLogsBatchSchema (Fase 1) | Orang B |
+| BUG-004 | P1 High | Fixed | Offline Sync (FR-006/007) | Kegagalan penarikan status verifikasi mentor (Fase 3 Pull) akibat format data dan typo enum | Orang B |
+| BUG-005 | P2 Medium | Fixed | Student Form (FR-005) | Form jurnal baru memakai ID dummy non-UUID (placement-demo-rpl & jc-1) yang ditolak backend | Orang B |
+| BUG-006 | P3 Low | Fixed | Student Portal (FR-007) | Typo instruksi PIN pada modal QR minta verifikasi (6 digit bukannya 4 digit) | Orang B |
 
 ### BUG-001 — Trigger block_verified_log_update memakai nama kolom salah mentor_id
 - **Level:** P0 Critical

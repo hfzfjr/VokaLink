@@ -17,8 +17,6 @@ import {
   Save,
   Loader2,
   ChevronRight,
-  Eye,
-  EyeOff,
   Image as ImageIcon,
 } from "lucide-react";
 import Link from "next/link";
