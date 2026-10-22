@@ -140,4 +140,32 @@ describe("FR-008: Live Competency Heatmap & Drift Alert Engine", () => {
     expect(res.body).toHaveProperty("evaluatedCount");
     expect(res.body).toHaveProperty("activeAlertsCreatedOrUpdated");
   });
+
+  it("TC-006 & FR-007 A2: GET /api/v1/teachers/security-flags returns active security audit flags", async () => {
+    const res = await request(app).get("/api/v1/teachers/security-flags");
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty("flags");
+    expect(Array.isArray(res.body.flags)).toBe(true);
+    expect(res.body.flags.length).toBeGreaterThanOrEqual(1);
+
+    const flag = res.body.flags[0];
+    expect(flag).toHaveProperty("id");
+    expect(flag).toHaveProperty("kind");
+    expect(flag).toHaveProperty("studentName");
+    expect(flag).toHaveProperty("dudiName");
+    expect(flag).toHaveProperty("mentorName");
+    expect(flag).toHaveProperty("meta");
+  });
+
+  it("TC-006: PATCH /api/v1/teachers/security-flags/:id/acknowledge marks security flag as reviewed", async () => {
+    const getRes = await request(app).get("/api/v1/teachers/security-flags");
+    const targetFlagId = getRes.body.flags[0].id;
+
+    const res = await request(app).patch(`/api/v1/teachers/security-flags/${targetFlagId}/acknowledge`);
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.acknowledgedId).toBe(targetFlagId);
+    expect(res.body).toHaveProperty("acknowledgedAt");
+  });
 });
+

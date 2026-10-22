@@ -203,13 +203,17 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
       - `POST /api/v1/placements/:id/rotate` (dan `/api/v1/placements/rotate`): transaksi atomik database rotasi mitra DUDI tengah semester, validasi kuota aktif, penandaan status penempatan lama `ROTATED_OUT` dan baru `ACTIVE` dengan `rotatedFromId` & `rotationSequence + 1`, resolusi drift alert, pencatatan log `DUDI_ROTATION`, serta menjaga akumulasi jam terverifikasi tetap utuh tanpa reset (380 JP DUDI A + 50 JP DUDI B = 430 JP utuh [TC-009]).
       - `GET /api/v1/interventions`: memuat riwayat tindakan intervensi guru.
     - 8 unit tests di `packages/core/test/intervention.test.ts` & 9 integration tests di `apps/api/test/interventions.test.ts` lulus 100%. Total 131 tests monorepo hijau 100%.
-    - Frontend Portal Guru `/teacher/heatmap`: Modal interaktif Smart Intervention Dispatcher dengan 3 tab (💬 Koordinasi WhatsApp langsung buka `wa.me`, 🏫 Kunjungan Lapangan / Site Visit, 🔄 Rotasi Mitra DUDI dengan peringatan akumulasi JP utuh), terhubung ke kartu Prioritas Intervensi dan Modal Detail Siswa.
+  - Penguatan Keamanan & Otomasi Latar Belakang Scope Orang C (Sprint Hari 8–9):
+    - Zero-Login Anti-Brute-Force Rate Limiter (`apps/api/src/middlewares/rate-limiter.ts`): Middleware `zeroLoginRateLimiter` menggunakan `express-rate-limit`, pembatasan 100 request / 15 menit per IP, respons standar RFC 7807 (`429 RATE_LIMIT_EXCEEDED`), terpasang pada endpoint publik `/api/v1/verify` dan `/api/v1/endorsements`.
+    - Evaluator Drift Terisolasi (`apps/api/src/services/drift-evaluator.ts`): Modul evaluasi batch drift `evaluateDriftForAllPlacements` yang mendeteksi 3 pola anomali (`NON_COMPETENCY_OVERLOAD`, `SKILL_MONOTONY`, `APPROVAL_DORMANCY`) untuk seluruh penempatan aktif.
+    - Nightly Drift Evaluator Cron (`apps/api/src/services/drift-cron.ts`): Penjadwalan otomatis menggunakan `node-cron` setiap pukul 00:30 WIB (`30 0 * * *` zona waktu Asia/Jakarta), terintegrasi ke startup Express `index.ts` dengan deteksi lingkungan tes.
+    - 3 unit & integration tests di `apps/api/test/security-cron.test.ts`. Total 14 test files di `apps/api` (113 tests) dan 4 test files di `packages/core` (40 tests) = 153 tests monorepo lulus 100%.
 - Sedang dikerjakan:
-  - Persiapan FR-010 (1-Click Soft Skills Endorsement & DUDI Partnership Quality Audit oleh Orang C).
+  - Persiapan integrasi akhir, code freeze, dan demo showcase persiapan lomba UINIC 8.0.
 - Blocker:
-  - Tidak ada blocker aktif saat ini.
+  - Tidak ada blocker aktif saat ini. Seluruh lingkup fitur Orang C (FR-007, FR-008, FR-009, FR-010, `/verify/[slug]`) dan hardening selesai 100%.
 - Rencana besok (Hari 3):
-  - FR-010: 1-Click Soft Skills Endorsement & DUDI Partnership Quality Audit (Orang C).
+  - Uji end-to-end menyeluruh (Lighthouse CI, Playwright, verifikasi offline Dexie, dan simulasi demo juri).
 
 ### Hari 1 — Rab 21 Okt 2026
 - Selesai:

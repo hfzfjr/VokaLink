@@ -19,11 +19,6 @@ import {
   Repeat,
   Send,
   Calendar,
-  MapPin,
-  ExternalLink,
-  Check,
-  RotateCcw,
-  FileText,
 } from "lucide-react";
 import {
   fetchTeacherHeatmap,
@@ -31,11 +26,14 @@ import {
   fetchInterventionDraft,
   submitIntervention,
   executePlacementRotation,
+  fetchSecurityFlags,
+  acknowledgeSecurityFlag,
 } from "@/lib/api";
 import type {
   HeatmapResponse,
   HeatmapStudentRow,
   DriftAlertItem,
+  SecurityFlagItem,
 } from "@vokalink/shared";
 
 export default function TeacherHeatmapPage() {
@@ -64,6 +62,32 @@ export default function TeacherHeatmapPage() {
   const [rotationReason, setRotationReason] = useState("");
   const [siteVisitDate, setSiteVisitDate] = useState("");
 
+  // FR-007 A2 & TC-006: Security Audit Flags state
+  const [securityFlags, setSecurityFlags] = useState<SecurityFlagItem[]>([]);
+  const [isAcknowledgingFlag, setIsAcknowledgingFlag] = useState<string | null>(null);
+
+  // Load security audit flags
+  const loadSecurityFlags = useCallback(async () => {
+    try {
+      const res = await fetchSecurityFlags();
+      setSecurityFlags(res.flags || []);
+    } catch {
+      // Silent fallback
+    }
+  }, []);
+
+  const handleAcknowledgeFlag = async (flagId: string) => {
+    setIsAcknowledgingFlag(flagId);
+    try {
+      await acknowledgeSecurityFlag(flagId);
+      setSecurityFlags((prev) => prev.filter((f) => f.id !== flagId));
+    } catch (err: any) {
+      alert(err.message || "Gagal menandai bendera audit");
+    } finally {
+      setIsAcknowledgingFlag(null);
+    }
+  };
+
   // Load heatmap data from API
   const loadHeatmapData = useCallback(async () => {
     setIsLoading(true);
@@ -82,7 +106,8 @@ export default function TeacherHeatmapPage() {
 
   useEffect(() => {
     loadHeatmapData();
-  }, [loadHeatmapData]);
+    loadSecurityFlags();
+  }, [loadHeatmapData, loadSecurityFlags]);
 
   // Trigger on-demand drift evaluation
   const handleTriggerEvaluate = async () => {
@@ -349,6 +374,110 @@ export default function TeacherHeatmapPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {/* FR-007 A2 & TC-006: Bendera Peringatan Audit Keamanan (Security Audit Flags) */}
+        {securityFlags.length > 0 && (
+          <div className="bg-gradient-to-r from-rose-50 via-red-50 to-amber-50 rounded-2xl border-2 border-rose-300 shadow-sm p-4 sm:p-5 space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-rose-200/80 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center flex-shrink-0 shadow-xs">
+                  <ShieldAlert className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-sm sm:text-base font-extrabold text-rose-950">
+                      Bendera Peringatan Audit Keamanan (TC-006)
+                    </h2>
+                    <span className="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-black tracking-wide">
+                      {securityFlags.length} INSIDEN AKTIF
+                    </span>
+                  </div>
+                  <p className="text-xs text-rose-800 font-medium mt-0.5">
+                    Sistem mendeteksi percobaan verifikasi jurnal siswa dari perangkat tidak terdaftar (HP Siswa/Incognito) atau penguncian PIN mentor.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+              {securityFlags.map((flag) => {
+                const isUntrusted = flag.kind === "UNTRUSTED_DEVICE";
+                const isPinLockout = flag.kind === "PIN_LOCKOUT";
+
+                return (
+                  <div
+                    key={flag.id}
+                    className="p-3.5 rounded-xl bg-white/95 backdrop-blur-xs border border-rose-200 shadow-2xs space-y-2.5 flex flex-col justify-between"
+                  >
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className={`px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                            isUntrusted
+                              ? "bg-rose-100 text-rose-800 border border-rose-200"
+                              : isPinLockout
+                              ? "bg-amber-100 text-amber-900 border border-amber-200"
+                              : "bg-purple-100 text-purple-900 border border-purple-200"
+                          }`}
+                        >
+                          {isUntrusted
+                            ? "⛔ Perangkat Asing / Bukan HP Mentor"
+                            : isPinLockout
+                            ? "🔒 PIN Terkunci (Salah 5 Kali)"
+                            : "⚠️ Pakai Ulang Tautan"}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-semibold">
+                          {new Date(flag.createdAt).toLocaleTimeString("id-ID", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}{" "}
+                          WIB
+                        </span>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-black text-slate-900">
+                          {flag.studentName}{" "}
+                          <span className="text-[11px] font-semibold text-slate-500">
+                            (NISN: {flag.nisn})
+                          </span>
+                        </p>
+                        <p className="text-[11px] text-slate-600 font-medium">
+                          {flag.dudiName} • Mentor: {flag.mentorName}
+                        </p>
+                      </div>
+
+                      <p className="text-[11px] text-rose-700 bg-rose-50/70 p-2 rounded-lg border border-rose-100 leading-snug font-medium">
+                        {flag.meta?.note ||
+                          flag.meta?.reason ||
+                          "Percobaan persetujuan jurnal ditolak demi menjaga integritas validasi."}
+                      </p>
+                    </div>
+
+                    <div className="pt-1 flex items-center justify-between border-t border-slate-100">
+                      <span className="text-[10px] text-slate-400 italic">
+                        Perlu ditinjau pembimbing
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleAcknowledgeFlag(flag.id)}
+                        disabled={isAcknowledgingFlag === flag.id}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-bold transition disabled:opacity-50 cursor-pointer shadow-2xs"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>
+                          {isAcknowledgingFlag === flag.id
+                            ? "Menandai..."
+                            : "Tandai Telah Ditinjau"}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* 2. Overview KPI Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
           {/* Card 1: Total Siswa */}

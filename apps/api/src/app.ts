@@ -14,6 +14,7 @@ import { teachersRouter } from "./routes/teachers.js";
 import { interventionsRouter } from "./routes/interventions.js";
 import { endorsementsRouter } from "./routes/endorsements.js";
 import { errorHandler } from "./middlewares/error-handler.js";
+import { zeroLoginRateLimiter } from "./middlewares/rate-limiter.js";
 
 export function createApp(): Express {
   const app = express();
@@ -86,8 +87,8 @@ export function createApp(): Express {
   app.use("/api/v1", passportsRouter);
 
   // Dual-Mode Zero-Login Mentor Verification (FR-007, BR-007)
-  app.use("/api/verify", verifyRouter);
-  app.use("/api/v1/verify", verifyRouter);
+  app.use("/api/verify", zeroLoginRateLimiter, verifyRouter);
+  app.use("/api/v1/verify", zeroLoginRateLimiter, verifyRouter);
 
   // Live Competency Heatmap & Drift Alert (FR-008, BR-008)
   app.use("/api/teachers", teachersRouter);
@@ -103,8 +104,8 @@ export function createApp(): Express {
   app.use("/api/v1/placements", interventionsRouter);
 
   // 1-Click Soft Skills Endorsement (FR-010)
-  app.use("/api/endorsements", endorsementsRouter);
-  app.use("/api/v1/endorsements", endorsementsRouter);
+  app.use("/api/endorsements", zeroLoginRateLimiter, endorsementsRouter);
+  app.use("/api/v1/endorsements", zeroLoginRateLimiter, endorsementsRouter);
 
   // Global RFC 7807 error handler
   app.use(errorHandler);
