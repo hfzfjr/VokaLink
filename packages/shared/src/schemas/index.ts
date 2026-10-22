@@ -290,3 +290,8 @@ export * from "./erapor.js";
 // FR-008: Live Competency Heatmap & Drift Alert schemas
 // ─────────────────────────────────────────────────────────
 export * from "./heatmap.js";
+
+// ─────────────────────────────────────────────────────────
+// FR-009: Smart Intervention Dispatcher & Mid-Term Rotation
+// ─────────────────────────────────────────────────────────
+export * from "./intervention.js";

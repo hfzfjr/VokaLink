@@ -12,6 +12,7 @@ import {
   rankDudiForStudent,
   type CandidateDudi,
 } from "@vokalink/core";
+import { handlePlacementRotation } from "./interventions.js";
 
 export const placementsRouter = Router({ mergeParams: true });
 
@@ -730,3 +731,9 @@ placementsRouter.patch(
     }
   }
 );
+
+/**
+ * POST /api/schools/:schoolId/placements/:id/rotate
+ * FR-009: Rotasi Mitra DUDI Tengah Semester (TC-009)
+ */
+placementsRouter.post("/:id/rotate", handlePlacementRotation);
