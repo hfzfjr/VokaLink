@@ -1,8 +1,8 @@
 # PROGRESS — VokaLink
 
 > Papan status hidup. Perbarui setiap malam. Rencana ada di `SPRINT.md`, spesifikasi di `PRD.md`.
-> **Terakhir diperbarui:** 22 Okt 2026 (Hari 2)
-> **Hari sprint saat ini:** 2 dari 10 · **Deadline:** 30 Okt 2026 · **Code freeze:** 28 Okt
+> **Terakhir diperbarui:** 23 Okt 2026 (Hari 3)
+> **Hari sprint saat ini:** 3 dari 10 · **Deadline:** 30 Okt 2026 · **Code freeze:** 28 Okt
 
 Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblokir
 
@@ -93,6 +93,30 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-12) dan bagian 12.
 
 ## 8. Log Harian
+
+### Hari 3 — Jum 23 Okt 2026
+- Selesai:
+  - Audit Menyeluruh & Perbaikan Logika Orang B (FR-005, FR-006, FR-012, PWA, Dexie, Kompresi Foto, CV ATS):
+    - Resolusi BUG-009: Perbaikan pembagian alokasi durasi JP multi-kartu di `sync.ts` dengan integer modulo aman sehingga setiap item dijamin `durationJp >= 1`.
+    - Resolusi BUG-010: Filter presensi Sakit / Izin (A2) di `drift-evaluator.ts` agar tidak dihitung sebagai deviasi non-kompetensi, mencegah false-positive `NON_COMPETENCY_OVERLOAD`.
+    - Resolusi BUG-011: Penerapan adaptive compression loop pada `photo.ts` dengan penyesuaian kualitas adaptif dan downscale bertahap menjamin biner foto WebP selalu `< 150 KB` (target 35–60 KB) bebas dari risiko HTTP 413.
+    - Penerapan filter jeda exponential backoff (`nextAttemptAt`) pada Fase 2 upload foto di `sync.ts`.
+    - Pembaruan hook `usePendingLogs.ts` mencakup status `failed` agar antrean retry tetap terdeteksi pada banner UI siswa.
+    - Validasi batas minimal tanggal pelaksanaan (H-3 BR-003) via atribut `min` pada input kalender `/student/log/new` serta kuncian slider JP minimal sesuai jumlah kartu yang dipilih.
+    - Penyesuaian `ConnectivityBanner.tsx` dengan warna solid murni tanpa gradasi latar per *Strict Guardrails* DESIGN.md Bab 13.
+    - Implementasi komponen `QrCodeView.tsx` dengan SVG QR matriks dinamis asli untuk validasi **TC-010** (CV ATS A4 PDF print, modal minta verifikasi mentor, dan modal aktivasi DUDI).
+    - 16 test lulus di `apps/api/test/logs.test.ts`, total 116 tests lulus 100%, `pnpm lint` & `typecheck` bersih.
+  - Audit Menyeluruh & Perbaikan Logika Orang C (FR-007, FR-008, FR-009, FR-010, Kriptografi HMAC-SHA256, Paspor Publik):
+    - Resolusi BUG-012: Normalisasi nomor WhatsApp mentor ke format internasional baku (`628...`) menggunakan `buildWhatsAppDeepLink` dari `@vokalink/core` pada `verify.ts` sehingga tautan deep link tidak pernah eror pada WhatsApp mobile.
+    - Resolusi BUG-013: Pemetaan seluruh elemen CP jurusan siswa (`student.schoolDepartment.cpElements`) pada `drift-evaluator.ts` sehingga materi yang belum dikerjakan terisi `jp: 0`, memungkinkan deteksi anomali `SKILL_MONOTONY` (dominan > 60% dan >= 2 elemen 0%) berfungsi akurat pada data database Prisma riil.
+    - Resolusi BUG-014: Penambahan mekanisme Auto-Resolution pada `drift-evaluator.ts` untuk ketiga tipe anomali (`NON_COMPETENCY_OVERLOAD`, `SKILL_MONOTONY`, `APPROVAL_DORMANCY`) ke status `RESOLVED` dengan `resolvedAt = now()` saat kondisi pemicu sudah tidak terdeteksi (sesuai PRD FR-008), serta auto-resolution langsung di `verify.ts` saat mentor menyetujui seluruh logbook dorman.
+    - Resolusi BUG-015: Penyesuaian perhitungan agregasi jam 14 hari terakhir di dasbor guru `/teacher/heatmap` (`teachers.ts`) dengan mengecualikan presensi Sakit dan Izin sesuai PRD FR-005 A2.
+    - Verifikasi integritas kriptografi HMAC-SHA256 Canonical JSON pada `verify.ts`, `endorsements.ts`, dan `passports.ts` terbukti deterministik 100% dan konsisten dengan seeder `seed-v2.ts`.
+    - Seluruh pengujian otomatis (14 suite, 116 tests) lulus 100%, `pnpm typecheck` dan `pnpm lint` 100% hijau.
+- Sedang dikerjakan:
+  - Verifikasi menyeluruh alur juri (Judge Switcher demo flow) dan pengujian responsivitas lintas breakpoint.
+- Blocker:
+  - Tidak ada blocker.
 
 ### Hari 2 — Kam 22 Okt 2026
 - Selesai:

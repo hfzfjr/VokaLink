@@ -73,6 +73,9 @@ const DEFAULT_PLACEMENT_ID = "00000000-0000-0000-0000-000000000051";
 
 export default function NewLogPage() {
   const today = new Date().toISOString().split("T")[0]!;
+  const minDate = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split("T")[0]!;
   const [selectedDate, setSelectedDate] = useState(today);
   const [attendanceType, setAttendanceType] = useState<"PRESENT" | "SICK" | "PERMIT">("PRESENT");
   const [isNonCompetency, setIsNonCompetency] = useState(false);
@@ -172,18 +175,24 @@ export default function NewLogPage() {
   // Multi-card selection toggle handler (1 to 3 job cards, PRD FR-005)
   const handleToggleJobCard = (cardId: string) => {
     setSelectedJobCardIds((prev) => {
+      let updated: string[];
       if (prev.includes(cardId)) {
         if (prev.length <= 1) {
           return prev; // Pertahankan minimal 1 kartu
         }
-        return prev.filter((id) => id !== cardId);
+        updated = prev.filter((id) => id !== cardId);
       } else {
         if (prev.length >= 3) {
           alert("Maksimal 3 kartu pekerjaan per hari (PRD FR-005). Hapus satu pilihan terlebih dahulu bila ingin mengganti.");
           return prev;
         }
-        return [...prev, cardId];
+        updated = [...prev, cardId];
       }
+      // Pastikan durasi JP minimal mencukupi jumlah kartu yang dipilih
+      if (durationJp < updated.length) {
+        setDurationJp(updated.length);
+      }
+      return updated;
     });
   };
 
@@ -271,8 +280,8 @@ export default function NewLogPage() {
         autonomyLevel,
         jobCardIds: targetJobCardIds,
         jobCardTitle: targetJobCardTitle,
-        isNonCompetency: isSickOrPermit || isNonCompetency,
-        nonCompetencyCategory: isSickOrPermit ? "ADMIN_UMUM" : isNonCompetency ? nonCompetencyCategory : undefined,
+        isNonCompetency: isSickOrPermit ? false : isNonCompetency,
+        nonCompetencyCategory: isSickOrPermit ? undefined : isNonCompetency ? nonCompetencyCategory : undefined,
         shortNote: shortNote.trim() || undefined,
         clientCreatedAt,
         state: "queued",
@@ -442,6 +451,7 @@ export default function NewLogPage() {
               id="log-date"
               type="date"
               value={selectedDate}
+              min={minDate}
               max={today}
               onChange={(e) => setSelectedDate(e.target.value)}
               className="w-full text-sm font-semibold px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
@@ -730,7 +740,7 @@ export default function NewLogPage() {
             </div>
             <input
               type="range"
-              min={MIN_DAILY_JP}
+              min={!isSickOrPermit && !isNonCompetency ? Math.max(MIN_DAILY_JP, selectedJobCardIds.length) : MIN_DAILY_JP}
               max={MAX_DAILY_JP}
               value={durationJp}
               onChange={(e) => setDurationJp(parseInt(e.target.value, 10))}

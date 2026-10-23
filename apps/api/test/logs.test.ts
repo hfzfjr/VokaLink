@@ -265,5 +265,49 @@ describe("Log Sync & Validation Engine (FR-005, FR-006 & DESIGN.md §7.3)", () =
       expect(res.body.evidenceSha256).toBe(validSha256);
       expect(res.body.mimeType).toBe("image/webp");
     });
+
+    it("menerima batch sync multi-job card dengan alokasi durasi yang valid", async () => {
+      const clientUuid = crypto.randomUUID();
+      const placementUuid = crypto.randomUUID();
+      const today = new Date().toISOString().split("T")[0]!;
+
+      vi.mocked(prisma.dailyLog.findUnique).mockResolvedValueOnce(null);
+      vi.mocked(prisma.placement.findUnique).mockResolvedValueOnce({
+        id: placementUuid,
+        studentId: crypto.randomUUID(),
+        status: "ACTIVE",
+      } as any);
+      vi.mocked(prisma.dailyLog.findFirst).mockResolvedValueOnce(null);
+      vi.mocked(prisma.$transaction).mockResolvedValueOnce({ id: "server-log-456" } as any);
+
+      const res = await request(app)
+        .post("/api/v1/logs/sync")
+        .send({
+          logs: [
+            {
+              clientLogUuid: clientUuid,
+              placementId: placementUuid,
+              logDate: today,
+              attendanceType: "PRESENT",
+              items: [
+                {
+                  jobCardId: crypto.randomUUID(),
+                  durationJp: 4,
+                  autonomyLevel: 3,
+                },
+                {
+                  jobCardId: crypto.randomUUID(),
+                  durationJp: 4,
+                  autonomyLevel: 2,
+                },
+              ],
+            },
+          ],
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.acceptedCount).toBe(1);
+      expect(res.body.results[0].status).toBe("accepted");
+    });
   });
 });

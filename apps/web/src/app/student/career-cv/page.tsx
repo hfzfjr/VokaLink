@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { fetchStudentCv, updateStudentPassport, type StudentCvResponse } from "@/lib/api";
+import { QrCodeView } from "@/components/ui/QrCodeView";
 
 const DEMO_FALLBACK_CV: StudentCvResponse = {
   student: {
@@ -346,13 +347,18 @@ export default function CareerCvPage() {
                 </p>
               </div>
 
-              {/* QR Code Audit Stamp */}
+              {/* QR Code Audit Stamp (FR-012 & TC-010) */}
               <div className="text-center flex-shrink-0">
-                <div className="w-20 h-20 bg-slate-50 border-2 border-slate-900 rounded-xl flex flex-col items-center justify-center p-1.5 shadow-2xs">
-                  {/* Stylized high-contrast SVG QR for ATS scanning */}
-                  <svg className="w-12 h-12 text-slate-900" viewBox="0 0 100 100" fill="currentColor">
-                    <path d="M0 0h30v30H0zM10 10h10v10H10zM70 0h30v30H70zM80 10h10v10H80zM0 70h30v30H0zM10 80h10v10H10zM40 10h10v10H40zM40 30h10v10H40zM20 40h10v10H20zM60 40h10v10H60zM40 60h10v10H40zM80 40h20v10H80zM40 80h20v20H40zM70 70h10v20H70zM90 70h10v10H90zM80 90h20v10H80z" />
-                  </svg>
+                <div className="w-20 h-20 bg-white border-2 border-slate-900 rounded-xl flex flex-col items-center justify-center p-1 shadow-2xs">
+                  <QrCodeView
+                    value={
+                      typeof window !== "undefined"
+                        ? `${window.location.origin}${verificationUrl}`
+                        : `https://vokalink.id${verificationUrl}`
+                    }
+                    size={56}
+                    errorCorrectionLevel="M"
+                  />
                   <span className="text-[7.5px] font-black text-slate-800 uppercase mt-0.5 tracking-wider">
                     Scan Audit
                   </span>

@@ -9,6 +9,7 @@ import {
   verifyPinWithScrypt,
   sealObjectWithHmac,
 } from "@vokalink/core/crypto";
+import { buildWhatsAppDeepLink } from "@vokalink/core";
 import {
   mentorVerifyExecuteSchema,
   mentorDeviceCheckSchema,
@@ -623,6 +624,32 @@ verifyRouter.post(
               },
             });
           }
+
+          // PRD FR-008: Auto-resolve APPROVAL_DORMANCY jika tidak ada lagi log yang tertunda > 7 hari
+          if (signedLink.placementId) {
+            const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            const remainingDormantCount = await tx.dailyLog.count({
+              where: {
+                placementId: signedLink.placementId,
+                status: LogStatus.PENDING_VERIFICATION,
+                logDate: { lte: sevenDaysAgo },
+              },
+            });
+
+            if (remainingDormantCount === 0) {
+              await tx.driftAlert.updateMany({
+                where: {
+                  placementId: signedLink.placementId,
+                  alertType: "APPROVAL_DORMANCY",
+                  status: "OPEN",
+                },
+                data: {
+                  status: "RESOLVED",
+                  resolvedAt: now,
+                },
+              });
+            }
+          }
         } else {
           // REJECT / REVISION_REQUIRED
           for (const log of logsToProcess) {
@@ -750,12 +777,11 @@ verifyRouter.post(
       const origin = process.env["APP_ORIGIN"] || "http://localhost:3000";
       const fullUrl = `${origin}${verificationUrl}`;
 
-      // Teks pesan otomatis WhatsApp ramah dan informatif
-      const waMessage = encodeURIComponent(
-        `Halo Bapak/Ibu ${mentor.fullName} (${mentor.jobTitle}),\n\nSaya ${placement.student.fullName} (Siswa Magang SMK di ${placement.dudiPartner.name}) bermaksud meminta validasi jurnal Praktik Kerja Lapangan untuk ${actualLogIds.length} hari kegiatan yang telah saya selesaikan.\n\nMohon berkenan memvalidasi melalui tautan aman VokaLink berikut:\n${fullUrl}\n\nTerima kasih banyak atas bimbingan dan waktu Bapak/Ibu.`
-      );
+      // Teks pesan otomatis WhatsApp ramah dan informatif dengan nomor 628... (FR-009)
+      const waMessageText = `Halo Bapak/Ibu ${mentor.fullName} (${mentor.jobTitle}),\n\nSaya ${placement.student.fullName} (Siswa Magang SMK di ${placement.dudiPartner.name}) bermaksud meminta validasi jurnal Praktik Kerja Lapangan untuk ${actualLogIds.length} hari kegiatan yang telah saya selesaikan.\n\nMohon berkenan memvalidasi melalui tautan aman VokaLink berikut:\n${fullUrl}\n\nTerima kasih banyak atas bimbingan dan waktu Bapak/Ibu.`;
+
       const waShareUrl = mentor.whatsappNumber
-        ? `https://wa.me/${mentor.whatsappNumber.replace(/[^0-9]/g, "")}?text=${waMessage}`
+        ? buildWhatsAppDeepLink(mentor.whatsappNumber, waMessageText)
         : null;
 
       res.status(201).json({

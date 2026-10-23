@@ -51,6 +51,9 @@ Aturan:
 | BUG-006 | P3 Low | Fixed | Student Portal (FR-007) | Typo instruksi PIN pada modal QR minta verifikasi (6 digit bukannya 4 digit) | Orang B |
 | BUG-007 | P3 Low | Fixed | API Error Handler / DESIGN §9.4 | Global error handler ZodError dan registrasi sekolah mengembalikan status 400 bukannya 422 | Orang C |
 | BUG-008 | P2 Medium | Fixed | Teacher Heatmap (FR-008) | On-demand drift evaluate memicu duplikasi alert OPEN jika dijalankan berkali-kali dan GET /drift-alerts belum query DB | Orang C |
+| BUG-009 | P1 High | Fixed | Offline Sync (FR-006) | Pembagian alokasi durasi JP multi-kartu pada sync.ts dapat menghasilkan nilai <= 0 JP | Orang B |
+| BUG-010 | P1 High | Fixed | Drift Engine / Presensi (FR-005/008) | Log sakit/izin (A2) dihitung sebagai non-kompetensi sehingga memicu false-positive NON_COMPETENCY_OVERLOAD | Orang B |
+| BUG-011 | P2 Medium | Fixed | Photo Pipeline (FR-006) | Ketiadaan adaptive compression loop di photo.ts berpotensi memicu error permanen HTTP 413 | Orang B |
 
 ### BUG-001 — Trigger block_verified_log_update memakai nama kolom salah mentor_id
 - **Level:** P0 Critical
@@ -196,6 +199,124 @@ Aturan:
   Implementasi awal fokus pada pengujian unit fallback sebelum penambahan layer query relasional Prisma.
 - **Perbaikan (commit/PR):** Diperbarui pada `apps/api/src/routes/teachers.ts`: menambahkan pengecekan `prisma.driftAlert.findFirst` dan update snapshot untuk mencegah duplikasi, serta mengintegrasikan query `prisma.driftAlert.findMany` relasional dengan sorting tingkat urgensi anomali. Lolos typecheck dan 114 test lulus.
 
+### BUG-009 — Pembagian alokasi durasi JP multi-kartu pada sync.ts dapat menghasilkan nilai <= 0 JP
+- **Level:** P1 High
+- **Status:** Fixed
+- **Fitur/Modul:** Offline Sync Engine (FR-006 & PRD FR-005)
+- **Pelapor / Pemilik:** Orang B / Orang B
+- **Ditemukan:** 23 Okt 2026, audit logika sinkronisasi log multi-kartu
+- **Langkah reproduksi:**
+  1. Catat log harian dengan memilih 2 atau 3 Job Card dan durasi JP kecil (misal 1 JP).
+  2. Engine sinkronisasi menghitung `baseJp = Math.max(1, Math.floor(1 / 2)) = 1` dan `remainder = 1 - 2 = -1`.
+  3. Item pertama mendapatkan `durationJp = 1 + (-1) = 0 JP`.
+- **Hasil aktual:**
+  Backend menolak dengan HTTP 422 `VALIDATION_ERROR` karena skema Zod `dailyLogItemCreateSchema` mewajibkan `durationJp >= 1`. Log gagal tersinkron secara permanen.
+- **Hasil seharusnya (rujukan PRD/BR/TC):**
+  Setiap item selalu mendapatkan alokasi durasi integer minimal 1 JP melalui alokasi integer modulo yang aman.
+- **Perbaikan (commit/PR):** Diperbarui pada `apps/web/src/lib/pwa/sync.ts` dengan pembagian modulo integer dan pembatasan kartu sejumlah durasi JP, serta slider minimum di `NewLogPage.tsx` disesuaikan dengan jumlah kartu yang dipilih.
+
+### BUG-010 — Log sakit/izin (A2) dihitung sebagai non-kompetensi sehingga memicu false-positive NON_COMPETENCY_OVERLOAD
+- **Level:** P1 High
+- **Status:** Fixed
+- **Fitur/Modul:** Drift Evaluator & Student Presensi (FR-005 A2 & FR-008)
+- **Pelapor / Pemilik:** Orang B / Orang B
+- **Ditemukan:** 23 Okt 2026, audit kepatuhan aturan bisnis PRD FR-005 A2
+- **Langkah reproduksi:**
+  1. Siswa mencatat presensi Sakit / Izin (A2).
+  2. Formulir memberi tanda `isNonCompetency: true` dan `nonCompetencyCategory: 'ADMIN_UMUM'`.
+  3. Mesin evaluasi drift membaca entri tersebut dan menambahkan durasi ke `nonCompJp14d`.
+- **Hasil aktual:**
+  Siswa yang sakit 3 hari berturut-turut terdeteksi mengalami penyimpangan kompetensi 100% dan memicu alert palsu `NON_COMPETENCY_OVERLOAD` ke guru pembimbing.
+- **Hasil seharusnya (rujukan PRD/BR/TC):**
+  Sesuai PRD FR-005 A2: presensi sakit/izin tidak memengaruhi rasio deviasi kompetensi.
+- **Perbaikan (commit/PR):** Diperbarui pada `apps/api/src/services/drift-evaluator.ts` untuk mengecualikan log berstatus `SICK` dan `PERMIT` dari perhitungan deviasi non-kompetensi, serta form `NewLogPage.tsx` membersihkan flag non-kompetensi pada presensi sakit/izin.
+
+### BUG-011 — Ketiadaan adaptive compression loop di photo.ts berpotensi memicu error permanen HTTP 413
+- **Level:** P2 Medium
+- **Status:** Fixed
+- **Fitur/Modul:** Client-Side Photo Pipeline (FR-006 & DESIGN §7.1)
+- **Pelapor / Pemilik:** Orang B / Orang B
+- **Ditemukan:** 23 Okt 2026, audit batas ukuran biner server
+- **Langkah reproduksi:**
+  1. Unggah foto resolusi tinggi dengan noise frekuensi tinggi (misal foto mesin kompleks).
+  2. Kompresi satu langkah pada kualitas 0.65 menghasilkan WebP 160 KB.
+  3. Klien mencoba mengunggah biner ke server `PUT /logs/:uuid/evidence`.
+- **Hasil aktual:**
+  Server melempar HTTP 413 `FILE_TOO_LARGE` karena melebihi hard limit 150 KB. Antrean retry akan gagal tanpa batas.
+- **Hasil seharusnya (rujukan PRD/BR/TC):**
+  Pipeline kompresi menjamin ukuran foto selalu di bawah 150 KB (target 35–60 KB).
+- **Perbaikan (commit/PR):** Diperbarui pada `apps/web/src/lib/pwa/photo.ts`: menambahkan adaptive compression loop yang menurunkan kualitas secara adaptif dan men-downscale kanvas bila ukuran biner melebihi 145 KB.
+
+### BUG-012 — Tautan WhatsApp deep link pada verify.ts memakai nomor mentah tanpa normalisasi 628...
+- **Level:** P2 Medium
+- **Status:** Fixed
+- **Fitur/Modul:** Dual-Mode Mentor Verification (FR-007 & FR-009)
+- **Pelapor / Pemilik:** Orang C / Orang C
+- **Ditemukan:** 23 Okt 2026, audit kepatuhan tautan WhatsApp
+- **Langkah reproduksi:**
+  1. Siswa meminta verifikasi jurnal via WhatsApp (`POST /api/v1/verify/links`).
+  2. Nomor mentor terdaftar dengan format lokal Indonesia (misal `081234567890`).
+  3. Klien membuka tautan `waShareUrl`.
+- **Hasil aktual:**
+  `waShareUrl` menghasilkan `https://wa.me/081234567890...` yang ditolak oleh WhatsApp Web dan Mobile API (WhatsApp mewajibkan format nomor internasional tanpa angka 0 di depan).
+- **Hasil seharusnya (rujukan PRD/BR/TC):**
+  Nomor telepon dinormalisasi ke format `628...` menggunakan fungsi inti `buildWhatsAppDeepLink` dari `@vokalink/core`.
+- **Catatan / dugaan penyebab:**
+  Regex pembersih karakter lama hanya menghapus non-angka tanpa mengubah awalan `0` menjadi kode negara `62`.
+- **Perbaikan (commit/PR):** Diperbarui pada `apps/api/src/routes/verify.ts`: mengintegrasikan fungsi `buildWhatsAppDeepLink` dari `@vokalink/core` untuk memastikan tautan WhatsApp mengarah ke `https://wa.me/628...` secara baku.
+
+### BUG-013 — Deteksi SKILL_MONOTONY tidak pernah aktif pada data database riil akibat ketiadaan elemen 0 JP
+- **Level:** P1 High
+- **Status:** Fixed
+- **Fitur/Modul:** Algorithmic Drift Evaluator (FR-008 & BR-008)
+- **Pelapor / Pemilik:** Orang C / Orang C
+- **Ditemukan:** 23 Okt 2026, audit logika evaluasi drift pada database Prisma
+- **Langkah reproduksi:**
+  1. Siswa bekerja 100 JP pada 1 elemen CP dan 0 JP pada 3 elemen CP lainnya.
+  2. Guru menjalankan evaluasi drift atau cron malam berjalan (`evaluateDriftForAllPlacements`).
+  3. Mesin membaca log terverifikasi siswa dan mengisi `cpMap`.
+- **Hasil aktual:**
+  `cpMap` hanya menyimpan elemen CP yang pernah dikerjakan (`jp > 0`), sehingga `cpElementsJp` hanya memiliki panjang 1 dan `zeroCount` bernilai 0. Aturan `detectSkillMonotony` (`cpElementsJp.length >= 3` dan `zeroCount >= 2`) tidak pernah terpenuhi, sehingga anomali `SKILL_MONOTONY` tidak pernah terdeteksi pada database riil.
+- **Hasil seharusnya (rujukan PRD/BR/TC):**
+  Evaluator memetakan seluruh elemen CP kurikulum jurusan siswa (`student.schoolDepartment.cpElements`) sehingga elemen yang belum disentuh siswa tercatat dengan `jp: 0`.
+- **Catatan / dugaan penyebab:**
+  Query awal penempatan aktif belum menyertakan relasi `schoolDepartment.cpElements`.
+- **Perbaikan (commit/PR):** Diperbarui pada `apps/api/src/services/drift-evaluator.ts`: menyertakan relasi `student.schoolDepartment.cpElements` pada query penempatan aktif dan memetakan seluruh elemen CP jurusan sehingga elemen berkategori 0 JP terhitung akurat.
+
+### BUG-014 — Anomali DriftAlert yang telah terselesaikan tidak pernah di-resolve secara otomatis oleh sistem
+- **Level:** P1 High
+- **Status:** Fixed
+- **Fitur/Modul:** Algorithmic Drift Evaluator & Auto-Resolution (FR-008 & PRD FR-008)
+- **Pelapor / Pemilik:** Orang C / Orang C
+- **Ditemukan:** 23 Okt 2026, audit kepatuhan siklus hidup anomali PRD FR-008
+- **Langkah reproduksi:**
+  1. Siswa memiliki anomali `APPROVAL_DORMANCY` karena mentor tidak merespons > 7 hari.
+  2. Mentor kemudian menyetujui seluruh logbook siswa.
+  3. Cron harian atau tombol evaluasi on-demand dijalankan.
+- **Hasil aktual:**
+  `drift-evaluator.ts` hanya membuat/memperbarui alert saat `detected === true`. Ketika `detected === false`, sistem membiarkan status `DriftAlert` tetap `OPEN` selamanya di dasbor guru.
+- **Hasil seharusnya (rujukan PRD/BR/TC):**
+  Sesuai PRD FR-008: jika kondisi pemicu sudah tidak terpenuhi lagi pada evaluasi harian berikutnya (misal: mentor telah memverifikasi seluruh log yang dorman), sistem secara otomatis memperbarui status DriftAlert dari `OPEN` menjadi `RESOLVED` dengan `resolvedAt = NOW()`.
+- **Catatan / dugaan penyebab:**
+  Ketiadaan blok `else` pada evaluasi ketiga tipe anomali di `drift-evaluator.ts`.
+- **Perbaikan (commit/PR):** Diperbarui pada `apps/api/src/services/drift-evaluator.ts`: menambahkan auto-resolution (`status: "RESOLVED"`, `resolvedAt: now`) untuk ketiga jenis anomali saat kondisi pemicu tidak lagi terdeteksi, serta menambahkan penyelesaian langsung di `apps/api/src/routes/verify.ts` saat mentor mengeksekusi persetujuan seluruh logbook dorman.
+
+### BUG-015 — Presensi Sakit/Izin (A2) ikut terhitung ke dalam total 14 hari di heatmap guru
+- **Level:** P2 Medium
+- **Status:** Fixed
+- **Fitur/Modul:** Teacher Live Competency Heatmap (FR-008 & PRD FR-005 A2)
+- **Pelapor / Pemilik:** Orang C / Orang C
+- **Ditemukan:** 23 Okt 2026, sinkronisasi perhitungan deviasi guru
+- **Langkah reproduksi:**
+  1. Siswa mencatat presensi Sakit / Izin dalam 14 hari terakhir.
+  2. Guru membuka matriks heatmap `/teacher/heatmap`.
+- **Hasil aktual:**
+  Perhitungan `totalJpLast14Days` di `apps/api/src/routes/teachers.ts` menjumlahkan seluruh entri tanpa mengecualikan presensi sakit/izin, sehingga angka total jam 14 hari siswa berbeda dengan perhitungan evaluator drift.
+- **Hasil seharusnya (rujukan PRD/BR/TC):**
+  Sesuai PRD FR-005 A2: presensi sakit/izin tidak memengaruhi perhitungan rasio deviasi kompetensi.
+- **Catatan / dugaan penyebab:**
+  Penyesuaian BUG-010 sebelumnya baru diterapkan pada `drift-evaluator.ts` dan belum disinkronkan ke route `teachers.ts`.
+- **Perbaikan (commit/PR):** Diperbarui pada `apps/api/src/routes/teachers.ts`: menambahkan filter `log.attendanceType !== "SICK" && log.attendanceType !== "PERMIT"` pada agregasi jam 14 hari terakhir.
 
 ## 5. Catatan Dokumen (ketidaksinkronan yang diketahui)
 

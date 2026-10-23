@@ -620,7 +620,8 @@ async function handleGetHeatmap(req: Request, res: Response, next: NextFunction)
             totalPendingJp += item.durationJp;
           }
 
-          if (isLast14Days) {
+          // PRD FR-005 (A2): Presensi Sakit/Izin tidak memengaruhi rasio deviasi kompetensi
+          if (isLast14Days && log.attendanceType !== "SICK" && log.attendanceType !== "PERMIT") {
             totalJpLast14Days += item.durationJp;
             if (item.jobCard?.isNonCompetency || item.nonCompetencyCategory) {
               nonCompetencyJpLast14Days += item.durationJp;

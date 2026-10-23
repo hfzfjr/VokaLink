@@ -45,7 +45,15 @@ export async function evaluateDriftForAllPlacements(): Promise<DriftEvaluationRe
           },
         },
       },
-      student: true,
+      student: {
+        include: {
+          schoolDepartment: {
+            include: {
+              cpElements: true,
+            },
+          },
+        },
+      },
       dudiPartner: true,
       dudiMentor: true,
     },
@@ -88,7 +96,8 @@ export async function evaluateDriftForAllPlacements(): Promise<DriftEvaluationRe
           }
         }
 
-        if (is14d) {
+        // PRD FR-005 (A2): Presensi Sakit/Izin tidak memengaruhi rasio deviasi kompetensi
+        if (is14d && log.attendanceType !== "SICK" && log.attendanceType !== "PERMIT") {
           totalJp14d += item.durationJp;
           if (item.jobCard?.isNonCompetency || item.nonCompetencyCategory) {
             nonCompJp14d += item.durationJp;
@@ -145,13 +154,34 @@ export async function evaluateDriftForAllPlacements(): Promise<DriftEvaluationRe
           },
         });
       }
+    } else {
+      // PRD FR-008: Auto-resolve jika kondisi rasio non-kompetensi sudah kembali normal
+      await prisma.driftAlert.updateMany({
+        where: {
+          placementId: p.id,
+          alertType: "NON_COMPETENCY_OVERLOAD",
+          status: "OPEN",
+        },
+        data: {
+          status: "RESOLVED",
+          resolvedAt: now,
+        },
+      });
     }
 
-    // 2. Evaluasi SKILL_MONOTONY
-    const cpElementsJp = Array.from(cpMap.entries()).map(([elementId, jp]) => ({
-      elementId,
-      jp,
-    }));
+    // 2. Evaluasi SKILL_MONOTONY (Memetakan seluruh elemen CP kurikulum jurusan siswa)
+    const allDeptCpElements = p.student.schoolDepartment?.cpElements || [];
+    const cpElementsJp =
+      allDeptCpElements.length > 0
+        ? allDeptCpElements.map((elem) => ({
+            elementId: elem.id,
+            jp: cpMap.get(elem.id) || 0,
+          }))
+        : Array.from(cpMap.entries()).map(([elementId, jp]) => ({
+            elementId,
+            jp,
+          }));
+
     const daysSincePklStart = p.dailyLogs.length;
     const monotonyRes = detectSkillMonotony({
       daysSincePklStart,
@@ -200,6 +230,19 @@ export async function evaluateDriftForAllPlacements(): Promise<DriftEvaluationRe
           },
         });
       }
+    } else {
+      // PRD FR-008: Auto-resolve jika rotasi capaian materi sudah merata
+      await prisma.driftAlert.updateMany({
+        where: {
+          placementId: p.id,
+          alertType: "SKILL_MONOTONY",
+          status: "OPEN",
+        },
+        data: {
+          status: "RESOLVED",
+          resolvedAt: now,
+        },
+      });
     }
 
     // 3. Evaluasi APPROVAL_DORMANCY
@@ -247,6 +290,19 @@ export async function evaluateDriftForAllPlacements(): Promise<DriftEvaluationRe
           },
         });
       }
+    } else {
+      // PRD FR-008: Auto-resolve jika logbook tertunda telah diverifikasi
+      await prisma.driftAlert.updateMany({
+        where: {
+          placementId: p.id,
+          alertType: "APPROVAL_DORMANCY",
+          status: "OPEN",
+        },
+        data: {
+          status: "RESOLVED",
+          resolvedAt: now,
+        },
+      });
     }
   }
 

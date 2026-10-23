@@ -72,7 +72,7 @@ export function ConnectivityBanner({
       <aside
         role="alert"
         aria-live="assertive"
-        className="w-full bg-gradient-to-r from-rose-600 to-amber-600 text-white shadow-md transition-all duration-300"
+        className="w-full bg-rose-600 border-b border-rose-700 text-white shadow-xs transition-all duration-300"
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm font-medium">
           <div className="flex items-center gap-2.5">
@@ -108,7 +108,7 @@ export function ConnectivityBanner({
       <aside
         role="status"
         aria-live="polite"
-        className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md transition-all duration-300"
+        className="w-full bg-amber-600 border-b border-amber-700 text-white shadow-xs transition-all duration-300"
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 text-xs sm:text-sm font-medium">
           <div className="flex items-center gap-2.5">
@@ -135,7 +135,7 @@ export function ConnectivityBanner({
       <aside
         role="status"
         aria-live="polite"
-        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md transition-all duration-300"
+        className="w-full bg-blue-600 border-b border-blue-700 text-white shadow-xs transition-all duration-300"
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm font-medium">
           <div className="flex items-center gap-2.5">
@@ -171,7 +171,7 @@ export function ConnectivityBanner({
       <aside
         role="status"
         aria-live="polite"
-        className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md transition-all duration-300"
+        className="w-full bg-emerald-600 border-b border-emerald-700 text-white shadow-xs transition-all duration-300"
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between gap-2.5 text-xs sm:text-sm font-medium">
           <div className="flex items-center gap-2">
