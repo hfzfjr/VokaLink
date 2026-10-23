@@ -14,7 +14,6 @@ import {
   Check,
   X,
 } from "lucide-react";
-import Navbar from "@/components/layout/Navbar";
 import Skeleton from "@/components/ui/Skeleton";
 import {
   fetchEraporData,
@@ -261,10 +260,7 @@ export default function EraporPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      <Navbar />
-
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="space-y-6">
         {/* Header Breadcrumb & Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
@@ -523,7 +519,6 @@ export default function EraporPage() {
             </div>
           )}
         </div>
-      </main>
 
       {/* Modal Detail & Penyesuaian Guru (A1 Override) */}
       {detailStudent && (

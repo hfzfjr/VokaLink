@@ -17,7 +17,6 @@ import {
   X,
   UserCheck,
 } from "lucide-react";
-import Navbar from "@/components/layout/Navbar";
 import Skeleton from "@/components/ui/Skeleton";
 import {
   fetchPlacementCandidates,
@@ -392,10 +391,7 @@ export default function SmartPlacementPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      <Navbar />
-
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="space-y-6">
         {/* Breadcrumb & Header Title */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
@@ -748,7 +744,6 @@ export default function SmartPlacementPage() {
             )}
           </div>
         )}
-      </main>
 
       {/* Modal 1: Konfirmasi Penempatan Siswa (Tunggal) */}
       {assignModalStudent && (

@@ -31,7 +31,7 @@ export function StudentHeader() {
           <Link
             href="/"
             title="Kembali ke Beranda Utama"
-            className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition"
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition"
             aria-label="Kembali ke Beranda Utama"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -42,7 +42,7 @@ export function StudentHeader() {
               <span className="font-black text-base tracking-tight text-slate-900 leading-none">
                 VokaLink
               </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-extrabold leading-none tracking-wide">
+              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-100 font-extrabold leading-none tracking-wide">
                 SISWA
               </span>
             </div>
@@ -55,7 +55,7 @@ export function StudentHeader() {
         {/* Desktop Navigation Bar (hidden on mobile, visible on tablet & desktop) */}
         <nav
           aria-label="Navigasi Desktop Siswa"
-          className="hidden md:flex items-center gap-1 bg-slate-100/90 p-1 rounded-2xl border border-slate-200/80 shadow-2xs"
+          className="hidden md:flex items-center gap-1 bg-slate-100/80 p-1 rounded-full border border-slate-200/80 shadow-2xs"
         >
           {DESKTOP_NAV_LINKS.map((item) => {
             const Icon = item.icon;
@@ -68,16 +68,16 @@ export function StudentHeader() {
                 key={item.href}
                 href={item.href}
                 className={clsx(
-                  "flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-150",
+                  "flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-150",
                   isActive
-                    ? "bg-white text-blue-700 shadow-xs ring-1 ring-slate-200/50"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                    ? "bg-sky-500 text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-white"
                 )}
               >
                 <Icon
                   className={clsx(
                     "w-4 h-4",
-                    isActive ? "text-blue-600 stroke-[2.3]" : "text-slate-400"
+                    isActive ? "text-white stroke-[2.3]" : "text-slate-400"
                   )}
                 />
                 <span>{item.label}</span>
@@ -94,7 +94,7 @@ export function StudentHeader() {
           </div>
 
           <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-slate-200">
-            <div className="w-8 h-8 rounded-xl bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center shadow-xs">
+            <div className="w-8 h-8 rounded-full bg-sky-500 text-white font-extrabold text-xs flex items-center justify-center shadow-xs">
               AP
             </div>
             <div className="text-left hidden lg:block">

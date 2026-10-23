@@ -17,7 +17,6 @@ import {
   Compass,
 } from "lucide-react";
 import { TOTAL_TARGET_JP } from "@vokalink/shared";
-import Navbar, { NavbarButton } from "@/components/layout/Navbar";
 import StatCard from "@/components/common/StatCard";
 import DemoBadge from "@/components/common/DemoBadge";
 
@@ -140,18 +139,8 @@ export default function SchoolDashboardPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <Navbar
-        variant="sticky"
-        subtitle="Panel Pengelola SMK (Pokja PKL)"
-        rightSlot={
-          <NavbarButton href="/login" label="Ganti Peran (Judge Switcher)" />
-        }
-      />
-
-      {/* Main Content */}
-      <main className="max-w-6xl mx-auto w-full px-4 py-6 flex-1 space-y-6">
-        {loading ? (
+    <div className="space-y-6">
+      {loading ? (
           <div className="space-y-4">
             <div className="h-28 rounded-2xl bg-slate-200 animate-pulse" />
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -346,12 +335,6 @@ export default function SchoolDashboardPage() {
             </div>
           </>
         ) : null}
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500">
-        <p>© 2026 VokaLink · Ekosistem PKL SMK Terkoneksi</p>
-      </footer>
     </div>
   );
 }

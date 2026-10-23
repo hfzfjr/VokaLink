@@ -20,7 +20,6 @@ import {
   WifiOff,
   X,
 } from "lucide-react";
-import Navbar, { NavbarButton } from "@/components/layout/Navbar";
 import Skeleton from "@/components/ui/Skeleton";
 import Button from "@/components/ui/Button";
 import {
@@ -425,24 +424,16 @@ export default function SchoolCurriculumPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      <Navbar
-        variant="sticky"
-        subtitle="Pengaturan Kurikulum & Katalog Job Cards (FR-002)"
-        rightSlot={
-          <NavbarButton href="/school/dashboard" label="Kembali ke Dashboard" />
-        }
-      />
-
+    <div className="space-y-6">
       {/* Connectivity Banner (FR-006 Offline Condition) */}
       {isOffline && (
-        <div className="bg-amber-500 text-white text-xs font-semibold py-2 px-4 flex items-center justify-center gap-2 shadow-xs">
+        <div className="bg-amber-500 text-white text-xs font-semibold py-2 px-4 rounded-2xl flex items-center justify-center gap-2 shadow-xs">
           <WifiOff className="w-4 h-4" />
           <span>Mode Offline aktif. Perubahan akan disimpan di cache lokal peramban.</span>
         </div>
       )}
 
-      <main className="max-w-6xl mx-auto w-full px-4 py-6 flex-1 space-y-6">
+      <div className="space-y-6">
         {/* Navigation Breadcrumb & Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -926,7 +917,7 @@ export default function SchoolCurriculumPage() {
             </div>
           </div>
         )}
-      </main>
+      </div>
 
       {/* Modal Tambah Job Card */}
       {isAddModalOpen && (
