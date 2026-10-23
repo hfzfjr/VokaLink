@@ -170,9 +170,9 @@ export default function Home() {
             </div>
             <div>
               <span className="text-xl font-extrabold tracking-tight text-slate-900 block leading-none">
-                VokaLink <span className="text-sky-500">SMK</span>
+                VokaLink <span className="text-sky-600">SMK</span>
               </span>
-              <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+              <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">
                 Sistem Monitoring Vokasi
               </span>
             </div>
@@ -286,79 +286,81 @@ export default function Home() {
         )}
       </header>
 
-      {/* 2. HERO SECTION (Airy, Confident & Modern SaaS) */}
-      <section className="relative pt-16 pb-20 lg:pt-24 lg:pb-28 overflow-hidden bg-grid-pattern">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 leading-[1.12]">
-              Monitoring PKL SMK{" "}
-              <span className="text-sky-500">Lebih Terukur</span>{" "}
-              & Bebas Dokumen Kertas
-            </h1>
-            <p className="mt-6 text-base sm:text-lg lg:text-xl text-slate-600 font-normal leading-relaxed max-w-2xl mx-auto">
-              Satu ekosistem digital yang menghubungkan <strong className="text-slate-800">Siswa Vokasi</strong>,{" "}
-              <strong className="text-slate-800">Guru Pembimbing</strong>, dan{" "}
-              <strong className="text-slate-800">Mentor DUDI</strong> secara transparan, akurat, dan terintegrasi langsung
-              dengan standar asesmen industri tanpa beban biaya server (Rp0).
-            </p>
+      {/* MAIN CONTENT LANDMARK */}
+      <main id="main-content">
+        {/* 2. HERO SECTION (Airy, Confident & Modern SaaS) */}
+        <section className="relative pt-16 pb-20 lg:pt-24 lg:pb-28 overflow-hidden bg-grid-pattern">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="text-center max-w-4xl mx-auto">
+              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 leading-[1.12]">
+                Monitoring PKL SMK{" "}
+                <span className="text-sky-600">Lebih Terukur</span>{" "}
+                & Bebas Dokumen Kertas
+              </h1>
+              <p className="mt-6 text-base sm:text-lg lg:text-xl text-slate-600 font-normal leading-relaxed max-w-2xl mx-auto">
+                Satu ekosistem digital yang menghubungkan <strong className="text-slate-800">Siswa Vokasi</strong>,{" "}
+                <strong className="text-slate-800">Guru Pembimbing</strong>, dan{" "}
+                <strong className="text-slate-800">Mentor DUDI</strong> secara transparan, akurat, dan terintegrasi langsung
+                dengan standar asesmen industri tanpa beban biaya server (Rp0).
+              </p>
 
-            {/* CTA Buttons */}
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-              <Link
-                href="/login"
-                className="px-8 py-4 rounded-full bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-sm sm:text-base shadow-lg shadow-sky-500/25 hover:scale-105 transition duration-150 flex items-center gap-2"
-              >
-                <span>Buka Live Dashboard PKL</span>
-                <ArrowRight className="size-4" />
-              </Link>
-              <button
-                type="button"
-                onClick={() => setDemoModalOpen(true)}
-                className="px-8 py-4 rounded-full bg-white hover:bg-slate-50 text-slate-700 font-bold text-sm sm:text-base border border-slate-200/80 shadow-xs hover:shadow transition flex items-center gap-2"
-              >
-                <Play className="size-4 text-sky-500 fill-sky-500" />
-                <span>Simulasi Peran Juri & Guru</span>
-              </button>
-            </div>
+              {/* CTA Buttons */}
+              <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+                <Link
+                  href="/login"
+                  className="px-8 py-4 rounded-full bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-sm sm:text-base shadow-lg shadow-sky-600/25 hover:scale-105 transition duration-150 flex items-center gap-2"
+                >
+                  <span>Buka Live Dashboard PKL</span>
+                  <ArrowRight className="size-4" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setDemoModalOpen(true)}
+                  className="px-8 py-4 rounded-full bg-white hover:bg-slate-50 text-slate-700 font-bold text-sm sm:text-base border border-slate-200/80 shadow-xs hover:shadow transition flex items-center gap-2"
+                >
+                  <Play className="size-4 text-sky-600 fill-sky-600" />
+                  <span>Simulasi Peran Juri & Guru</span>
+                </button>
+              </div>
 
-            <p className="text-xs text-slate-400 mt-6 flex items-center justify-center gap-2">
-              <Check className="size-3.5 text-emerald-500" />
-              <span>Tanpa instalasi server rumit &bull; Integrasi data via Excel / Dapodik &bull; PWA Offline-First</span>
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. QUICK METRICS COUNTER BANNER */}
-      <section className="py-10 bg-white border-y border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div className="p-3">
-              <p className="text-3xl sm:text-4xl font-extrabold text-sky-500 tracking-tight">792 JP</p>
-              <p className="text-xs sm:text-sm font-bold text-slate-700 mt-1">Standar Intrakurikuler</p>
-              <p className="text-[11px] text-slate-400">Kurikulum Merdeka Fase F</p>
-            </div>
-
-            <div className="p-3">
-              <p className="text-3xl sm:text-4xl font-extrabold text-emerald-400 tracking-tight">&lt; 10 dtk</p>
-              <p className="text-xs sm:text-sm font-bold text-slate-700 mt-1">Stempel Cepat Zero-Login</p>
-              <p className="text-[11px] text-slate-400">Tanpa Registrasi Akun Mentor</p>
-            </div>
-
-            <div className="p-3">
-              <p className="text-3xl sm:text-4xl font-extrabold text-indigo-400 tracking-tight">100%</p>
-              <p className="text-xs sm:text-sm font-bold text-slate-700 mt-1">PWA Offline-First</p>
-              <p className="text-[11px] text-slate-400">IndexedDB & WebP &lt; 60 KB</p>
-            </div>
-
-            <div className="p-3">
-              <p className="text-3xl sm:text-4xl font-extrabold text-amber-400 tracking-tight">Rp0</p>
-              <p className="text-xs sm:text-sm font-bold text-slate-700 mt-1">Biaya Server Sekolah</p>
-              <p className="text-[11px] text-slate-400">Zero-Cost Architecture UINIC 8.0</p>
+              <p className="text-xs text-slate-500 mt-6 flex items-center justify-center gap-2">
+                <Check className="size-3.5 text-emerald-600" />
+                <span>Tanpa instalasi server rumit &bull; Integrasi data via Excel / Dapodik &bull; PWA Offline-First</span>
+              </p>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+
+        {/* 4. QUICK METRICS COUNTER BANNER */}
+        <section className="py-10 bg-white border-y border-slate-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+              <div className="p-3">
+                <p className="text-3xl sm:text-4xl font-extrabold text-sky-600 tracking-tight">792 JP</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-700 mt-1">Standar Intrakurikuler</p>
+                <p className="text-[11px] text-slate-500">Kurikulum Merdeka Fase F</p>
+              </div>
+
+              <div className="p-3">
+                <p className="text-3xl sm:text-4xl font-extrabold text-emerald-600 tracking-tight">&lt; 10 dtk</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-700 mt-1">Stempel Cepat Zero-Login</p>
+                <p className="text-[11px] text-slate-500">Tanpa Registrasi Akun Mentor</p>
+              </div>
+
+              <div className="p-3">
+                <p className="text-3xl sm:text-4xl font-extrabold text-indigo-600 tracking-tight">100%</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-700 mt-1">PWA Offline-First</p>
+                <p className="text-[11px] text-slate-500">IndexedDB & WebP &lt; 60 KB</p>
+              </div>
+
+              <div className="p-3">
+                <p className="text-3xl sm:text-4xl font-extrabold text-amber-600 tracking-tight">Rp0</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-700 mt-1">Biaya Server Sekolah</p>
+                <p className="text-[11px] text-slate-500">Zero-Cost Architecture UINIC 8.0</p>
+              </div>
+            </div>
+          </div>
+        </section>
 
       {/* 5. FITUR 3 DIMENSI: TAB SWITCHER (Siswa, Guru, DUDI) */}
       <section id="fitur" className="py-20 lg:py-28 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1059,6 +1061,8 @@ export default function Home() {
         </div>
       </section>
 
+      </main>
+
       {/* 11. FOOTER 5-KOLOM */}
       <footer className="bg-white border-t border-slate-100 pt-16 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1070,20 +1074,20 @@ export default function Home() {
                   <Lightbulb className="size-5 text-white" />
                 </div>
                 <span className="text-xl font-bold tracking-tight text-slate-800">
-                  VokaLink <span className="text-sky-500">SMK</span>
+                  VokaLink <span className="text-sky-600">SMK</span>
                 </span>
               </div>
               <p className="text-xs text-slate-500 leading-relaxed max-w-sm">
                 Interconnected Multi-Sector Vocational Internship Competency, Zero-Login Verification & Verifiable Career Ecosystem. Platform PKL SMK Kurikulum Merdeka Fase F 792 JP.
               </p>
-              <div className="text-[11px] text-slate-400">
+              <div className="text-[11px] text-slate-500">
                 Dikembangkan untuk kompetisi <strong>UINIC 8.0 Web Development 2026</strong> (Subtema: Education).
               </div>
             </div>
 
             {/* Col 2: Fitur Utama */}
             <div>
-              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4">Fitur Utama</h4>
+              <p className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-4">Fitur Utama</p>
               <ul className="space-y-2 text-xs font-medium text-slate-500">
                 <li><a href="#fitur" className="hover:text-sky-600 transition">Presensi GPS Geofencing</a></li>
                 <li><a href="#fitur" className="hover:text-sky-600 transition">Logbook PWA Offline-First</a></li>
@@ -1095,7 +1099,7 @@ export default function Home() {
 
             {/* Col 3: Program Keahlian */}
             <div>
-              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4">Program Keahlian</h4>
+              <p className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-4">Program Keahlian</p>
               <ul className="space-y-2 text-xs font-medium text-slate-500">
                 <li><a href="#simulasi" className="hover:text-sky-600 transition">RPL / PPLG</a></li>
                 <li><a href="#simulasi" className="hover:text-sky-600 transition">TKJ / TJKT</a></li>
@@ -1107,19 +1111,19 @@ export default function Home() {
 
             {/* Col 4: Regulasi & Akses Portal */}
             <div>
-              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4">Akses & Regulasi</h4>
+              <p className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-4">Akses & Regulasi</p>
               <ul className="space-y-2 text-xs font-medium text-slate-500">
                 <li><Link href="/login" className="hover:text-sky-600 transition font-bold text-sky-600">Simulasi Demo Juri</Link></li>
                 <li><Link href="/register-school" className="hover:text-sky-600 transition">Daftarkan Sekolah Baru</Link></li>
                 <li><Link href="/verify/andi-pratama-rpl-2026" className="hover:text-sky-600 transition">Uji Paspor Ber-QR &rarr;</Link></li>
-                <li className="text-slate-400 pt-1">Permendikbudristek 12/2024</li>
-                <li className="text-slate-400">Target 792 JP Intrakurikuler</li>
+                <li className="text-slate-500 pt-1">Permendikbudristek 12/2024</li>
+                <li className="text-slate-500">Target 792 JP Intrakurikuler</li>
               </ul>
             </div>
           </div>
 
           {/* Copyright & Legal */}
-          <div className="pt-8 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
+          <div className="pt-8 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
             <p>&copy; 2026 VokaLink SMK. Hak Cipta Dilindungi Undang-Undang. Zero-Cost Architecture.</p>
             <div className="flex items-center gap-6">
               <Link href="/login" className="hover:text-slate-600 transition">
@@ -1141,12 +1145,12 @@ export default function Home() {
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
               <div>
                 <h3 className="text-lg font-bold text-slate-800">Jadwalkan Demo & Konsultasi</h3>
-                <p className="text-xs text-slate-400">Dapatkan akses akun percobaan gratis untuk SMK Anda</p>
+                <p className="text-xs text-slate-500">Dapatkan akses akun percobaan gratis untuk SMK Anda</p>
               </div>
               <button
                 type="button"
                 onClick={() => setDemoModalOpen(false)}
-                className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm flex items-center justify-center"
+                className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-500 text-sm flex items-center justify-center"
               >
                 <X className="size-4" />
               </button>

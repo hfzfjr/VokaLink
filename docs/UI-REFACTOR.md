@@ -28,7 +28,7 @@
 | CP4 | Portal siswa | `student/home`, `student/log/new` (stepper), `student/log/history`, `student/career-cv` | ☑ |
 | CP5 | Portal sekolah | `school/dashboard`, `curriculum`, `dudi-directory`, `placements`, `erapor` | ☑ |
 | CP6 | Mentor & Publik | `v/[token]/activate`, `verify/[passportSlug]` | ☑ |
-| CP7 | Audit akhir | Grep kepatuhan, Lighthouse, tangkapan layar, perbarui PROGRESS.md | ☐ |
+| CP7 | Audit akhir | Grep kepatuhan, Lighthouse, tangkapan layar, perbarui PROGRESS.md | ☑ |
 
 Catatan: rute `teacher/*` (heatmap) dan `v/[token]` (halaman utama, `endorse`) memakai komponen dari CP1 dan shell dari CP2 saat dibangun.
 

@@ -248,6 +248,7 @@ export default function StudentHomePage() {
                 className="bg-sky-500 h-full rounded-full transition-all duration-500"
                 style={{ width: `${progressPercentage}%` }}
                 role="progressbar"
+                aria-label="Progres Jam Pelajaran PKL"
                 aria-valuenow={student.verifiedJp}
                 aria-valuemin={0}
                 aria-valuemax={student.targetJp}
