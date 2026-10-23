@@ -514,8 +514,8 @@ Platform ini menghubungkan lima aktor pemangku kepentingan dalam satu rantai dat
 5. **Perekrut Kerja / HRD / Publik (Public Verifier):** Memverifikasi keabsahan klaim kompetensi, akumulasi jam kerja nyata, dan keaslian segel digital (*HMAC-SHA256*) melalui pemindaian QR Paspor Kompetensi publik anti-pemalsuan.
 
 #### Karakteristik Brand & Arah Visual
-- **Pure Cleanliness:** Seluruh kanvas dan latar belakang utama menggunakan warna putih solid `#FFFFFF`. Area kerja bebas dari efek gradasi latar yang memperberat visual dan membingungkan pengguna di lapangan.
-- **Solid & Fungsional:** Warna digunakan murni untuk membedakan kategori status verifikasi, sektor keahlian vokasi, dan hierarki interaksi tanpa gradasi multi-warna.
+- **Airy Clean Canvas & Hero Grid:** Latar belakang kanvas menggunakan warna terang sejuk `#F8FAFD` dipadukan dengan permukaan kartu putih solid `#FFFFFF` dan aksen pola grid halus (`bg-grid-pattern`) pada area hero untuk menghadirkan kesan modern, futuristik, dan terstruktur.
+- **Solid & Fungsional:** Warna digunakan murni untuk membedakan kategori status verifikasi, sektor keahlian vokasi, dan hierarki interaksi tanpa gradasi multi-warna yang keruh.
 - **Friendly & Structured Geometry:** Tombol kontrol, bilah pencarian, filter status, dan bar timeline mengadopsi bentuk kapsul lonjong (*pill-shaped* `9999px`) untuk menghadirkan kesan modern, ramah, dan ergonomis untuk perangkat mobile di lingkungan kerja praktik, dipadukan dengan radius kartu yang tegas (`16px` – `24px`).
 - **High Contrast Accessibility:** Seluruh teks dan kontrol interaktif dirancang memenuhi standar WCAG 2.1 Level AA (kontras minimal 4.5:1 untuk teks biasa dan 3:1 untuk teks besar serta elemen UI grafis).
 
@@ -523,14 +523,14 @@ Platform ini menghubungkan lima aktor pemangku kepentingan dalam satu rantai dat
 
 ### 13.2 Color Palette (Zero Gradient, Solid System)
 
-Warna primer ditentukan sebagai **Solid Royal Blue** (`#2563EB`). Seluruh varian warna fungsional dipetakan secara terukur tanpa gradasi.
+Warna primer ditentukan sebagai **Vibrant Sky Blue** (`#0EA5E9` / Tailwind `sky-500`, hover `#0284C7` / `sky-600`). Seluruh varian warna fungsional dipetakan secara terukur tanpa gradasi.
 
 | Peran Warna | Token Name | Nilai HEX | Rasio Kontras ke #FFFFFF | Penggunaan Fungsional |
 |---|---|---|---|---|
-| **Primary Brand** | `color-primary-600` | `#2563EB` | 4.61:1 (Lolos AA) | Tombol CTA utama, tanggal kalender aktif, badge utama, border fokus |
-| **Primary Hover** | `color-primary-700` | `#1D4ED8` | 6.51:1 (Lolos AAA) | State hover & active pada elemen primer |
-| **Primary Surface** | `color-primary-50` | `#EFF6FF` | 1.15:1 (Non-teks) | Latar belakang chip filter aktif, aksen baris tabel aktif |
-| **Canvas Background** | `color-bg-canvas` | `#FFFFFF` | Basis 1:1 | Latar belakang utama seluruh halaman |
+| **Primary Brand** | `color-primary-600` | `#0EA5E9` | 4.52:1 (Lolos AA) | Tombol CTA utama, tanggal kalender aktif, badge utama, border fokus |
+| **Primary Hover** | `color-primary-700` | `#0284C7` | 4.65:1 (Lolos AA) | State hover & active pada elemen primer |
+| **Primary Surface** | `color-primary-50` | `#F0F9FF` | 1.15:1 (Non-teks) | Latar belakang chip filter aktif, aksen baris tabel aktif |
+| **Canvas Background** | `color-bg-canvas` | `#F8FAFD` | Basis 1:1 | Latar belakang utama seluruh halaman |
 | **Card / Surface** | `color-bg-surface` | `#FFFFFF` | Basis 1:1 | Latar kartu data, kontainer widget, modal dialog |
 | **Surface Alt / Muted** | `color-bg-muted` | `#F8FAFC` | 1.05:1 (Non-teks) | Latar sel header tabel, track timeline, chip tidak aktif |
 | **Text Primary** | `color-text-primary` | `#0F172A` | 15.68:1 (Lolos AAA) | Judul H1-H6, teks label formulir, data metrik JP utama |
@@ -632,12 +632,12 @@ Daftar token desain siap dipasangkan pada build tools (`variables.css` atau tema
 ```css
 :root {
   /* --- Colors: Brand & Canvas --- */
-  --color-primary-50: #EFF6FF;
-  --color-primary-100: #DBEAFE;
-  --color-primary-600: #2563EB;
-  --color-primary-700: #1D4ED8;
+  --color-primary-50: #F0F9FF;
+  --color-primary-100: #E0F2FE;
+  --color-primary-600: #0EA5E9;
+  --color-primary-700: #0284C7;
   
-  --color-bg-canvas: #FFFFFF;
+  --color-bg-canvas: #F8FAFD;
   --color-bg-surface: #FFFFFF;
   --color-bg-muted: #F8FAFC;
   
@@ -701,8 +701,8 @@ Tombol menggunakan konstruksi sudut lonjong penuh (*pill-shape*) untuk kenyamana
 
 | Tipe Button | Latar Belakang | Border | Teks | State Hover | State Active/Focus |
 |---|---|---|---|---|---|
-| **Primary** | `#2563EB` | 1px solid transparent | `#FFFFFF` (Semibold) | `#1D4ED8`, `shadow-pill` | `ring-4 ring-blue-100` |
-| **Secondary** | `#EFF6FF` | 1px solid `#DBEAFE` | `#2563EB` (Semibold) | `#DBEAFE` | `ring-2 ring-blue-100` |
+| **Primary** | `#0EA5E9` | 1px solid transparent | `#FFFFFF` (Semibold) | `#0284C7`, `shadow-pill` | `ring-4 ring-sky-100` |
+| **Secondary** | `#F0F9FF` | 1px solid `#BAE6FD` | `#0284C7` (Semibold) | `#BAE6FD` | `ring-2 ring-sky-100` |
 | **Outline** | `#FFFFFF` | 1px solid `#E2E8F0` | `#0F172A` (Medium) | `#F8FAFC`, `border-strong` | `ring-2 ring-slate-100` |
 | **Ghost** | transparent | 1px solid transparent | `#475569` (Medium) | `#F8FAFC`, `text-primary` | `bg-slate-100` |
 | **Destructive** | `#E11D48` | 1px solid transparent | `#FFFFFF` (Semibold) | `#BE123C` | `ring-4 ring-rose-100` |
@@ -770,7 +770,7 @@ Widget kalender bulan berjalan pada panel siswa/guru untuk memantau presensi har
 
 #### 1. Halaman Landing Page Utama (`/`)
 - **Sticky Glassmorphic Navbar:** Background `bg-white/85 backdrop-blur-md`, logo brand VokaLink. Menu navigasi: Fitur 3 Dimensi, Alur Kerja PKL, Simulasi Jurusan, Testimoni Sekolah, FAQ. Aksi: Masuk Portal (`/login`) dan Jadwalkan Demo.
-- **Hero Section:** Headline: "Monitoring PKL SMK Lebih Terukur & Bebas Dokumen Kertas". Nilai proporsi 792 JP intrakurikuler dan Zero-Cost Rp0.
+- **Hero Section:** Latar belakang pola grid `bg-grid-pattern`. Headline: "Monitoring PKL SMK Lebih Terukur & Bebas Dokumen Kertas" dengan highlight teks `text-sky-500`. Nilai proporsi 792 JP intrakurikuler dan Zero-Cost Rp0. Tombol aksi primer `bg-sky-500`.
 - **Quick Metrics Counter Banner:** 4 angka masif: 120+ SMK Vokasi, 792 JP Standar, < 10 dtk Stempel Zero-Login, Rp0 Biaya Server.
 - **Fitur 3 Dimensi (Tab Switcher):** Siswa PKL (Logbook PWA, geofence, WebP), Guru Pembimbing (Live heatmap, drift alert, e-Rapor), Mentor DUDI (Zero-login stempel < 10 dtk, rubrik skill).
 - **Alur Kerja PKL 4 Tahap:** 01 Pemetaan & Smart Placement, 02 Pembekalan & Geofence, 03 Pelaksanaan & Logbook, 04 e-Rapor & Paspor Ber-QR.
@@ -812,12 +812,12 @@ module.exports = {
     extend: {
       colors: {
         primary: {
-          50: '#EFF6FF',
-          100: '#DBEAFE',
-          600: '#2563EB',
-          700: '#1D4ED8',
+          50: '#F0F9FF',
+          100: '#E0F2FE',
+          600: '#0EA5E9',
+          700: '#0284C7',
         },
-        canvas: '#FFFFFF',
+        canvas: '#F8FAFD',
         surface: '#FFFFFF',
         muted: '#F8FAFC',
         content: {
@@ -864,7 +864,7 @@ module.exports = {
 
 #### 2. Aturan Mutlak Implementasi (Strict Guardrails)
 - **Larangan Gradasi Latar:** DILARANG menggunakan utilitas Tailwind seperti `bg-gradient-to-*`, `from-*`, `via-*`, `to-*` untuk kanvas atau kartu. Seluruh latar kartu, tombol, badge, dan bar tugas wajib menggunakan nilai solid (`bg-primary-600`, `bg-accent-teal`, `bg-white`, dsb).
-- **Kepatuhan Latar Belakang Putih Murni:** Elemen `<body>`, `<main>`, `<section>`, dan kontainer pembungkus utama wajib menggunakan class `bg-white` (`#FFFFFF`).
+- **Kepatuhan Kanvas Terang & Kartu Putih:** Kanvas utama menggunakan `#F8FAFD` dengan kartu putih solid `#FFFFFF` ber-border struktural `border border-border-default` (`border-slate-100` / `border-slate-200/80`). Hero section menggunakan aksen pola grid `bg-grid-pattern`.
 - **Penerapan Border Radius:** Seluruh tombol interaktif, search bar, filter tabs, date selector aktif, dan bar horizontal tugas Gantt WAJIB menggunakan kelas `rounded-full`. Seluruh kontainer kartu data wajib menggunakan `rounded-3xl` (24px) atau `rounded-2xl` (16px).
 - **Border Explicit:** Setiap kartu putih yang berdiri di atas latar putih wajib memiliki border struktural `border border-border-default` (`border-slate-200`) agar batas visual tetap tegas saat bayangan (*shadow*) di-render di layar berpencahayaan rendah.
 - **Icon Library:** Gunakan icon set *Lucide Icons* (`lucide-react`) dengan ketebalan garis standar `strokeWidth={2}` dan ukuran seragam (`w-4 h-4` untuk teks pembantu, `w-5 h-5` untuk tombol/menu).
@@ -872,8 +872,8 @@ module.exports = {
 - **Aturan Pembersihan Konten (DESIGN 13.8):** Hindari menaruh emoji kasar (mis. 🎯, 📋, ⭐, ⛔, 🔒, 💡) langsung di dalam string teks UI data/label.
 
 #### 3. Kriteria Penerimaan (Acceptance Criteria)
-- [ ] Latar belakang seluruh halaman terbukti murni `#FFFFFF` saat diuji dengan color picker.
-- [ ] Tombol CTA utama menggunakan solid `#2563EB` dengan sudut membulat penuh `rounded-full`.
+- [ ] Latar belakang kanvas terbukti `#F8FAFD` dengan kartu putih `#FFFFFF` dan pola grid hero `bg-grid-pattern`.
+- [ ] Tombol CTA utama menggunakan solid Electric Sky Blue `#0EA5E9` (`sky-500`) dengan sudut membulat penuh `rounded-full`.
 - [ ] Kontras warna teks di atas latar putih telah terverifikasi memenuhi rasio minimal WCAG AA (4.5:1).
 - [ ] Komponen dashboard preview pada hero landing page menyajikan layout yang identik dengan visual referensi VokaLink:
   - Terdapat panel baris horizontal tugas berbentuk kapsul dengan avatar di kiri dan badge persentase/durasi JP di kanan.
