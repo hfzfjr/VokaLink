@@ -6,7 +6,6 @@
 ---
 
 [![UINIC 8.0](https://img.shields.io/badge/Competition-UINIC%208.0%20Web%20Dev%202026-0284c7.svg?style=flat-square)](https://uinic.id)
-[![Infrastructure Cost](https://img.shields.io/badge/Cost-Rp0%20Zero--Cost%20Infra-10b981.svg?style=flat-square)](#-arsitektur--prinsip-rp0)
 [![Next.js 15](https://img.shields.io/badge/Next.js-15.5%20(App%20Router)-black.svg?style=flat-square&logo=next.js)](https://nextjs.org)
 [![Express 5](https://img.shields.io/badge/Express-5%20TypeScript-gray.svg?style=flat-square&logo=express)](https://expressjs.com)
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.8%20Strict-3178c6.svg?style=flat-square&logo=typescript)](https://www.typescriptlang.org)
@@ -22,7 +21,7 @@
 2. [Solusi 4 Dimensi Pemangku Kepentingan](#-solusi-4-dimensi-pemangku-kepentingan)
 3. [Fitur Unggulan & Inovasi Kunci](#-fitur-unggulan--inovasi-kunci)
 4. [Simulasi & Demo Juri (1-Click Switcher)](#-simulasi--demo-juri-1-click-switcher)
-5. [Arsitektur & Prinsip Rp0](#-arsitektur--prinsip-rp0)
+5. [Arsitektur Sistem & Infrastruktur](#-arsitektur-sistem--infrastruktur)
 6. [Struktur Monorepo](#-struktur-monorepo)
 7. [Panduan Instalasi & Menjalankan Lokal](#-panduan-instalasi--menjalankan-lokal)
 8. [Pengujian, Audit & Lighthouse Score](#-pengujian-audit--lighthouse-score)
@@ -122,19 +121,19 @@ Kunjungi halaman masuk di **`http://localhost:3000/login`** dan pilih salah satu
 
 ---
 
-## 🏛️ Arsitektur & Prinsip Rp0
+## 🏛️ Arsitektur Sistem & Infrastruktur
 
-VokaLink dirancang khusus untuk memenuhi kriteria ketat kompetisi: **100% Zero-Cost Infrastructure (Biaya Operasional Rp0)** tanpa bergantung pada layanan berbayar, langganan API kredit, maupun komputasi awan komersial:
+VokaLink dirancang menggunakan arsitektur modern yang tangguh, modular, dan efisien:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                        INFRASTRUKTUR RP0 VOKALINK                      │
+│                   ARSITEKTUR & INFRASTRUKTUR VOKALINK                  │
 ├────────────────────────────────┬───────────────────────────────────────┤
-│ Komponen Lapisan               │ Teknologi & Strategi Efisiensi        │
+│ Komponen Lapisan               │ Teknologi & Peran                     │
 ├────────────────────────────────┼───────────────────────────────────────┤
-│ Frontend Hosting               │ Vercel Hobby Tier (Deploy Otomatis)   │
-│ Backend API                    │ Coolify (Home Server) + Cloudflare    │
-│ Database & Storage             │ Supabase Free Tier (Supavisor Pooler) │
+│ Frontend Hosting               │ Vercel (Next.js Edge Network & CI/CD) │
+│ Backend API                    │ Express 5 (TypeScript) + Cloudflare   │
+│ Database & Storage             │ Supabase PostgreSQL (Supavisor)       │
 │ PWA & Local Persistence        │ Serwist Service Worker + Dexie.js     │
 │ Kompresi Gambar Klien          │ HTML5 Canvas API (WebP < 60 KB)       │
 │ Peta & Geolocation             │ OpenStreetMap (OSM) Tile + Leaflet.js │
