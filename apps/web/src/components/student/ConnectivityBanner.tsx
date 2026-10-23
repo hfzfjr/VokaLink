@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { WifiOff, RefreshCw, CheckCircle2, AlertTriangle, ShieldCheck } from "lucide-react";
+import { RefreshCw, ShieldCheck } from "lucide-react";
+import { Banner } from "@/components/ui/Banner";
 import { useSyncManager } from "@/lib/pwa/hooks/useSyncManager";
 import { requestStoragePersistence } from "@/lib/pwa/persistence";
 
@@ -69,35 +70,31 @@ export function ConnectivityBanner({
   // 1. HIGH BACKLOG WARNING (> 3 log belum tersinkron - DESIGN.md §7.3 butir 8)
   if (isHighBacklog && isOnline) {
     return (
-      <aside
-        role="alert"
-        aria-live="assertive"
-        className="w-full bg-rose-600 border-b border-rose-700 text-white shadow-xs transition-all duration-300"
-      >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm font-medium">
-          <div className="flex items-center gap-2.5">
-            <span className="p-1 rounded-full bg-white/20 flex-shrink-0 animate-bounce">
-              <AlertTriangle className="w-4 h-4 text-white" aria-hidden="true" />
-            </span>
+      <aside className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-3">
+        <Banner
+          variant="danger"
+          message={
             <span>
-              <strong className="font-bold">Perhatian:</strong> {activePendingCount} logbook belum tersinkron ke server.
+              <strong>Perhatian:</strong> {activePendingCount} logbook belum tersinkron ke server.
             </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => syncNow(true)}
-              disabled={activeIsSyncing}
-              className="px-3 py-1 rounded-lg bg-white text-rose-700 font-extrabold text-xs hover:bg-rose-50 transition active:scale-95 disabled:opacity-70 cursor-pointer flex items-center gap-1.5 shadow-xs"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${activeIsSyncing ? "animate-spin" : ""}`} />
-              <span>{activeIsSyncing ? "Menyinkronkan..." : "Sinkronkan Sekarang"}</span>
-            </button>
-            <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-[11px] font-black uppercase tracking-wider hidden sm:inline-block">
-              Antrean Tinggi
-            </span>
-          </div>
-        </div>
+          }
+          action={
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => syncNow(true)}
+                disabled={activeIsSyncing}
+                className="px-3 py-1 rounded-full bg-rose-700 text-white font-bold text-xs hover:bg-rose-800 transition active:scale-95 disabled:opacity-70 flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${activeIsSyncing ? "animate-spin" : ""}`} />
+                <span>{activeIsSyncing ? "Menyinkronkan..." : "Sinkronkan Sekarang"}</span>
+              </button>
+              <span className="px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold uppercase tracking-wider hidden sm:inline-block">
+                Antrean Tinggi
+              </span>
+            </div>
+          }
+        />
       </aside>
     );
   }
@@ -105,83 +102,78 @@ export function ConnectivityBanner({
   // 2. OFFLINE STATE (Kuning/Amber) - Sesuai PRD §8.2 & DESIGN §7.3
   if (!isOnline) {
     return (
-      <aside
-        role="status"
-        aria-live="polite"
-        className="w-full bg-amber-600 border-b border-amber-700 text-white shadow-xs transition-all duration-300"
-      >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 text-xs sm:text-sm font-medium">
-          <div className="flex items-center gap-2.5">
-            <span className="p-1 rounded-full bg-amber-700/50 flex-shrink-0 animate-pulse">
-              <WifiOff className="w-4 h-4 text-amber-100" aria-hidden="true" />
-            </span>
+      <aside className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-3">
+        <Banner
+          variant="warn"
+          message={
             <span>
-              <strong className="font-bold">Mode Offline</strong> — Data jurnal tersimpan aman di IndexedDB perangkat Anda
+              <strong>Mode Offline:</strong> Jurnal tersimpan aman di perangkat (IndexedDB) dan akan otomatis disinkronkan saat tersambung.
             </span>
-          </div>
-          {activePendingCount > 0 && (
-            <span className="px-2.5 py-0.5 rounded-full bg-amber-700/60 text-[11px] font-bold text-amber-100 border border-amber-400/30 whitespace-nowrap">
-              {activePendingCount} antrean tersimpan
-            </span>
-          )}
-        </div>
+          }
+          action={
+            activePendingCount > 0 ? (
+              <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold whitespace-nowrap">
+                {activePendingCount} antrean tersimpan
+              </span>
+            ) : undefined
+          }
+        />
       </aside>
     );
   }
 
-  // 3. SYNCING STATE (Biru/Blue)
+  // 3. SYNCING STATE (Biru/Info)
   if (activeIsSyncing || (isOnline && activePendingCount > 0)) {
     return (
-      <aside
-        role="status"
-        aria-live="polite"
-        className="w-full bg-blue-600 border-b border-blue-700 text-white shadow-xs transition-all duration-300"
-      >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm font-medium">
-          <div className="flex items-center gap-2.5">
-            <RefreshCw className="w-4 h-4 text-blue-100 animate-spin flex-shrink-0" aria-hidden="true" />
-            <span>
-              {activeIsSyncing
-                ? `Menyinkronkan data logbook ke cloud... (${activePendingCount} item)`
-                : `${activePendingCount} item siap disinkronkan ke server`}
+      <aside className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-3">
+        <Banner
+          variant="info"
+          icon={RefreshCw}
+          message={
+            <span className="flex items-center gap-2">
+              <span>
+                {activeIsSyncing
+                  ? `Menyinkronkan logbook ke cloud (${activePendingCount} item)...`
+                  : `${activePendingCount} item siap disinkronkan ke server`}
+              </span>
             </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {!activeIsSyncing && (
-              <button
-                type="button"
-                onClick={() => syncNow()}
-                className="px-2.5 py-0.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition cursor-pointer"
-              >
-                Sinkronkan
-              </button>
-            )}
-            <span className="px-2 py-0.5 rounded-full bg-blue-700/60 text-[11px] font-bold text-blue-100 border border-blue-400/30 whitespace-nowrap">
-              {activeIsSyncing ? "Syncing..." : "Auto-Sync"}
-            </span>
-          </div>
-        </div>
+          }
+          action={
+            <div className="flex items-center gap-2">
+              {!activeIsSyncing && (
+                <button
+                  type="button"
+                  onClick={() => syncNow()}
+                  className="px-3 py-1 rounded-full bg-sky-500 text-white text-xs font-bold hover:bg-sky-600 transition cursor-pointer shadow-xs"
+                >
+                  Sinkronkan
+                </button>
+              )}
+              <span className="px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[11px] font-bold">
+                {activeIsSyncing ? "Syncing..." : "Auto-Sync"}
+              </span>
+            </div>
+          }
+        />
       </aside>
     );
   }
 
-  // 4. SYNCED SUCCESS (Hijau/Emerald)
+  // 4. SYNCED SUCCESS (Hijau/Ok)
   if (showSyncedNotification) {
     return (
-      <aside
-        role="status"
-        aria-live="polite"
-        className="w-full bg-emerald-600 border-b border-emerald-700 text-white shadow-xs transition-all duration-300"
-      >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between gap-2.5 text-xs sm:text-sm font-medium">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-100 flex-shrink-0" aria-hidden="true" />
-            <span>Koneksi kembali normal — Seluruh data tersinkronisasi</span>
-          </div>
-          <span className="text-[11px] text-emerald-100 font-semibold flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5" /> Terproteksi
-          </span>
-        </div>
+      <aside className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-3">
+        <Banner
+          variant="ok"
+          icon={ShieldCheck}
+          message="Koneksi kembali normal — Seluruh data tersinkronisasi"
+          action={
+            <span className="text-xs text-emerald-700 font-bold flex items-center gap-1">
+              Terproteksi
+            </span>
+          }
+          onDismiss={() => setShowSyncedNotification(false)}
+        />
       </aside>
     );
   }

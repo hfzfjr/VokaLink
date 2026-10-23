@@ -28,7 +28,6 @@ import {
   TrendingUp,
   FileSpreadsheet,
 } from "lucide-react";
-import Navbar, { NavbarButton } from "@/components/layout/Navbar";
 import Skeleton from "@/components/ui/Skeleton";
 import Button from "@/components/ui/Button";
 import { QrCodeView } from "@/components/ui/QrCodeView";
@@ -431,16 +430,7 @@ export default function DudiDirectoryPage() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      <Navbar
-        variant="sticky"
-        subtitle="Direktori Terfederasi & Onboarding Mitra DUDI (FR-003)"
-        rightSlot={
-          <NavbarButton href="/school/dashboard" label="Kembali ke Dashboard" />
-        }
-      />
-
-      <main className="max-w-6xl mx-auto w-full px-4 py-6 flex-1 space-y-6">
+    <div className="space-y-6">
         {/* Header Title & Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -1019,7 +1009,6 @@ export default function DudiDirectoryPage() {
             )}
           </div>
         )}
-      </main>
 
       {/* Modal Onboarding DUDI Baru */}
       {isAddModalOpen && (

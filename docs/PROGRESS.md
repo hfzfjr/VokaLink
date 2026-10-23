@@ -113,8 +113,20 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
     - Resolusi BUG-015: Penyesuaian perhitungan agregasi jam 14 hari terakhir di dasbor guru `/teacher/heatmap` (`teachers.ts`) dengan mengecualikan presensi Sakit dan Izin sesuai PRD FR-005 A2.
     - Verifikasi integritas kriptografi HMAC-SHA256 Canonical JSON pada `verify.ts`, `endorsements.ts`, dan `passports.ts` terbukti deterministik 100% dan konsisten dengan seeder `seed-v2.ts`.
     - Seluruh pengujian otomatis (14 suite, 116 tests) lulus 100%, `pnpm typecheck` dan `pnpm lint` 100% hijau.
+  - Refactor UI Standar UINIC 8.0 (Landing Page Theme: Electric Sky Blue #0EA5E9, kanvas #F8FAFD, pill rounded-full):
+    - Penyelarasan Dokumen & Standar Emas: Acuan visual utama landing page `/` (`apps/web/src/app/page.tsx`) diformalkan ke dalam `docs/DESIGN.md` Bab 13 dan `docs/UI-REFACTOR.md`.
+    - CP0 & CP1 (Fondasi & Komponen Inti): Setup token `sky`, `canvas`, `surface`, utilitas `bg-grid-pattern`, serta 12 komponen antarmuka standar di `@/components/ui/` (Button, Card, StatusPill, Field, Stat, ProgressBar, DataTable, Banner, Disclosure, EmptyState, Skeleton, PageHeader, Stepper).
+    - CP2 (App Shell Kerangka Navigasi):
+      - `components/shell/AppShell.tsx`: Sidebar desktop 248px sticky, drawer responsif mobile (< lg), header terintegrasi, 5 item menu utama sekolah (`/school/dashboard`, `curriculum`, `dudi-directory`, `placements`, `erapor`).
+      - `components/shell/StudentShell.tsx`: Shell siswa dengan header brand, `BottomNav` 4 item (< lg) dengan active pill `bg-sky-50 text-sky-600` dan CTA `bg-sky-500`, layout responsif 2 kolom di desktop (≥ lg) dengan sticky summary panel 320px (target 792 JP, status DUDI, quick action).
+      - Integrasi `Banner` pada `ConnectivityBanner.tsx` dengan preservasi 100% logika PWA offline-first & Dexie sync manager.
+      - `components/shell/MentorShell.tsx`: Layout terpusat 1 kolom `max-w-md` ramah sentuhan mobile untuk verifikasi mentor zero-login.
+      - `components/shell/PublicShell.tsx`: Layout terpusat 1 kolom `max-w-3xl` dengan dukungan Print CSS A4 untuk verifikasi paspor publik.
+      - `components/shell/DemoBar.tsx`: Strip mode uji juri (Judge Switcher) terintegrasi pada seluruh shell.
+      - Integrasi menyeluruh `school/layout.tsx` dan pembersihan wrapper ganda pada seluruh subhalaman sekolah.
+      - Verifikasi: Browser automated test sukses, `next build` 18 routes lulus 100%, `typecheck` & `lint` hijau tanpa eror.
 - Sedang dikerjakan:
-  - Verifikasi menyeluruh alur juri (Judge Switcher demo flow) dan pengujian responsivitas lintas breakpoint.
+  - Checkpoint 3 (CP3 — Landing & Auth): Penyelarasan halaman login (`/login`) dan registrasi sekolah (`/register-school`) ke tema Electric Sky Blue.
 - Blocker:
   - Tidak ada blocker.
 
