@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import Skeleton from "@/components/ui/Skeleton";
+import { Disclosure } from "@/components/ui/Disclosure";
 import {
   fetchEraporData,
   downloadEraporCsv,
@@ -272,8 +273,8 @@ export default function EraporPage() {
                 <ChevronLeft className="w-4 h-4" />
               </Link>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
-                  <GraduationCap className="w-3.5 h-3.5 text-emerald-700" /> FR-011 e-Rapor SMK
+                <span className="text-xs font-bold px-3 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-100 flex items-center gap-1.5">
+                  <GraduationCap className="w-3.5 h-3.5 text-sky-500" /> Rekap e-Rapor
                 </span>
                 <span className="text-xs text-slate-500 font-semibold">
                   Kurikulum Merdeka Fase F
@@ -281,10 +282,10 @@ export default function EraporPage() {
               </div>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Rekap Nilai & Ekspor e-Rapor SMK
+              Rekap Nilai &amp; Ekspor e-Rapor SMK
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 max-w-2xl leading-relaxed">
-              Otomatisasi kalkulasi nilai akademik (60% jam capaian + 40% tingkat kemandirian) dan penyusunan kalimat deskripsi capaian kompetensi format CSV resmi.
+              Otomatisasi kalkulasi nilai akademik dan penyusunan kalimat deskripsi capaian kompetensi format CSV resmi.
             </p>
           </div>
 
@@ -293,24 +294,43 @@ export default function EraporPage() {
             <button
               onClick={handleDownloadCsv}
               disabled={downloadingCsv || filteredRecords.length === 0}
-              className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-500/20 disabled:opacity-50 transition flex items-center gap-2 min-h-[48px]"
+              className="px-5 py-2.5 rounded-full bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs sm:text-sm shadow-md shadow-sky-500/20 disabled:opacity-50 transition flex items-center gap-2 min-h-[44px]"
             >
               {downloadingCsv ? (
                 <RefreshCw className="w-4 h-4 animate-spin text-white" />
               ) : (
-                <FileSpreadsheet className="w-4 h-4 text-emerald-200" />
+                <FileSpreadsheet className="w-4 h-4 text-sky-100" />
               )}
               Unduh CSV e-Rapor ({filteredRecords.length} Siswa)
             </button>
             <button
               onClick={loadData}
               disabled={loading}
-              className="p-3 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-xs transition min-h-[48px] min-w-[48px] flex items-center justify-center"
+              className="p-3 rounded-full bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-xs transition min-h-[44px] min-w-[44px] flex items-center justify-center"
               title="Segarkan Data"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             </button>
           </div>
+        </div>
+
+        {/* Formula Explanation Disclosure */}
+        <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs">
+          <Disclosure
+            trigger={
+              <span className="flex items-center gap-2 font-bold text-slate-900 text-xs sm:text-sm">
+                <GraduationCap className="w-4 h-4 text-sky-500" />
+                Formula Pembobotan Nilai e-Rapor SMK (60% Jam Capaian + 40% Kemandirian)
+              </span>
+            }
+            className="border-t-0"
+          >
+            <p className="text-xs text-slate-600 leading-relaxed pt-2">
+              Perhitungan nilai akhir e-Rapor PKL Kurikulum Merdeka menggabungkan:
+              <strong className="text-slate-800"> 60% Rasio Jam Capaian</strong> terhadap target alokasi kurikulum 792 JP, dan
+              <strong className="text-slate-800"> 40% Rata-rata Skor Kemandirian</strong> berdasarkan validasi mentor industri (Mandiri = 100, Terbimbing = 75, Perlu Pendampingan Penuh = 50).
+            </p>
+          </Disclosure>
         </div>
 
         {/* Feedback Banners */}

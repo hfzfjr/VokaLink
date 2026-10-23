@@ -236,7 +236,7 @@ export default function LogHistoryPage() {
             type="button"
             onClick={handleOpenVerifyModal}
             disabled={isGeneratingLink}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs sm:text-sm font-bold shadow-xs hover:shadow-sm transition active:scale-[0.99] cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs sm:text-sm font-bold shadow-xs hover:shadow-sm transition active:scale-[0.99] cursor-pointer"
           >
             <QrCode className="w-4 h-4" />
             <span>{isGeneratingLink ? "Memproses..." : "Minta Verifikasi"}</span>
@@ -249,7 +249,7 @@ export default function LogHistoryPage() {
 
           <Link
             href="/student/log/new"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-xs transition active:scale-[0.99]"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-xs sm:text-sm font-bold shadow-xs transition active:scale-[0.99]"
           >
             <PlusCircle className="w-4 h-4" />
             <span className="hidden sm:inline">Catat Baru</span>
@@ -314,7 +314,7 @@ export default function LogHistoryPage() {
               Non-Jurusan
             </p>
             <p className="text-lg sm:text-2xl font-black text-purple-700 tracking-tight leading-tight">
-              4 <span className="text-xs sm:text-sm font-semibold text-slate-500">JP (BR-004)</span>
+              4 <span className="text-xs sm:text-sm font-semibold text-slate-500">JP</span>
             </p>
           </div>
         </div>
@@ -331,7 +331,7 @@ export default function LogHistoryPage() {
               placeholder="Cari berdasarkan judul kegiatan, SKKNI, atau tanggal..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
+              className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white transition"
             />
             {searchQuery && (
               <button
@@ -388,7 +388,7 @@ export default function LogHistoryPage() {
                       {log.date}
                     </span>
                     <span
-                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-extrabold border uppercase tracking-wider ${
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border uppercase tracking-wider ${
                         isVerified
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                           : log.syncState === "queued"
@@ -425,7 +425,7 @@ export default function LogHistoryPage() {
                   </div>
 
                   {/* Log Title */}
-                  <h3 className="font-bold text-sm sm:text-base text-slate-900 group-hover:text-blue-600 transition-colors leading-snug">
+                  <h3 className="font-bold text-sm sm:text-base text-slate-900 group-hover:text-sky-600 transition-colors leading-snug">
                     {log.title}
                   </h3>
 
@@ -466,7 +466,7 @@ export default function LogHistoryPage() {
                     </span>
                     <span className="font-medium text-slate-500">{log.autonomy}</span>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition" />
+                  <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-sky-500 group-hover:translate-x-0.5 transition" />
                 </div>
               </div>
             );
@@ -572,7 +572,7 @@ export default function LogHistoryPage() {
               <button
                 type="button"
                 onClick={handleCopyLink}
-                className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
               >
                 {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                 {copiedLink ? "Tautan Berhasil Disalin!" : "Salin Tautan Verifikasi"}

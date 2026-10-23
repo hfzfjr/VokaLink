@@ -18,6 +18,7 @@ import {
   ImageIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { Disclosure } from "@/components/ui/Disclosure";
 import { fetchPublicPassport, type PublicPassportResponse } from "@/lib/api";
 
 interface PageProps {
@@ -61,9 +62,9 @@ export default function PublicPassportVerifyPage({ params }: PageProps) {
   // ─── 1. State: Loading Skeleton ────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6">
-        <div className="max-w-4xl mx-auto space-y-6 animate-pulse">
-          <div className="h-16 bg-slate-200 rounded-2xl w-full" />
+      <div className="min-h-screen bg-[#F8FAFD] py-10 px-4 sm:px-6">
+        <div className="max-w-3xl mx-auto space-y-6 animate-pulse">
+          <div className="h-16 bg-slate-200 rounded-3xl w-full" />
           <div className="h-48 bg-slate-200 rounded-3xl w-full" />
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="h-24 bg-slate-200 rounded-2xl" />
@@ -77,12 +78,12 @@ export default function PublicPassportVerifyPage({ params }: PageProps) {
     );
   }
 
-  // ─── 2. State: Invalid / Not Found (PRD FR-012 Error Handling) ────────────
+  // ─── 2. State: Invalid / Not Found (Error Handling) ────────────
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="max-w-lg w-full bg-white rounded-3xl p-8 border-2 border-rose-200 shadow-xl text-center space-y-5">
-          <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+      <div className="min-h-screen bg-[#F8FAFD] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-rose-200 shadow-xl text-center space-y-5">
+          <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto border border-rose-100">
             <AlertTriangle className="w-8 h-8" />
           </div>
 
@@ -110,7 +111,7 @@ export default function PublicPassportVerifyPage({ params }: PageProps) {
 
           <Link
             href="/"
-            className="inline-flex items-center justify-center gap-2 w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs sm:text-sm font-bold transition shadow-xs"
+            className="inline-flex items-center justify-center gap-2 w-full py-3 bg-sky-500 hover:bg-sky-600 text-white rounded-full text-xs sm:text-sm font-bold transition shadow-xs"
           >
             Kembali ke Beranda VokaLink
           </Link>
@@ -122,12 +123,12 @@ export default function PublicPassportVerifyPage({ params }: PageProps) {
   const { student, metrics, competencies, endorsement, artifactPhotos, isCryptographicallyValid } = data;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-16">
+    <div className="min-h-screen bg-[#F8FAFD] text-slate-900 font-sans pb-16">
       {/* 1. Official Header Top Bar */}
-      <header className="bg-slate-900 text-white py-4 px-4 sm:px-8 border-b border-slate-800 sticky top-0 z-20 shadow-md no-print">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
+      <header className="bg-slate-900 text-white py-4 px-4 sm:px-8 border-b border-slate-800 sticky top-0 z-20 shadow-md print:hidden">
+        <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-base shadow-xs group-hover:scale-105 transition">
+            <div className="w-8 h-8 rounded-xl bg-sky-500 flex items-center justify-center text-white font-black text-base shadow-xs shadow-sky-500/30 group-hover:scale-105 transition">
               V
             </div>
             <div>
@@ -141,14 +142,14 @@ export default function PublicPassportVerifyPage({ params }: PageProps) {
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopyLink}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold border border-slate-700 transition active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-full text-xs font-bold border border-slate-700 transition active:scale-95 cursor-pointer"
             >
               {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5" />}
               <span>{copiedLink ? "Tersalin" : "Bagikan"}</span>
             </button>
             <button
               onClick={() => window.print()}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-sky-500 hover:bg-sky-400 text-white rounded-full text-xs font-bold transition active:scale-95 cursor-pointer shadow-xs shadow-sky-500/25"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Cetak</span>
@@ -157,14 +158,14 @@ export default function PublicPassportVerifyPage({ params }: PageProps) {
         </div>
       </header>
 
-      {/* 2. Main Content Container */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 space-y-6">
+      {/* 2. Main Content Container (max-w-3xl) */}
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 space-y-6">
         {/* Verification Status Badge (PRD FR-012) */}
         <div
-          className={`p-4 sm:p-5 rounded-3xl border-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm ${
+          className={`p-5 rounded-3xl border-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs ${
             isCryptographicallyValid
-              ? "bg-emerald-50/80 border-emerald-500 text-emerald-950"
-              : "bg-amber-50/80 border-amber-500 text-amber-950"
+              ? "bg-emerald-50/90 border-emerald-500 text-emerald-950"
+              : "bg-amber-50/90 border-amber-500 text-amber-950"
           }`}
         >
           <div className="flex items-center gap-3.5">
@@ -179,12 +180,12 @@ export default function PublicPassportVerifyPage({ params }: PageProps) {
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base sm:text-lg font-black tracking-tight">
+                <h2 className="text-sm sm:text-base font-black tracking-tight">
                   {isCryptographicallyValid
                     ? "TERVERIFIKASI RESMI — SEGEL KRIPTOGRAFI VALID"
                     : "PERHATIAN: SEGEL DALAM PENINJAUAN"}
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide bg-white/80 border border-emerald-300 text-emerald-800">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide bg-white border border-emerald-300 text-emerald-800">
                   HMAC-SHA256
                 </span>
               </div>
@@ -194,26 +195,26 @@ export default function PublicPassportVerifyPage({ params }: PageProps) {
             </div>
           </div>
 
-          <div className="flex-shrink-0 text-right sm:text-right text-xs">
+          <div className="flex-shrink-0 text-left sm:text-right text-xs">
             <span className="text-[10px] text-slate-500 block">Status Dokumen:</span>
-            <span className="font-extrabold text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-lg inline-block mt-0.5">
-              100% Data Faktual (BR-010)
+            <span className="font-extrabold text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-full inline-block mt-0.5">
+              100% Data Faktual Terverifikasi
             </span>
           </div>
         </div>
 
         {/* Student & School Profile Hero Card */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-5">
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-slate-100 pb-5">
             <div className="space-y-1">
-              <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold inline-block mb-1">
+              <span className="px-3 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-100 text-xs font-bold inline-block mb-1">
                 Paspor Kompetensi PKL SMK
               </span>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                 {student.fullName}
               </h1>
               <p className="text-sm font-bold text-slate-600 flex items-center gap-1.5 pt-0.5">
-                <School className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                <School className="w-4 h-4 text-sky-600 flex-shrink-0" />
                 <span>
                   {student.departmentName} · {student.schoolName}
                 </span>
@@ -416,21 +417,30 @@ export default function PublicPassportVerifyPage({ params }: PageProps) {
           </div>
         )}
 
-        {/* Cryptographic Signature & Audit Trail Details */}
-        <div className="bg-slate-100 rounded-3xl p-6 border border-slate-200 text-xs text-slate-600 space-y-3 font-mono">
-          <div className="flex items-center gap-2 font-bold text-slate-900 text-xs">
-            <Hash className="w-4 h-4 text-slate-700" />
-            <span>Segel Kriptografis HMAC-SHA256 (Audit Trail)</span>
-          </div>
-
-          <div className="bg-white p-3 rounded-xl border border-slate-200 break-all text-[11px] text-slate-800 leading-relaxed">
-            {data.masterSignatureHash}
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-500 pt-1">
-            <span>Slug Verifikasi: {data.passportSlug}</span>
-            <span>Diperbarui: {new Date(data.verifiedAt).toLocaleDateString("id-ID", { dateStyle: "long" })}</span>
-          </div>
+        {/* Cryptographic Signature & Audit Trail Details in Disclosure */}
+        <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs">
+          <Disclosure
+            trigger={
+              <span className="flex items-center gap-2 font-bold text-slate-900 text-xs sm:text-sm">
+                <Hash className="w-4 h-4 text-sky-500" />
+                Detail Teknis &amp; Segel Kriptografis
+              </span>
+            }
+            className="border-t-0"
+          >
+            <div className="pt-3 space-y-3 font-mono text-xs text-slate-600">
+              <p className="text-slate-500 text-[11px]">
+                HMAC-SHA256 Master Signature Hash (Canonical JSON Verification):
+              </p>
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 break-all text-[11px] text-slate-800 leading-relaxed select-all">
+                {data.masterSignatureHash}
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-500 pt-1 font-sans">
+                <span>Slug Paspor: <strong className="font-mono text-slate-800">{data.passportSlug}</strong></span>
+                <span>Diperbarui: <strong className="text-slate-800">{new Date(data.verifiedAt).toLocaleDateString("id-ID", { dateStyle: "long" })}</strong></span>
+              </div>
+            </div>
+          </Disclosure>
         </div>
 
         {/* Verification Explanatory Footer */}

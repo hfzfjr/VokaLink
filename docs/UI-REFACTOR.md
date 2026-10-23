@@ -23,12 +23,12 @@
 |---|---|---|---|
 | CP0 | Fondasi | Token Tailwind (Sky Blue, Slate, Canvas `#F8FAFD`), font Plus Jakarta Sans, `globals.css` (`bg-grid-pattern`), `cn()` | ☑ |
 | CP1 | Komponen inti | Standarisasi `components/ui/*` (Button pill, Card, Stat, Field, DataTable, dll.) + galeri `/dev/ui` | ☑ |
-| CP2 | App shell | `AppShell` + sidebar (sekolah/guru), shell siswa (BottomNav pill), shell mentor, shell publik, `DemoBar` | ☐ |
-| CP3 | Landing & Auth | **Landing page (`/`) SUDAH SELESAI & DISETUJUI**, sisa: `(auth)/login`, `(auth)/register-school` | ☐ |
-| CP4 | Portal siswa | `student/home`, `student/log/new` (stepper), `student/log/history`, `student/career-cv` | ☐ |
-| CP5 | Portal sekolah | `school/dashboard`, `curriculum`, `dudi-directory`, `placements`, `erapor` | ☐ |
-| CP6 | Mentor & Publik | `v/[token]/activate`, `verify/[passportSlug]` | ☐ |
-| CP7 | Audit akhir | Grep kepatuhan, Lighthouse, tangkapan layar, perbarui PROGRESS.md | ☐ |
+| CP2 | App shell | `AppShell` + sidebar (sekolah/guru), shell siswa (BottomNav pill), shell mentor, shell publik, `DemoBar` | ☑ |
+| CP3 | Landing & Auth | **Landing page (`/`) SUDAH SELESAI & DISETUJUI**, sisa: `(auth)/login`, `(auth)/register-school` | ☑ |
+| CP4 | Portal siswa | `student/home`, `student/log/new` (stepper), `student/log/history`, `student/career-cv` | ☑ |
+| CP5 | Portal sekolah | `school/dashboard`, `curriculum`, `dudi-directory`, `placements`, `erapor` | ☑ |
+| CP6 | Mentor & Publik | `v/[token]/activate`, `verify/[passportSlug]` | ☑ |
+| CP7 | Audit akhir | Grep kepatuhan, Lighthouse, tangkapan layar, perbarui PROGRESS.md | ☑ |
 
 Catatan: rute `teacher/*` (heatmap) dan `v/[token]` (halaman utama, `endorse`) memakai komponen dari CP1 dan shell dari CP2 saat dibangun.
 
