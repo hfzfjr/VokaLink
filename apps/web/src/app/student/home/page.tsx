@@ -174,7 +174,7 @@ export default function StudentHomePage() {
       {/* Top Section Grid (Hero Card + Progress Card) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* 1. Student Identity Hero Card (7 cols on desktop) */}
-        <section className="lg:col-span-7 bg-gradient-to-br from-blue-700 via-indigo-700 to-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-md relative overflow-hidden flex flex-col justify-between min-h-[220px]">
+        <section className="lg:col-span-7 bg-gradient-to-br from-sky-600 via-sky-700 to-sky-900 text-white rounded-3xl p-6 sm:p-7 shadow-md relative overflow-hidden flex flex-col justify-between min-h-[220px]">
           <div className="absolute top-0 right-0 -mr-12 -mt-12 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" />
           <div className="relative z-10">
             <div className="flex items-center justify-between gap-3">
@@ -245,7 +245,7 @@ export default function StudentHomePage() {
             {/* Progress Bar */}
             <div className="mt-4 w-full bg-slate-100 h-3 rounded-full overflow-hidden p-0.5">
               <div
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 h-full rounded-full transition-all duration-500"
+                className="bg-sky-500 h-full rounded-full transition-all duration-500"
                 style={{ width: `${progressPercentage}%` }}
                 role="progressbar"
                 aria-valuenow={student.verifiedJp}
@@ -257,7 +257,7 @@ export default function StudentHomePage() {
 
           <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
             <span>Sesuai Permendikbudristek No. 12/2024</span>
-            <span className="font-extrabold text-blue-700">
+            <span className="font-extrabold text-sky-600">
               Sisa {Math.max(0, student.targetJp - student.verifiedJp)} JP
             </span>
           </div>
@@ -269,7 +269,7 @@ export default function StudentHomePage() {
         {/* Card 1: Catat Jurnal */}
         <Link
           href="/student/log/new"
-          className="p-5 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-sm hover:shadow-md transition active:scale-[0.99] flex items-center justify-between group cursor-pointer"
+          className="p-5 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white shadow-sm hover:shadow-md transition active:scale-[0.99] flex items-center justify-between group cursor-pointer"
         >
           <div className="flex items-center gap-3.5">
             <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
@@ -277,10 +277,10 @@ export default function StudentHomePage() {
             </div>
             <div>
               <h3 className="font-bold text-sm sm:text-base leading-tight">Catat Jurnal Harian</h3>
-              <p className="text-xs text-blue-100 mt-0.5">Presensi & kartu tugas multi-select</p>
+              <p className="text-xs text-sky-100 mt-0.5">Presensi & kartu tugas multi-select</p>
             </div>
           </div>
-          <ChevronRight className="w-5 h-5 text-blue-200 group-hover:translate-x-1 transition-transform" />
+          <ChevronRight className="w-5 h-5 text-sky-200 group-hover:translate-x-1 transition-transform" />
         </Link>
 
         {/* Card 2: Verifikasi QR */}
@@ -323,17 +323,17 @@ export default function StudentHomePage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-4">
           <div>
             <div className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-indigo-600" />
+              <Target className="w-5 h-5 text-sky-600" />
               <h2 className="font-black text-base sm:text-lg text-slate-900 tracking-tight">
                 Distribusi Capaian Pembelajaran (CP) Kejuruan
               </h2>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Pemetaan realisasi jam kerja faktual terhadap elemen kurikulum Merdeka SMK RPL (PRD FR-005 & TC-005)
+              Pemetaan realisasi jam kerja faktual terhadap elemen kurikulum Merdeka SMK RPL
             </p>
           </div>
 
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-200 self-start sm:self-auto">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-xs font-bold border border-sky-100 self-start sm:self-auto">
             <Layers className="w-3.5 h-3.5" />
             <span>5 Elemen SKKNI Terpetakan</span>
           </div>
@@ -348,8 +348,8 @@ export default function StudentHomePage() {
                 <defs>
                   {/* Radar Area Gradient Fill */}
                   <linearGradient id="radarAreaGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#4f46e5" stopOpacity="0.45" />
-                    <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.20" />
+                    <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.45" />
+                    <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.20" />
                   </linearGradient>
                 </defs>
 
@@ -387,7 +387,7 @@ export default function StudentHomePage() {
                 <polygon
                   points={dataPoints}
                   fill="url(#radarAreaGradient)"
-                  stroke="#4f46e5"
+                  stroke="#0ea5e9"
                   strokeWidth="2.5"
                   strokeLinejoin="round"
                 />
@@ -404,7 +404,7 @@ export default function StudentHomePage() {
                       cx={x}
                       cy={y}
                       r="4"
-                      fill="#4f46e5"
+                      fill="#0ea5e9"
                       stroke="#ffffff"
                       strokeWidth="2"
                     />
@@ -433,7 +433,7 @@ export default function StudentHomePage() {
               </svg>
             </div>
             <p className="text-[11px] text-slate-400 font-medium text-center mt-2">
-              Visualisasi Poligon Radar Penguasaan Kompetensi (PRD FR-005)
+              Visualisasi Poligon Radar Penguasaan Kompetensi
             </p>
           </div>
 
@@ -477,8 +477,8 @@ export default function StudentHomePage() {
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
                         isAchieved
-                          ? "bg-gradient-to-r from-blue-600 to-indigo-600"
-                          : "bg-gradient-to-r from-amber-500 to-amber-600"
+                          ? "bg-sky-500"
+                          : "bg-amber-500"
                       }`}
                       style={{ width: `${elem.score}%` }}
                     />
@@ -503,7 +503,7 @@ export default function StudentHomePage() {
           </div>
           <Link
             href="/student/log/history"
-            className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1 cursor-pointer"
+            className="text-xs font-bold text-sky-600 hover:text-sky-700 hover:underline inline-flex items-center gap-1 cursor-pointer"
           >
             Lihat Semua Riwayat <ArrowRight className="w-3.5 h-3.5" />
           </Link>

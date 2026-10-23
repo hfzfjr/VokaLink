@@ -335,7 +335,7 @@ export default function NewLogPage() {
           </p>
         </div>
 
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200 self-start sm:self-auto">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-sky-50 text-sky-700 text-xs font-bold border border-sky-100 self-start sm:self-auto">
           <Clock className="w-3.5 h-3.5" />
           <span>Alokasi: {durationJp} JP Terpilih</span>
         </div>
@@ -352,11 +352,11 @@ export default function NewLogPage() {
           <section className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
-                <UserCheck className="w-4 h-4 text-blue-600" />
+                <UserCheck className="w-4 h-4 text-sky-600" />
                 Status Kehadiran Hari Ini
               </label>
               <span className="text-[11px] font-semibold text-slate-400">
-                PRD FR-005 (A2)
+                Presensi Harian
               </span>
             </div>
 
@@ -368,7 +368,7 @@ export default function NewLogPage() {
                 }}
                 className={`py-2.5 px-3 rounded-xl text-xs font-bold flex flex-col sm:flex-row items-center justify-center gap-1.5 transition cursor-pointer ${
                   attendanceType === "PRESENT"
-                    ? "bg-blue-600 text-white shadow-xs ring-2 ring-blue-600/20"
+                    ? "bg-sky-500 text-white shadow-xs ring-2 ring-sky-500/20"
                     : "bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100"
                 }`}
               >
@@ -440,11 +440,11 @@ export default function NewLogPage() {
                 htmlFor="log-date"
                 className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2"
               >
-                <Calendar className="w-4 h-4 text-blue-600" />
+                <Calendar className="w-4 h-4 text-sky-600" />
                 Tanggal Pelaksanaan Kegiatan
               </label>
               <span className="text-[11px] font-semibold text-slate-400">
-                Maksimal H-3 (BR-003)
+                Backdate maks. 3 hari
               </span>
             </div>
             <input
@@ -454,7 +454,7 @@ export default function NewLogPage() {
               min={minDate}
               max={today}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full text-sm font-semibold px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
+              className="w-full text-sm font-semibold px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white transition"
             />
             <p className="text-[11px] text-slate-500 flex items-center gap-1.5 leading-snug">
               <Info className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
@@ -468,14 +468,14 @@ export default function NewLogPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <label className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-blue-600" />
+                    <Layers className="w-4 h-4 text-sky-600" />
                     Pilih Kartu Pekerjaan (Multi-Pilihan 1–3 Kartu)
                   </label>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    Pilih hingga 3 kartu tugas yang diselesaikan hari ini (PRD FR-005)
+                    Pilih hingga 3 kartu tugas yang diselesaikan hari ini
                   </p>
                 </div>
-                <span className="text-xs text-blue-700 font-bold bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
+                <span className="text-xs text-sky-700 font-bold bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-100">
                   Terpilih: {selectedJobCardIds.length}/3
                 </span>
               </div>
@@ -491,19 +491,19 @@ export default function NewLogPage() {
                       onClick={() => handleToggleJobCard(card.id)}
                       className={`p-4 rounded-2xl border cursor-pointer transition active:scale-[0.99] flex flex-col justify-between ${
                         isSelected
-                          ? "bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 shadow-xs"
+                          ? "bg-sky-50/70 border-sky-500 ring-2 ring-sky-500/20 shadow-xs"
                           : "bg-white border-slate-200 hover:border-slate-300 shadow-2xs"
                       }`}
                     >
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-md">
+                          <span className="text-[10px] font-bold text-sky-700 bg-sky-100/70 px-2 py-0.5 rounded-md">
                             {card.skkni || "SKKNI Kejuruan"}
                           </span>
                           <div
                             className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 ${
                               isSelected
-                                ? "bg-blue-600 text-white shadow-xs"
+                                ? "bg-sky-500 text-white shadow-xs"
                                 : "border-2 border-slate-300 text-transparent"
                             }`}
                           >
@@ -534,7 +534,7 @@ export default function NewLogPage() {
               {/* JP Split preview indicator */}
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 flex items-center justify-between">
                 <span className="font-medium text-slate-500">Distribusi Jam Belajar:</span>
-                <span className="font-bold text-blue-700">
+                <span className="font-bold text-sky-700">
                   {selectedJobCardIds.length === 1
                     ? `${durationJp} JP penuh untuk 1 tugas`
                     : selectedJobCardIds.length === 2
@@ -559,7 +559,7 @@ export default function NewLogPage() {
           <section className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
-                <Camera className="w-4 h-4 text-blue-600" />
+                <Camera className="w-4 h-4 text-sky-600" />
                 {attendanceType === "SICK"
                   ? "Foto Surat Keterangan Dokter (Maks 150 KB)"
                   : attendanceType === "PERMIT"
@@ -635,7 +635,7 @@ export default function NewLogPage() {
                 </div>
               </div>
             ) : (
-              <label className="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-2xl p-5 flex flex-col items-center justify-center cursor-pointer transition bg-slate-50 hover:bg-blue-50/30">
+              <label className="border-2 border-dashed border-slate-300 hover:border-sky-500 rounded-2xl p-5 flex flex-col items-center justify-center cursor-pointer transition bg-slate-50 hover:bg-sky-50/30">
                 <input
                   type="file"
                   accept="image/*"
@@ -644,7 +644,7 @@ export default function NewLogPage() {
                   className="hidden"
                   disabled={isCompressingPhoto}
                 />
-                <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-2">
+                <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center mb-2">
                   <Camera className="w-5 h-5" />
                 </div>
                 <p className="text-xs font-bold text-slate-800">
@@ -734,7 +734,7 @@ export default function NewLogPage() {
               <label className="text-xs sm:text-sm font-bold text-slate-800">
                 Durasi Waktu Praktik Harian:
               </label>
-              <span className="text-sm font-black text-blue-700 bg-blue-50 px-3 py-1 rounded-lg border border-blue-200">
+              <span className="text-sm font-black text-sky-700 bg-sky-50 px-3 py-1 rounded-lg border border-sky-100">
                 {durationJp} Jam Pelajaran (JP)
               </span>
             </div>
@@ -744,12 +744,12 @@ export default function NewLogPage() {
               max={MAX_DAILY_JP}
               value={durationJp}
               onChange={(e) => setDurationJp(parseInt(e.target.value, 10))}
-              className="w-full accent-blue-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
+              className="w-full accent-sky-500 cursor-pointer h-2 bg-slate-200 rounded-lg"
             />
             <div className="flex justify-between text-[11px] text-slate-400 font-semibold">
               <span>Min: {MIN_DAILY_JP} JP</span>
               <span className="text-slate-600 font-bold">Rekomendasi: 8–10 JP</span>
-              <span>Max: {MAX_DAILY_JP} JP (BR-002)</span>
+              <span>Max: {MAX_DAILY_JP} JP</span>
             </div>
           </section>
 
@@ -771,14 +771,14 @@ export default function NewLogPage() {
                     onClick={() => setAutonomyLevel(item.level)}
                     className={`p-3 rounded-2xl text-center flex flex-col items-center justify-center transition ${
                       autonomyLevel === item.level
-                        ? "bg-blue-600 text-white font-bold shadow-md ring-2 ring-blue-600/30"
+                        ? "bg-sky-500 text-white font-bold shadow-md ring-2 ring-sky-500/30"
                         : "bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100"
                     }`}
                   >
                     <span className="text-xs sm:text-sm font-bold">{item.label}</span>
                     <span
                       className={`text-[10px] font-semibold mt-0.5 ${
-                        autonomyLevel === item.level ? "text-blue-100" : "text-blue-600"
+                        autonomyLevel === item.level ? "text-sky-100" : "text-sky-600"
                       }`}
                     >
                       {item.score}
@@ -819,7 +819,7 @@ export default function NewLogPage() {
                   ? "Tuliskan alasan izin / permohonan dispensasi kegiatan..."
                   : "Tuliskan ringkasan kendala atau fitur spesifik yang Anda selesaikan..."
               }
-              className="w-full text-xs sm:text-sm p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
+              className="w-full text-xs sm:text-sm p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white transition"
             />
           </section>
 
@@ -865,8 +865,8 @@ export default function NewLogPage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-400 font-semibold">Status Antrean:</span>
-                <span className="font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                  QUEUED (Tersimpan Lokal)
+                <span className="font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-100">
+                  Tersimpan Lokal
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -896,7 +896,7 @@ export default function NewLogPage() {
               </button>
               <Link
                 href="/student/log/history"
-                className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                className="py-2.5 px-3 rounded-full bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition"
               >
                 <span>Lihat Riwayat</span>
                 <ArrowRight className="w-3.5 h-3.5" />
