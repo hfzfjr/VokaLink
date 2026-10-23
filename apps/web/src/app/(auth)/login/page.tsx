@@ -18,6 +18,7 @@ import {
   User,
 } from "lucide-react";
 import Navbar, { NavbarButton } from "@/components/layout/Navbar";
+import { DemoBar } from "@/components/shell/DemoBar";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -47,13 +48,18 @@ export default function LoginPage() {
         router.push("/school/dashboard");
       } else if (identifier.includes("guru") || identifier.includes("budi")) {
         router.push("/teacher/heatmap");
-      } else if (identifier.includes("siswa") || identifier.includes("andi") || /^\d+$/.test(identifier)) {
+      } else if (
+        identifier.includes("siswa") ||
+        identifier.includes("andi") ||
+        /^\d+$/.test(identifier)
+      ) {
         router.push("/student/home");
       } else {
         router.push("/school/dashboard");
       }
-    } catch (err: any) {
-      setErrorMsg(err.message || "Gagal masuk ke sistem.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Gagal masuk ke sistem.";
+      setErrorMsg(msg);
     } finally {
       setLoading(false);
     }
@@ -64,28 +70,39 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
+    <div className="min-h-screen bg-canvas text-content-primary flex flex-col justify-between font-sans selection:bg-sky-500 selection:text-white">
+      {/* 1. DEMO BAR (Top Judge Switcher) */}
+      <DemoBar />
+
+      {/* 2. TOP NAVBAR */}
       <Navbar
         rightSlot={
-          <NavbarButton href="/register-school" label="Daftarkan Sekolah Baru" variant="outline" />
+          <NavbarButton
+            href="/register-school"
+            label="Daftarkan Sekolah Baru"
+            variant="outline"
+          />
         }
       />
 
-      {/* Main Container */}
-      <main className="max-w-4xl mx-auto w-full px-4 py-8 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* 3. MAIN WORKSPACE CONTAINER */}
+      <main className="max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Login Form */}
-        <div className="lg:col-span-6 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+        <div className="lg:col-span-6 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs space-y-6">
           <div>
-            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-sky-600 bg-sky-50 px-3 py-1 rounded-full border border-sky-100 inline-block mb-2">
+              Autentikasi Terpadu
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               Masuk ke VokaLink
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Gunakan akun Admin Sekolah, Guru Pembimbing, atau NISN Siswa.
+            <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
+              Gunakan akun Admin Sekolah, Guru Pembimbing, atau NISN Siswa untuk mengakses sistem.
             </p>
           </div>
 
           {errorMsg && (
-            <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5">
+            <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5">
               <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
               <span>{errorMsg}</span>
             </div>
@@ -93,7 +110,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 Email Resmi atau NISN Siswa
               </label>
               <div className="relative">
@@ -102,14 +119,14 @@ export default function LoginPage() {
                   placeholder="admin.smk@vokalink.id / 0078901234"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition font-medium"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition font-medium placeholder:text-slate-400 bg-slate-50/50 focus:bg-white"
                 />
                 <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
               </div>
             </div>
 
             <div>
-              <div className="flex justify-between items-center mb-1">
+              <div className="flex justify-between items-center mb-1.5">
                 <label className="text-xs font-bold text-slate-700">
                   Kata Sandi / Kode Akses Siswa
                 </label>
@@ -119,7 +136,7 @@ export default function LoginPage() {
                     e.preventDefault();
                     alert("Untuk siswa, minta reset kode akses melalui Guru Pembimbing Anda.");
                   }}
-                  className="text-[11px] text-blue-600 hover:underline"
+                  className="text-[11px] text-sky-600 font-semibold hover:underline"
                 >
                   Lupa akses?
                 </a>
@@ -130,13 +147,14 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition font-medium"
+                  className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition font-medium placeholder:text-slate-400 bg-slate-50/50 focus:bg-white"
                 />
                 <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  aria-label="Toggle password visibility"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -146,10 +164,10 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-xs transition disabled:opacity-50"
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold shadow-md shadow-sky-500/20 transition active:scale-[0.98] disabled:opacity-50 cursor-pointer"
             >
               <LogIn className="w-4 h-4" />
-              {loading ? "Memverifikasi..." : "Masuk ke Sistem"}
+              <span>{loading ? "Memverifikasi..." : "Masuk ke Sistem"}</span>
             </button>
           </form>
 
@@ -157,7 +175,7 @@ export default function LoginPage() {
             Belum mendaftarkan sekolah Anda?{" "}
             <Link
               href="/register-school"
-              className="text-blue-600 font-bold hover:underline"
+              className="text-sky-600 font-bold hover:underline"
             >
               Daftar Multi-Tenant (2 Menit)
             </Link>
@@ -166,9 +184,9 @@ export default function LoginPage() {
 
         {/* Right Column: Judge Quick Switcher (1-Click Role Switcher) */}
         <div className="lg:col-span-6 space-y-4">
-          <div className="p-5 rounded-3xl bg-gradient-to-br from-slate-900 to-indigo-950 text-white shadow-md border border-slate-800">
+          <div className="p-6 rounded-3xl bg-slate-900 text-white shadow-xl border border-slate-800">
             <div className="flex items-center gap-2 mb-2">
-              <span className="p-1.5 rounded-lg bg-blue-500/20 text-blue-400">
+              <span className="p-1.5 rounded-full bg-sky-500/20 text-sky-400">
                 <Sparkles className="w-4 h-4" />
               </span>
               <h2 className="font-extrabold text-sm sm:text-base text-white tracking-tight">
@@ -176,8 +194,7 @@ export default function LoginPage() {
               </h2>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed mb-4">
-              Uji seluruh alur sistem secara langsung tanpa perlu login manual. Pilih peran yang ingin
-              Anda simulasikan:
+              Uji seluruh alur sistem secara langsung tanpa perlu login manual. Pilih peran yang ingin Anda simulasikan:
             </p>
 
             <div className="space-y-2.5">
@@ -185,14 +202,14 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => handleQuickDemo("/school/dashboard")}
-                className="w-full p-3.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 transition flex items-center justify-between text-left group"
+                className="w-full p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition flex items-center justify-between text-left group cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-purple-500/20 text-purple-300">
+                  <div className="p-2 rounded-xl bg-sky-500/20 text-sky-300">
                     <Layers className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-xs sm:text-sm text-white group-hover:text-purple-300 transition">
+                    <h3 className="font-bold text-xs sm:text-sm text-white group-hover:text-sky-300 transition">
                       1. Admin Pokja PKL (SMK Demo)
                     </h3>
                     <p className="text-[11px] text-slate-400">
@@ -207,7 +224,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => handleQuickDemo("/teacher/heatmap")}
-                className="w-full p-3.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 transition flex items-center justify-between text-left group"
+                className="w-full p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition flex items-center justify-between text-left group cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-300">
@@ -229,14 +246,14 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => handleQuickDemo("/student/home")}
-                className="w-full p-3.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 transition flex items-center justify-between text-left group"
+                className="w-full p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition flex items-center justify-between text-left group cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-blue-500/20 text-blue-300">
+                  <div className="p-2 rounded-xl bg-sky-500/20 text-sky-300">
                     <QrCode className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-xs sm:text-sm text-white group-hover:text-blue-300 transition">
+                    <h3 className="font-bold text-xs sm:text-sm text-white group-hover:text-sky-300 transition">
                       3. Siswa PKL PWA (Andi Pratama - RPL)
                     </h3>
                     <p className="text-[11px] text-slate-400">
@@ -251,7 +268,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => handleQuickDemo("/v/demo-token")}
-                className="w-full p-3.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 transition flex items-center justify-between text-left group"
+                className="w-full p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition flex items-center justify-between text-left group cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-amber-500/20 text-amber-300">
@@ -272,15 +289,15 @@ export default function LoginPage() {
               {/* Option 5: HRD / Public Verifier */}
               <button
                 type="button"
-                onClick={() => handleQuickDemo("/verify/demo-paspor-pkl")}
-                className="w-full p-3.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 transition flex items-center justify-between text-left group"
+                onClick={() => handleQuickDemo("/verify/andi-pratama-rpl-2026")}
+                className="w-full p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition flex items-center justify-between text-left group cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-rose-500/20 text-rose-300">
+                  <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-300">
                     <ShieldCheck className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-xs sm:text-sm text-white group-hover:text-rose-300 transition">
+                    <h3 className="font-bold text-xs sm:text-sm text-white group-hover:text-indigo-300 transition">
                       5. Verifikator Publik / HRD Rekruter
                     </h3>
                     <p className="text-[11px] text-slate-400">
@@ -295,9 +312,9 @@ export default function LoginPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500">
-        <p>© 2026 VokaLink · Kompetisi Web Development UINIC 8.0</p>
+      {/* 4. FOOTER */}
+      <footer className="border-t border-slate-200/80 bg-white py-4 text-center text-xs text-slate-500">
+        <p>&copy; 2026 VokaLink &bull; Ekosistem PKL SMK Terintegrasi &bull; UINIC 8.0</p>
       </footer>
     </div>
   );

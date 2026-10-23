@@ -125,8 +125,9 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
       - `components/shell/DemoBar.tsx`: Strip mode uji juri (Judge Switcher) terintegrasi pada seluruh shell.
       - Integrasi menyeluruh `school/layout.tsx` dan pembersihan wrapper ganda pada seluruh subhalaman sekolah.
       - Verifikasi: Browser automated test sukses, `next build` 18 routes lulus 100%, `typecheck` & `lint` hijau tanpa eror.
+    - CP3 (Landing & Auth): Penyelarasan `VokaLogo.tsx`, `Navbar.tsx`, `/login`, dan `/register-school` ke tema Electric Sky Blue #0EA5E9 dengan pill buttons `rounded-full`, kartu `rounded-3xl`, kanvas `#F8FAFD`, DemoBar Judge Switcher, dan semua field TS errors di payload `registerSchool` (`selectedDepartmentSectorCodes`, `isDemoSandbox`) serta `DemoSandboxData.period` (bukan `activePeriod`) diperbaiki. Typecheck & lint 100% hijau.
 - Sedang dikerjakan:
-  - Checkpoint 3 (CP3 — Landing & Auth): Penyelarasan halaman login (`/login`) dan registrasi sekolah (`/register-school`) ke tema Electric Sky Blue.
+  - Checkpoint 4 (CP4 — Student Pages): Penyelarasan halaman siswa (`/student/*`) ke Design System standar.
 - Blocker:
   - Tidak ada blocker.
 
