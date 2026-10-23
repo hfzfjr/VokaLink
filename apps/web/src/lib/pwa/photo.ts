@@ -130,7 +130,7 @@ export async function compressEvidencePhoto(
     ctx.fillRect(bx + 6, by + 6, badgeW, badgeH);
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 10.5px sans-serif";
-    ctx.fillText("🔒 SENSOR PRIVASI DUDI", bx + 12, by + 21);
+    ctx.fillText("SENSOR PRIVASI DUDI", bx + 12, by + 21);
     ctx.restore();
   }
 

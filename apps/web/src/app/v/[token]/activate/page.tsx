@@ -380,7 +380,7 @@ export default function MentorActivationPage() {
             </div>
 
             <div className="p-3 text-[11px] text-slate-400 bg-slate-950/60 rounded-xl">
-              💡 <em>Tips: Simpan halaman ini sebagai bookmark jika ingin melihat status verifikator Anda sewaktu-waktu.</em>
+              <em>Tips: Simpan halaman ini sebagai bookmark jika ingin melihat status verifikator Anda sewaktu-waktu.</em>
             </div>
           </div>
         )}

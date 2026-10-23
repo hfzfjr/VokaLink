@@ -10,9 +10,12 @@ export interface ButtonProps
     | "outline"
     | "ghost"
     | "link"
-    | "danger";
+    | "danger"
+    | "blue"
+    | "blueSecondary";
   size?: "default" | "sm" | "lg" | "mentor";
   loading?: boolean;
+  pill?: boolean;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -22,6 +25,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       variant = "primary",
       size = "default",
       loading = false,
+      pill = false,
       disabled,
       children,
       ...props
@@ -41,6 +45,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         "text-safety-700 hover:underline p-0 h-auto font-medium focus-visible:ring-safety-500",
       danger:
         "bg-danger-700 text-white hover:bg-danger-700/90 font-semibold focus-visible:ring-danger-700",
+      blue:
+        "bg-primary-600 text-white hover:bg-primary-700 font-semibold shadow-pill focus-visible:ring-primary-100",
+      blueSecondary:
+        "bg-primary-50 text-primary-600 border border-primary-100 hover:bg-primary-100 font-semibold focus-visible:ring-primary-100",
     };
 
     const sizeClasses = {
@@ -59,6 +67,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
           variantClasses[variant],
           variant !== "link" && sizeClasses[size],
+          pill && "rounded-full",
           className
         )}
         {...props}
