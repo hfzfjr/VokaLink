@@ -6,10 +6,10 @@ import { db } from "@/lib/pwa/db";
 export function usePendingLogs() {
   const pendingLogs = useLiveQuery(
     async () => {
-      // Ambil log yang masih berada dalam antrean sinkronisasi lokal
+      // Ambil log yang masih berada dalam antrean sinkronisasi lokal (termasuk yang menunggu retry)
       return await db.logs
         .where("state")
-        .anyOf(["queued", "meta_synced"])
+        .anyOf(["queued", "meta_synced", "failed"])
         .toArray();
     },
     [],

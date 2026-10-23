@@ -79,19 +79,21 @@ export async function executeTwoPhaseSync(
         batch.map(async (log) => {
           const photo = await db.photos.get(log.clientLogUuid);
 
-          // Susun items kompetensi atau non-kompetensi
+          // Susun items kompetensi atau non-kompetensi (jaminan setiap item minimal 1 JP)
           const jcIds =
             log.jobCardIds && log.jobCardIds.length > 0
               ? log.jobCardIds
               : ["00000000-0000-0000-0000-000000000037"]; // Fallback UUID non-kompetensi
 
-          const count = jcIds.length;
-          const baseJp = Math.max(1, Math.floor(log.durationJp / count));
-          const remainder = log.durationJp - baseJp * count;
+          const maxPossibleItems = Math.max(1, Math.min(jcIds.length, log.durationJp));
+          const activeJcIds = jcIds.slice(0, maxPossibleItems);
+          const count = activeJcIds.length;
+          const baseJp = Math.floor(log.durationJp / count);
+          const remainder = log.durationJp % count;
 
-          const items = jcIds.map((jcId, idx) => ({
+          const items = activeJcIds.map((jcId, idx) => ({
             jobCardId: jcId,
-            durationJp: idx === 0 ? baseJp + remainder : baseJp,
+            durationJp: idx < remainder ? baseJp + 1 : baseJp,
             autonomyLevel: log.autonomyLevel,
             nonCompetencyCategory: log.isNonCompetency
               ? ((log.nonCompetencyCategory as any) || "ADMIN_UMUM")
@@ -208,7 +210,14 @@ export async function executeTwoPhaseSync(
       .equals("meta_synced")
       .toArray();
 
-    for (const log of metaSyncedLogs) {
+    const eligibleMetaSyncedLogs = options?.forceAll
+      ? metaSyncedLogs
+      : metaSyncedLogs.filter((log) => {
+          if (!log.nextAttemptAt) return true;
+          return new Date(log.nextAttemptAt).getTime() <= now;
+        });
+
+    for (const log of eligibleMetaSyncedLogs) {
       const photo = await db.photos.get(log.clientLogUuid);
       if (!photo) {
         // Jika tidak ada biner foto lokal, langsung promosikan ke synced

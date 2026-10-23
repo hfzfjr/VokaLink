@@ -42,6 +42,7 @@ const { mockPrisma } = vi.hoisted(() => {
       findUnique: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
+      count: vi.fn().mockResolvedValue(0),
     },
     dailyLogItem: {
       findMany: vi.fn(),
@@ -49,6 +50,9 @@ const { mockPrisma } = vi.hoisted(() => {
     },
     securityFlag: {
       create: vi.fn(),
+    },
+    driftAlert: {
+      updateMany: vi.fn(),
     },
   };
 
@@ -414,7 +418,7 @@ describe("Dual-Mode Zero-Login Mentor Verification & Anti-Forgery Stamp (FR-007,
       expect(res.status).toBe(201);
       expect(res.body.token).toBeDefined();
       expect(res.body.verificationUrl).toContain("/v/");
-      expect(res.body.waShareUrl).toContain("https://wa.me/081234567890");
+      expect(res.body.waShareUrl).toContain("https://wa.me/6281234567890");
       expect(res.body.pendingCount).toBe(2);
     });
   });

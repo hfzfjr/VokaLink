@@ -151,6 +151,41 @@ export async function compressEvidencePhoto(
     throw new Error("Gagal mengompresi gambar ke biner WebP / JPEG");
   }
 
+  // 4b. Jaminan Ukuran Server <= 150 KB (PRD FR-006 & DESIGN §7.1)
+  // Bila ukuran biner melebihi 145 KB akibat gambar ber-noise tinggi, turunkan kualitas adaptif
+  const HARD_LIMIT_BYTES = 145 * 1024;
+  let adaptiveQuality = webpQuality;
+
+  while (blob.size > HARD_LIMIT_BYTES && adaptiveQuality > 0.25) {
+    adaptiveQuality -= 0.12;
+    const retryBlob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob((b) => resolve(b), mimeType, adaptiveQuality)
+    );
+    if (retryBlob && retryBlob.size < blob.size) {
+      blob = retryBlob;
+    } else {
+      break;
+    }
+  }
+
+  // Jika masih melebihi batas, downscale kanvas sisi terpanjang ke 600px
+  if (blob.size > HARD_LIMIT_BYTES) {
+    const scaleFactor = 0.75;
+    const miniCanvas = document.createElement("canvas");
+    miniCanvas.width = Math.round(canvas.width * scaleFactor);
+    miniCanvas.height = Math.round(canvas.height * scaleFactor);
+    const miniCtx = miniCanvas.getContext("2d");
+    if (miniCtx) {
+      miniCtx.drawImage(canvas, 0, 0, miniCanvas.width, miniCanvas.height);
+      const scaledBlob = await new Promise<Blob | null>((resolve) =>
+        miniCanvas.toBlob((b) => resolve(b), mimeType, 0.55)
+      );
+      if (scaledBlob) {
+        blob = scaledBlob;
+      }
+    }
+  }
+
   // 5. Hitung hash SHA-256
   const sha256 = await computeSha256(blob);
   const sizeBytes = blob.size;

@@ -31,6 +31,7 @@ import {
 import Navbar, { NavbarButton } from "@/components/layout/Navbar";
 import Skeleton from "@/components/ui/Skeleton";
 import Button from "@/components/ui/Button";
+import { QrCodeView } from "@/components/ui/QrCodeView";
 import {
   fetchDudiPartners,
   createDudiPartner,
@@ -1275,13 +1276,14 @@ export default function DudiDirectoryPage() {
               </p>
             </div>
 
-            {/* QR Code Graphic Box (Stylized SVG barcode representation) */}
+            {/* QR Code Graphic Box (Real scannable SVG QR) */}
             <div className="p-4 bg-slate-900 rounded-2xl inline-block mx-auto text-white space-y-2">
               <div className="w-48 h-48 bg-white rounded-xl p-2 mx-auto flex items-center justify-center">
-                {/* SVG QR Code Simulation */}
-                <svg className="w-full h-full text-slate-900" viewBox="0 0 100 100" fill="currentColor">
-                  <path d="M0 0h30v30H0zM10 10h10v10H10zM70 0h30v30H70zM80 10h10v10H80zM0 70h30v30H0zM10 80h10v10H10zM40 10h10v10H40zM40 30h10v10H40zM20 40h10v10H20zM60 40h10v10H60zM40 60h10v10H40zM80 40h20v10H80zM40 80h20v20H40zM70 70h10v20H70zM90 70h10v10H90zM80 90h20v10H80z" />
-                </svg>
+                <QrCodeView
+                  value={qrModalData.url}
+                  size={170}
+                  errorCorrectionLevel="M"
+                />
               </div>
               <span className="text-[11px] font-mono font-bold text-emerald-400 block">
                 Zero-Login PIN Device Token

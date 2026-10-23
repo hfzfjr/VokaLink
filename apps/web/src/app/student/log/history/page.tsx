@@ -23,6 +23,7 @@ import {
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/pwa/db";
 import { generateVerificationLink } from "@/lib/api";
+import { QrCodeView } from "@/components/ui/QrCodeView";
 
 interface LogEntry {
   id: string;
@@ -521,13 +522,17 @@ export default function LogHistoryPage() {
 
             {/* QR Mock Display */}
             <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col items-center justify-center space-y-3 text-center">
-              <div className="w-48 h-48 bg-white border-2 border-slate-900 rounded-2xl p-4 flex flex-col items-center justify-center shadow-inner relative">
-                <QrCode className="w-36 h-36 text-slate-900" />
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-10 h-10 rounded-lg bg-white border border-slate-300 shadow-md flex items-center justify-center font-black text-xs text-blue-600">
-                    VL
-                  </div>
-                </div>
+              <div className="w-48 h-48 bg-white border-2 border-slate-900 rounded-2xl p-2 flex flex-col items-center justify-center shadow-inner relative">
+                <QrCodeView
+                  value={
+                    activeLinkData?.fullUrl ||
+                    (typeof window !== "undefined"
+                      ? `${window.location.origin}${activeLinkData?.verificationUrl || "/v/mock-demo-token-123"}`
+                      : `http://localhost:3000${activeLinkData?.verificationUrl || "/v/mock-demo-token-123"}`)
+                  }
+                  size={170}
+                  errorCorrectionLevel="M"
+                />
               </div>
               <div className="space-y-1">
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold">
