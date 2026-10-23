@@ -496,217 +496,389 @@ vokalink/
 
 ---
 
-## 13. Design System & UI
+## 13. Design System & Visual Style Guide (Update UINIC 8.0)
 
-> Berlaku untuk seluruh `apps/web`. Sumber tunggal: token di `apps/web/tailwind.config.ts` dan komponen di `apps/web/src/components/ui/`. Halaman tidak boleh membuat gaya sendiri. Urutan refactor ada di `docs/UI-REFACTOR.md`. Bila bab ini bertentangan dengan PRD pada teks baku atau aturan bisnis, PRD menang.
+> Dokumen panduan desain antarmuka dan spesifikasi teknis visual untuk platform **VokaLink** pada kompetisi **UINIC 8.0 Web Development 2026** (*Subtema: Education*).
+> Berlaku untuk seluruh `apps/web`. Sumber tunggal: token di `apps/web/tailwind.config.ts` dan komponen di `apps/web/src/components/ui/`. Halaman tidak boleh membuat gaya sendiri. Rencana refactor UI bertahap ada di `docs/UI-REFACTOR.md`. Bila bab ini bertentangan dengan PRD pada teks baku atau aturan bisnis, PRD menang.
 
-### 13.1 Arah visual dan prinsip
+### 13.1 Analisis Proyek & Karakteristik Brand
 
-Tema **"Bengkel & K3"**: tenang, tegas, praktis, seperti papan kerja di bengkel dan rambu keselamatan. Bukan SaaS biru-ungu bergradien.
+#### Profil Platform
+**VokaLink** (*Interconnected Multi-Sector Vocational Internship Competency, Zero-Login Verification & Verifiable Career Ecosystem*) adalah ekosistem berbasis **Multi-Tenant SaaS** dan **Offline-First Progressive Web App (PWA)** yang mengorkestrasi pelaksanaan Praktik Kerja Lapangan (PKL) Sekolah Menengah Kejuruan (SMK) lintas sektor keahlian secara terintegrasi, transparan, dan akuntabel dengan biaya operasional infrastruktur Rp0 (*Zero-Cost Architecture*).
 
-| # | Prinsip | Artinya |
+Platform ini menghubungkan lima aktor pemangku kepentingan dalam satu rantai data yang saling mengunci (*interconnected workflow*):
+1. **Siswa SMK Peserta PKL (Fase F):** Mencatat logbook kegiatan harian berbasis tap Kartu Pekerjaan (*Job Cards*) bebas ketik (*zero-typing*), kompresi bukti foto otomatis di bawah 60 KB langsung di browser, tetap berfungsi saat sinyal lemah/tanpa internet (*IndexedDB PWA*), serta mengonversi jam kerja menjadi CV standar ATS dan Paspor Kompetensi.
+2. **Guru Pembimbing Sekolah:** Memantau ketercapaian target 792 Jam Pelajaran (JP) secara visual lewat *Live Competency Heatmap*, menerima peringatan dini penyimpangan tugas (*Competency Drift Alert*), dan memfasilitasi intervensi terarah via WhatsApp deep-link.
+3. **Sekolah (Pokja PKL / Hubin / Kaprog):** Mengelola matriks kurikulum multi-sektor Kurikulum Merdeka & SKKNI, memetakan penempatan siswa ke DUDI (*Smart Placement Scorer*), serta mengekspor rekap nilai terstruktur sesuai format e-Rapor SMK.
+4. **Mentor / Penyelia Industri (DUDI):** Memvalidasi laporan kerja siswa dalam waktu kurang dari 10 detik tanpa perlu registrasi akun atau login (*Zero-Login Cryptographic Verification* via QR Code / WhatsApp magic link bertanda tangan + PIN 4-digit + *device token*).
+5. **Perekrut Kerja / HRD / Publik (Public Verifier):** Memverifikasi keabsahan klaim kompetensi, akumulasi jam kerja nyata, dan keaslian segel digital (*HMAC-SHA256*) melalui pemindaian QR Paspor Kompetensi publik anti-pemalsuan.
+
+#### Karakteristik Brand & Arah Visual
+- **Pure Cleanliness:** Seluruh kanvas dan latar belakang utama menggunakan warna putih solid `#FFFFFF`. Area kerja bebas dari efek gradasi latar yang memperberat visual dan membingungkan pengguna di lapangan.
+- **Solid & Fungsional:** Warna digunakan murni untuk membedakan kategori status verifikasi, sektor keahlian vokasi, dan hierarki interaksi tanpa gradasi multi-warna.
+- **Friendly & Structured Geometry:** Tombol kontrol, bilah pencarian, filter status, dan bar timeline mengadopsi bentuk kapsul lonjong (*pill-shaped* `9999px`) untuk menghadirkan kesan modern, ramah, dan ergonomis untuk perangkat mobile di lingkungan kerja praktik, dipadukan dengan radius kartu yang tegas (`16px` – `24px`).
+- **High Contrast Accessibility:** Seluruh teks dan kontrol interaktif dirancang memenuhi standar WCAG 2.1 Level AA (kontras minimal 4.5:1 untuk teks biasa dan 3:1 untuk teks besar serta elemen UI grafis).
+
+---
+
+### 13.2 Color Palette (Zero Gradient, Solid System)
+
+Warna primer ditentukan sebagai **Solid Royal Blue** (`#2563EB`). Seluruh varian warna fungsional dipetakan secara terukur tanpa gradasi.
+
+| Peran Warna | Token Name | Nilai HEX | Rasio Kontras ke #FFFFFF | Penggunaan Fungsional |
+|---|---|---|---|---|
+| **Primary Brand** | `color-primary-600` | `#2563EB` | 4.61:1 (Lolos AA) | Tombol CTA utama, tanggal kalender aktif, badge utama, border fokus |
+| **Primary Hover** | `color-primary-700` | `#1D4ED8` | 6.51:1 (Lolos AAA) | State hover & active pada elemen primer |
+| **Primary Surface** | `color-primary-50` | `#EFF6FF` | 1.15:1 (Non-teks) | Latar belakang chip filter aktif, aksen baris tabel aktif |
+| **Canvas Background** | `color-bg-canvas` | `#FFFFFF` | Basis 1:1 | Latar belakang utama seluruh halaman |
+| **Card / Surface** | `color-bg-surface` | `#FFFFFF` | Basis 1:1 | Latar kartu data, kontainer widget, modal dialog |
+| **Surface Alt / Muted** | `color-bg-muted` | `#F8FAFC` | 1.05:1 (Non-teks) | Latar sel header tabel, track timeline, chip tidak aktif |
+| **Text Primary** | `color-text-primary` | `#0F172A` | 15.68:1 (Lolos AAA) | Judul H1-H6, teks label formulir, data metrik JP utama |
+| **Text Secondary** | `color-text-secondary` | `#475569` | 5.82:1 (Lolos AA) | Paragraf body, deskripsi kartu pekerjaan/logbook, sub-judul kartu |
+| **Text Muted / Placeholder** | `color-text-muted` | `#94A3B8` | 3.01:1 (Elemen UI) | Placeholder input, teks caption tanggal non-aktif |
+| **Text Inverted** | `color-text-inverse` | `#FFFFFF` | 21:1 (Lolos AAA) | Teks di atas warna solid (tombol, chip badge solid) |
+| **Border Default** | `color-border-default` | `#E2E8F0` | Non-teks (Struktural) | Garis batas kartu, pemisah baris, garis input pasif |
+| **Border Strong** | `color-border-strong` | `#CBD5E1` | Non-teks (Interaktif) | Batas input saat hover, divider tegas |
+| **Accent Teal (AKL / Mulai)** | `color-accent-teal` | `#0D9488` | 4.54:1 (Lolos AA) | Sektor Akuntansi & Keuangan Lembaga, status logbook "Mulai Dikerjakan / Terbimbing" |
+| **Accent Sky (RPL / Menunggu)** | `color-accent-sky` | `#0284C7` | 4.51:1 (Lolos AA) | Sektor Rekayasa Perangkat Lunak, status "Menunggu Verifikasi Mentor / Pending Sync" |
+| **Accent Indigo (Farmasi / Sah)** | `color-accent-indigo` | `#4338CA` | 7.64:1 (Lolos AAA) | Sektor Farmasi Klinis, status "Terverifikasi (Verified) / Segel Digital Valid" |
+| **Accent Rose (DKV / Drift / Revisi)** | `color-accent-rose` | `#E11D48` | 4.67:1 (Lolos AA) | Sektor Desain Komunikasi Visual, indikator deviasi "Competency Drift / Perlu Perbaikan" |
+| **Accent Amber (Kuliner / Perhatian)** | `color-accent-amber` | `#D97706` | 4.52:1 (Lolos AA) | Sektor Kuliner / F&B, peringatan tenggat verifikasi / verifikasi PIN pending |
+
+---
+
+### 13.3 Typography System
+
+- **Primary Font Family:** Plus Jakarta Sans, sans-serif.
+- **Monospace Stack:** JetBrains Mono, monospace (khusus NISN, kode SKKNI/unit kompetensi, dan hash tanda tangan digital).
+- **Fallback Stack:** Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif.
+- **Pemuatan Font:** Memakai `next/font/google` (self-hosted saat build, ter-precache PWA offline, bebas request CDN eksternal).
+
+#### Skala Tipografi Modular
+
+| Role | Ukuran (rem / px) | Line Height | Weight | Letter Spacing | Penggunaan |
+|---|---|---|---|---|---|
+| **Display / Hero** | 2.5rem (40px) | 3rem (48px) | 800 (Bold) | -0.025em | Judul utama landing page (Hero title) |
+| **Heading 1 (H1)** | 2rem (32px) | 2.5rem (40px) | 700 (Bold) | -0.02em | Judul halaman dashboard & modul besar |
+| **Heading 2 (H2)** | 1.5rem (24px) | 2rem (32px) | 700 (Bold) | -0.015em | Judul section kurikulum, header panel siswa/guru |
+| **Heading 3 (H3)** | 1.25rem (20px) | 1.75rem (28px) | 600 (SemiBold) | -0.01em | Judul kartu tugas, judul modal logbook |
+| **Subheading** | 1.125rem (18px) | 1.5rem (24px) | 600 (SemiBold) | 0em | Unit kompetensi, header widget ringkas |
+| **Body Large** | 1rem (16px) | 1.5rem (24px) | 400 (Regular) | 0em | Paragraf pengantar, deskripsi utama ekosistem |
+| **Body Regular** | 0.875rem (14px) | 1.25rem (20px) | 400 (Regular) | 0em | Standar teks aplikasi, isi logbook, tabel data |
+| **Body Medium** | 0.875rem (14px) | 1.25rem (20px) | 500 (Medium) | 0em | Teks list kegiatan, nama pembimbing/mentor DUDI |
+| **Label / Button** | 0.875rem (14px) | 1.25rem (20px) | 600 (SemiBold) | 0.01em | Teks tombol CTA, tab filter aktif, chip sektor |
+| **Caption** | 0.75rem (12px) | 1rem (16px) | 500 (Medium) | 0.02em | Tanggal kalender, label counter JP, badge status |
+| **Micro / Mono** | 0.6875rem (11px) | 0.875rem (14px) | 600 (SemiBold) | 0.03em | Persentase progres bar kapsul, kode unit SKKNI |
+
+---
+
+### 13.4 Layout, Spacing & Grid System
+
+- **Max Content Width:** `1280px` (`max-w-7xl` untuk fluid desktop), `1440px` (`max-w-[1440px]` untuk area dashboard terintegrasi).
+- **Grid Layout Desktop (≥ 1024px):** 12 Kolom, gap: 24px (`gap-6`), margin samping terpusat.
+- **Grid Layout Tablet (768px – 1023px):** 8 Kolom, gap: 16px (`gap-4`).
+- **Grid Layout Mobile (< 768px):** 4 Kolom, gap: 16px (`gap-4`).
+
+#### Page Padding
+- **Desktop (≥ 1024px):** `padding-inline: 32px` (`px-8`).
+- **Tablet (768px – 1023px):** `padding-inline: 24px` (`px-6`).
+- **Mobile (< 768px):** `padding-inline: 16px` (`px-4`).
+
+#### Spacing Scale
+
+| Token Name | Ukuran (px) | Ukuran (rem) | Implementasi |
+|---|---|---|---|
+| `spacing-1` | 4px | 0.25rem | Gap ikon kecil, padding mikro badge |
+| `spacing-2` | 8px | 0.5rem | Gap antar tag chip, padding tombol mini |
+| `spacing-3` | 12px | 0.75rem | Padding internal input text, gap item list |
+| `spacing-4` | 16px | 1rem | Padding default tombol, gap kartu form |
+| `spacing-6` | 24px | 1.5rem | Padding kartu, gap antar kolom utama grid |
+| `spacing-8` | 32px | 2rem | Padding modal desktop, jarak antar komponen |
+| `spacing-12` | 48px | 3rem | Jarak vertikal antar section halaman |
+| `spacing-16` | 64px | 4rem | Margin vertikal section hero dan footer |
+
+---
+
+### 13.5 Border, Radius & Elevation System
+
+Visual mengutamakan kontur lonjong (*pill*) untuk elemen interaktif dan *large radius* untuk pembungkus data akuntabilitas.
+
+#### Radius Scale
+
+| Token Radius | Nilai (px) | Nilai Tailwind | Elemen Terapan |
+|---|---|---|---|
+| `radius-full` | 9999px | `rounded-full` | Tombol CTA, bilah search kartu tugas, pill filter, Gantt bar, avatar, tanggal aktif |
+| `radius-3xl` | 24px | `rounded-3xl` | Kartu preview dashboard hero, kontainer dashboard utama, modal besar |
+| `radius-2xl` | 16px | `rounded-2xl` | Kartu pekerjaan (Job Card), popup modal logbook, widget kalender presensi |
+| `radius-xl` | 12px | `rounded-xl` | Kotak statistik metrik logbook (Total JP / Menunggu / Terverifikasi) |
+| `radius-lg` | 8px | `rounded-lg` | Dropdown menu container, field textarea catatan kegiatan |
+
+#### Elevation & Shadows
+Shadow dirancang sangat halus (*clean elevation*) untuk menjaga ketegasan batas di atas latar putih murni tanpa efek keruh (*muddy blur*).
+
+| Level Elevation | Nilai Box-Shadow | Penggunaan |
 |---|---|---|
-| U1 | Satu layar, satu tugas | Tiap layar punya 1 aksi utama (maksimal 1 tombol oranye terisi). Aksi lain berupa outline atau teks |
-| U2 | Ringkas dulu, detail belakangan | Tampilkan hasil dan langkah berikutnya. Alasan, rumus, aturan, dan hash masuk ke "Detail" (disclosure) |
-| U3 | Bahasa pengguna | Tanpa kode internal (FR-, BR-, ADR-) dan istilah teknis (IndexedDB, QUEUED, HMAC, SHA-256) di layar utama |
-| U4 | Datar dan jelas | Tanpa gradien, blur, bayangan tebal, dan ikon dalam kotak pastel. Struktur dibangun dari garis, jarak, dan tipografi |
-| U5 | Warna punya arti | Navy = struktur, oranye = aksi, hijau/kuning/merah/biru = status. Tidak ada warna dekoratif lain |
-| U6 | Desktop punya layout sendiri | Bukan layout mobile yang dilebarkan (lihat 13.6) |
-| U7 | Bisa dipakai di bawah matahari dan HP murah | Kontras WCAG AA, teks minimal 12 px, area sentuh sesuai AGENTS.md |
+| `shadow-none` | `none` | Kondisi flat, batas dibantu border 1px `#E2E8F0` |
+| `shadow-card` | `0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.02)` | Kartu logbook, panel ringkasan JP |
+| `shadow-pill` | `0 4px 12px -2px rgba(37, 99, 235, 0.2)` | Tombol primer melayang, item timeline aktif |
+| `shadow-modal` | `0 20px 40px -8px rgba(15, 23, 42, 0.12), 0 8px 16px -4px rgba(15, 23, 42, 0.06)` | Modal dialog pencatatan logbook / verifikasi PIN mentor, popover |
 
-### 13.2 Warna (token)
+---
 
-Pakai hanya nama token di bawah. Kelas warna mentah Tailwind (`blue-600`, `slate-100`, `indigo-*`, dst.) dilarang.
+### 13.6 CSS Variables (DESIGN_TOKENS)
 
-| Token | Hex | Pakai untuk |
-|---|---|---|
-| `paper` | `#FAF8F5` | Latar halaman |
-| `white` | `#FFFFFF` | Permukaan kartu, input |
-| `line` | `#E7E1D8` | Garis dan border kartu (hangat) |
-| `ink-950` | `#081827` | Footer gelap, teks di atas oranye bila perlu kontras tinggi |
-| `ink-900` | `#0F2A43` | **Warna utama**: teks utama, judul, tombol sekunder, sidebar |
-| `ink-700` | `#1E4468` | Hover elemen navy, ikon |
-| `ink-500` | `#4A6A8A` | Teks sekunder, label (kontras 5,3:1 di atas `paper`) |
-| `ink-300` | `#A9BBCD` | Placeholder, garis nonaktif |
-| `ink-200` | `#D3DEE9` | Border input |
-| `ink-100` | `#E8EEF4` | Track progress, skeleton, hover baris |
-| `ink-50` | `#F3F6F9` | Latar blok sekunder |
-| `safety-500` | `#F97316` | **Aksen aksi**: tombol utama (teks `ink-900`, kontras 5,2:1), penanda fokus |
-| `safety-400` | `#FB923C` | Hover tombol utama |
-| `safety-700` | `#C2410C` | Teks tautan aksen di atas terang (kontras 5,2:1) |
-| `safety-100` / `safety-50` | `#FFEDD5` / `#FFF7ED` | Latar sorotan lembut |
-| `ok-700` / `ok-100` | `#15803D` / `#DCFCE7` | Terverifikasi, berhasil, heatmap ≥ 75% |
-| `warn-700` / `warn-100` | `#A16207` / `#FEF3C7` | Menunggu, offline, heatmap 1 sampai 74% |
-| `danger-700` / `danger-100` | `#B91C1C` / `#FEE2E2` | Perlu diperbaiki, drift, tanda tangan tidak valid |
-| `info-700` / `info-100` | `#1D4ED8` / `#DBEAFE` | Menyinkronkan (banner PRD §8.2) |
+Daftar token desain siap dipasangkan pada build tools (`variables.css` atau tema Tailwind):
 
-Aturan pakai:
-- Teks `-700` selalu di atas latar `-100` atau putih. Jangan memakai `safety-500` sebagai warna teks kecil di atas putih.
-- Status wajib berisi **ikon + teks**, bukan hanya warna (WCAG AA, AGENTS.md).
-- Heatmap: 0% `ink-100`, 1 sampai 74% `warn-100`, ≥ 75% `ok-100`, lencana `DRIFT_WARNING` memakai `danger`. Tiap sel tetap menampilkan angka dan ikon.
-- Tidak ada mode gelap pada MVP.
+```css
+:root {
+  /* --- Colors: Brand & Canvas --- */
+  --color-primary-50: #EFF6FF;
+  --color-primary-100: #DBEAFE;
+  --color-primary-600: #2563EB;
+  --color-primary-700: #1D4ED8;
+  
+  --color-bg-canvas: #FFFFFF;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-muted: #F8FAFC;
+  
+  /* --- Colors: Content --- */
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94A3B8;
+  --color-text-inverse: #FFFFFF;
+  
+  /* --- Colors: Borders --- */
+  --color-border-default: #E2E8F0;
+  --color-border-strong: #CBD5E1;
+  
+  /* --- Colors: VokaLink Functional & Multi-Sector Accents --- */
+  --color-accent-teal: #0D9488;          /* AKL / Started / Terbimbing */
+  --color-accent-teal-subtle: #F0FDFA;
+  --color-accent-sky: #0284C7;           /* RPL / Pending Verification */
+  --color-accent-sky-subtle: #F0F9FF;
+  --color-accent-indigo: #4338CA;        /* Farmasi / Verified / Passport */
+  --color-accent-indigo-subtle: #EEF2FF;
+  --color-accent-rose: #E11D48;          /* DKV / Drift Warning / Revision */
+  --color-accent-rose-subtle: #FFF1F2;
+  --color-accent-amber: #D97706;         /* Kuliner / Pending PIN / Sync */
+  --color-accent-amber-subtle: #FFFBEB;
 
-`apps/web/tailwind.config.ts` (Tailwind **v3.4**, jangan dimigrasi ke v4):
-```ts
-import type { Config } from "tailwindcss";
+  /* --- Spacing --- */
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-12: 3rem;    /* 48px */
+  --space-16: 4rem;    /* 64px */
 
-const config: Config = {
-  content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
+  /* --- Corner Radius --- */
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
+  --radius-full: 9999px;
+
+  /* --- Shadows --- */
+  --shadow-card: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
+  --shadow-pill: 0 4px 12px -2px rgba(37, 99, 235, 0.2);
+  --shadow-modal: 0 20px 40px -8px rgba(15, 23, 42, 0.12), 0 8px 16px -4px rgba(15, 23, 42, 0.06);
+
+  /* --- Transitions --- */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+}
+```
+
+---
+
+### 13.7 Component Specifications
+
+#### 1. Button Component (`Button`)
+Tombol menggunakan konstruksi sudut lonjong penuh (*pill-shape*) untuk kenyamanan sentuhan jari di perangkat mobile di lingkungan kerja:
+
+| Tipe Button | Latar Belakang | Border | Teks | State Hover | State Active/Focus |
+|---|---|---|---|---|---|
+| **Primary** | `#2563EB` | 1px solid transparent | `#FFFFFF` (Semibold) | `#1D4ED8`, `shadow-pill` | `ring-4 ring-blue-100` |
+| **Secondary** | `#EFF6FF` | 1px solid `#DBEAFE` | `#2563EB` (Semibold) | `#DBEAFE` | `ring-2 ring-blue-100` |
+| **Outline** | `#FFFFFF` | 1px solid `#E2E8F0` | `#0F172A` (Medium) | `#F8FAFC`, `border-strong` | `ring-2 ring-slate-100` |
+| **Ghost** | transparent | 1px solid transparent | `#475569` (Medium) | `#F8FAFC`, `text-primary` | `bg-slate-100` |
+| **Destructive** | `#E11D48` | 1px solid transparent | `#FFFFFF` (Semibold) | `#BE123C` | `ring-4 ring-rose-100` |
+
+**Button Size Specifications:**
+- **Size S:** Height 32px, Padding 0 12px, Typography 0.75rem (`text-xs`), Radius 9999px.
+- **Size M:** Height 40px, Padding 0 18px, Typography 0.875rem (`text-sm`), Radius 9999px.
+- **Size L:** Height 48px (mobile `h-14` untuk aksi utama mentor), Padding 0 24px, Typography 1rem (`text-base`), Radius 9999px.
+
+#### 2. Search Bar Component (Pill Search Bar)
+Komponen pencarian fleksibel untuk menemukan **Katalog Kartu Pekerjaan (Job Cards)** berdasarkan unit kompetensi SKKNI, konsentrasi keahlian, atau pencarian data siswa/mitra DUDI:
+- **Layout:** Kontainer kapsul dengan ikon pencarian (*Lucide Search*) di kiri, dropdown filter sektor keahlian di tengah, dan tombol eksekusi di kanan.
+- **Tinggi:** 48px (desktop), 44px (mobile).
+- **Border & Radius:** `border: 1px solid #E2E8F0`, `border-radius: 9999px`, `background: #FFFFFF`.
+- **State Focus:** `border-color: #2563EB`, `box-shadow: 0 0 0 4px #EFF6FF`.
+- **Typography:** Font size 14px, placeholder color `#94A3B8`.
+
+#### 3. Metric Counter Stat Card (Widget 3-Box)
+Tiga kartu metrik ringkas pada panel ringkasan progres siswa (atau hero preview) yang merefleksikan akuntabilitas jam praktik PKL:
+- **Dimensi:** Minimum width 84px, Height 72px, `border-radius: 12px`.
+- **Layout:** Stack vertikal rata tengah (*centered*).
+- **Varian Kotak:**
+  - **Box 1 (Total JP):** Background `#0D9488` (Teal), Teks Label "Total JP" (11px, putih transparan 85%), Angka "184" (20px Bold `#FFFFFF`, akumulasi dari target 792 JP).
+  - **Box 2 (Menunggu):** Background `#0284C7` (Sky), Teks Label "Menunggu" (11px, putih transparan 85%), Angka "10" (20px Bold `#FFFFFF`, logbook dalam antrean validasi mentor).
+  - **Box 3 (Terverifikasi):** Background `#4338CA` (Indigo), Teks Label "Terverifikasi" (11px, putih transparan 85%), Angka "42" (20px Bold `#FFFFFF`, logbook disetujui & tersegel digital).
+
+#### 4. Gantt Timeline Bar Component
+Komponen pelacak kartu pekerjaan harian siswa bergaya *horizontal pill bar* yang mencerminkan tugas nyata sesuai Capaian Pembelajaran (CP) lintas sektor keahlian:
+- **Struktur Wadah:** `width: 100%`, `height: 48px`, `border-radius: 9999px`, display flex, align-items center, justify-content space-between, padding 4px 8px 4px 6px.
+- **Sub-Elemen Kiri:**
+  - **Avatar Pelaksana:** Lingkaran 36px, `border-radius: 9999px`, border 2px solid `#FFFFFF`.
+  - **Informasi Tugas:** Stack teks vertikal (Nama tugas / Job Card: 13px Bold, Sektor keahlian / kode SKKNI: 11px Regular).
+- **Sub-Elemen Kanan:**
+  - **Badge Durasi / Status:** Lingkaran sempurna diameter 32px, `border-radius: 9999px`, display flex, font size 11px Bold.
+- **Varian Warna Solid (Bebas Gradasi):**
+  - **Sektor AKL (Akuntansi):** Background Bar `#0D9488`, Teks `#FFFFFF`, Badge `#14B8A6` (mis. "Rekonsiliasi Bank & Kas — 8 JP").
+  - **Sektor DKV (Desain Komunikasi):** Background Bar `#E11D48`, Teks `#FFFFFF`, Badge `#F43F5E` (mis. "Aset Vektor Promosi Digital — 6 JP").
+  - **Sektor RPL (Software/PPLG):** Background Bar `#0284C7`, Teks `#FFFFFF`, Badge `#38BDF8` (mis. "Slicing UI & Integrasi API — 8 JP").
+  - **Sektor Kuliner (Tata Boga):** Background Bar `#D97706`, Teks `#FFFFFF`, Badge `#F59E0B` (mis. "Mise en Place & Pastry Bakery — 100%").
+  - **Sektor Farmasi Klinis:** Background Bar `#4338CA`, Teks `#FFFFFF`, Badge `#6366F1` (mis. "Dispensing Resep & Stok Opname — 92%").
+
+#### 5. Mini Calendar Presensi Component
+Widget kalender bulan berjalan pada panel siswa/guru untuk memantau presensi harian PKL:
+- **Container:** `border: 1px solid #E2E8F0`, `border-radius: 16px`, padding 16px, background `#FFFFFF`.
+- **Header Kalender:** Teks bulan ("Oktober 2026", 14px Bold) dengan tombol panah navigasi mini `<` dan `>`.
+- **Nama Hari:** Mo Tu We Th Fr Sa Su (7 kolom, ukuran 11px, `font-medium`, color `#475569`).
+- **Angka Tanggal:** Grid 7 kolom, tinggi sel 32px, rata tengah.
+- **Active / Selected State:**
+  - **Tanggal Terverifikasi (misal tgl 7):** Lingkaran solid `#2563EB`, teks `#FFFFFF`, diameter 28px (hadir & logbook terverifikasi).
+  - **Tanggal Pending (misal tgl 10):** Lingkaran solid `#0284C7`, teks `#FFFFFF`, diameter 28px (hadir, menunggu stempel mentor).
+  - **Hari biasa / Libur:** Teks `#0F172A`, hover background: `#F8FAFC`, radius `9999px`.
+
+#### 6. Modal Dialog Pencatatan Logbook & Verifikasi Stempel Mentor
+- **Backdrop:** `background-color: rgba(15, 23, 42, 0.45)`, `backdrop-filter: blur(4px)`.
+- **Container:** Max width 560px, `border-radius: 24px`, padding 32px, background `#FFFFFF`, shadow `var(--shadow-modal)`.
+- **Komponen Form Input:**
+  - **Label:** Font 13px, weight 600, color `#0F172A`.
+  - **Pill Field:** Height 44px, `border-radius: 9999px`, `border: 1px solid #E2E8F0`, padding 0 16px (pilihan kartu tugas, jam praktik JP, tingkat kemandirian: Observasi / Terbimbing / Mandiri).
+  - **File Upload Box (Bukti Foto):** `border: 2px dashed #CBD5E1`, `border-radius: 16px`, background `#F8FAFC`, padding 24px (kompresi otomatis di browser <60 KB WebP dengan toggle blur privasi dokumen rahasia DUDI).
+  - **PIN Input Pad (Khusus Verifikasi Mentor):** 4 kotak input angka rounded-xl dengan teks `font-mono text-2xl` untuk validasi zero-login.
+
+---
+
+### 13.8 Page Design Specifications
+
+#### 1. Halaman Landing Page Utama (`/`)
+- **Sticky Glassmorphic Navbar:** Background `bg-white/85 backdrop-blur-md`, logo brand VokaLink. Menu navigasi: Fitur 3 Dimensi, Alur Kerja PKL, Simulasi Jurusan, Testimoni Sekolah, FAQ. Aksi: Masuk Portal (`/login`) dan Jadwalkan Demo.
+- **Hero Section:** Headline: "Monitoring PKL SMK Lebih Terukur & Bebas Dokumen Kertas". Nilai proporsi 792 JP intrakurikuler dan Zero-Cost Rp0.
+- **Quick Metrics Counter Banner:** 4 angka masif: 120+ SMK Vokasi, 792 JP Standar, < 10 dtk Stempel Zero-Login, Rp0 Biaya Server.
+- **Fitur 3 Dimensi (Tab Switcher):** Siswa PKL (Logbook PWA, geofence, WebP), Guru Pembimbing (Live heatmap, drift alert, e-Rapor), Mentor DUDI (Zero-login stempel < 10 dtk, rubrik skill).
+- **Alur Kerja PKL 4 Tahap:** 01 Pemetaan & Smart Placement, 02 Pembekalan & Geofence, 03 Pelaksanaan & Logbook, 04 e-Rapor & Paspor Ber-QR.
+- **Simulasi Jurusan SMK Interaktif:** Selector 6 jurusan (RPL, TKJ, DKV, TKR Otomotif, AKL Akuntansi, Kuliner) dengan Capaian Pembelajaran SKKNI dan contoh template jurnal.
+- **Testimoni Kredibilitas:** Kepala Sekolah SMK, Mentor DUDI Industri, Alumni Siswa PKL.
+- **FAQ Accordion & CTA Banner:** Tanya jawab Dapodik, offline mode, zero-login, infrastruktur Rp0.
+- **Modern Footer 5-Kolom:** Identitas VokaLink untuk UINIC 8.0, navigasi fitur, konsentrasi keahlian, regulasi, tautan uji paspor publik ber-QR, dan akses demo juri.
+
+#### 2. Halaman Dashboard Siswa (`/student`)
+- **Top Bar Navigasi:** Breadcrumb + Status Jaringan (*Banner Sinkronisasi PWA / Offline indicator*) + Notifikasi + Profil Siswa berlingkar pill.
+- **Layout Grid Dashboard (12 Kolom):**
+  - **Area Kiri/Tengah (8 Kolom):** Bilah filter waktu (Hari, Minggu, Bulan `rounded-full`), Timeline Kartu Pekerjaan (horizontal Gantt bar tugas harian), Tombol Aksi Cepat ("Catat Hari Ini" dan "Tampilkan QR Verifikasi").
+  - **Area Sidebar Kanan (4 Kolom):** 3 Kotak Stat Metrik Solid (Total JP: 184, Menunggu: 10, Terverifikasi: 42), Widget Rekap Ketercapaian CP, Widget Mini Kalender presensi bulanan.
+
+#### 3. Halaman Verifikasi Instan Mentor DUDI (`/v/[token]`)
+- **Layout:** Mobile-first 1 kolom (`max-w-md` terpusat), tanpa navbar rumit, selesai dalam 1 layar.
+- **Elemen:** Kartu identitas siswa dan mitra DUDI, ringkasan kartu pekerjaan dan foto WebP, tombol "Setujui Pekerjaan" (Pill blue `h-14`) dan "Minta Perbaikan", dialog pop-up PIN 4-digit (scrypt + auto-lock 5x salah).
+
+#### 4. Halaman Dashboard Guru Pembimbing & Sekolah (`/teacher` & `/school`)
+- **Layout:** Desktop layout dengan sidebar 248px solid ink (`#0F172A`) dan konten utama `max-w-page`.
+- **Fitur Utama:** Live Competency Heatmap (ok `#15803D`, warn `#A16207`, danger `#B91C1C`), Drift Alert Banner, tombol kirim pesan intervensi WhatsApp (`wa.me`), ekspor nilai format e-Rapor Dapodik.
+
+#### 5. Halaman Paspor Kompetensi Publik Ber-QR (`/verify/[passportSlug]`)
+- **Layout:** Dokumen elegan 1 kolom (`max-w-3xl` terpusat), ramah cetak (*Print CSS A4*).
+- **Elemen:** Header Paspor VokaLink ber-QR Code, status Segel Digital HMAC-SHA256, rekapitulasi jam terverifikasi per unit SKKNI, endorsement etos kerja mentor, tombol "Unduh CV ATS".
+
+---
+
+### 13.9 Implementation Guide & Strict Guardrails
+
+#### 1. Konfigurasi Tailwind CSS (`apps/web/tailwind.config.ts`)
+Coding Agent harus menggunakan ekstensi tema berikut:
+
+```typescript
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: ["./src/**/*.{js,ts,jsx,tsx,mdx,html}"],
   theme: {
     extend: {
       colors: {
-        paper: "#FAF8F5",
-        line: "#E7E1D8",
-        ink: { 50: "#F3F6F9", 100: "#E8EEF4", 200: "#D3DEE9", 300: "#A9BBCD", 500: "#4A6A8A", 700: "#1E4468", 900: "#0F2A43", 950: "#081827" },
-        safety: { 50: "#FFF7ED", 100: "#FFEDD5", 400: "#FB923C", 500: "#F97316", 700: "#C2410C" },
-        ok: { 100: "#DCFCE7", 700: "#15803D" },
-        warn: { 100: "#FEF3C7", 700: "#A16207" },
-        danger: { 100: "#FEE2E2", 700: "#B91C1C" },
-        info: { 100: "#DBEAFE", 700: "#1D4ED8" },
+        primary: {
+          50: '#EFF6FF',
+          100: '#DBEAFE',
+          600: '#2563EB',
+          700: '#1D4ED8',
+        },
+        canvas: '#FFFFFF',
+        surface: '#FFFFFF',
+        muted: '#F8FAFC',
+        content: {
+          primary: '#0F172A',
+          secondary: '#475569',
+          muted: '#94A3B8',
+        },
+        border: {
+          default: '#E2E8F0',
+          strong: '#CBD5E1',
+        },
+        accent: {
+          teal: '#0D9488',
+          'teal-light': '#F0FDFA',
+          sky: '#0284C7',
+          'sky-light': '#F0F9FF',
+          indigo: '#4338CA',
+          'indigo-light': '#EEF2FF',
+          rose: '#E11D48',
+          'rose-light': '#FFF1F2',
+          amber: '#D97706',
+          'amber-light': '#FFFBEB',
+        }
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
+        sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'monospace'],
       },
-      maxWidth: { page: "80rem" },
+      borderRadius: {
+        '2xl': '16px',
+        '3xl': '24px',
+        'full': '9999px',
+      },
+      boxShadow: {
+        'card': '0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.02)',
+        'pill': '0 4px 12px -2px rgba(37, 99, 235, 0.2)',
+        'modal': '0 20px 40px -8px rgba(15, 23, 42, 0.12), 0 8px 16px -4px rgba(15, 23, 42, 0.06)',
+      }
     },
   },
   plugins: [],
-};
-export default config;
+}
 ```
 
-### 13.3 Tipografi
+#### 2. Aturan Mutlak Implementasi (Strict Guardrails)
+- **Larangan Gradasi Latar:** DILARANG menggunakan utilitas Tailwind seperti `bg-gradient-to-*`, `from-*`, `via-*`, `to-*` untuk kanvas atau kartu. Seluruh latar kartu, tombol, badge, dan bar tugas wajib menggunakan nilai solid (`bg-primary-600`, `bg-accent-teal`, `bg-white`, dsb).
+- **Kepatuhan Latar Belakang Putih Murni:** Elemen `<body>`, `<main>`, `<section>`, dan kontainer pembungkus utama wajib menggunakan class `bg-white` (`#FFFFFF`).
+- **Penerapan Border Radius:** Seluruh tombol interaktif, search bar, filter tabs, date selector aktif, dan bar horizontal tugas Gantt WAJIB menggunakan kelas `rounded-full`. Seluruh kontainer kartu data wajib menggunakan `rounded-3xl` (24px) atau `rounded-2xl` (16px).
+- **Border Explicit:** Setiap kartu putih yang berdiri di atas latar putih wajib memiliki border struktural `border border-border-default` (`border-slate-200`) agar batas visual tetap tegas saat bayangan (*shadow*) di-render di layar berpencahayaan rendah.
+- **Icon Library:** Gunakan icon set *Lucide Icons* (`lucide-react`) dengan ketebalan garis standar `strokeWidth={2}` dan ukuran seragam (`w-4 h-4` untuk teks pembantu, `w-5 h-5` untuk tombol/menu).
+- **Aturan Redaksi & Istilah VokaLink:** Gunakan istilah baku VokaLink: "Kartu Pekerjaan / Kartu Tugas", "Logbook PKL", "Segel Digital", "Paspor Kompetensi", "792 JP". Dilarang menampilkan istilah teknis internal seperti `IndexedDB`, `QUEUED`, `HMAC-SHA256`, `FR-xxx`, `BR-xxx` langsung di teks UI (pindahkan ke disclosure/bantuan teknis bila perlu).
+- **Aturan Pembersihan Konten (DESIGN 13.8):** Hindari menaruh emoji kasar (mis. 🎯, 📋, ⭐, ⛔, 🔒, 💡) langsung di dalam string teks UI data/label.
 
-- **Plus Jakarta Sans** untuk semua teks (judul dan isi). **JetBrains Mono** hanya untuk NISN, kode SKKNI, dan hash.
-- Dimuat dengan `next/font/google` (self-host saat build, ikut ter-precache Serwist sehingga aman offline). Dilarang memuat font lewat `<link>` ke Google Fonts.
+#### 3. Kriteria Penerimaan (Acceptance Criteria)
+- [ ] Latar belakang seluruh halaman terbukti murni `#FFFFFF` saat diuji dengan color picker.
+- [ ] Tombol CTA utama menggunakan solid `#2563EB` dengan sudut membulat penuh `rounded-full`.
+- [ ] Kontras warna teks di atas latar putih telah terverifikasi memenuhi rasio minimal WCAG AA (4.5:1).
+- [ ] Komponen dashboard preview pada hero landing page menyajikan layout yang identik dengan visual referensi VokaLink:
+  - Terdapat panel baris horizontal tugas berbentuk kapsul dengan avatar di kiri dan badge persentase/durasi JP di kanan.
+  - Terdapat 3 kotak metrik stat atas (Total JP: 184, Menunggu: 10, Terverifikasi: 42).
+  - Terdapat widget mini kalender presensi PKL dengan indikator tanggal aktif membulat.
+- [ ] Section alur menampilkan **Workflow Ekosistem 3-Langkah** (Siswa Catat, Mentor Verifikasi Zero-Login, Guru Pantau & Paspor Karier) dan katalog kurikulum multi-sektor.
+- [ ] Tampilan responsif stabil pada breakpoint Mobile (360px / 375px), Tablet (768px), dan Desktop (1280px+).
 
-`apps/web/src/app/layout.tsx`:
-```tsx
-import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
-const sans = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
-const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
-// <html lang="id" className={`${sans.variable} ${mono.variable}`}>
-// <body className="min-h-screen bg-paper font-sans text-ink-900 antialiased selection:bg-safety-500 selection:text-ink-900">
-// viewport.themeColor = "#0F2A43"
-```
-`globals.css` cukup berisi tiga direktif `@tailwind` dan `-webkit-tap-highlight-color: transparent`. Variabel `--background`/`--foreground` dan `font-family: system-ui` dihapus.
-
-| Peran | Kelas | Catatan |
-|---|---|---|
-| Display (hero landing) | `text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05]` | Hanya di landing |
-| H1 halaman | `text-2xl lg:text-3xl font-bold tracking-tight` | 1 per halaman |
-| H2 seksi | `text-lg lg:text-xl font-semibold` | |
-| H3 judul kartu | `text-base font-semibold` | |
-| Isi | `text-sm lg:text-base` | 14 px mobile, 16 px desktop. Paragraf `max-w-prose` |
-| Label/keterangan | `text-xs font-medium text-ink-500` | **Ukuran terkecil yang diizinkan: 12 px** |
-| Angka besar | `text-3xl font-bold tabular-nums` | Semua angka tabel dan statistik `tabular-nums` |
-| Kode/NISN/hash | `font-mono text-xs` | |
-
-### 13.4 Bentuk, jarak, ikon, gerak
-
-- **Jarak:** skala 4 px. Antar seksi `space-y-6 lg:space-y-8`. Padding kartu `p-4 lg:p-5`. Wadah halaman: `mx-auto w-full max-w-page px-4 sm:px-6 lg:px-8`.
-- **Bentuk:** kartu `rounded-xl border border-line bg-white` tanpa bayangan. Input dan tombol `rounded-lg`. Pill status `rounded-full`. Radius maksimum `rounded-2xl` (hanya modal/sheet). `shadow-sm` hanya untuk popover dan modal.
-- **Ikon:** `lucide-react`, `size-5` (20 px), `strokeWidth` 1.75, mewarisi warna teks. Tidak ditaruh dalam kotak berwarna sebagai hiasan kartu.
-- **Gerak:** `transition-colors duration-150`. Hormati `motion-reduce`. Tanpa `hover:scale`/`active:scale`.
-- **Fokus:** `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-safety-500 focus-visible:ring-offset-2`.
-
-### 13.5 Komponen bersama (`apps/web/src/components/ui/`)
-
-Halaman hanya menyusun komponen ini. Butuh varian baru: tambahkan ke komponen, jangan menyalin kelas ke halaman. Util `cn()` (clsx + tailwind-merge) di `src/lib/cn.ts`.
-
-| Komponen | Spesifikasi |
-|---|---|
-| `Button` | `primary`: `bg-safety-500 text-ink-900 hover:bg-safety-400 font-semibold` (maks 1 per layar). `secondary`: `bg-ink-900 text-white hover:bg-ink-700`. `outline`: `border border-ink-200 bg-white hover:bg-ink-50`. `ghost`, `link` (`text-safety-700 hover:underline`), `danger` (`bg-danger-700 text-white`). Tinggi `h-12` (< lg), `lg:h-10` untuk antarmuka padat desktop, `h-14` aksi utama mentor. Status loading menampilkan spinner dan teks |
-| `Card` | `rounded-xl border border-line bg-white p-4 lg:p-5`. Judul H3 + isi. Tanpa gradien |
-| `StatusPill` | Ikon + teks, `rounded-full px-2.5 py-1 text-xs font-semibold`, warna `-700` di atas `-100`. Pemetaan di 13.7 |
-| `Field` | Label di atas, `h-12 rounded-lg border-ink-200`, bantuan `text-xs text-ink-500`, error `text-danger-700` dengan ikon |
-| `Stat` | Angka `text-3xl font-bold tabular-nums`, label `text-xs text-ink-500`, tanpa kotak ikon. Maksimal 4 per baris |
-| `ProgressBar` | Track `ink-100`, isi `ink-900`, tinggi 8 px, `role="progressbar"` lengkap |
-| `DataTable` | Tabel di ≥ md, daftar kartu bertumpuk di < md. Header `text-xs font-medium text-ink-500`, hover baris `ink-50` |
-| `Banner` | Varian `warn` (offline), `info` (menyinkronkan), `ok` (berhasil). Ikon + 1 kalimat |
-| `Disclosure` | "Lihat detail" untuk rumus, aturan, hash. Dasar prinsip U2 |
-| `EmptyState` | 1 kalimat + 1 aksi |
-| `Skeleton` | Blok `bg-ink-100 animate-pulse`. Satu-satunya tempat `animate-pulse` |
-| `PageHeader` | H1 + 1 kalimat + maksimal 1 aksi |
-| `Stepper` | Penanda langkah "Langkah 2 dari 3" untuk form panjang |
-
-### 13.6 Layout per aktor
-
-| Area | Mobile (< lg) | Desktop (≥ lg) |
-|---|---|---|
-| Landing `/` | 1 kolom, nav atas ringkas | Hero 2 kolom (teks + contoh produk), `max-w-page` |
-| Siswa `/student/*` | 1 kolom + `BottomNav` maksimal 4 item (Beranda, Catat, Riwayat, CV) | Header atas + 2 kolom: konten utama fleksibel dan panel ringkas 320 px (sticky). `BottomNav` disembunyikan. Lebar maksimal `max-w-5xl` |
-| Form catat `/student/log/new` | `Stepper` 3 langkah: (1) pilih tugas, (2) durasi dan kemandirian, (3) bukti dan kirim. Satu langkah per layar | Langkah di kiri, ringkasan log di kanan. Isi sama, tanpa menambah informasi |
-| Sekolah `/school/*` dan Guru `/teacher/*` | Top bar + drawer menu | `AppShell`: sidebar 248 px (`ink-900`, teks putih) + top bar + konten `max-w-page`. Daftar berupa tabel. Heatmap memakai lebar penuh |
-| Mentor `/v/[token]/*` | 1 kolom `max-w-md`, tanpa navigasi, 1 keputusan per layar, aksi utama `h-14` | Tetap 1 kolom `max-w-md` di tengah |
-| Publik `/verify/[slug]` | Dokumen 1 kolom | Dokumen `max-w-3xl`, ramah cetak (Print CSS A4, ADR-09) |
-
-Titik uji tetap: **360, 768, 1280 px**. Lebar 1920 px tidak boleh meregangkan konten (batasi dengan `max-w-page`).
-
-### 13.7 Status dan kondisi UI
-
-Tiap halaman asinkron menangani 5 kondisi (AGENTS.md): loading (`Skeleton`), empty (`EmptyState`), offline/syncing (`Banner`), error (pesan + tombol pulih), unauthorized.
-
-| Kode internal | Label di UI | Warna | Ikon (lucide) |
-|---|---|---|---|
-| `queued`, `meta_synced` | Belum terkirim | `warn` | `Clock` |
-| `synced`, `PENDING_VERIFICATION` | Menunggu mentor | `warn` | `Hourglass` |
-| `VERIFIED` | Terverifikasi | `ok` | `ShieldCheck` |
-| `REVISION_REQUIRED` | Perlu diperbaiki | `danger` | `RotateCcw` |
-| `DRIFT_WARNING` | Perlu perhatian | `danger` | `TriangleAlert` |
-| `NOT_STARTED` | Belum mulai | `ink` | `Circle` |
-
-Banner sinkron (PRD §8.2): offline `warn` "Kamu sedang offline. Catatan aman di HP."; menyinkronkan `info` "Mengirim n catatan…"; berhasil `ok` "Semua catatan sudah tersimpan."
-
-### 13.8 Aturan konten
-
-- **Batas informasi:** maksimal 3 kelompok informasi di atas lipatan, 4 KPI per dasbor, 5 item menu.
-- **Judul** maksimal 6 kata. **Deskripsi** maksimal 1 kalimat (sekitar 100 karakter). Penjelasan aturan lewat `Disclosure`, bukan paragraf.
-- **Tombol** diawali kata kerja: "Catat hari ini", "Minta verifikasi", "Daftarkan sekolah".
-- **Sapaan:** siswa memakai "kamu"; guru, sekolah, mentor, dan HRD memakai "Anda". Kalimat baku dari PRD tetap dipakai apa adanya.
-- **Tanggal** "21 Okt 2026". Angka memakai `tabular-nums`.
-- **Kamus istilah** (jangan tampilkan → tampilkan):
-
-| Jangan tampilkan | Tampilkan |
-|---|---|
-| IndexedDB, Dexie, QUEUED | "Tersimpan di HP", "Belum terkirim" |
-| SHA-256, HMAC, `signature_hash` | "Segel digital" (hash penuh hanya di `Disclosure` "Detail teknis" pada `/verify/[slug]`) |
-| Job Card | "Kartu tugas" |
-| `FR-xxx`, `BR-xxx`, `ADR-xxx` | Dihapus dari UI |
-| Sandbox, Judge Switcher | Hanya di `DemoBar` tipis (atas halaman) dan footer landing, tidak di judul |
-
-- Data contoh tidak ditanam di JSX halaman. Taruh di `src/lib/mock/` sampai API tersambung.
-
-### 13.9 Larangan (dapat diperiksa dengan grep)
-
-Hasil grep berikut di `apps/web/src` harus **nol** (kecuali di `DemoBar` dan `Disclosure` detail teknis untuk istilah teknis):
-
-| Pola | Alasan |
-|---|---|
-| `bg-gradient`, `from-`, `via-`, `to-` pada kelas warna | Tanpa gradien |
-| `blur-`, `backdrop-blur` | Tanpa efek kaca/blob |
-| `rounded-3xl`, `rounded-[` | Radius maksimum `rounded-2xl` |
-| `text-[9px]`, `text-[10px]`, `text-[11px]` | Minimal 12 px |
-| `blue-`, `indigo-`, `purple-`, `emerald-`, `amber-`, `slate-`, `rose-`, `sky-`, `violet-` | Pakai token 13.2 |
-| `shadow-md`, `shadow-lg`, `shadow-xl`, `shadow-2xl` pada kartu | Datar |
-| `hover:scale-`, `active:scale-`, `group-hover:scale-` | Tanpa gerak dekoratif |
-| `animate-pulse` di luar `Skeleton` | Konsisten |
-| String UI berisi `FR-`, `BR-`, `ADR-`, `IndexedDB`, `QUEUED`, `HMAC` | Aturan konten 13.8 |
-
-### 13.10 Struktur landing page
-
-1. **Nav:** logo, "Masuk", "Daftarkan sekolah" (primary).
-2. **Hero:** 1 judul (maks 2 baris), 1 paragraf, CTA utama "Daftarkan sekolah", CTA sekunder "Coba demo".
-3. **Strip bukti:** 3 angka (mis. 792 JP, kurang dari 10 detik verifikasi, 100% bisa offline).
-4. **Alur 3 langkah:** Catat → Verifikasi → Paspor kompetensi.
-5. **Untuk siapa:** siswa, guru, sekolah, mentor dan HRD sebagai baris berselang-seling, bukan 4 kartu identik.
-6. **Kepercayaan:** satu blok tentang verifikasi dua faktor dan segel digital.
-7. **CTA penutup + footer** ringkas. Tautan "Judge Demo" pindah ke footer.
-
-### 13.11 Aturan kerja agent untuk UI
-
-1. Baca bab ini dan `docs/UI-REFACTOR.md` sebelum menyentuh `apps/web`.
-2. Refactor UI hanya mengubah tampilan: jangan ubah logika bisnis, state, handler, Dexie, panggilan API, atau `packages/*`.
-3. Jangan menambah warna, ukuran font, atau varian di luar bab ini. Butuh yang baru: berhenti dan laporkan.
-4. Sebelum PR UI: `pnpm lint && pnpm typecheck`, grep larangan 13.9 nol hasil, tangkapan layar 360/768/1280 px dilampirkan.

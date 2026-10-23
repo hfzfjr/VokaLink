@@ -498,8 +498,8 @@ export default function RegisterSchoolPage() {
                         {dept.description}
                       </p>
                       <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-600">
-                        <span>🎯 {dept.cpElementsCount} Elemen CP</span>
-                        <span>📋 {dept.jobCardsCount} Job Cards</span>
+                        <span>{dept.cpElementsCount} Elemen CP</span>
+                        <span>{dept.jobCardsCount} Job Cards</span>
                         <span className="font-semibold text-blue-700">{dept.totalJp} JP</span>
                       </div>
                     </div>

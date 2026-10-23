@@ -626,7 +626,7 @@ export default function DudiDirectoryPage() {
                         </span>
                         {partner.qualityIndexScore && (
                           <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-mono">
-                            ⭐ {partner.qualityIndexScore}
+                            Skor: {partner.qualityIndexScore}
                           </span>
                         )}
                       </div>

@@ -420,10 +420,10 @@ export default function TeacherHeatmapPage() {
                           }`}
                         >
                           {isUntrusted
-                            ? "⛔ Perangkat Asing / Bukan HP Mentor"
+                            ? "Perangkat Asing / Bukan HP Mentor"
                             : isPinLockout
-                            ? "🔒 PIN Terkunci (Salah 5 Kali)"
-                            : "⚠️ Pakai Ulang Tautan"}
+                            ? "PIN Terkunci (Salah 5 Kali)"
+                            : "Pakai Ulang Tautan"}
                         </span>
                         <span className="text-[10px] text-slate-400 font-semibold">
                           {new Date(flag.createdAt).toLocaleTimeString("id-ID", {
