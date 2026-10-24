@@ -25,14 +25,19 @@ import {
   Share2,
   AlertTriangle,
   TrendingUp,
+  WifiOff,
+  Paintbrush,
+  EyeOff,
 } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { MIN_DAILY_JP, MAX_DAILY_JP, TOTAL_TARGET_JP } from "@vokalink/shared";
 import { db } from "@/lib/pwa/db";
 import { compressEvidencePhoto, type CompressedPhotoResult } from "@/lib/pwa/photo";
 import { fetchStudentLogContext, type StudentLogContextResponse } from "@/lib/api";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { cn } from "@/lib/cn";
 import { MentorQrModal } from "@/components/student/home/MentorQrModal";
+import { PhotoPrivacyStudioModal } from "@/components/student/log/PhotoPrivacyStudioModal";
 
 interface JobCardItem {
   id: string;
@@ -155,6 +160,7 @@ export default function NewLogPage() {
   const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
   const [compressedPhoto, setCompressedPhoto] = useState<CompressedPhotoResult | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [showPrivacyStudio, setShowPrivacyStudio] = useState(false);
 
   // Hidden file input refs for Camera vs Gallery
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -195,6 +201,99 @@ export default function NewLogPage() {
   const currentTotalJp = baseVerifiedJp + offlineLogs.reduce((acc, curr) => acc + curr.durationJp, 0);
   const projectedTotalJp = currentTotalJp + (attendanceType === "PRESENT" ? durationJp : 0);
   const projectedPercentage = Math.min(100, Math.round((projectedTotalJp / TOTAL_TARGET_JP) * 100));
+
+  // Online/Offline status
+  const isOnline = useOnlineStatus();
+
+  // Draft auto-save and recovery
+  const [hasDraft, setHasDraft] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("vokalink_new_log_draft_v1");
+      if (saved) {
+        setHasDraft(true);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        if (shortNote.trim() || selectedJobCardIds.length > 1 || attendanceType !== "PRESENT") {
+          localStorage.setItem(
+            "vokalink_new_log_draft_v1",
+            JSON.stringify({
+              selectedDate,
+              attendanceType,
+              isNonCompetency,
+              nonCompetencyCategory,
+              durationJp,
+              autonomyLevel,
+              selectedJobCardIds,
+              shortNote,
+            })
+          );
+        }
+      } catch {}
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [
+    selectedDate,
+    attendanceType,
+    isNonCompetency,
+    nonCompetencyCategory,
+    durationJp,
+    autonomyLevel,
+    selectedJobCardIds,
+    shortNote,
+  ]);
+
+  const handleRestoreDraft = () => {
+    try {
+      const saved = localStorage.getItem("vokalink_new_log_draft_v1");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.attendanceType) setAttendanceType(parsed.attendanceType);
+        if (parsed.isNonCompetency !== undefined) setIsNonCompetency(parsed.isNonCompetency);
+        if (parsed.nonCompetencyCategory) setNonCompetencyCategory(parsed.nonCompetencyCategory);
+        if (parsed.durationJp) setDurationJp(parsed.durationJp);
+        if (parsed.autonomyLevel) setAutonomyLevel(parsed.autonomyLevel);
+        if (parsed.selectedJobCardIds && parsed.selectedJobCardIds.length > 0) {
+          setSelectedJobCardIds(parsed.selectedJobCardIds);
+        }
+        if (parsed.shortNote) setShortNote(parsed.shortNote);
+        setHasDraft(false);
+      }
+    } catch {}
+  };
+
+  const handleDiscardDraft = () => {
+    try {
+      localStorage.removeItem("vokalink_new_log_draft_v1");
+    } catch {}
+    setHasDraft(false);
+  };
+
+  // Ambil log terakhir yang dicatat untuk fitur template cepat
+  const recentPreviousLog = useMemo(() => {
+    if (offlineLogs && offlineLogs.length > 0) {
+      return offlineLogs[offlineLogs.length - 1];
+    }
+    return null;
+  }, [offlineLogs]);
+
+  const handleApplyPreviousTemplate = () => {
+    if (!recentPreviousLog) return;
+    if (recentPreviousLog.jobCardIds && recentPreviousLog.jobCardIds.length > 0) {
+      setSelectedJobCardIds(recentPreviousLog.jobCardIds);
+    }
+    setDurationJp(recentPreviousLog.durationJp || 8);
+    setAutonomyLevel(recentPreviousLog.autonomyLevel || 3);
+    if (recentPreviousLog.shortNote) {
+      setShortNote((prev) => (prev ? prev : `[Lanjutan] ${recentPreviousLog.shortNote}`));
+    }
+  };
 
   // 3. Ambil konteks penempatan dan job cards (Cache first di Dexie.refData, fallback ke server)
   useEffect(() => {
@@ -338,11 +437,11 @@ export default function NewLogPage() {
     });
   };
 
-  // Proses kompresi foto dan penerapan blur
-  const processPhoto = async (file: File, blur: boolean) => {
+  // Proses kompresi foto awal
+  const processPhoto = async (file: File) => {
     try {
       setIsCompressingPhoto(true);
-      const result = await compressEvidencePhoto(file, { applyPrivacyBlur: blur });
+      const result = await compressEvidencePhoto(file);
       setCompressedPhoto(result);
 
       if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
@@ -360,16 +459,10 @@ export default function NewLogPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     setRawPhotoFile(file);
-    await processPhoto(file, applyPrivacyBlur);
+    setApplyPrivacyBlur(false);
+    await processPhoto(file);
     // Reset input value so same file can be re-selected if needed
     e.target.value = "";
-  };
-
-  const handleTogglePrivacyBlur = async (newBlurVal: boolean) => {
-    setApplyPrivacyBlur(newBlurVal);
-    if (rawPhotoFile) {
-      await processPhoto(rawPhotoFile, newBlurVal);
-    }
   };
 
   const handleRemovePhoto = () => {
@@ -377,6 +470,8 @@ export default function NewLogPage() {
     setPhotoPreviewUrl(null);
     setCompressedPhoto(null);
     setRawPhotoFile(null);
+    setApplyPrivacyBlur(false);
+    setShowPrivacyStudio(false);
   };
 
   // Submit to Dexie IndexedDB
@@ -462,6 +557,10 @@ export default function NewLogPage() {
       }
 
       setSubmittedLogUuid(clientLogUuid);
+      try {
+        localStorage.removeItem("vokalink_new_log_draft_v1");
+        setHasDraft(false);
+      } catch {}
     } catch (error) {
       alert("Terjadi kesalahan saat menyimpan ke IndexedDB: " + (error instanceof Error ? error.message : String(error)));
     } finally {
@@ -524,12 +623,55 @@ export default function NewLogPage() {
             </div>
 
             <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+              {isOnline ? (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[11px] font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Online</span>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200/70 text-[11px] font-medium font-mono">
+                  <WifiOff className="w-3 h-3 text-amber-600" />
+                  <span>Mode Offline (Dexie)</span>
+                </div>
+              )}
+
               <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100/80 text-slate-700 text-xs font-medium border border-slate-200/60 font-mono shadow-2xs">
                 <Clock className="w-3.5 h-3.5 text-sky-600" />
                 <span>Alokasi: {durationJp} JP</span>
               </div>
             </div>
           </div>
+
+          {/* ─── DRAFT RECOVERY BANNER ─── */}
+          {hasDraft && (
+            <div className="mt-4 p-3.5 rounded-2xl bg-sky-50/80 border border-sky-200/80 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sky-950 animate-in fade-in">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <FileText className="w-4 h-4 text-sky-600 shrink-0" />
+                <div>
+                  <p className="font-semibold text-slate-900">Ditemukan Draf Belum Tersimpan</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5 font-normal">
+                    Terdapat isian jurnal sebelumnya yang tersimpan di perangkat ini.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                <button
+                  type="button"
+                  onClick={handleRestoreDraft}
+                  className="px-3 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-semibold text-xs transition cursor-pointer shadow-2xs active:scale-95"
+                >
+                  Pulihkan
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDiscardDraft}
+                  className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-600 font-medium text-xs border border-slate-200 transition cursor-pointer active:scale-95"
+                >
+                  Abaikan
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* ─── BR-002 DUPLICATE & DAILY CAP GUARD BANNER ─── */}
           {hasExistingSickOrPermit ? (
@@ -700,9 +842,22 @@ export default function NewLogPage() {
                       Pilih 1 sampai 3 kartu tugas yang diselesaikan hari ini
                     </p>
                   </div>
-                  <span className="text-xs font-medium text-slate-600 bg-white px-3 py-1 rounded-full border border-slate-200/70 shadow-2xs self-start sm:self-auto shrink-0">
-                    Terpilih: <strong className="text-sky-600 font-semibold">{selectedJobCardIds.length}</strong>/3
-                  </span>
+                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                    {recentPreviousLog && (
+                      <button
+                        type="button"
+                        onClick={handleApplyPreviousTemplate}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-800 text-[11px] font-medium border border-amber-200/70 transition cursor-pointer shadow-2xs"
+                        title="Salin kartu tugas dan durasi dari jurnal terakhir"
+                      >
+                        <Sparkles className="w-3 h-3 text-amber-600" />
+                        <span>Salin Log Terakhir</span>
+                      </button>
+                    )}
+                    <span className="text-xs font-medium text-slate-600 bg-white px-3 py-1 rounded-full border border-slate-200/70 shadow-2xs">
+                      Terpilih: <strong className="text-sky-600 font-semibold">{selectedJobCardIds.length}</strong>/3
+                    </span>
+                  </div>
                 </div>
 
                 {/* Search & Category Filter Bar */}
@@ -858,45 +1013,6 @@ export default function NewLogPage() {
                 </span>
               </div>
 
-              {/* Privacy Blur Toggle Control (Only for PRESENT) */}
-              {attendanceType === "PRESENT" && (
-                <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200/70 shadow-2xs">
-                  <div className="flex items-start gap-2.5">
-                    <ShieldCheck className="w-4 h-4 text-sky-600 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                        <span>Sensor Privasi / Dokumen Rahasia DUDI</span>
-                        {applyPrivacyBlur && (
-                          <span className="text-[9.5px] bg-sky-100 text-sky-700 font-semibold px-1.5 py-0.2 rounded font-mono">
-                            AKTIF
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-[11px] text-slate-500 leading-snug font-normal">
-                        Otomatis buramkan bagian tengah foto (layar monitor/faktur/dokumen klien) sebelum diunggah
-                      </p>
-                    </div>
-                  </div>
-                  {/* Apple-style iOS switch */}
-                  <button
-                    type="button"
-                    onClick={() => handleTogglePrivacyBlur(!applyPrivacyBlur)}
-                    className={cn(
-                      "w-11 h-6 flex items-center rounded-full p-0.5 transition-colors duration-200 ease-in-out cursor-pointer shrink-0 active:scale-95",
-                      applyPrivacyBlur ? "bg-sky-500" : "bg-slate-300"
-                    )}
-                    title="Aktifkan/nonaktifkan sensor privasi"
-                  >
-                    <div
-                      className={cn(
-                        "bg-white w-5 h-5 rounded-full shadow-xs transform transition-transform duration-200 ease-in-out",
-                        applyPrivacyBlur ? "translate-x-5" : "translate-x-0"
-                      )}
-                    />
-                  </button>
-                </div>
-              )}
-
               {/* Hidden file inputs: one with capture, one without */}
               <input
                 ref={cameraInputRef}
@@ -916,24 +1032,76 @@ export default function NewLogPage() {
                 disabled={isCompressingPhoto}
               />
 
+              {isCompressingPhoto && (
+                <div className="flex items-center justify-center gap-2.5 p-3.5 rounded-2xl bg-sky-50 border border-sky-200/80 text-sky-800 text-xs font-medium animate-pulse shadow-2xs">
+                  <Paintbrush className="w-4 h-4 animate-spin text-sky-600" />
+                  <span>Sedang memproses & mengompresi foto bukti (&lt; 150 KB)...</span>
+                </div>
+              )}
+
               {photoPreviewUrl && compressedPhoto ? (
-                <div className="p-3 bg-white rounded-xl border border-slate-200/70 space-y-2 shadow-2xs">
-                  <div className="relative rounded-xl overflow-hidden bg-slate-900 flex items-center justify-center max-h-48">
+                <div className="p-3 bg-white rounded-2xl border border-slate-200/70 space-y-3 shadow-2xs">
+                  {/* Photo Container */}
+                  <div className="relative rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center max-h-56">
                     <img
                       src={photoPreviewUrl}
-                      alt="Pratinjau bukti terkompresi"
-                      className="max-h-48 object-contain"
+                      alt="Pratinjau bukti kerja"
+                      className="max-h-56 w-auto object-contain"
                     />
+
+                    {/* Sensor Active Badge Overlay */}
+                    {applyPrivacyBlur && (
+                      <div className="absolute top-2 left-2 px-2.5 py-1 rounded-full bg-slate-900/85 backdrop-blur-sm border border-sky-400/40 text-[10px] font-mono text-sky-300 flex items-center gap-1.5 shadow-sm">
+                        <EyeOff className="w-3 h-3 text-sky-400" />
+                        <span>Sensor Privasi DUDI Aktif</span>
+                      </div>
+                    )}
+
+                    {/* Remove Button */}
                     <button
                       type="button"
                       onClick={handleRemovePhoto}
-                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-slate-900/80 text-white hover:bg-rose-600 transition cursor-pointer active:scale-95"
+                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-slate-900/80 text-white hover:bg-rose-600 transition cursor-pointer active:scale-95 shadow-sm"
+                      title="Hapus foto"
                     >
                       <X className="w-4 h-4" />
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs pt-1">
+                  {/* Dedicated Privacy Sensor Action Bar */}
+                  {attendanceType === "PRESENT" && rawPhotoFile && (
+                    <div className="p-3 rounded-2xl bg-slate-50/80 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
+                          <ShieldCheck className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+                            <span>Sensor Dokumen / Layar DUDI</span>
+                            {applyPrivacyBlur && (
+                              <span className="text-[9.5px] bg-emerald-100 text-emerald-800 font-semibold px-1.5 py-0.2 rounded font-mono">
+                                TERPASANG
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-[10.5px] text-slate-500 font-normal">
+                            Tarik kotak atau coret untuk menyamarkan monitor kodingan & berkas rahasia
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowPrivacyStudio(true)}
+                        className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-semibold shadow-xs transition cursor-pointer shrink-0"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>{applyPrivacyBlur ? "Ubah Sensor Privasi" : "Buka Studio Sensor"}</span>
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between text-xs pt-0.5">
                     <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/70 text-[11px]">
                       <Check className="w-3 h-3 stroke-[2.5]" />
                       <span>{compressedPhoto.savingsText}</span>
@@ -1383,6 +1551,22 @@ export default function NewLogPage() {
       {showQrModal && (
         <MentorQrModal
           onClose={() => setShowQrModal(false)}
+        />
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────────────────
+          4. PHOTO PRIVACY STUDIO MODAL (Draw-to-Blur & Pixelate Brush)
+      ───────────────────────────────────────────────────────────────────────────── */}
+      {showPrivacyStudio && rawPhotoFile && (
+        <PhotoPrivacyStudioModal
+          imageFile={rawPhotoFile}
+          onSave={(result) => {
+            setCompressedPhoto(result);
+            if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+            setPhotoPreviewUrl(URL.createObjectURL(result.blob));
+            setApplyPrivacyBlur(true);
+          }}
+          onClose={() => setShowPrivacyStudio(false)}
         />
       )}
     </div>

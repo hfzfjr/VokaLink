@@ -21,16 +21,18 @@ export async function computeSha256(blob: Blob): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+export interface BlurArea {
+  xRatio: number;
+  yRatio: number;
+  widthRatio: number;
+  heightRatio: number;
+}
+
 export interface CompressPhotoOptions {
   maxDimension?: number;
   webpQuality?: number;
   applyPrivacyBlur?: boolean;
-  blurArea?: {
-    xRatio: number;
-    yRatio: number;
-    widthRatio: number;
-    heightRatio: number;
-  };
+  blurArea?: BlurArea;
 }
 
 export async function compressEvidencePhoto(
@@ -93,44 +95,50 @@ export async function compressEvidencePhoto(
 
   // 3b. Terapkan Sensor Privasi / Privacy Blur jika diaktifkan (FR-006 & TC-003)
   if (options.applyPrivacyBlur) {
-    const bx = options.blurArea
+    const rawBx = options.blurArea
       ? Math.round(width * options.blurArea.xRatio)
       : Math.round(width * 0.1);
-    const by = options.blurArea
+    const rawBy = options.blurArea
       ? Math.round(height * options.blurArea.yRatio)
       : Math.round(height * 0.35);
-    const bw = options.blurArea
+    const rawBw = options.blurArea
       ? Math.round(width * options.blurArea.widthRatio)
       : Math.round(width * 0.8);
-    const bh = options.blurArea
+    const rawBh = options.blurArea
       ? Math.round(height * options.blurArea.heightRatio)
       : Math.round(height * 0.35);
+
+    // Clamp boundary agar tidak pernah melebihi canvas
+    const bx = Math.max(0, Math.min(width - 20, rawBx));
+    const by = Math.max(0, Math.min(height - 20, rawBy));
+    const bw = Math.max(20, Math.min(width - bx, rawBw));
+    const bh = Math.max(20, Math.min(height - by, rawBh));
 
     ctx.save();
     ctx.beginPath();
     ctx.rect(bx, by, bw, bh);
     ctx.clip();
-    ctx.filter = "blur(14px)";
+    ctx.filter = "blur(18px)";
     ctx.drawImage(img, 0, 0, width, height);
     ctx.restore();
 
-    // Visual overlay sensor privasi (frosted glass + dash border)
+    // Visual overlay sensor privasi (frosted glass + hairline cyan border)
     ctx.save();
-    ctx.fillStyle = "rgba(15, 23, 42, 0.15)";
+    ctx.fillStyle = "rgba(15, 23, 42, 0.22)";
     ctx.fillRect(bx, by, bw, bh);
-    ctx.strokeStyle = "rgba(239, 68, 68, 0.85)";
+    ctx.strokeStyle = "rgba(14, 165, 233, 0.9)";
     ctx.lineWidth = 2;
-    ctx.setLineDash([5, 4]);
+    ctx.setLineDash([4, 4]);
     ctx.strokeRect(bx, by, bw, bh);
 
     // Label watermark privasi DUDI
-    ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
-    const badgeW = Math.min(170, bw - 10);
+    ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
+    const badgeW = Math.min(180, bw - 8);
     const badgeH = 22;
-    ctx.fillRect(bx + 6, by + 6, badgeW, badgeH);
+    ctx.fillRect(bx + 4, by + 4, badgeW, badgeH);
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 10.5px sans-serif";
-    ctx.fillText("SENSOR PRIVASI DUDI", bx + 12, by + 21);
+    ctx.font = "bold 10px sans-serif";
+    ctx.fillText("SENSOR PRIVASI DUDI (NDA)", bx + 10, by + 19);
     ctx.restore();
   }
 
