@@ -34,6 +34,7 @@ export interface CvBulletPoint {
   jobCardTitle: string;
   skkniUnitCode: string | null;
   totalJp: number;
+  totalRealHours: number; // Jam kerja riil industri
   taskCount: number;
   predominantAutonomyLevel: 1 | 2 | 3;
   autonomyLabel: "Mandiri" | "Terbimbing" | "Observasi";
@@ -49,6 +50,7 @@ export interface CvWorkExperience {
   periodLabel: string;
   mentorName?: string;
   totalVerifiedJp: number;
+  totalRealHours: number; // Jam kerja industri riil
   technicalJp: number;
   nonCompetencyJp: number;
   bulletPoints: CvBulletPoint[];
@@ -57,6 +59,7 @@ export interface CvWorkExperience {
 export interface CvSkillItem {
   name: string;
   totalJp: number;
+  totalRealHours?: number;
 }
 
 export interface CvEndorsementSummary {
@@ -69,6 +72,7 @@ export interface CvEndorsementSummary {
 
 export interface GeneratedCvResult {
   totalVerifiedJp: number;
+  totalRealHours: number; // Total Jam Kerja Industri Riil
   technicalJp: number;
   nonCompetencyJp: number;
   experiences: CvWorkExperience[];
@@ -76,6 +80,7 @@ export interface GeneratedCvResult {
   defaultSummaryBio: string;
   verifiedDatesCount: number;
   skkniUnitsCount: number;
+  completedTasksCount: number;
 }
 
 /**
@@ -117,6 +122,13 @@ export function generateXyzBulletPoint(params: {
   } = params;
 
   const autonomyText = getAutonomyAdverb(autonomyLevel);
+  const sopLabel =
+    autonomyLevel === 3
+      ? "SOP Mandiri (Level 3)"
+      : autonomyLevel === 2
+      ? "SOP Terbimbing (Level 2)"
+      : "Observasi SOP (Level 1)";
+
   const toolsText =
     toolsAndSoftware.length > 0
       ? ` menggunakan ${toolsAndSoftware.slice(0, 3).join(", ")}`
@@ -127,9 +139,12 @@ export function generateXyzBulletPoint(params: {
     : `Melaksanakan penugasan ${jobCardTitle}`;
 
   const skkniText = skkniUnitCode ? ` (SKKNI: ${skkniUnitCode})` : "";
-  const taskCountText = taskCount > 1 ? ` melalui ${taskCount} penugasan` : "";
+  const taskCountText =
+    taskCount > 1
+      ? ` melalui ${taskCount} penugasan (${sopLabel})`
+      : ` (${sopLabel})`;
 
-  return `${actionText}${toolsText} untuk ${jobCardTitle} ${autonomyText}${taskCountText} dengan akumulasi ${totalJp} JP kerja terverifikasi${skkniText}.`;
+  return `${actionText}${toolsText} untuk ${jobCardTitle} ${autonomyText}${taskCountText} dengan akumulasi ${totalJp} JP kerja terverifikasi (${totalJp} jam kerja industri riil)${skkniText}.`;
 }
 
 /**
@@ -303,6 +318,7 @@ export function generateCvFromLogs(params: {
         jobCardTitle: jc.jobCardTitle,
         skkniUnitCode: jc.skkniUnitCode,
         totalJp: jc.totalJp,
+        totalRealHours: jc.totalJp,
         taskCount: jc.taskCount,
         predominantAutonomyLevel,
         autonomyLabel,
@@ -338,6 +354,7 @@ export function generateCvFromLogs(params: {
       periodLabel,
       mentorName: group.mentorName,
       totalVerifiedJp: placementTechnicalJp + placementNonCompJp,
+      totalRealHours: placementTechnicalJp + placementNonCompJp,
       technicalJp: placementTechnicalJp,
       nonCompetencyJp: placementNonCompJp,
       bulletPoints,
@@ -346,7 +363,7 @@ export function generateCvFromLogs(params: {
 
   // 4. Sort skills by total JP descending
   const technicalSkills: CvSkillItem[] = Array.from(skillJpMap.entries())
-    .map(([name, totalJp]) => ({ name, totalJp }))
+    .map(([name, totalJp]) => ({ name, totalJp, totalRealHours: totalJp }))
     .sort((a, b) => b.totalJp - a.totalJp);
 
   // 5. Default professional bio summary
@@ -361,10 +378,16 @@ export function generateCvFromLogs(params: {
       ? ` dengan capaian ${uniqueSkkniUnits.size} unit kompetensi SKKNI`
       : "";
 
-  const defaultSummaryBio = `Siswa SMK jurusan ${studentDepartment} dengan pengalaman praktik industri selama ${grandTotalVerifiedJp} JP terverifikasi resmi di ${primaryDudi}${skillsPhrase}${skkniPhrase}.`;
+  const totalCompletedTasksCount = experiences.reduce(
+    (sum, exp) => sum + exp.bulletPoints.reduce((bSum, b) => bSum + b.taskCount, 0),
+    0
+  );
+
+  const defaultSummaryBio = `Siswa SMK jurusan ${studentDepartment} dengan pengalaman praktik industri selama ${grandTotalVerifiedJp} JP terverifikasi resmi (${grandTotalVerifiedJp} jam kerja industri riil) di ${primaryDudi}${skillsPhrase}${skkniPhrase}.`;
 
   return {
     totalVerifiedJp: grandTotalVerifiedJp,
+    totalRealHours: grandTotalVerifiedJp,
     technicalJp: grandTechnicalJp,
     nonCompetencyJp: grandNonCompetencyJp,
     experiences,
@@ -372,5 +395,6 @@ export function generateCvFromLogs(params: {
     defaultSummaryBio,
     verifiedDatesCount: uniqueDates.size,
     skkniUnitsCount: uniqueSkkniUnits.size,
+    completedTasksCount: totalCompletedTasksCount,
   };
 }

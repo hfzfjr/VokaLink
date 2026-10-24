@@ -16,6 +16,7 @@ import {
   School,
   FileCheck,
   ImageIcon,
+  CheckCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { Disclosure } from "@/components/ui/Disclosure";
@@ -249,14 +250,14 @@ export default function PublicPassportVerifyPage({ params }: PageProps) {
             <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-100 space-y-1">
               <div className="flex items-center gap-1.5 text-blue-700 text-xs font-bold">
                 <Clock className="w-3.5 h-3.5" />
-                <span>Total Jam Terverifikasi</span>
+                <span>Total Jam Kerja Riil</span>
               </div>
               <p className="text-2xl sm:text-3xl font-black text-blue-900 tracking-tight">
                 {metrics.totalVerifiedJp}{" "}
-                <span className="text-sm font-semibold text-blue-700">JP</span>
+                <span className="text-sm font-semibold text-blue-700">Jam Riil</span>
               </p>
               <p className="text-[11px] text-blue-800/80">
-                {metrics.technicalJp} JP Kejuruan {metrics.nonCompetencyJp > 0 ? `+ ${metrics.nonCompetencyJp} JP Tugas Umum` : ""}
+                {metrics.technicalJp} Jam Kejuruan {metrics.nonCompetencyJp > 0 ? `+ ${metrics.nonCompetencyJp} Jam Tugas Umum` : ""} · Ekuivalen {metrics.totalVerifiedJp} JP
               </p>
             </div>
 
@@ -298,6 +299,61 @@ export default function PublicPassportVerifyPage({ params }: PageProps) {
           </div>
         </div>
 
+        {/* Highlight Komparasi: Jam Kerja Nyata Industri vs Beban JP Sekolah */}
+        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-white/10 pb-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-amber-400 flex-shrink-0" />
+              <h2 className="text-base sm:text-lg font-black tracking-tight text-white">
+                Verifikasi Standar Ganda: Jam Kerja Nyata vs Beban JP Sekolah
+              </h2>
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-white/10 px-2.5 py-1 rounded-full text-blue-200 border border-white/10 self-start sm:self-auto">
+              Permendikbudristek No. 12/2024 &amp; Standar DUDI
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            {/* Box A: Jam Kerja Nyata Industri */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-blue-300 uppercase tracking-wider">
+                  1. Realitas Jam Kerja Industri (DUDI)
+                </span>
+                <span className="text-xs font-black text-white bg-blue-500/20 px-2 py-0.5 rounded border border-blue-400/30">
+                  {metrics.totalVerifiedJp} Jam Riil
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Diukur berdasarkan <strong>jam kerja faktual</strong> (1 Jam = 60 menit) atau shift kerja nyata yang diselesaikan siswa di fasilitas DUDI mitra. Divalidasi langsung oleh mentor pembimbing melalui token perangkat dan PIN kriptografis.
+              </p>
+              <div className="text-[11px] text-blue-200 font-medium pt-1 flex items-center gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                <span>Diakui langsung oleh recruiter HRD &amp; sistem ATS global</span>
+              </div>
+            </div>
+
+            {/* Box B: Beban Jam Belajar Sekolah (JP) */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-amber-300 uppercase tracking-wider">
+                  2. Ekuivalensi Beban Belajar Sekolah (JP)
+                </span>
+                <span className="text-xs font-black text-white bg-amber-500/20 px-2 py-0.5 rounded border border-amber-400/30">
+                  {metrics.totalVerifiedJp} JP Kurikulum
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Dikonversi ke dalam <strong>Jam Pelajaran (JP)</strong> administratif (1 JP = 45 menit) untuk pemenuhan kurikulum resmi SMK (beban 1 semester ekuivalen 792 JP) dan dasar pengisian e-Rapor resmi Kurikulum Merdeka.
+              </p>
+              <div className="text-[11px] text-amber-200 font-medium pt-1 flex items-center gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                <span>Memenuhi standar kelulusan mata pelajaran PKL Fase F</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Competencies Progress Breakdown */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
@@ -307,7 +363,7 @@ export default function PublicPassportVerifyPage({ params }: PageProps) {
                 <span>Penguasaan Elemen Capaian Pembelajaran (CP)</span>
               </h2>
               <p className="text-xs text-slate-500">
-                Berdasarkan realisasi jam kerja terverifikasi sesuai standar Kurikulum Merdeka SMK
+                Berdasarkan realisasi jam kerja industri riil terverifikasi mentor sesuai CP Kurikulum Merdeka SMK
               </p>
             </div>
           </div>
@@ -328,7 +384,7 @@ export default function PublicPassportVerifyPage({ params }: PageProps) {
                           : "bg-blue-100 text-blue-800"
                       }`}
                     >
-                      {comp.verifiedJp} / {comp.targetJp} JP ({comp.percentage}%)
+                      {comp.verifiedJp} Jam Kerja ({comp.verifiedJp} JP) · {comp.percentage}%
                     </span>
                   </div>
 

@@ -54,7 +54,13 @@ export const generateInterventionDraftSchema = z.object({
   placementId: z.string().uuid(),
   driftAlertId: z.string().uuid().optional(),
   alertType: z
-    .enum(["NON_COMPETENCY_OVERLOAD", "SKILL_MONOTONY", "APPROVAL_DORMANCY", "GENERAL"])
+    .enum([
+      "NON_COMPETENCY_OVERLOAD",
+      "SKILL_MONOTONY",
+      "APPROVAL_DORMANCY",
+      "STUDENT_OVERWORK_HOURS",
+      "GENERAL",
+    ])
     .optional(),
 });
 

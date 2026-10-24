@@ -46,10 +46,38 @@ export const DRIFT_DORMANCY_DAYS = 7;              // berumur > 7 hari
 export const ERAPOR_AUTONOMY_WEIGHTS: Record<number, number> = {
   1: 75,  // Observasi
   2: 88,  // Terbimbing
-  3: 100, // Mandiri
+  3: 100, // Mandiri (SOP)
 };
 export const ERAPOR_WEIGHT_TECHNICAL = 0.80;
 export const ERAPOR_WEIGHT_ATTITUDE = 0.20;
+
+// Standar 4 Elemen Resmi Mapel PKL Kurikulum Merdeka (Permendikbudristek No. 12/2024 & Panduan BSKAP)
+export const OFFICIAL_PKL_ELEMENT_CODES = {
+  SOFT_SKILLS: "PKL-EL-01",
+  HARD_SKILLS_CORE: "PKL-EL-02",
+  HARD_SKILLS_ADVANCED: "PKL-EL-03",
+  ENTREPRENEURSHIP: "PKL-EL-04",
+} as const;
+
+export const OFFICIAL_PKL_ELEMENT_TITLES = {
+  SOFT_SKILLS: "Internalisasi & Penerapan Soft Skills",
+  HARD_SKILLS_CORE: "Penerapan Hard Skills",
+  HARD_SKILLS_ADVANCED: "Peningkatan & Pengembangan Hard Skills",
+  ENTREPRENEURSHIP: "Penyiapan Kemandirian Berwirausaha",
+} as const;
+
+export const OFFICIAL_PKL_ELEMENT_WEIGHTS = {
+  SOFT_SKILLS: 0.20,          // 20% Internalisasi & Penerapan Soft Skills
+  HARD_SKILLS_CORE: 0.40,     // 40% Penerapan Hard Skills
+  HARD_SKILLS_ADVANCED: 0.25, // 25% Peningkatan & Pengembangan Hard Skills
+  ENTREPRENEURSHIP: 0.15,     // 15% Penyiapan Kemandirian Berwirausaha
+} as const;
+
+export const SOP_RUBRIC_STANDARDS = {
+  OBSERVASI: { min: 70, max: 75, baseScore: 75, label: "Cukup", description: "Baru Mengamati / Terbantu" },
+  TERBIMBING: { min: 76, max: 85, baseScore: 85, label: "Baik", description: "Bekerja dengan Arahan Mentor" },
+  MANDIRI_SOP: { min: 86, max: 98, baseScore: 95, label: "Sangat Baik", description: "Mandiri Sesuai Standar SOP DUDI" },
+} as const;
 
 // BR-010 & FR-010: Endorsement Batasan Lencana & Standar Lencana Etos Kerja
 export const MAX_ENDORSEMENT_BADGES = 3;
@@ -75,3 +103,71 @@ export const DUDI_QUALITY_EVALUATION_THRESHOLD = 50; // 50-79: Perlu Evaluasi, <
 export const MAX_EVIDENCE_SIZE_BYTES = 153600; // 150 KB
 export const TARGET_EVIDENCE_SIZE_MIN = 35840;  // 35 KB
 export const TARGET_EVIDENCE_SIZE_MAX = 61440;  // 60 KB
+
+// BR-013: Standar Perlindungan Siswa & K3 Jam Kerja PKL (Permendikbudristek No. 50/2020 & UU Ketenagakerjaan No. 13/2003)
+export const STUDENT_MAX_NORMAL_WEEKLY_HOURS = 40;     // Batas jam kerja normal mingguan
+export const STUDENT_OVERWORK_WARNING_HOURS = 42;      // Batas peringatan awal (Warning)
+export const STUDENT_OVERWORK_CRITICAL_HOURS = 45;     // Batas kritis risiko eksploitasi (Critical)
+export const STUDENT_OVERTIME_DAILY_THRESHOLD = 9;     // Jam kerja >= 9 jam/hari dikategorikan lembur/proyek
+export const STUDENT_MAX_WEEKLY_OVERTIME_DAYS = 3;     // Maksimal 3 hari lembur dalam seminggu
+
+// Konversi Jam Riil DUDI (60 menit) ke Jam Pelajaran Kurikulum (45 menit)
+export const REAL_HOURS_TO_JP_RATIO = 60 / 45; // 1.333333...
+
+export function convertRealHoursToJp(realHours: number): number {
+  return Math.round(((realHours * 60) / 45) * 10) / 10;
+}
+
+// Preset Tombol Cepat (Quick-Tap Chips) Durasi Logbook
+export interface QuickShiftPreset {
+  id: string;
+  label: string;
+  sub: string;
+  defaultHours: number;
+  availableHours: number[];
+  isRange: boolean;
+}
+
+export const QUICK_SHIFT_PRESETS: QuickShiftPreset[] = [
+  {
+    id: "HALF_DAY",
+    label: "4 – 5 Jam",
+    sub: "1/2 Hari / Shift Sabtu",
+    defaultHours: 4,
+    availableHours: [4, 5],
+    isRange: true,
+  },
+  {
+    id: "SHORT_SHIFT",
+    label: "6 Jam",
+    sub: "Shift Pagi / Sore",
+    defaultHours: 6,
+    availableHours: [6],
+    isRange: false,
+  },
+  {
+    id: "FULL_DAY_6D",
+    label: "7 Jam",
+    sub: "Full Day (6 Hari Kerja)",
+    defaultHours: 7,
+    availableHours: [7],
+    isRange: false,
+  },
+  {
+    id: "FULL_DAY_5D",
+    label: "8 Jam",
+    sub: "Full Day (5 Hari Kerja)",
+    defaultHours: 8,
+    availableHours: [8],
+    isRange: false,
+  },
+  {
+    id: "OVERTIME",
+    label: "9 – 10 Jam",
+    sub: "Jam Tambahan / Proyek",
+    defaultHours: 9,
+    availableHours: [9, 10],
+    isRange: true,
+  },
+];
+

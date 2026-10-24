@@ -18,6 +18,7 @@ import {
   Loader2,
   ChevronRight,
   Image as ImageIcon,
+  Clock,
 } from "lucide-react";
 import Link from "next/link";
 import { fetchStudentCv, updateStudentPassport, type StudentCvResponse } from "@/lib/api";
@@ -34,10 +35,12 @@ const DEMO_FALLBACK_CV: StudentCvResponse = {
     whatsappNumber: "081234567890",
   },
   summaryBio:
-    "Siswa SMK konsentrasi Rekayasa Perangkat Lunak dengan pengalaman magang industri 184 JP terverifikasi. Menguasai arsitektur Express.js, TypeScript, Next.js, dan optimasi basis data relasional PostgreSQL dengan standar SKKNI.",
+    "Siswa SMK konsentrasi Rekayasa Perangkat Lunak dengan pengalaman magang industri 184 JP terverifikasi resmi (184 jam kerja industri riil) di PT Nusantara Tech. Menguasai arsitektur Express.js, TypeScript, Next.js, dan optimasi basis data relasional PostgreSQL dengan standar SKKNI.",
   totalVerifiedJp: 184,
+  totalRealHours: 184,
   technicalJp: 168,
   nonCompetencyJp: 16,
+  completedTasksCount: 21,
   experiences: [
     {
       placementId: "00000000-0000-0000-0000-000000000051",
@@ -47,6 +50,7 @@ const DEMO_FALLBACK_CV: StudentCvResponse = {
       roleTitle: "Junior Software Engineer Intern",
       periodLabel: "Jan 2026 – Sekarang",
       totalVerifiedJp: 184,
+      totalRealHours: 184,
       technicalJp: 168,
       nonCompetencyJp: 16,
       bulletPoints: [
@@ -55,45 +59,48 @@ const DEMO_FALLBACK_CV: StudentCvResponse = {
           jobCardTitle: "Implementasi RESTful API Express.js",
           skkniUnitCode: "J.620100.009.01",
           totalJp: 64,
+          totalRealHours: 64,
           taskCount: 8,
           predominantAutonomyLevel: 3,
           autonomyLabel: "Mandiri",
           toolsUsed: ["Express", "TypeScript", "PostgreSQL"],
           bulletText:
-            "Mengembangkan 12 modul REST API menggunakan Express & TypeScript, menyelesaikan 64 JP terverifikasi dengan tingkat kemandirian penuh (SKKNI J.620100.009.01).",
+            "Mengembangkan 12 modul endpoint backend menggunakan Express, TypeScript, PostgreSQL untuk Implementasi RESTful API Express.js secara mandiri melalui 8 penugasan (SOP Mandiri (Level 3)) dengan akumulasi 64 JP kerja terverifikasi (64 jam kerja industri riil) (SKKNI: J.620100.009.01).",
         },
         {
           jobCardId: "00000000-0000-0000-0000-000000000032",
           jobCardTitle: "Pembuatan Komponen Antarmuka Web Next.js",
           skkniUnitCode: "J.620100.012.01",
           totalJp: 56,
+          totalRealHours: 56,
           taskCount: 7,
           predominantAutonomyLevel: 2,
           autonomyLabel: "Terbimbing",
           toolsUsed: ["Next.js", "React", "Tailwind CSS"],
           bulletText:
-            "Mengimplementasikan antarmuka responsif mobile-first Tailwind CSS untuk modul dashboard, menyelesaikan 56 JP terverifikasi (SKKNI J.620100.012.01).",
+            "Mengimplementasikan antarmuka responsif mobile-first menggunakan Next.js, React, Tailwind CSS untuk Pembuatan Komponen Antarmuka Web Next.js secara terbimbing melalui 7 penugasan (SOP Terbimbing (Level 2)) dengan akumulasi 56 JP kerja terverifikasi (56 jam kerja industri riil) (SKKNI: J.620100.012.01).",
         },
         {
           jobCardId: "00000000-0000-0000-0000-000000000033",
           jobCardTitle: "Perancangan Skema Basis Data Relasional",
           skkniUnitCode: "J.620100.010.01",
           totalJp: 48,
+          totalRealHours: 48,
           taskCount: 6,
           predominantAutonomyLevel: 3,
           autonomyLabel: "Mandiri",
           toolsUsed: ["PostgreSQL", "Prisma ORM"],
           bulletText:
-            "Merancang skema relasional PostgreSQL dan migrasi skema Prisma ORM untuk 8 entitas utama, menyelesaikan 48 JP terverifikasi (SKKNI J.620100.010.01).",
+            "Merancang skema relasional PostgreSQL dan migrasi skema menggunakan Prisma ORM untuk Perancangan Skema Basis Data Relasional secara mandiri melalui 6 penugasan (SOP Mandiri (Level 3)) dengan akumulasi 48 JP kerja terverifikasi (48 jam kerja industri riil) (SKKNI: J.620100.010.01).",
         },
       ],
     },
   ],
   technicalSkills: [
-    { name: "Express.js & TypeScript", totalJp: 64 },
-    { name: "Next.js & React 19", totalJp: 56 },
-    { name: "PostgreSQL & Prisma", totalJp: 48 },
-    { name: "Tailwind CSS Mobile-First", totalJp: 40 },
+    { name: "Express.js & TypeScript", totalJp: 64, totalRealHours: 64 },
+    { name: "Next.js & React 19", totalJp: 56, totalRealHours: 56 },
+    { name: "PostgreSQL & Prisma", totalJp: 48, totalRealHours: 48 },
+    { name: "Tailwind CSS Mobile-First", totalJp: 40, totalRealHours: 40 },
   ],
   endorsement: {
     attitudeScore: 95,
@@ -281,13 +288,28 @@ export default function CareerCvPage() {
 
   const { student, experiences, technicalSkills, endorsement, verificationUrl } = cvData;
 
+  const autonomousTasksCount = experiences.reduce(
+    (sum, exp) =>
+      sum +
+      exp.bulletPoints
+        .filter((b) => b.predominantAutonomyLevel === 3)
+        .reduce((bSum, b) => bSum + b.taskCount, 0),
+    0
+  );
+
+  const totalTasksCount = experiences.reduce(
+    (sum, exp) =>
+      sum + exp.bulletPoints.reduce((bSum, b) => bSum + b.taskCount, 0),
+    0
+  );
+
   return (
     <div className="space-y-6">
       {/* 1. Page Header & Actions Bar (no-print) */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-200 no-print">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            CV ATS & Paspor Kompetensi
+            CV ATS &amp; Paspor Kompetensi
           </h1>
           <p className="text-xs sm:text-sm text-slate-500">
             Portofolio digital berbasis jam kerja riil terverifikasi mentor industri (BR-010)
@@ -319,13 +341,37 @@ export default function CareerCvPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* LEFT / CENTER: Authentic ATS A4 Sheet (8 cols on desktop, full width on mobile/tablet) */}
         <div className="lg:col-span-8 flex flex-col items-center">
-          {/* Lock Notice Banner (BR-010 & BR-004) */}
+          {/* Quick Metrics Ribbon (Standar Jam Industri Riil vs JP Kurikulum) */}
+          <div className="w-full mb-4 grid grid-cols-2 sm:grid-cols-4 gap-2.5 no-print">
+            <div className="p-3 bg-white rounded-2xl border border-slate-200/90 shadow-2xs space-y-0.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Jam Kerja Industri</span>
+              <p className="text-base sm:text-lg font-black text-slate-900">{cvData.totalVerifiedJp} Jam Riil</p>
+              <span className="text-[10px] text-blue-600 font-semibold">1 Jam = 60 mnt shift</span>
+            </div>
+            <div className="p-3 bg-white rounded-2xl border border-slate-200/90 shadow-2xs space-y-0.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Beban Kurikulum</span>
+              <p className="text-base sm:text-lg font-black text-slate-900">{cvData.totalVerifiedJp} JP</p>
+              <span className="text-[10px] text-emerald-600 font-semibold">Regulasi Kemendikbud</span>
+            </div>
+            <div className="p-3 bg-white rounded-2xl border border-slate-200/90 shadow-2xs space-y-0.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Kemandirian SOP</span>
+              <p className="text-base sm:text-lg font-black text-slate-900">{autonomousTasksCount} Tugas Mandiri</p>
+              <span className="text-[10px] text-amber-600 font-semibold">Level 3 Standar Industri</span>
+            </div>
+            <div className="p-3 bg-white rounded-2xl border border-slate-200/90 shadow-2xs space-y-0.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Penugasan</span>
+              <p className="text-base sm:text-lg font-black text-slate-900">{totalTasksCount} Selesai</p>
+              <span className="text-[10px] text-slate-500 font-semibold">100% Terverifikasi</span>
+            </div>
+          </div>
+
+          {/* Lock Notice Banner (BR-010 & Standar Industri) */}
           <div className="w-full mb-4 p-3.5 rounded-2xl bg-blue-50 border border-blue-200 text-blue-900 text-xs flex items-start gap-3 no-print">
             <Lock className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
             <div className="space-y-0.5">
-              <p className="font-bold">Integritas Data Terkunci (BR-010 & BR-004):</p>
+              <p className="font-bold">Integritas Data Terkunci (BR-010 &amp; Faktual Industri):</p>
               <p className="text-blue-800 leading-snug">
-                Seluruh klaim jam praktik ({cvData.totalVerifiedJp} JP), nama DUDI mitra, dan unit kompetensi SKKNI ditarik otomatis dari database logbook terverifikasi tanpa dapat dimanipulasi secara manual. Jam non-kompetensi ({cvData.nonCompetencyJp} JP) dikecualikan dari klaim teknis.
+                Seluruh klaim <strong>{cvData.totalVerifiedJp} Jam Kerja Industri Riil</strong> (setara {cvData.totalVerifiedJp} JP beban kurikulum), nama DUDI mitra, dan unit kompetensi SKKNI ditarik otomatis dari database logbook terverifikasi tanpa dapat dimanipulasi secara manual. Jam non-kompetensi ({cvData.nonCompetencyJp} Jam) dipisahkan dari klaim kejuruan teknis.
               </p>
             </div>
           </div>
@@ -390,8 +436,8 @@ export default function CareerCvPage() {
                   </div>
                   <p className="text-[11px] text-slate-500 italic">
                     {exp.mentorName ? `Penyelia: ${exp.mentorName} · ` : ""}
-                    Total Jam Terverifikasi: {exp.totalVerifiedJp} JP ({exp.technicalJp} JP Kejuruan
-                    {exp.nonCompetencyJp > 0 ? ` + ${exp.nonCompetencyJp} JP Non-Jurusan` : ""})
+                    Total Jam Kerja Riil: {exp.totalVerifiedJp} Jam ({exp.technicalJp} Jam Kejuruan
+                    {exp.nonCompetencyJp > 0 ? ` + ${exp.nonCompetencyJp} Jam Tugas Umum` : ""}) · Ekuivalen {exp.totalVerifiedJp} JP Kurikulum
                   </p>
 
                   {/* XYZ Bullet points strictly formatted for ATS */}
@@ -408,14 +454,14 @@ export default function CareerCvPage() {
             {technicalSkills.length > 0 && (
               <div className="space-y-2">
                 <h2 className="font-extrabold text-xs sm:text-sm uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1">
-                  Keterampilan & Alat Kerja Terverifikasi
+                  Keterampilan &amp; Alat Kerja Terverifikasi
                 </h2>
                 <div className="text-xs text-slate-700 leading-relaxed">
                   <p>
-                    <strong className="text-slate-900 font-bold">Teknologi & Instrumen Praktik: </strong>
+                    <strong className="text-slate-900 font-bold">Teknologi &amp; Instrumen Praktik: </strong>
                     {technicalSkills.map((skill, sIdx) => (
                       <span key={skill.name}>
-                        {skill.name} ({skill.totalJp} JP)
+                        {skill.name} ({skill.totalJp} Jam Kerja Riil)
                         {sIdx < technicalSkills.length - 1 ? ", " : "."}
                       </span>
                     ))}
@@ -491,6 +537,17 @@ export default function CareerCvPage() {
 
         {/* RIGHT SIDEBAR: Controls & ATS Guidance (4 cols on desktop, no-print) */}
         <div className="lg:col-span-4 space-y-5 no-print">
+          {/* Card 0: Jam Kerja Industri Riil vs JP Kurikulum */}
+          <div className="bg-gradient-to-br from-blue-900 to-indigo-950 text-white p-5 rounded-2xl shadow-sm space-y-2.5">
+            <div className="flex items-center gap-2 font-bold text-xs sm:text-sm text-blue-200">
+              <Clock className="w-4 h-4 text-blue-400" />
+              <span>Standar Durasi Industri Faktual</span>
+            </div>
+            <p className="text-xs text-blue-100 leading-relaxed">
+              CV VokaLink mencatat durasi menggunakan <strong>Jam Kerja Industri Riil (60 menit)</strong> dan tingkat kemandirian <strong>SOP Level 1-3</strong> agar langsung dipahami oleh perekrut HRD dan parser ATS perusahaan, sekaligus tetap memenuhi beban ekuivalensi 792 JP sekolah (Permendikbudristek No. 12/2024).
+            </p>
+          </div>
+
           {/* Card 1: ATS Compliance Guarantee */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
             <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
@@ -511,7 +568,7 @@ export default function CareerCvPage() {
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <span>Poin pencapaian berbasis formula XYZ Google (Tindakan + Metrik JP + Hasil SKKNI).</span>
+                <span>Poin pencapaian berbasis formula XYZ Google (Tindakan + Jam Kerja Riil + Kemandirian SOP + SKKNI).</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />

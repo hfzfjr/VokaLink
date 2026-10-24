@@ -17,8 +17,12 @@ import {
   detectNonCompetencyOverload,
   detectSkillMonotony,
   detectApprovalDormancy,
+  detectStudentOverwork,
+  evaluateCompetencyDrift,
   calculateElementGrade,
   calculateFinalPklGrade,
+  calculateSopRubricScore,
+  calculateOfficialFourElementsPklGrade,
   generateEraporNarratives,
   generateEraporCsv,
 } from "../src/index.js";
@@ -333,4 +337,155 @@ describe("e-Rapor Grades (BR-009)", () => {
     expect(csv).toContain('"PT Teknologi, Inovasi"'); // escaped comma
     expect(csv).toContain("94.5");
   });
+
+  it("evaluates SOP mastery rubric according to industrial autonomy levels and consistency", () => {
+    // 1. Observasi (Level 1)
+    const obsRubric = calculateSopRubricScore([
+      { durationJp: 8, autonomyLevel: 1 },
+      { durationJp: 8, autonomyLevel: 1 },
+    ]);
+    expect(obsRubric.score).toBe(75);
+    expect(obsRubric.predicate).toBe("Cukup");
+
+    // 2. Terbimbing (Level 2)
+    const terbimbingRubric = calculateSopRubricScore([
+      { durationJp: 8, autonomyLevel: 2 },
+      { durationJp: 8, autonomyLevel: 2 },
+      { durationJp: 8, autonomyLevel: 2 },
+    ]);
+    expect(terbimbingRubric.score).toBe(84);
+    expect(terbimbingRubric.predicate).toBe("Baik");
+
+    // 3. Mandiri SOP (Level 3) konsisten (>= 3 kali validasi)
+    const mandiriRubric = calculateSopRubricScore([
+      { durationJp: 8, autonomyLevel: 3 },
+      { durationJp: 8, autonomyLevel: 3 },
+      { durationJp: 8, autonomyLevel: 3 },
+    ]);
+    expect(mandiriRubric.score).toBeGreaterThanOrEqual(92);
+    expect(mandiriRubric.predicate).toBe("Sangat Baik");
+  });
+
+  it("calculates official 4 elements PKL grade accurately according to BSKAP standards", () => {
+    const result = calculateOfficialFourElementsPklGrade({
+      studentName: "Budi Santoso",
+      dudiName: "PT Auto Mekanika",
+      totalVerifiedHours: 600,
+      attendanceDisciplinePercent: 98,
+      mentorAttitudeScore: 92,
+      technicalElementScores: [
+        { title: "Tune-up Mesin Bensin & Diesel", score: 94, isAdvanced: false },
+        { title: "Overhaul Transmisi Otomatis", score: 88, isAdvanced: true },
+      ],
+    });
+
+    expect(result.elements.length).toBe(4);
+    // Element 1: Soft Skills
+    expect(result.elements[0]?.code).toBe("PKL-EL-01");
+    expect(result.elements[0]?.title).toContain("Soft Skills");
+    expect(result.elements[0]?.score).toBe(95); // 0.50*98 + 0.50*92 = 95
+
+    // Element 2: Core Hard Skills
+    expect(result.elements[1]?.code).toBe("PKL-EL-02");
+    expect(result.elements[1]?.score).toBe(94);
+
+    // Element 3: Advanced Hard Skills
+    expect(result.elements[2]?.code).toBe("PKL-EL-03");
+    expect(result.elements[2]?.score).toBe(88);
+
+    // Element 4: Entrepreneurship
+    expect(result.elements[3]?.code).toBe("PKL-EL-04");
+    expect(result.elements[3]?.score).toBeGreaterThanOrEqual(85);
+
+    // Final Grade weighted
+    expect(result.finalGrade).toBeGreaterThanOrEqual(90);
+    expect(result.highestAchievement).toContain("PT Auto Mekanika");
+  });
+
+  describe("Student Welfare Protection & Overwork Risk Detection (BR-013 & Permendikbudristek No. 50/2020)", () => {
+    it("recognizes standard 40-hour work week as healthy (NONE)", () => {
+      const logs = [
+        { logDate: "2026-10-19", realHours: 8 },
+        { logDate: "2026-10-20", realHours: 8 },
+        { logDate: "2026-10-21", realHours: 8 },
+        { logDate: "2026-10-22", realHours: 8 },
+        { logDate: "2026-10-23", realHours: 8 },
+      ];
+
+      const res = detectStudentOverwork({
+        studentName: "Aditya Pratama",
+        logsLast7Days: logs,
+      });
+
+      expect(res.detected).toBe(false);
+      expect(res.severity).toBe("NONE");
+      expect(res.totalHours7Days).toBe(40);
+      expect(res.overtimeDaysCount).toBe(0);
+    });
+
+    it("triggers WARNING when exceeding 40 hours or having 3 overtime days", () => {
+      const logs = [
+        { logDate: "2026-10-19", realHours: 9 },
+        { logDate: "2026-10-20", realHours: 9 },
+        { logDate: "2026-10-21", realHours: 9 },
+        { logDate: "2026-10-22", realHours: 8 },
+        { logDate: "2026-10-23", realHours: 8 },
+      ];
+
+      const res = detectStudentOverwork({
+        studentName: "Dewi Lestari",
+        logsLast7Days: logs,
+      });
+
+      expect(res.detected).toBe(true);
+      expect(res.severity).toBe("WARNING");
+      expect(res.totalHours7Days).toBe(43);
+      expect(res.overtimeDaysCount).toBe(3);
+      expect(res.alertTitle).toContain("Peringatan Beban Kerja");
+      expect(res.alertMessage).toContain("Dewi Lestari");
+    });
+
+    it("triggers CRITICAL when total hours exceed 45 or 4 consecutive overtime days (exploitative risk)", () => {
+      const logs = [
+        { logDate: "2026-10-19", realHours: 10 },
+        { logDate: "2026-10-20", realHours: 10 },
+        { logDate: "2026-10-21", realHours: 10 },
+        { logDate: "2026-10-22", realHours: 10 },
+        { logDate: "2026-10-23", realHours: 8 },
+      ];
+
+      const res = detectStudentOverwork({
+        studentName: "Rian Hidayat",
+        logsLast7Days: logs,
+      });
+
+      expect(res.detected).toBe(true);
+      expect(res.severity).toBe("CRITICAL");
+      expect(res.totalHours7Days).toBe(48);
+      expect(res.overtimeDaysCount).toBe(4);
+      expect(res.consecutiveOvertimeDays).toBe(4);
+      expect(res.alertTitle).toContain("Peringatan Kritis K3");
+      expect(res.recommendedIntervention).toContain("WhatsApp");
+    });
+
+    it("evaluates comprehensive drift including student overwork alert", () => {
+      const alerts = evaluateCompetencyDrift({
+        nonCompetency: { totalJpLast14Days: 30, nonCompetencyJpLast14Days: 2 },
+        skillMonotony: { daysSincePklStart: 10, totalCumulativeJp: 100, cpElementsJp: [{ elementId: "1", jp: 50 }, { elementId: "2", jp: 50 }] },
+        approvalDormancy: { pendingLogs: [], currentDate: "2026-10-24" },
+        studentOverwork: {
+          logsLast7Days: [
+            { logDate: "2026-10-19", realHours: 10 },
+            { logDate: "2026-10-20", realHours: 10 },
+            { logDate: "2026-10-21", realHours: 10 },
+            { logDate: "2026-10-22", realHours: 10 },
+            { logDate: "2026-10-23", realHours: 8 },
+          ],
+        },
+      });
+
+      expect(alerts).toContain("STUDENT_OVERWORK_HOURS");
+    });
+  });
 });
+
