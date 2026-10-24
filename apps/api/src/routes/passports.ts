@@ -135,8 +135,10 @@ passportsRouter.get(
         },
         summaryBio,
         totalVerifiedJp: cvEngineResult.totalVerifiedJp,
+        totalRealHours: cvEngineResult.totalRealHours,
         technicalJp: cvEngineResult.technicalJp,
         nonCompetencyJp: cvEngineResult.nonCompetencyJp,
+        completedTasksCount: cvEngineResult.completedTasksCount,
         experiences: cvEngineResult.experiences,
         technicalSkills: cvEngineResult.technicalSkills,
         endorsement: latestEndorsement,
@@ -472,6 +474,7 @@ passportsRouter.get(
         summaryBio: passport.summaryBio,
         metrics: {
           totalVerifiedJp: totalVerifiedJp || passport.totalVerifiedJp,
+          totalRealHours: totalVerifiedJp || passport.totalVerifiedJp,
           technicalJp,
           nonCompetencyJp,
           verifiedDaysCount: verifiedLogSignatures.length,

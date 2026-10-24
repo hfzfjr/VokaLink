@@ -13,7 +13,7 @@ export interface InterventionDraftParams {
   mentorName: string;
   mentorTitle?: string;
   dudiName: string;
-  alertType?: "NON_COMPETENCY_OVERLOAD" | "SKILL_MONOTONY" | "APPROVAL_DORMANCY" | "GENERAL";
+  alertType?: "NON_COMPETENCY_OVERLOAD" | "SKILL_MONOTONY" | "APPROVAL_DORMANCY" | "STUDENT_OVERWORK_HOURS" | "GENERAL";
   // Metrics
   completedJp?: number;
   completedElements?: string[];
@@ -119,6 +119,18 @@ export function generateInterventionMessage(params: InterventionDraftParams): st
         `${magicLinkText}\n\n` +
         `Pengesahan Bapak/Ibu sangat penting agar rekam jejak jam kerja siswa tercatat resmi dan tepat waktu. Terima kasih banyak atas kesediaan Bapak/Ibu meluangkan waktu.\n\n` +
         `Salam hormat,\n${params.teacherName}\n${params.schoolName}`
+      );
+    }
+
+    case "STUDENT_OVERWORK_HOURS": {
+      const weeklyHours = params.totalJpLast14Days ? Math.round(params.totalJpLast14Days / 2) : 48;
+      return (
+        `Yth. Bapak/Ibu ${params.mentorName}${mentorTitleStr}, ${params.dudiName}\n\n` +
+        `Salam sejahtera, saya ${params.teacherName}, Guru Pembimbing PKL dari ${params.schoolName} untuk siswa kami, ${params.studentName} (${params.departmentName}).\n\n` +
+        `Kami sangat mengapresiasi dedikasi, antusiasme, dan bimbingan berharga yang telah Bapak/Ibu berikan kepada ${params.studentName} dalam praktik kerja industri di ${params.dudiName}.\n\n` +
+        `Melalui sistem monitoring logbook berkala VokaLink, kami mencatat total jam praktik siswa mencapai ${weeklyHours} jam kerja riil minggu ini (melebihi pola normal 40 jam/minggu). Berdasarkan Permendikbudristek No. 50 Tahun 2020 tentang K3 dan Perlindungan Peserta Didik, kami memohon perkenan Bapak/Ibu agar penugasan jam praktik dapat disesuaikan kembali dengan batas waktu wajar, guna menjaga kebugaran fisik dan efektivitas belajar peserta didik.\n\n` +
+        `Terima kasih banyak atas perhatian, pengertian, dan kerja sama yang sangat baik selama ini.\n\n` +
+        `Salam takzim,\n${params.teacherName}\n${params.schoolName}`
       );
     }
 

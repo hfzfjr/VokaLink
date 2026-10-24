@@ -70,6 +70,44 @@ const MOCK_ERAPOR_DATA: EraporSummaryResponse = {
           score: 96.8,
         },
       ],
+      officialElements: [
+        {
+          code: "PKL-EL-01",
+          title: "Internalisasi & Penerapan Soft Skills",
+          category: "SOFT_SKILLS",
+          weight: 0.20,
+          score: 97.5,
+          predicate: "Sangat Baik",
+          description: "Kepatuhan K3, integritas, dan komunikasi kerja sama tim sangat baik di PT Inovasi Digital Nusantara.",
+        },
+        {
+          code: "PKL-EL-02",
+          title: "Penerapan Hard Skills",
+          category: "HARD_SKILLS_CORE",
+          weight: 0.40,
+          score: 98.1,
+          predicate: "Sangat Baik",
+          description: "Mampu menyelesaikan pekerjaan pemrograman web & API mandiri sesuai standar SOP.",
+        },
+        {
+          code: "PKL-EL-03",
+          title: "Peningkatan & Pengembangan Hard Skills",
+          category: "HARD_SKILLS_ADVANCED",
+          weight: 0.25,
+          score: 96.8,
+          predicate: "Sangat Baik",
+          description: "Eksplorasi infrastruktur basis data dan cloud storage industri secara mandiri.",
+        },
+        {
+          code: "PKL-EL-04",
+          title: "Penyiapan Kemandirian Berwirausaha",
+          category: "ENTREPRENEURSHIP",
+          weight: 0.15,
+          score: 95.0,
+          predicate: "Sangat Baik",
+          description: "Memahami tata kelola proyek software dan inisiatif pemecahan kendala teknis.",
+        },
+      ],
       attitudeScore: 95,
       isAttitudeIncluded: true,
       finalGrade: 97.0,
@@ -320,16 +358,34 @@ export default function EraporPage() {
             trigger={
               <span className="flex items-center gap-2 font-bold text-slate-900 text-xs sm:text-sm">
                 <GraduationCap className="w-4 h-4 text-sky-500" />
-                Formula Pembobotan Nilai e-Rapor SMK (60% Jam Capaian + 40% Kemandirian)
+                Standar Penilaian Asesmen e-Rapor 4 Elemen Mapel PKL (Permendikbudristek No. 12/2024 &amp; BSKAP)
               </span>
             }
             className="border-t-0"
           >
-            <p className="text-xs text-slate-600 leading-relaxed pt-2">
-              Perhitungan nilai akhir e-Rapor PKL Kurikulum Merdeka menggabungkan:
-              <strong className="text-slate-800"> 60% Rasio Jam Capaian</strong> terhadap target alokasi kurikulum 792 JP, dan
-              <strong className="text-slate-800"> 40% Rata-rata Skor Kemandirian</strong> berdasarkan validasi mentor industri (Mandiri = 100, Terbimbing = 75, Perlu Pendampingan Penuh = 50).
-            </p>
+            <div className="text-xs text-slate-600 leading-relaxed pt-2 space-y-2">
+              <p>
+                Sesuai pedoman baku mata pelajaran PKL Kurikulum Merdeka, penilaian e-Rapor SMK tidak mengocok kuota jam semata, melainkan mengukur ketercapaian Tujuan Pembelajaran (TP) berbasis rubrik penguasaan SOP industri pada <strong>4 Elemen Baku Mapel PKL</strong>:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 pt-1 font-mono text-[11px]">
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="font-bold text-slate-900 block font-sans">1. Soft Skills (20%)</span>
+                  <span className="text-slate-500 font-sans text-[10.5px]">Disiplin Kehadiran + Work Ethic Mentor</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="font-bold text-slate-900 block font-sans">2. Penerapan Hard Skills (40%)</span>
+                  <span className="text-slate-500 font-sans text-[10.5px]">Kemandirian SOP Tugas Kejuruan</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="font-bold text-slate-900 block font-sans">3. Pengembangan Skills (25%)</span>
+                  <span className="text-slate-500 font-sans text-[10.5px]">Tools Industri &amp; Problem Solving</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="font-bold text-slate-900 block font-sans">4. Kewirausahaan (15%)</span>
+                  <span className="text-slate-500 font-sans text-[10.5px]">Proses Bisnis DUDI &amp; Inisiatif Mandiri</span>
+                </div>
+              </div>
+            </div>
           </Disclosure>
         </div>
 
@@ -582,6 +638,35 @@ export default function EraporPage() {
                 ))}
               </div>
             </div>
+
+            {/* Rincian 4 Elemen Resmi Mapel PKL */}
+            {detailStudent.officialElements && detailStudent.officialElements.length > 0 && (
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-slate-800 block">
+                  Rubrik 4 Elemen Resmi Mapel PKL (BSKAP Kurikulum Merdeka):
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  {detailStudent.officialElements.map((el) => (
+                    <div
+                      key={el.code}
+                      className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col justify-between space-y-1.5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="font-bold text-slate-900 leading-tight">{el.title}</span>
+                        <span className="font-mono font-black text-sky-700 bg-sky-100 px-2 py-0.5 rounded-lg text-xs shrink-0">
+                          {el.score}
+                        </span>
+                      </div>
+                      <p className="text-[10.5px] text-slate-500 leading-snug">{el.description}</p>
+                      <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-200/50">
+                        <span>Bobot: {Math.round(el.weight * 100)}%</span>
+                        <span className="font-semibold text-emerald-700">{el.predicate}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Form Override Nilai Manual A1 */}
             <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs">

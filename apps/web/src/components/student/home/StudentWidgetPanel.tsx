@@ -20,14 +20,12 @@ import type { StudentInfo } from "./types";
 
 interface StudentWidgetPanelProps {
   student: StudentInfo;
-  progressPercentage: number;
   onOpenNotifications: () => void;
   onOpenQrModal: () => void;
 }
 
 export function StudentWidgetPanel({
   student,
-  progressPercentage,
   onOpenNotifications,
   onOpenQrModal,
 }: StudentWidgetPanelProps) {
@@ -67,44 +65,7 @@ export function StudentWidgetPanel({
         </button>
       </div>
 
-      {/* ─── Desktop 3-Box Metrics (Clean White Surface Cards) ─── */}
-      <div className="hidden lg:grid grid-cols-3 gap-2.5">
-        <div className="bg-white border border-slate-200/70 rounded-2xl p-3 flex flex-col items-center justify-center text-center shadow-xs h-[82px] hover:border-slate-300 transition">
-          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-none">
-            Total JP
-          </span>
-          <p className="text-2xl font-bold tracking-tight text-slate-900 my-1 leading-none font-mono">
-            {student.verifiedJp}
-          </p>
-          <span className="text-[10px] text-emerald-600 font-medium leading-none">
-            ● Terdata Sah
-          </span>
-        </div>
 
-        <div className="bg-white border border-slate-200/70 rounded-2xl p-3 flex flex-col items-center justify-center text-center shadow-xs h-[82px] hover:border-slate-300 transition">
-          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-none">
-            Menunggu
-          </span>
-          <p className="text-2xl font-bold tracking-tight text-slate-900 my-1 leading-none font-mono">
-            {student.pendingJp}
-          </p>
-          <span className="text-[10px] text-amber-600 font-medium leading-none">
-            ● Antrean PIN
-          </span>
-        </div>
-
-        <div className="bg-white border border-slate-200/70 rounded-2xl p-3 flex flex-col items-center justify-center text-center shadow-xs h-[82px] hover:border-slate-300 transition">
-          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-none">
-            Capaian
-          </span>
-          <p className="text-2xl font-bold tracking-tight text-slate-900 my-1 leading-none font-mono">
-            {progressPercentage}%
-          </p>
-          <span className="text-[10px] text-sky-600 font-medium leading-none">
-            / 792 Target
-          </span>
-        </div>
-      </div>
 
       {/* ─── Sebaran Jam Per Elemen Kompetensi SKKNI ─── */}
       <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/70 shadow-card space-y-3.5">

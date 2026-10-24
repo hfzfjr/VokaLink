@@ -31,7 +31,8 @@ export type SecurityFlagKind =
 export type DriftAlertType =
   | "NON_COMPETENCY_OVERLOAD"
   | "SKILL_MONOTONY"
-  | "APPROVAL_DORMANCY";
+  | "APPROVAL_DORMANCY"
+  | "STUDENT_OVERWORK_HOURS";
 
 export type DriftAlertSeverity = "WARNING" | "CRITICAL";
 

@@ -1,8 +1,8 @@
 # PROGRESS — VokaLink
 
 > Papan status hidup. Perbarui setiap malam. Rencana ada di `SPRINT.md`, spesifikasi di `PRD.md`.
-> **Terakhir diperbarui:** 23 Okt 2026 (Hari 3)
-> **Hari sprint saat ini:** 3 dari 10 · **Deadline:** 30 Okt 2026 · **Code freeze:** 28 Okt
+> **Terakhir diperbarui:** 24 Okt 2026 (Hari 4)
+> **Hari sprint saat ini:** 4 dari 10 · **Deadline:** 30 Okt 2026 · **Code freeze:** 28 Okt
 
 Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblokir
 
@@ -93,6 +93,25 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-12) dan bagian 12.
 
 ## 8. Log Harian
+
+### Hari 4 — Sab 24 Okt 2026
+- Selesai:
+  - Penyelarasan Faktual Domain SMK & DUDI (Permendikbudristek No. 12/2024 & Panduan BSKAP PKL):
+    - **Langkah 1 (UI Siswa & Mentor):**
+      - Mengganti istilah "JP" menjadi "Jam Kerja Industri Riil" pada formulir pencatatan jurnal `/student/log/new`.
+      - Menambahkan 1-Tap Shift Presets: 8 Jam (Shift Normal), 4 Jam (Setengah Hari), dan 10 Jam (Lembur).
+      - Menambahkan Edu Callout ekuivalensi: `1 Hari Kerja Industri (8 Jam) ≈ 10,6 JP Beban Belajar Sekolah` (berdasarkan rasio 792 JP / 75 hari efektif).
+      - Mengupgrade selector otonomi menjadi "Penguasaan SOP Industri" (Level 1: Observasi SOP - Dasar 75, Level 2: Terbimbing SOP - Menengah 88, Level 3: Mandiri SOP - Kompeten 100).
+    - **Langkah 2 (Engine Penilaian e-Rapor 4 Elemen Resmi Kurikulum Merdeka):**
+      - Konstanta `OFFICIAL_PKL_ELEMENT_CODES`, `OFFICIAL_PKL_ELEMENT_TITLES`, `OFFICIAL_PKL_ELEMENT_WEIGHTS` (Soft Skills 20%, Core Hard Skills 40%, Advanced Hard Skills 25%, Kewirausahaan 15%), dan `SOP_RUBRIC_STANDARDS` di `packages/shared`.
+      - Pure function `calculateSopRubricScore` & `calculateOfficialFourElementsPklGrade` di `packages/core/src/erapor.ts` dengan konversi rubrik SOP kontinu.
+      - Integrasi API `/schools/:schoolId/erapor` & ekspor CSV 4 elemen resmi; pembaruan visualisasi rubrik modal siswa di `/school/erapor`.
+      - Unit test baru untuk evaluasi rubrik SOP dan 4 elemen lulus 100%.
+    - **Langkah 3 (Transformasi Narasi CV ATS & Skill Passport Publik):**
+      - Peningkatan formulasi poin pencapaian Google XYZ di `packages/core/src/cv.ts` dengan penekanan jam kerja industri riil dan frekuensi penugasan mandiri SOP (Level 3).
+      - Halaman CV Siswa `/student/career-cv`: Ribbon metrik cepat (Jam Industri Riil, Beban JP, Kemandirian SOP, Total Penugasan), banner integritas data terkunci standar industri, label jam riil pada pengalaman & skill, serta edukasi standar durasi pada sidebar.
+      - Halaman Paspor Publik `/verify/[passportSlug]`: Key Metrics menampilkan Jam Kerja Riil (setara beban JP), Card Komparasi Standar Ganda (Realitas DUDI vs Regulasi Kemendikbudristek No. 12/2024), dan capaian CP berbasis jam industri.
+  - Verifikasi: Monorepo typecheck 4/4 packages sukses, 14 test suites & 116 tests lulus 100%.
 
 ### Hari 3 — Jum 23 Okt 2026
 - Selesai:
@@ -256,7 +275,19 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
 - Blocker:
   - Tidak ada blocker aktif saat ini. Seluruh lingkup fitur Orang C (FR-007, FR-008, FR-009, FR-010, `/verify/[slug]`) dan hardening selesai 100%.
 - Rencana besok (Hari 3):
-  - Uji end-to-end menyeluruh (Lighthouse CI, Playwright, verifikasi offline Dexie, dan simulasi demo juri).
+### Hari 4 — Sab 24 Okt 2026
+- Selesai:
+  - Rekonstruksi Sistem Presensi Logbook Siswa & Quick Shift Presets (FR-005, D-011):
+    - 5 Preset Tombol Cepat (`QUICK_SHIFT_PRESETS`): 4–5 Jam (1/2 Hari / Shift Sabtu), 6 Jam (Shift Pagi/Sore), 7 Jam (Full Day 6 Hari), 8 Jam (Full Day 5 Hari), 9–10 Jam (Jam Tambahan / Proyek).
+    - Segmented micro-toggle interaktif untuk rentang jam (4 vs 5 Jam, 9 vs 10 Jam) tanpa membuka keyboard numerik.
+    - Smart Default Engine: Otomatis memilih jam kerja sesuai kalender kerja (Senin-Jumat = 8 Jam, Sabtu = 5 Jam) saat form dibuka.
+  - Student Welfare Protection & Overwork Risk Detection (BR-013 & Permendikbudristek No. 50/2020):
+    - Pure function `detectStudentOverwork` di `packages/core/src/drift.ts` dengan evaluasi ambang batas normal (40 jam/minggu), peringatan (WARNING > 40 jam atau 3 hari lembur), dan kritis (CRITICAL >= 45 jam atau >= 4 hari lembur).
+    - Pengenalan alert type `STUDENT_OVERWORK_HOURS` pada mesin drift terpadu `evaluateCompetencyDrift`.
+    - Draf komunikasi advokasi K3 WhatsApp otomatis di `packages/core/src/intervention.ts` dan integrasi panel prioritas guru di `/teacher/heatmap`.
+    - Indikator K3 real-time pada antarmuka input siswa (`/student/log/new`) menampilkan status jam kerja sehat mingguan.
+  - Dual-Representation Facade: Konversi matematis presisi Jam Riil 60 menit ke 792 JP (@ 45 menit) $\frac{\text{Jam Riil} \times 60}{45}$, portofolio jam riil di CV ATS / Paspor Publik, dan rapor resmi 4 Elemen Mapel PKL BSKAP.
+  - Unit tests murni di `packages/core/test/core.test.ts` & `intervention.test.ts` lulus 100%. Total 162 unit & integration tests monorepo lulus 100%.
 
 ### Hari 1 — Rab 21 Okt 2026
 - Selesai:

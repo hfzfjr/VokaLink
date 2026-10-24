@@ -6,6 +6,7 @@ import { eraporQuerySchema } from "@vokalink/shared";
 import {
   calculateElementGrade,
   calculateFinalPklGrade,
+  calculateOfficialFourElementsPklGrade,
   generateEraporNarratives,
   generateEraporCsv,
   type EraporExportRow,
@@ -247,6 +248,23 @@ eraporRouter.get(
           lowestElementScore: lowestElementScore < 101 ? lowestElementScore : undefined,
         });
 
+        // Struktur 4 Elemen Baku Mapel PKL Kurikulum Merdeka (Permendikbudristek No. 12/2024 & BSKAP)
+        const fourElements = calculateOfficialFourElementsPklGrade({
+          studentName: student.fullName,
+          dudiName: dudi.name,
+          totalVerifiedHours: totalVerifiedJp,
+          attendanceDisciplinePercent:
+            typeof attitudeScore === "number"
+              ? Math.min(100, Math.max(80, attitudeScore))
+              : 95,
+          mentorAttitudeScore: attitudeScore,
+          technicalElementScores: elementGradeResults.map((r, idx) => ({
+            title: r.elementTitle,
+            score: r.score,
+            isAdvanced: idx >= Math.ceil(elementGradeResults.length / 2),
+          })),
+        });
+
         return {
           placementId: p.id,
           student: {
@@ -267,6 +285,7 @@ eraporRouter.get(
           totalVerifiedJp,
           pendingLogsCount,
           elements: elementGradeResults,
+          officialElements: fourElements.elements,
           attitudeScore: attitudeScore ?? null,
           isAttitudeIncluded: typeof attitudeScore === "number",
           finalGrade,
@@ -285,6 +304,10 @@ eraporRouter.get(
           finalGrade: s.finalGrade,
           highestAchievement: s.highestAchievement,
           needsImprovement: s.needsImprovement,
+          softSkillsScore: s.officialElements[0]?.score,
+          hardSkillsCoreScore: s.officialElements[1]?.score,
+          hardSkillsAdvancedScore: s.officialElements[2]?.score,
+          entrepreneurshipScore: s.officialElements[3]?.score,
         }));
 
         const csvContent = generateEraporCsv(csvRows);

@@ -715,6 +715,15 @@ export interface EraporStudentRecord {
     autonomyScore: number;
     score: number;
   }>;
+  officialElements?: Array<{
+    code: string;
+    title: string;
+    category: string;
+    weight: number;
+    score: number;
+    predicate: string;
+    description: string;
+  }>;
   attitudeScore: number | null;
   isAttitudeIncluded: boolean;
   finalGrade: number;
@@ -784,8 +793,10 @@ export interface StudentCvResponse {
   };
   summaryBio: string;
   totalVerifiedJp: number;
+  totalRealHours?: number;
   technicalJp: number;
   nonCompetencyJp: number;
+  completedTasksCount?: number;
   experiences: Array<{
     placementId: string;
     dudiName: string;
@@ -794,6 +805,7 @@ export interface StudentCvResponse {
     periodLabel: string;
     mentorName?: string;
     totalVerifiedJp: number;
+    totalRealHours?: number;
     technicalJp: number;
     nonCompetencyJp: number;
     bulletPoints: Array<{
@@ -801,9 +813,10 @@ export interface StudentCvResponse {
       jobCardTitle: string;
       skkniUnitCode: string | null;
       totalJp: number;
+      totalRealHours?: number;
       taskCount: number;
       predominantAutonomyLevel: 1 | 2 | 3;
-      autonomyLabel: "Mandiri" | "Terbimbing" | "Observasi";
+      autonomyLabel: "Mandiri" | "Terbimbing" | "Observasi" | string;
       toolsUsed: string[];
       bulletText: string;
     }>;
@@ -811,6 +824,7 @@ export interface StudentCvResponse {
   technicalSkills: Array<{
     name: string;
     totalJp: number;
+    totalRealHours?: number;
   }>;
   endorsement?: {
     attitudeScore: number;
@@ -848,6 +862,7 @@ export interface PublicPassportResponse {
   summaryBio: string | null;
   metrics: {
     totalVerifiedJp: number;
+    totalRealHours?: number;
     technicalJp: number;
     nonCompetencyJp: number;
     verifiedDaysCount: number;

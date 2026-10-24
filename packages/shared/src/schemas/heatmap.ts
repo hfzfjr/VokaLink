@@ -38,7 +38,7 @@ export interface DriftAlertItem {
   id: string;
   placementId: string;
   studentId: string;
-  alertType: "NON_COMPETENCY_OVERLOAD" | "SKILL_MONOTONY" | "APPROVAL_DORMANCY";
+  alertType: "NON_COMPETENCY_OVERLOAD" | "SKILL_MONOTONY" | "APPROVAL_DORMANCY" | "STUDENT_OVERWORK_HOURS";
   severity: "WARNING" | "CRITICAL";
   status: "OPEN" | "INTERVENED" | "RESOLVED";
   metricSnapshot: {

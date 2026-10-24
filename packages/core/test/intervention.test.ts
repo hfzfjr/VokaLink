@@ -101,5 +101,20 @@ describe("Smart Intervention Dispatcher Pure Logic (FR-009)", () => {
       expect(text).toContain("https://vokalink.id/v/magic-dewi-123");
       expect(text).toContain("< 10 detik");
     });
+
+    it("menghasilkan draf pesan advokasi K3 untuk anomali STUDENT_OVERWORK_HOURS", () => {
+      const text = generateInterventionMessage({
+        ...baseParams,
+        studentName: "Rian Hidayat",
+        alertType: "STUDENT_OVERWORK_HOURS",
+        totalJpLast14Days: 96, // 48 jam/minggu
+      });
+
+      expect(text).toContain("Rian Hidayat");
+      expect(text).toContain("48 jam kerja riil");
+      expect(text).toContain("Permendikbudristek No. 50 Tahun 2020");
+      expect(text).toContain("batas waktu wajar");
+    });
   });
 });
+

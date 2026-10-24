@@ -122,8 +122,8 @@ export function ConnectivityBanner({
     );
   }
 
-  // 3. SYNCING STATE (Biru/Info)
-  if (activeIsSyncing || (isOnline && activePendingCount > 0)) {
+  // 3. SYNCING STATE (Biru/Info - Hanya saat proses sinkronisasi aktif berlangsung)
+  if (activeIsSyncing) {
     return (
       <aside className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-3">
         <Banner

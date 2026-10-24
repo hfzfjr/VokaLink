@@ -576,12 +576,15 @@ export default function TeacherHeatmapPage() {
               {priorityAlerts.map(({ student, alert }) => {
                 const isOverload = alert.alertType === "NON_COMPETENCY_OVERLOAD";
                 const isMonotony = alert.alertType === "SKILL_MONOTONY";
+                const isOverwork = alert.alertType === "STUDENT_OVERWORK_HOURS";
 
                 return (
                   <div
                     key={alert.id}
                     className={`p-3.5 rounded-xl border space-y-2.5 transition ${
-                      isOverload
+                      isOverwork
+                        ? "bg-rose-50/70 border-rose-300 ring-1 ring-rose-400/20"
+                        : isOverload
                         ? "bg-rose-50/40 border-rose-200"
                         : isMonotony
                         ? "bg-amber-50/40 border-amber-200"
@@ -597,14 +600,18 @@ export default function TeacherHeatmapPage() {
                       </div>
                       <span
                         className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
-                          isOverload
+                          isOverwork
+                            ? "bg-rose-600 text-white shadow-2xs"
+                            : isOverload
                             ? "bg-rose-100 text-rose-800"
                             : isMonotony
                             ? "bg-amber-100 text-amber-800"
                             : "bg-purple-100 text-purple-800"
                         }`}
                       >
-                        {isOverload
+                        {isOverwork
+                          ? "K3: Jam Kerja Berlebih"
+                          : isOverload
                           ? "Overload Non-Kejuruan"
                           : isMonotony
                           ? "Stagnasi Materi"
