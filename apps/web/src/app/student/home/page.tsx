@@ -1,42 +1,59 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
+  Search,
+  MessageSquare,
+  ChevronDown,
   PlusCircle,
   QrCode,
-  Building2,
-  Calendar,
-  CheckCircle,
-  Clock,
-  ArrowRight,
-  Sparkles,
-  Award,
+  X,
+  AlertCircle,
   ChevronRight,
-  MapPin,
-  TrendingUp,
-  Target,
-  Layers,
 } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { TOTAL_TARGET_JP } from "@vokalink/shared";
-import { db, type OfflineLog } from "@/lib/pwa/db";
+import { db } from "@/lib/pwa/db";
 import { fetchStudentLogContext, type StudentLogContextResponse } from "@/lib/api";
+import { cn } from "@/lib/cn";
 
-const CP_ELEMENTS = [
-  { id: "backend", label: "Backend API", skkni: "J.620100.009", score: 88, jp: 64, targetJp: 72 },
-  { id: "frontend", label: "Frontend UI", skkni: "J.620100.012", score: 92, jp: 56, targetJp: 60 },
-  { id: "database", label: "Basis Data", skkni: "J.620100.010", score: 80, jp: 40, targetJp: 50 },
-  { id: "qa", label: "Testing & QA", skkni: "J.620100.015", score: 75, jp: 24, targetJp: 32 },
-  { id: "softskill", label: "Etos Industri", skkni: "J.620100.001", score: 95, jp: 48, targetJp: 50 },
-];
+import {
+  type CategoryColor,
+  type KanbanTask,
+  type StudentInfo,
+  DEFAULT_KANBAN_TASKS,
+  formatLogDate,
+} from "@/components/student/home/types";
+import { KanbanWorkflowBoard } from "@/components/student/home/KanbanWorkflowBoard";
+import { SkkniMatrixView } from "@/components/student/home/SkkniMatrixView";
+import { EvidenceGalleryView } from "@/components/student/home/EvidenceGalleryView";
+import { StudentWidgetPanel } from "@/components/student/home/StudentWidgetPanel";
+import { TaskDetailModal } from "@/components/student/home/TaskDetailModal";
+import { MentorQrModal } from "@/components/student/home/MentorQrModal";
+import { MentorNotificationModal } from "@/components/student/home/MentorNotificationModal";
+import { HomeSkeleton } from "@/components/student/home/HomeSkeleton";
 
 export default function StudentHomePage() {
   const [placementInfo, setPlacementInfo] = useState<{
-    dudiName: string;
-    dudiCity: string;
-    mentorName: string;
+    dudiName?: string;
+    dudiCity?: string;
+    mentorName?: string;
   } | null>(null);
+
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Filter & Search states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("ALL");
+  const [viewMode, setViewMode] = useState<"kanban" | "matrix" | "evidence">("kanban");
+  const [selectedTaskModal, setSelectedTaskModal] = useState<KanbanTask | null>(null);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [dismissBackdateAlert, setDismissBackdateAlert] = useState(false);
+  const [mobileKanbanColumn, setMobileKanbanColumn] = useState<
+    "all" | "in_progress" | "in_review" | "verified"
+  >("all");
 
   // 1. Live Dexie Query for Student Logs (Reactive offline-first state)
   const offlineLogs = useLiveQuery(() => db.logs.toArray(), []) || [];
@@ -70,6 +87,10 @@ export default function StudentHomePage() {
         }
       } catch (err) {
         console.warn("Konteks penempatan offline fallback:", err);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     }
     loadPlacementContext();
@@ -79,7 +100,7 @@ export default function StudentHomePage() {
   }, []);
 
   // 3. Dynamically calculate JP from seed base + Dexie logs
-  const baseVerifiedJp = 184;
+  const baseVerifiedJp = 288;
   const dexieVerifiedJp = offlineLogs
     .filter((l) => l.state === "verified")
     .reduce((acc, curr) => acc + curr.durationJp, 0);
@@ -93,8 +114,9 @@ export default function StudentHomePage() {
   const displayPendingJp = totalPendingJp > 0 ? totalPendingJp : 16;
   const progressPercentage = Math.min(100, Math.round((totalVerifiedJp / TOTAL_TARGET_JP) * 100));
 
-  const student = {
+  const student: StudentInfo = {
     name: "Andi Pratama",
+    email: "andi.pratama@smk.sch.id",
     nisn: "0078901234",
     school: "SMK Demo VokaLink",
     major: "Rekayasa Perangkat Lunak (RPL)",
@@ -106,454 +128,516 @@ export default function StudentHomePage() {
     targetJp: TOTAL_TARGET_JP,
   };
 
-  // Recent activity logs: prioritize IndexedDB logs, fallback to sample records
-  const recentLogs: Array<{
-    id: string;
-    title: string;
-    date: string;
-    jp: number;
-    autonomy: string;
-    state: string;
-  }> =
-    offlineLogs.length > 0
-      ? offlineLogs
-          .slice()
-          .sort((a, b) => new Date(b.logDate).getTime() - new Date(a.logDate).getTime())
-          .slice(0, 4)
-          .map((l: OfflineLog) => ({
-            id: l.clientLogUuid,
-            title: l.jobCardTitle || "Jurnal Praktik Harian",
-            date: l.logDate,
-            jp: l.durationJp,
-            autonomy: l.autonomyLevel === 3 ? "Mandiri" : l.autonomyLevel === 2 ? "Terbimbing" : "Observasi",
-            state: l.state === "verified" ? "VERIFIED" : l.state === "revision_required" ? "REVISI" : "PENDING",
-          }))
-      : [
-          {
-            id: "sample-1",
-            title: "Implementasi REST API & Router Express",
-            date: "20 Okt 2026",
-            jp: 8,
-            autonomy: "Kerja Mandiri",
-            state: "VERIFIED",
-          },
-          {
-            id: "sample-2",
-            title: "Refactoring Skema Database & Migration",
-            date: "19 Okt 2026",
-            jp: 8,
-            autonomy: "Terbimbing",
-            state: "PENDING",
-          },
-        ];
+  // 4. Transform Dexie offline logs reactively into KanbanTask cards
+  const dexieTasks: KanbanTask[] = useMemo(() => {
+    return offlineLogs.map((log) => {
+      const isVerified = log.state === "verified";
+      const isInReview =
+        log.state === "queued" ||
+        log.state === "meta_synced" ||
+        log.state === "synced";
+      const autonomyLabel =
+        log.autonomyLevel === 3
+          ? "Mandiri"
+          : log.autonomyLevel === 2
+          ? "Terbimbing"
+          : "Observasi";
+      const category = log.isNonCompetency
+        ? log.nonCompetencyCategory || "Tugas Umum Non-Kompetensi"
+        : "Pemrograman Web & Mobile";
+      const categoryColor: CategoryColor = log.isNonCompetency ? "rose" : "sky";
 
-  // Pure SVG Radar Coordinates Calculation
-  const R = 85;
-  const cx = 140;
-  const cy = 130;
+      const syncStatusText =
+        log.state === "queued"
+          ? "Tersimpan di HP (Offline)"
+          : log.state === "meta_synced" || log.state === "synced"
+          ? "Tersinkron (Menunggu PIN)"
+          : log.state === "verified"
+          ? "Sah Terverifikasi"
+          : "Perlu Revisi";
 
-  const getPolygonPoints = (radiusRatio: number) => {
-    return CP_ELEMENTS.map((_, i) => {
-      const angle = -Math.PI / 2 + (i * 2 * Math.PI) / CP_ELEMENTS.length;
-      const x = cx + R * radiusRatio * Math.cos(angle);
-      const y = cy + R * radiusRatio * Math.sin(angle);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    }).join(" ");
-  };
+      return {
+        id: log.clientLogUuid,
+        title: log.jobCardTitle || log.shortNote || "Pencatatan Jurnal Praktik",
+        category,
+        categoryColor,
+        date: formatLogDate(log.logDate),
+        durationJp: log.durationJp,
+        progressPercent: isVerified ? 100 : isInReview ? 85 : 40,
+        autonomyLabel,
+        skkniUnitCode: log.isNonCompetency ? "NON-KOMPETENSI" : "J.620100.009.01",
+        status: isVerified ? "verified" : isInReview ? "in_review" : "in_progress",
+        tools: log.isNonCompetency ? ["SOP Industri"] : ["Logbook PKL", "Dexie IndexedDB"],
+        submittedAt: syncStatusText,
+        mentorSignature: isVerified
+          ? placementInfo?.mentorName || "Mentor Industri"
+          : undefined,
+        hmacVerified: isVerified,
+        syncState: log.state,
+        isLocalDexie: true,
+        shortNote: log.shortNote,
+      };
+    });
+  }, [offlineLogs, placementInfo]);
 
-  const dataPoints = CP_ELEMENTS.map((elem, i) => {
-    const ratio = elem.score / 100;
-    const angle = -Math.PI / 2 + (i * 2 * Math.PI) / CP_ELEMENTS.length;
-    const x = cx + R * ratio * Math.cos(angle);
-    const y = cy + R * ratio * Math.sin(angle);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(" ");
+  // Combine Dexie logs (recent first) with sample base tasks
+  const allTasks = useMemo(() => {
+    return [...dexieTasks, ...DEFAULT_KANBAN_TASKS];
+  }, [dexieTasks]);
+
+  // Filtered tasks across all categories and search query
+  const filteredTasks = useMemo(() => {
+    return allTasks.filter((task) => {
+      if (selectedCategory !== "ALL" && task.category !== selectedCategory) {
+        return false;
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesTitle = task.title.toLowerCase().includes(q);
+        const matchesCategory = task.category.toLowerCase().includes(q);
+        const matchesAutonomy = task.autonomyLabel.toLowerCase().includes(q);
+        const matchesTools = task.tools.some((t) => t.toLowerCase().includes(q));
+        if (!matchesTitle && !matchesCategory && !matchesAutonomy && !matchesTools) return false;
+      }
+      return true;
+    });
+  }, [allTasks, searchQuery, selectedCategory]);
+
+  const tasksInProgress = useMemo(
+    () => filteredTasks.filter((t) => t.status === "in_progress"),
+    [filteredTasks]
+  );
+  const tasksInReview = useMemo(
+    () => filteredTasks.filter((t) => t.status === "in_review"),
+    [filteredTasks]
+  );
+  const tasksVerified = useMemo(
+    () => filteredTasks.filter((t) => t.status === "verified"),
+    [filteredTasks]
+  );
+
+  // ─── 5 UI States: 1. Loading Skeleton Condition ───
+  if (isLoading && offlineLogs.length === 0) {
+    return <HomeSkeleton />;
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Top Section Grid (Hero Card + Progress Card) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* 1. Student Identity Hero Card (7 cols on desktop) */}
-        <section className="lg:col-span-7 bg-gradient-to-br from-blue-700 via-indigo-700 to-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-md relative overflow-hidden flex flex-col justify-between min-h-[220px]">
-          <div className="absolute top-0 right-0 -mr-12 -mt-12 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between gap-3">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-blue-100 text-xs font-semibold backdrop-blur-xs">
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                Siswa PKL Aktif · Semester Genap 2025/2026
-              </div>
-              <span className="text-xs text-blue-200 hidden sm:inline-block font-mono">
-                NISN: {student.nisn}
-              </span>
-            </div>
-
-            <div className="mt-4 flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center text-lg font-black shadow-inner flex-shrink-0">
-                AP
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight leading-tight">
-                  {student.name}
-                </h1>
-                <p className="text-xs sm:text-sm text-blue-200 font-medium mt-0.5">
-                  {student.major} · {student.school}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* DUDI info snippet footer */}
-          <div className="mt-6 pt-4 border-t border-white/15 flex flex-wrap items-center justify-between gap-3 text-xs text-blue-100 relative z-10">
-            <div className="flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-blue-300" />
-              <span>Mitra: <strong className="text-white font-bold">{student.dudi}</strong></span>
-            </div>
-            <div className="flex items-center gap-3 text-blue-200 text-[11px] sm:text-xs">
-              <span className="flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5" /> {student.city}
-              </span>
-              <span>•</span>
-              <span>Mentor: {student.mentor.split("(")[0]}</span>
-            </div>
-          </div>
-        </section>
-
-        {/* 2. Target JP Progress Card (5 cols on desktop) */}
-        <section className="lg:col-span-5 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="font-extrabold text-xs uppercase tracking-wider text-slate-500">
-                Target Jam Pembelajaran (JP)
-              </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold border border-amber-200">
-                <Clock className="w-3.5 h-3.5" /> {student.pendingJp} JP Menunggu
-              </span>
-            </div>
-
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-4xl font-black text-slate-900 tracking-tight">
-                {student.verifiedJp}
-              </span>
-              <span className="text-base font-bold text-slate-500">
-                / {student.targetJp} JP
-              </span>
-              <span className="ml-auto inline-flex items-center gap-1 text-sm font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                <TrendingUp className="w-3.5 h-3.5" /> {progressPercentage}%
-              </span>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="mt-4 w-full bg-slate-100 h-3 rounded-full overflow-hidden p-0.5">
-              <div
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 h-full rounded-full transition-all duration-500"
-                style={{ width: `${progressPercentage}%` }}
-                role="progressbar"
-                aria-valuenow={student.verifiedJp}
-                aria-valuemin={0}
-                aria-valuemax={student.targetJp}
-              />
-            </div>
-          </div>
-
-          <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Sesuai Permendikbudristek No. 12/2024</span>
-            <span className="font-extrabold text-blue-700">
-              Sisa {Math.max(0, student.targetJp - student.verifiedJp)} JP
-            </span>
-          </div>
-        </section>
-      </div>
-
-      {/* Quick Action Grid (3 columns on desktop) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* Card 1: Catat Jurnal */}
-        <Link
-          href="/student/log/new"
-          className="p-5 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-sm hover:shadow-md transition active:scale-[0.99] flex items-center justify-between group cursor-pointer"
-        >
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-              <PlusCircle className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="font-bold text-sm sm:text-base leading-tight">Catat Jurnal Harian</h3>
-              <p className="text-xs text-blue-100 mt-0.5">Presensi & kartu tugas multi-select</p>
-            </div>
-          </div>
-          <ChevronRight className="w-5 h-5 text-blue-200 group-hover:translate-x-1 transition-transform" />
-        </Link>
-
-        {/* Card 2: Verifikasi QR */}
-        <Link
-          href="/student/log/history"
-          className="p-5 rounded-2xl bg-white border border-slate-200/90 text-slate-900 shadow-xs hover:border-slate-300 hover:shadow-sm transition active:scale-[0.99] flex items-center justify-between group cursor-pointer"
-        >
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-              <QrCode className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="font-bold text-sm sm:text-base leading-tight">Minta Verifikasi Mentor</h3>
-              <p className="text-xs text-slate-500 mt-0.5">Scan QR langsung di HP penyelia</p>
-            </div>
-          </div>
-          <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-1 transition-transform" />
-        </Link>
-
-        {/* Card 3: CV ATS & Paspor */}
-        <Link
-          href="/student/career-cv"
-          className="p-5 rounded-2xl bg-slate-900 text-white shadow-xs hover:bg-slate-800 transition active:scale-[0.99] flex items-center justify-between group sm:col-span-2 lg:col-span-1 cursor-pointer"
-        >
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-xl bg-white/10 text-amber-300 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-              <Award className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="font-bold text-sm sm:text-base leading-tight">CV ATS & Paspor</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Portofolio resmi ber-QR terverifikasi</p>
-            </div>
-          </div>
-          <ArrowRight className="w-5 h-5 text-slate-400 group-hover:translate-x-1 transition-transform" />
-        </Link>
-      </div>
-
-      {/* Capaian Elemen Kompetensi CP & Pure SVG Radar Chart (PRD lines 420 & 983) */}
-      <section className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-xs space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-indigo-600" />
-              <h2 className="font-black text-base sm:text-lg text-slate-900 tracking-tight">
-                Distribusi Capaian Pembelajaran (CP) Kejuruan
-              </h2>
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Pemetaan realisasi jam kerja faktual terhadap elemen kurikulum Merdeka SMK RPL (PRD FR-005 & TC-005)
-            </p>
-          </div>
-
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-200 self-start sm:self-auto">
-            <Layers className="w-3.5 h-3.5" />
-            <span>5 Elemen SKKNI Terpetakan</span>
-          </div>
-        </div>
-
-        {/* 2 Columns: Pure SVG Radar Chart + Horizontal CP Progress Bars */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-          {/* Radar Chart (5 cols on desktop) */}
-          <div className="lg:col-span-5 flex flex-col items-center justify-center p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80">
-            <div className="w-full max-w-[280px] aspect-square relative flex items-center justify-center">
-              <svg viewBox="0 0 280 260" className="w-full h-full overflow-visible">
-                <defs>
-                  {/* Radar Area Gradient Fill */}
-                  <linearGradient id="radarAreaGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#4f46e5" stopOpacity="0.45" />
-                    <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.20" />
-                  </linearGradient>
-                </defs>
-
-                {/* Concentric Background Pentagon Grids */}
-                {[0.25, 0.5, 0.75, 1.0].map((level) => (
-                  <polygon
-                    key={level}
-                    points={getPolygonPoints(level)}
-                    fill="none"
-                    stroke="#e2e8f0"
-                    strokeWidth={level === 1.0 ? "1.5" : "1"}
-                    strokeDasharray={level < 1.0 ? "3,3" : undefined}
-                  />
-                ))}
-
-                {/* Radial Axis Spokes */}
-                {CP_ELEMENTS.map((_, i) => {
-                  const angle = -Math.PI / 2 + (i * 2 * Math.PI) / CP_ELEMENTS.length;
-                  const x = cx + R * Math.cos(angle);
-                  const y = cy + R * Math.sin(angle);
-                  return (
-                    <line
-                      key={i}
-                      x1={cx}
-                      y1={cy}
-                      x2={x}
-                      y2={y}
-                      stroke="#cbd5e1"
-                      strokeWidth="1"
-                    />
-                  );
-                })}
-
-                {/* Real Data Polygon Area */}
-                <polygon
-                  points={dataPoints}
-                  fill="url(#radarAreaGradient)"
-                  stroke="#4f46e5"
-                  strokeWidth="2.5"
-                  strokeLinejoin="round"
-                />
-
-                {/* Data Vertex Nodes */}
-                {CP_ELEMENTS.map((elem, i) => {
-                  const ratio = elem.score / 100;
-                  const angle = -Math.PI / 2 + (i * 2 * Math.PI) / CP_ELEMENTS.length;
-                  const x = cx + R * ratio * Math.cos(angle);
-                  const y = cy + R * ratio * Math.sin(angle);
-                  return (
-                    <circle
-                      key={elem.id}
-                      cx={x}
-                      cy={y}
-                      r="4"
-                      fill="#4f46e5"
-                      stroke="#ffffff"
-                      strokeWidth="2"
-                    />
-                  );
-                })}
-
-                {/* Perimeter Axis Labels */}
-                {CP_ELEMENTS.map((elem, i) => {
-                  const labelRadius = R + 24;
-                  const angle = -Math.PI / 2 + (i * 2 * Math.PI) / CP_ELEMENTS.length;
-                  const x = cx + labelRadius * Math.cos(angle);
-                  const y = cy + labelRadius * Math.sin(angle);
-                  return (
-                    <text
-                      key={elem.id}
-                      x={x}
-                      y={y}
-                      textAnchor="middle"
-                      dominantBaseline="central"
-                      className="text-[10px] font-extrabold fill-slate-700 tracking-tight"
-                    >
-                      {elem.label}
-                    </text>
-                  );
-                })}
-              </svg>
-            </div>
-            <p className="text-[11px] text-slate-400 font-medium text-center mt-2">
-              Visualisasi Poligon Radar Penguasaan Kompetensi (PRD FR-005)
-            </p>
-          </div>
-
-          {/* Detailed CP Competency Progress Bars (7 cols on desktop) */}
-          <div className="lg:col-span-7 space-y-3">
-            {CP_ELEMENTS.map((elem) => {
-              const isAchieved = elem.score >= 75;
-              return (
-                <div
-                  key={elem.id}
-                  className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-2 hover:bg-slate-100/60 transition"
-                >
-                  <div className="flex items-baseline justify-between gap-2">
-                    <div className="space-y-0.5">
-                      <span className="text-xs font-bold text-slate-900 block">
-                        {elem.label}
-                      </span>
-                      <span className="text-[10px] font-mono text-slate-400">
-                        SKKNI {elem.skkni} · {elem.jp} JP / {elem.targetJp} JP
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-black text-slate-900">
-                        {elem.score}%
-                      </span>
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                          isAchieved
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : "bg-amber-50 text-amber-700 border-amber-200"
-                        }`}
-                      >
-                        {isAchieved ? "Kompeten" : "Berkembang"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div className="w-full bg-slate-200/80 h-2 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        isAchieved
-                          ? "bg-gradient-to-r from-blue-600 to-indigo-600"
-                          : "bg-gradient-to-r from-amber-500 to-amber-600"
-                      }`}
-                      style={{ width: `${elem.score}%` }}
-                    />
-                  </div>
+    <div className="w-full flex flex-col lg:flex-row gap-5 items-stretch min-h-[840px]">
+      {/* ─────────────────────────────────────────────────────────────────────────────
+          1. CENTER SECTION: WORKSPACE CANVAS (KANBAN / MATRIX / EVIDENCE)
+          Apple Design System HIG (Clean White Surface, Hairline Border, Refined Spacing)
+      ───────────────────────────────────────────────────────────────────────────── */}
+      <section className="flex-1 min-w-0 bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 lg:p-6 border border-slate-200/70 shadow-card flex flex-col justify-between overflow-hidden">
+        <div>
+          {/* ─── MOBILE-FIRST TOP HERO: Quick Status & Fast 3-Box Metrics (< lg) ─── */}
+          <div className="lg:hidden mb-4 space-y-2.5">
+            {/* Student & DUDI Info + Fast Action */}
+            <div className="p-3.5 rounded-2xl bg-white border border-slate-200/70 shadow-xs flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-semibold text-xs shrink-0 shadow-xs">
+                  AP
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <h2 className="text-sm font-semibold text-slate-900 truncate">
+                      {student.name}
+                    </h2>
+                    <span className="px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-100 text-[9px] font-semibold shrink-0">
+                      Fase F
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 truncate mt-0.5 font-normal">
+                    {student.dudi}
+                  </p>
+                </div>
+              </div>
 
-      {/* Riwayat Kegiatan Terakhir (Full width responsive card list from Dexie) */}
-      <section className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-xs space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="font-extrabold text-base text-slate-900">
-              Riwayat Jurnal Terakhir (Tersinkron Lokal)
-            </h2>
-            <p className="text-xs text-slate-500">
-              Catatan jurnal harian terkini yang tersimpan di perangkat offline Anda
-            </p>
-          </div>
-          <Link
-            href="/student/log/history"
-            className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1 cursor-pointer"
-          >
-            Lihat Semua Riwayat <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
-          {recentLogs.map((log) => {
-            const isVerified = log.state === "VERIFIED";
-            return (
-              <div
-                key={log.id}
-                className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200 hover:bg-slate-50 transition flex items-center justify-between gap-3"
+              {/* Fast Action: Minta Validasi PIN */}
+              <button
+                type="button"
+                onClick={() => setShowQrModal(true)}
+                className="shrink-0 px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-xs cursor-pointer min-h-[40px]"
               >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      isVerified
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-amber-100 text-amber-700"
-                    }`}
-                  >
-                    {isVerified ? (
-                      <CheckCircle className="w-5 h-5" />
-                    ) : (
-                      <Clock className="w-5 h-5" />
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1">
-                      {log.title}
-                    </h3>
-                    <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
-                      <Calendar className="w-3.5 h-3.5 text-slate-400" /> {log.date} · {log.jp} JP · {log.autonomy}
-                    </p>
-                  </div>
-                </div>
-                <span
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold border whitespace-nowrap ${
-                    isVerified
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                      : "bg-amber-50 text-amber-700 border-amber-200"
-                  }`}
-                >
-                  {log.state}
+                <QrCode className="w-3.5 h-3.5" />
+                <span>Minta PIN</span>
+              </button>
+            </div>
+
+            {/* Mobile 3-Box Metrics (Clean White Surface Cards) */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-white border border-slate-200/70 rounded-2xl p-2.5 flex flex-col items-center justify-center text-center shadow-xs">
+                <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider leading-none">
+                  Total JP
+                </span>
+                <p className="text-xl font-bold tracking-tight text-slate-900 my-1 leading-none font-mono">
+                  {student.verifiedJp}
+                </p>
+                <span className="text-[9px] text-emerald-600 font-medium leading-none">
+                  ● Terdata
                 </span>
               </div>
-            );
-          })}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setViewMode("kanban");
+                  setMobileKanbanColumn("in_review");
+                }}
+                className="bg-white border border-slate-200/70 rounded-2xl p-2.5 flex flex-col items-center justify-center text-center shadow-xs cursor-pointer active:scale-95 transition hover:border-slate-300"
+              >
+                <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider leading-none">
+                  Menunggu
+                </span>
+                <p className="text-xl font-bold tracking-tight text-slate-900 my-1 leading-none font-mono">
+                  {student.pendingJp}
+                </p>
+                <span className="text-[9px] text-amber-600 font-medium leading-none flex items-center justify-center gap-0.5">
+                  <span>● Antrean</span>
+                  <ChevronRight className="w-2.5 h-2.5" />
+                </span>
+              </button>
+
+              <div className="bg-white border border-slate-200/70 rounded-2xl p-2.5 flex flex-col items-center justify-center text-center shadow-xs">
+                <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider leading-none">
+                  Capaian
+                </span>
+                <p className="text-xl font-bold tracking-tight text-slate-900 my-1 leading-none font-mono">
+                  {progressPercentage}%
+                </p>
+                <span className="text-[9px] text-sky-600 font-medium leading-none">
+                  / 792 Target
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* ─── Header Bar: Title + Filter + Search + Notification ─── */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-4 sm:pb-5 border-b border-slate-200/70">
+            <div className="flex items-center justify-between sm:justify-start gap-3 w-full sm:w-auto">
+              <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
+                Dashboard
+              </h1>
+
+              {/* Chat / Notification Trigger on mobile */}
+              <div className="flex items-center gap-2 sm:hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  title="Pesan Bimbingan & Validasi Mentor"
+                  className="w-9 h-9 rounded-xl bg-slate-100/80 hover:bg-slate-200/60 border border-slate-200/70 flex items-center justify-center text-slate-600 transition relative cursor-pointer"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-1.5 right-1.5 ring-2 ring-white" />
+                </button>
+              </div>
+
+              {/* Category Filter Dropdown (Desktop) */}
+              <div className="relative hidden sm:block">
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="appearance-none bg-slate-100/80 hover:bg-slate-200/60 text-slate-800 text-xs font-medium py-2 pl-3.5 pr-8 rounded-xl border border-slate-200/70 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 min-h-[38px]"
+                >
+                  <option value="ALL">Semua Elemen CP</option>
+                  <option value="Pemrograman Web & Mobile">Pemrograman Web & Mobile</option>
+                  <option value="Basis Data Relasional">Basis Data Relasional</option>
+                  <option value="Testing & QA">Testing & QA</option>
+                  <option value="Cloud & DevOps">Cloud & DevOps</option>
+                  <option value="Tugas Umum Non-Kompetensi">Tugas Umum Non-Kompetensi</option>
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Right: Search Input + Message Chat Icon (Desktop) */}
+            <div className="flex items-center gap-2.5 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-64">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Cari tugas, modul, atau tools..."
+                  className="w-full bg-slate-100/80 focus:bg-white text-xs text-slate-900 placeholder:text-slate-400 font-normal pl-9 pr-8 py-2 rounded-xl border border-slate-200/70 transition focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 min-h-[38px]"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowNotifications(!showNotifications)}
+                title="Pesan Bimbingan & Validasi Mentor"
+                className="hidden sm:flex w-9 h-9 rounded-xl bg-slate-100/80 hover:bg-slate-200/60 border border-slate-200/70 items-center justify-center text-slate-600 transition relative cursor-pointer shrink-0"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-1.5 right-1.5 ring-2 ring-white" />
+              </button>
+            </div>
+
+            {/* Mobile Category Select */}
+            <div className="relative sm:hidden w-full">
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full appearance-none bg-slate-100/80 hover:bg-slate-200/60 text-slate-800 text-xs font-medium py-2.5 pl-3.5 pr-8 rounded-xl border border-slate-200/70 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 min-h-[40px]"
+              >
+                <option value="ALL">Semua Elemen CP</option>
+                <option value="Pemrograman Web & Mobile">Pemrograman Web & Mobile</option>
+                <option value="Basis Data Relasional">Basis Data Relasional</option>
+                <option value="Testing & QA">Testing & QA</option>
+                <option value="Cloud & DevOps">Cloud & DevOps</option>
+                <option value="Tugas Umum Non-Kompetensi">Tugas Umum Non-Kompetensi</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* ─── BR-003 Backdate Alert Guard Banner (Apple Callout) ─── */}
+          {!dismissBackdateAlert && (
+            <div className="mt-4 p-4 rounded-2xl bg-amber-50/60 border border-amber-200/70 shadow-card flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-300/60 text-amber-600 flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-4.5 h-4.5 stroke-[2]" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-slate-900">
+                      Batas Waktu Pengisian Logbook (BR-003)
+                    </p>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-100/80 border border-amber-200 text-amber-800 text-[10px] font-medium font-mono">
+                      72 Jam
+                    </span>
+                  </div>
+                  <p className="text-slate-600 text-[11px] mt-0.5 font-normal">
+                    Jurnal maksimal diisi dalam 3 hari kerja. Pastikan kegiatan pekan ini telah dicatat sebelum sistem mengunci otomatis.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Link
+                  href="/student/log/new"
+                  className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-[0.98] text-white font-medium text-[11px] transition shadow-xs"
+                >
+                  Catat Sekarang
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setDismissBackdateAlert(true)}
+                  className="w-7 h-7 rounded-lg hover:bg-amber-100/60 text-slate-400 hover:text-slate-700 flex items-center justify-center transition cursor-pointer"
+                  title="Tutup Pengingat"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ─── VIEW CONTROLLER: Segmented Tab Switcher (Apple HIG Style) ─── */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-5 pb-4">
+            <div>
+              <h2 className="text-sm font-semibold text-slate-900 tracking-tight flex items-center gap-2">
+                <span>Alur Kerja & Penguasaan Kompetensi</span>
+                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-100 font-medium font-mono">
+                  Fase F · 792 JP
+                </span>
+              </h2>
+              <p className="text-[11px] text-slate-500 mt-0.5 font-normal">
+                Dokumentasi zero-typing dan validasi resmi mentor industri
+              </p>
+            </div>
+
+            {/* Apple Segmented Control Bar */}
+            <div className="flex items-center gap-1 bg-slate-200/50 p-1 rounded-xl border border-slate-200/50 text-xs font-semibold self-start sm:self-auto w-full sm:w-auto overflow-x-auto no-scrollbar">
+              <button
+                type="button"
+                onClick={() => setViewMode("kanban")}
+                className={cn(
+                  "flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-xs",
+                  viewMode === "kanban"
+                    ? "bg-white text-slate-900 shadow-xs font-semibold"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
+                )}
+              >
+                Alur Kerja
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("matrix")}
+                className={cn(
+                  "flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-xs",
+                  viewMode === "matrix"
+                    ? "bg-white text-slate-900 shadow-xs font-semibold"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
+                )}
+              >
+                Matriks SKKNI
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("evidence")}
+                className={cn(
+                  "flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-xs",
+                  viewMode === "evidence"
+                    ? "bg-white text-slate-900 shadow-xs font-semibold"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
+                )}
+              >
+                Bukti & Logbook
+              </button>
+            </div>
+          </div>
+
+          {/* ─── ACTIVE VIEW RENDER ─── */}
+          {viewMode === "kanban" && (
+            <KanbanWorkflowBoard
+              tasksInProgress={tasksInProgress}
+              tasksInReview={tasksInReview}
+              tasksVerified={tasksVerified}
+              totalFilteredCount={filteredTasks.length}
+              mobileColumn={mobileKanbanColumn}
+              onSelectMobileColumn={setMobileKanbanColumn}
+              onSelectTask={setSelectedTaskModal}
+              onOpenQrModal={() => setShowQrModal(true)}
+            />
+          )}
+
+          {viewMode === "matrix" && <SkkniMatrixView />}
+
+          {viewMode === "evidence" && <EvidenceGalleryView />}
+        </div>
+
+        {/* ─── Bottom Legend & Quick Link (Apple Minimalist Footer) ─── */}
+        <div className="pt-4 border-t border-slate-200/70 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 font-normal">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setSelectedCategory("ALL")}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition cursor-pointer border",
+                selectedCategory === "ALL"
+                  ? "bg-slate-900 text-white font-medium border-slate-900 shadow-2xs"
+                  : "bg-white text-slate-600 border-slate-200/70 hover:border-slate-300"
+              )}
+            >
+              Semua
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedCategory("Pemrograman Web & Mobile")}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition cursor-pointer border",
+                selectedCategory === "Pemrograman Web & Mobile"
+                  ? "bg-sky-50 text-sky-800 font-medium border-sky-200"
+                  : "bg-white text-slate-600 border-slate-200/70 hover:border-slate-300"
+              )}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
+              <span>Pemrograman Web</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedCategory("Basis Data Relasional")}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition cursor-pointer border",
+                selectedCategory === "Basis Data Relasional"
+                  ? "bg-teal-50 text-teal-800 font-medium border-teal-200"
+                  : "bg-white text-slate-600 border-slate-200/70 hover:border-slate-300"
+              )}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
+              <span>Basis Data</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedCategory("Tugas Umum Non-Kompetensi")}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition cursor-pointer border",
+                selectedCategory === "Tugas Umum Non-Kompetensi"
+                  ? "bg-rose-50 text-rose-800 font-medium border-rose-200"
+                  : "bg-white text-slate-600 border-slate-200/70 hover:border-slate-300"
+              )}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+              <span>Tugas Umum</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedCategory("Testing & QA")}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition cursor-pointer border",
+                selectedCategory === "Testing & QA"
+                  ? "bg-amber-50 text-amber-800 font-medium border-amber-200"
+                  : "bg-white text-slate-600 border-slate-200/70 hover:border-slate-300"
+              )}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              <span>Testing & QA</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedCategory("Cloud & DevOps")}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition cursor-pointer border",
+                selectedCategory === "Cloud & DevOps"
+                  ? "bg-indigo-50 text-indigo-800 font-medium border-indigo-200"
+                  : "bg-white text-slate-600 border-slate-200/70 hover:border-slate-300"
+              )}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+              <span>Cloud & DevOps</span>
+            </button>
+          </div>
+
+          <Link
+            href="/student/log/new"
+            className="text-sky-600 hover:text-sky-700 font-semibold flex items-center gap-1.5 hover:underline"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>Tambah Jurnal Baru</span>
+          </Link>
         </div>
       </section>
+
+      {/* ─────────────────────────────────────────────────────────────────────────────
+          2. RIGHT SECTION: WIDGET PANEL
+          Modular StudentWidgetPanel (Profile + CP Progress + Mentor Feedback + Presensi)
+      ───────────────────────────────────────────────────────────────────────────── */}
+      <StudentWidgetPanel
+        student={student}
+        progressPercentage={progressPercentage}
+        onOpenNotifications={() => setShowNotifications(true)}
+        onOpenQrModal={() => setShowQrModal(true)}
+      />
+
+      {/* ─────────────────────────────────────────────────────────────────────────────
+          3. ACCESSIBLE MODALS
+      ───────────────────────────────────────────────────────────────────────────── */}
+      {selectedTaskModal && (
+        <TaskDetailModal
+          task={selectedTaskModal}
+          onClose={() => setSelectedTaskModal(null)}
+        />
+      )}
+
+      {showNotifications && (
+        <MentorNotificationModal
+          onClose={() => setShowNotifications(false)}
+        />
+      )}
+
+      {showQrModal && (
+        <MentorQrModal
+          onClose={() => setShowQrModal(false)}
+        />
+      )}
     </div>
   );
 }

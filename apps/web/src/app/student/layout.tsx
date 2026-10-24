@@ -1,6 +1,7 @@
 import React from "react";
 import type { Metadata } from "next";
 import { StudentHeader } from "@/components/student/StudentHeader";
+import { StudentSidebar } from "@/components/student/StudentSidebar";
 import { BottomNav } from "@/components/student/BottomNav";
 import { ConnectivityBanner } from "@/components/student/ConnectivityBanner";
 
@@ -16,19 +17,26 @@ export default function StudentLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-slate-50/70 flex flex-col text-slate-900 selection:bg-blue-600 selection:text-white">
-      {/* Responsive Header: Mobile Brand + Desktop Nav */}
+    <div className="min-h-screen bg-slate-50/80 text-slate-900 selection:bg-sky-500 selection:text-white flex flex-col md:flex-row font-sans">
+      {/* 1. Mobile-only top header (hidden on desktop md:hidden) */}
       <StudentHeader />
 
-      {/* Connectivity Status Banner (Offline / Syncing / Synced) */}
-      <ConnectivityBanner />
+      {/* 2. Desktop Left Slim Sidebar Dock (hidden on mobile, sticky on desktop) */}
+      <div className="hidden md:flex pl-3.5 lg:pl-4 py-4 shrink-0">
+        <StudentSidebar />
+      </div>
 
-      {/* Main Content Area (Mobile: max-w-md with pb-24; Desktop: max-w-6xl with pb-12) */}
-      <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-24 md:pb-12">
-        {children}
-      </main>
+      {/* 3. Main Content Container (Zero top header on desktop) */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        {/* Connectivity Status Banner (Offline / Syncing / Synced) */}
+        <ConnectivityBanner />
 
-      {/* Bottom Navigation (Only visible on mobile screens < 768px via md:hidden) */}
+        <main className="flex-1 w-full max-w-[1520px] mx-auto px-2 sm:px-3 lg:px-4 py-4 pb-24 md:pb-8">
+          {children}
+        </main>
+      </div>
+
+      {/* 4. Bottom Navigation (Only visible on mobile screens < 768px via md:hidden) */}
       <BottomNav />
     </div>
   );
