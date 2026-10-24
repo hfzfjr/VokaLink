@@ -17,8 +17,8 @@ import {
   X,
   UserCheck,
 } from "lucide-react";
-import Navbar from "@/components/layout/Navbar";
 import Skeleton from "@/components/ui/Skeleton";
+import { Disclosure } from "@/components/ui/Disclosure";
 import {
   fetchPlacementCandidates,
   fetchPlacements,
@@ -392,10 +392,7 @@ export default function SmartPlacementPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      <Navbar />
-
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="space-y-6">
         {/* Breadcrumb & Header Title */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
@@ -407,8 +404,8 @@ export default function SmartPlacementPage() {
                 <ChevronLeft className="w-4 h-4" />
               </Link>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-blue-600" /> FR-004 Smart Placement
+                <span className="text-xs font-bold px-3 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-100 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-sky-500" /> Smart Placement
                 </span>
                 <span className="text-xs text-slate-500 font-semibold">
                   {data.period?.name || "Periode Aktif"}
@@ -416,10 +413,10 @@ export default function SmartPlacementPage() {
               </div>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Penempatan Cerdas & Kesesuaian Spasial
+              Penempatan Cerdas &amp; Kesesuaian Spasial
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 max-w-2xl leading-relaxed">
-              Algoritma pencocokan multi-kriteria berbasis bobot kompetensi kurikulum (70%) dan efisiensi jarak Haversine (30%) tanpa API berbayar.
+              Pencocokan multi-kriteria berbasis kompetensi kurikulum dan efisiensi jarak tanpa layanan berbayar.
             </p>
           </div>
 
@@ -428,20 +425,38 @@ export default function SmartPlacementPage() {
             <button
               onClick={() => setIsBatchPreviewOpen(true)}
               disabled={unplacedStudents.length === 0}
-              className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 disabled:opacity-50 transition flex items-center gap-2 min-h-[48px]"
+              className="px-5 py-2.5 rounded-full bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs sm:text-sm shadow-md shadow-sky-500/20 disabled:opacity-50 transition flex items-center gap-2 min-h-[44px]"
             >
-              <Sparkles className="w-4 h-4 text-blue-200" />
+              <Sparkles className="w-4 h-4 text-sky-100" />
               Auto-Greedy Massal ({unplacedStudents.length})
             </button>
             <button
               onClick={loadData}
               disabled={loading}
-              className="p-3 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-xs transition min-h-[48px] min-w-[48px] flex items-center justify-center"
+              className="p-3 rounded-full bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-xs transition min-h-[44px] min-w-[44px] flex items-center justify-center"
               title="Segarkan Data"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             </button>
           </div>
+        </div>
+
+        {/* Formula Explanation Disclosure */}
+        <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs">
+          <Disclosure
+            trigger={
+              <span className="flex items-center gap-2 font-bold text-slate-900 text-xs sm:text-sm">
+                <Compass className="w-4 h-4 text-sky-500" />
+                Cara Kerja Penempatan Cerdas (70% Kurikulum + 30% Jarak Haversine)
+              </span>
+            }
+            className="border-t-0"
+          >
+            <p className="text-xs text-slate-600 leading-relaxed pt-2">
+              Algoritma pencocokan multi-kriteria berbasis bobot kompetensi kurikulum (70%) dan efisiensi jarak Haversine (30%) tanpa API berbayar.
+              Sistem memprioritaskan siswa dengan kuota mitra DUDI terdekat dan relevansi elemen CP tertinggi untuk pemerataan pengalaman industri.
+            </p>
+          </Disclosure>
         </div>
 
         {/* Feedback Alert Banners */}
@@ -748,7 +763,6 @@ export default function SmartPlacementPage() {
             )}
           </div>
         )}
-      </main>
 
       {/* Modal 1: Konfirmasi Penempatan Siswa (Tunggal) */}
       {assignModalStudent && (

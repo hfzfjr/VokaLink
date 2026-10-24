@@ -24,18 +24,18 @@ export default function Navbar({
 
   return (
     <header
-      className={`border-b border-slate-200 bg-white ${
-        isSticky ? "sticky top-0 z-30 shadow-xs" : ""
+      className={`border-b border-slate-100 bg-white/95 backdrop-blur-md ${
+        isSticky ? "sticky top-0 z-30 shadow-2xs" : ""
       }`}
     >
-      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div className="max-w-6xl mx-auto px-4 py-3.5 flex items-center justify-between">
         {/* Kiri: Logo + Subtitle */}
         <div className="flex items-center gap-3">
           <VokaLogo size="md" />
           {subtitle && (
             <>
               <div className="h-5 w-px bg-slate-200 hidden sm:block" />
-              <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md hidden sm:inline">
+              <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full hidden sm:inline">
                 {subtitle}
               </span>
             </>
@@ -61,11 +61,11 @@ export function NavbarButton({
   label: string;
   variant?: "primary" | "outline";
 }) {
-  const base = "text-xs font-semibold px-3 py-1.5 rounded-lg transition";
+  const base = "text-xs font-bold px-4 py-2 rounded-full transition duration-150 inline-flex items-center justify-center";
   const styles =
     variant === "primary"
-      ? `${base} bg-blue-600 hover:bg-blue-700 text-white shadow-xs`
-      : `${base} text-slate-600 hover:text-slate-900 border border-slate-200 hover:bg-slate-50`;
+      ? `${base} bg-sky-500 hover:bg-sky-600 text-white shadow-md shadow-sky-500/20`
+      : `${base} text-slate-700 hover:text-slate-900 border border-slate-200 hover:border-slate-300 hover:bg-slate-50`;
 
   return (
     <Link href={href} className={styles}>

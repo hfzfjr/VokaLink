@@ -20,7 +20,6 @@ import {
   WifiOff,
   X,
 } from "lucide-react";
-import Navbar, { NavbarButton } from "@/components/layout/Navbar";
 import Skeleton from "@/components/ui/Skeleton";
 import Button from "@/components/ui/Button";
 import {
@@ -425,24 +424,16 @@ export default function SchoolCurriculumPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      <Navbar
-        variant="sticky"
-        subtitle="Pengaturan Kurikulum & Katalog Job Cards (FR-002)"
-        rightSlot={
-          <NavbarButton href="/school/dashboard" label="Kembali ke Dashboard" />
-        }
-      />
-
+    <div className="space-y-6">
       {/* Connectivity Banner (FR-006 Offline Condition) */}
       {isOffline && (
-        <div className="bg-amber-500 text-white text-xs font-semibold py-2 px-4 flex items-center justify-center gap-2 shadow-xs">
+        <div className="bg-amber-500 text-white text-xs font-semibold py-2 px-4 rounded-2xl flex items-center justify-center gap-2 shadow-xs">
           <WifiOff className="w-4 h-4" />
           <span>Mode Offline aktif. Perubahan akan disimpan di cache lokal peramban.</span>
         </div>
       )}
 
-      <main className="max-w-6xl mx-auto w-full px-4 py-6 flex-1 space-y-6">
+      <div className="space-y-6">
         {/* Navigation Breadcrumb & Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -458,9 +449,6 @@ export default function SchoolCurriculumPage() {
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                   Matriks Kurikulum & Job Cards
                 </h1>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                  FR-002
-                </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
                 Konfigurasi bobot CP 792 JP dan penerjemahan ke kartu pekerjaan praktis per konsentrasi keahlian.
@@ -472,7 +460,7 @@ export default function SchoolCurriculumPage() {
           <button
             onClick={loadCurriculum}
             disabled={loading}
-            className="self-start sm:self-auto inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold shadow-xs transition"
+            className="self-start sm:self-auto inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold shadow-xs transition"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
             Muat Ulang
@@ -513,7 +501,7 @@ export default function SchoolCurriculumPage() {
         )}
 
         {/* Multi-Sector Department Selector Pills */}
-        <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="bg-white p-3 rounded-3xl border border-slate-200/80 shadow-xs">
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
             {departments.map((dept) => {
               const isActive = selectedDeptId === dept.id;
@@ -521,14 +509,14 @@ export default function SchoolCurriculumPage() {
                 <button
                   key={dept.id}
                   onClick={() => setSelectedDeptId(dept.id)}
-                  className={`px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition flex items-center gap-2 shrink-0 ${
+                  className={`px-4 py-2 rounded-full font-bold text-xs whitespace-nowrap transition flex items-center gap-2 shrink-0 ${
                     isActive
-                      ? "bg-blue-600 text-white shadow-xs"
+                      ? "bg-sky-500 text-white shadow-xs"
                       : "bg-slate-100 hover:bg-slate-200 text-slate-700"
                   }`}
                 >
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
-                    isActive ? "bg-blue-700 text-blue-100" : "bg-slate-200 text-slate-600"
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
+                    isActive ? "bg-sky-600 text-sky-100" : "bg-slate-200 text-slate-600"
                   }`}>
                     {dept.sectorCode}
                   </span>
@@ -583,7 +571,7 @@ export default function SchoolCurriculumPage() {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-3">
-                    <span className="font-mono text-xs font-black px-2.5 py-1 rounded-lg bg-blue-100 text-blue-700">
+                    <span className="font-mono text-xs font-black px-2.5 py-1 rounded-xl bg-sky-50 text-sky-600 border border-sky-100">
                       {curriculum.department.sectorCode}
                     </span>
                     <h2 className="text-lg sm:text-xl font-extrabold text-slate-900">
@@ -600,7 +588,7 @@ export default function SchoolCurriculumPage() {
                     )}
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    Periode: <span className="font-semibold text-slate-700">{curriculum.activePeriod.name}</span> · Target: <span className="font-bold text-blue-700">{targetTotalJp} Jam Pelajaran (JP)</span>
+                    Periode: <span className="font-semibold text-slate-700">{curriculum.activePeriod.name}</span> · Target: <span className="font-bold text-sky-600">{targetTotalJp} Jam Pelajaran (JP)</span>
                   </p>
                 </div>
 
@@ -691,7 +679,7 @@ export default function SchoolCurriculumPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-blue-600" />
+                  <BookOpen className="w-5 h-5 text-sky-600" />
                   <h3 className="text-base font-extrabold text-slate-900">
                     Elemen Capaian Pembelajaran (Fase F) & Job Cards
                   </h3>
@@ -709,7 +697,7 @@ export default function SchoolCurriculumPage() {
                   return (
                     <div
                       key={el.id}
-                      className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 sm:p-6 space-y-4 transition hover:border-slate-300"
+                      className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-5 sm:p-6 space-y-4 transition hover:border-slate-300"
                     >
                       {/* Element Header & Slider */}
                       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 pb-4 border-b border-slate-100">
@@ -742,10 +730,10 @@ export default function SchoolCurriculumPage() {
                         <div className="w-full md:w-72 bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2 shrink-0">
                           <div className="flex items-center justify-between text-xs">
                             <span className="font-bold text-slate-700 flex items-center gap-1">
-                              <Sliders className="w-3.5 h-3.5 text-blue-600" />
+                              <Sliders className="w-3.5 h-3.5 text-sky-600" />
                               Bobot Target JP
                             </span>
-                            <div className="flex items-center gap-1 font-mono font-bold text-blue-700">
+                            <div className="flex items-center gap-1 font-mono font-bold text-sky-600">
                               <input
                                 type="number"
                                 min={1}
@@ -755,7 +743,7 @@ export default function SchoolCurriculumPage() {
                                 onChange={(e) =>
                                   handleJpChange(el.id, parseInt(e.target.value) || 0)
                                 }
-                                className="w-16 px-1.5 py-0.5 text-right font-bold text-xs bg-white border border-slate-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                className="w-16 px-1.5 py-0.5 text-right font-bold text-xs bg-white border border-slate-300 rounded-md focus:ring-1 focus:ring-sky-500 focus:outline-none"
                               />
                               <span>JP</span>
                             </div>
@@ -771,7 +759,7 @@ export default function SchoolCurriculumPage() {
                             onChange={(e) =>
                               handleJpChange(el.id, parseInt(e.target.value))
                             }
-                            className="w-full accent-blue-600 cursor-pointer disabled:cursor-not-allowed"
+                            className="w-full accent-sky-500 cursor-pointer disabled:cursor-not-allowed"
                           />
                         </div>
                       </div>
@@ -789,7 +777,7 @@ export default function SchoolCurriculumPage() {
                                 setIsNonCompetencyAdd(false);
                                 setIsAddModalOpen(true);
                               }}
-                              className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 py-1 px-2 rounded-lg hover:bg-blue-50 transition"
+                              className="text-xs font-bold text-sky-600 hover:text-sky-800 flex items-center gap-1 py-1 px-2 rounded-lg hover:bg-sky-50 transition"
                             >
                               <Plus className="w-3.5 h-3.5" />
                               Tambah Job Card
@@ -801,7 +789,7 @@ export default function SchoolCurriculumPage() {
                           {el.jobCards.map((jc) => (
                             <div
                               key={jc.id}
-                              className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between gap-2.5 hover:bg-white hover:border-blue-300 hover:shadow-xs transition group"
+                              className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col justify-between gap-2.5 hover:bg-white hover:border-sky-300 hover:shadow-xs transition group"
                             >
                               <div>
                                 <div className="flex items-start justify-between gap-2">
@@ -850,11 +838,11 @@ export default function SchoolCurriculumPage() {
               </div>
             </div>
 
-            {/* Non-Competency System Category Card (BR-002 & BR-004) */}
+            {/* Non-Competency System Category Card */}
             <div className="bg-slate-900 text-white rounded-3xl p-6 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-slate-800 text-amber-400 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-2xl bg-slate-800 text-amber-400 flex items-center justify-center shrink-0">
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
@@ -862,7 +850,7 @@ export default function SchoolCurriculumPage() {
                       Bantuan Operasional Umum (Non-Jurusan)
                     </h3>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      Kategori wajib bawaan sistem di luar kuota 792 JP untuk menampung pelaporan tugas operasional (BR-002/BR-004).
+                      Kategori wajib bawaan sistem di luar kuota 792 JP untuk menampung pelaporan tugas operasional umum.
                     </p>
                   </div>
                 </div>
@@ -926,7 +914,7 @@ export default function SchoolCurriculumPage() {
             </div>
           </div>
         )}
-      </main>
+      </div>
 
       {/* Modal Tambah Job Card */}
       {isAddModalOpen && (

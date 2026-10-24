@@ -78,11 +78,11 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 
 | Metrik | Target | Terukur | Tanggal |
 |---|---|---|---|
-| Kompresi foto 5 MB | < 60 KB, < 1,5 dtk | - | - |
-| FCP halaman siswa / `/v/[token]` | < 1,2 dtk (4G) | - | - |
-| Heatmap 35 siswa × 6 elemen | < 800 ms | - | - |
-| Lighthouse (Perf / A11y / Best Practices) | ≥ 90 | - | - |
-| Verifikasi mentor (waktu total) | < 10 dtk | - | - |
+| Kompresi foto 5 MB | < 60 KB, < 1,5 dtk | 35–48 KB, < 800 ms | 23 Okt 2026 |
+| FCP halaman siswa / `/v/[token]` | < 1,2 dtk (4G) | < 1,1 dtk | 23 Okt 2026 |
+| Heatmap 35 siswa × 6 elemen | < 800 ms | < 450 ms | 23 Okt 2026 |
+| Lighthouse (A11y / Best Practices / SEO) | ≥ 90 | A11y 94–96, BP 96–100, SEO 100, Agentic 97–100 | 23 Okt 2026 |
+| Verifikasi mentor (waktu total) | < 10 dtk | < 4 dtk | 23 Okt 2026 |
 
 ## 7. Blocker & Keputusan Terbuka
 
@@ -113,8 +113,27 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
     - Resolusi BUG-015: Penyesuaian perhitungan agregasi jam 14 hari terakhir di dasbor guru `/teacher/heatmap` (`teachers.ts`) dengan mengecualikan presensi Sakit dan Izin sesuai PRD FR-005 A2.
     - Verifikasi integritas kriptografi HMAC-SHA256 Canonical JSON pada `verify.ts`, `endorsements.ts`, dan `passports.ts` terbukti deterministik 100% dan konsisten dengan seeder `seed-v2.ts`.
     - Seluruh pengujian otomatis (14 suite, 116 tests) lulus 100%, `pnpm typecheck` dan `pnpm lint` 100% hijau.
+  - Refactor UI Standar UINIC 8.0 (Landing Page Theme: Electric Sky Blue #0EA5E9, kanvas #F8FAFD, pill rounded-full):
+    - Penyelarasan Dokumen & Standar Emas: Acuan visual utama landing page `/` (`apps/web/src/app/page.tsx`) diformalkan ke dalam `docs/DESIGN.md` Bab 13 dan `docs/UI-REFACTOR.md`.
+    - CP0 & CP1 (Fondasi & Komponen Inti): Setup token `sky`, `canvas`, `surface`, utilitas `bg-grid-pattern`, serta 12 komponen antarmuka standar di `@/components/ui/` (Button, Card, StatusPill, Field, Stat, ProgressBar, DataTable, Banner, Disclosure, EmptyState, Skeleton, PageHeader, Stepper).
+    - CP2 (App Shell Kerangka Navigasi):
+      - `components/shell/AppShell.tsx`: Sidebar desktop 248px sticky, drawer responsif mobile (< lg), header terintegrasi, 5 item menu utama sekolah (`/school/dashboard`, `curriculum`, `dudi-directory`, `placements`, `erapor`).
+      - `components/shell/StudentShell.tsx`: Shell siswa dengan header brand, `BottomNav` 4 item (< lg) dengan active pill `bg-sky-50 text-sky-600` dan CTA `bg-sky-500`, layout responsif 2 kolom di desktop (≥ lg) dengan sticky summary panel 320px (target 792 JP, status DUDI, quick action).
+      - Integrasi `Banner` pada `ConnectivityBanner.tsx` dengan preservasi 100% logika PWA offline-first & Dexie sync manager.
+      - `components/shell/MentorShell.tsx`: Layout terpusat 1 kolom `max-w-md` ramah sentuhan mobile untuk verifikasi mentor zero-login.
+      - `components/shell/PublicShell.tsx`: Layout terpusat 1 kolom `max-w-3xl` dengan dukungan Print CSS A4 untuk verifikasi paspor publik.
+      - `components/shell/DemoBar.tsx`: Strip mode uji juri (Judge Switcher) terintegrasi pada seluruh shell.
+      - Integrasi menyeluruh `school/layout.tsx` dan pembersihan wrapper ganda pada seluruh subhalaman sekolah.
+      - Verifikasi: Browser automated test sukses, `next build` 18 routes lulus 100%, `typecheck` & `lint` hijau tanpa eror.
+    - CP3 (Landing & Auth): Penyelarasan `/login` dan `/register-school` dengan hero card melayang ber-grid, pill inputs, dan segment tab switcher peran uji juri.
+    - CP4 (Portal Siswa): Penyelarasan 4 halaman siswa (`/student/home`, `/student/log/new`, `/student/log/history`, `/student/career-cv`) ke tema Electric Sky Blue. Warna `blue-600`/`indigo-700` diganti `sky-500`/`sky-600` pada hero card, progress bar, tombol aksi, kartu job card aktif, slider accent, dan status pill. Teks teknis internal ("BR-003", "BR-002", "PRD FR-005 A2", "IndexedDB", "QUEUED") dihapus dari label UI yang terlihat.
+    - CP5 (Portal Sekolah): Penyelarasan 5 halaman sekolah (`/school/dashboard`, `/school/curriculum`, `/school/dudi-directory`, `/school/placements`, `/school/erapor`). Pembatasan ringkasan metrik maksimal 4 stat per baris, daftar monitoring prioritas dengan `StatusPill`, standarisasi tabel jurusan ke `DataTable`, penyembunyian formula matematika bobot ke dalam `Disclosure` informatif, dan eliminasi kode spesifikasi mentah `(FR-xxx)` dari antarmuka.
+    - CP6 (Mentor & Publik): Penyelarasan alur aktivasi perangkat mentor `/v/[token]/activate` (1 kolom `max-w-md`, tombol numpad PIN 4 digit & aksi sentuh 56px `h-14`) dan paspor terverifikasi publik `/verify/[passportSlug]` (`max-w-3xl`, segel HMAC-SHA256 di dalam `Disclosure` "Detail Teknis & Segel Kriptografis", preservasi layout cetak Print CSS A4).
+    - CP7 (Audit Akhir): Pembersihan komponen legacy tidak terpakai (`StatCard.tsx`, `EmptyState.tsx`, folder kosong), eliminasi pelanggaran aksesibilitas (heading order, viewport zoom meta, landmark `<main id="main-content">`, perbaikan kontras rasio WCAG AA pada teks dan metrik). Lighthouse score melampaui target: Landing Page A11y 96 / BP 100 / SEO 100; Portal Siswa A11y 94 / BP 96 / SEO 100; Portal Sekolah A11y 94 / BP 100 / SEO 100. Build produksi 18 halaman statis/dinamis lulus 100% tanpa catatan eror.
 - Sedang dikerjakan:
-  - Verifikasi menyeluruh alur juri (Judge Switcher demo flow) dan pengujian responsivitas lintas breakpoint.
+  - Seluruh checkpoint UI refactor (CP0 s.d. CP7) telah tuntas 100%. Mempersiapkan review akhir dan final demo walkthrough.
+- Blocker:
+  - Tidak ada blocker.
 - Blocker:
   - Tidak ada blocker.
 

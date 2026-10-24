@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Lightbulb } from "lucide-react";
 
 interface VokaLogoProps {
   /** Tampilkan teks "VokaLink" di samping ikon. Default: true */
@@ -10,9 +11,9 @@ interface VokaLogoProps {
 }
 
 const sizeMap = {
-  sm: { box: "size-7 rounded-md text-sm", text: "text-sm" },
-  md: { box: "size-8 rounded-lg text-base", text: "text-base" },
-  lg: { box: "size-10 rounded-xl text-lg", text: "text-lg" },
+  sm: { box: "size-7 rounded-lg", icon: "size-4", text: "text-sm", sub: "text-[8px]" },
+  md: { box: "size-9 rounded-xl", icon: "size-5", text: "text-base", sub: "text-[9px]" },
+  lg: { box: "size-11 rounded-2xl", icon: "size-6", text: "text-lg", sub: "text-[10px]" },
 };
 
 export default function VokaLogo({
@@ -21,18 +22,23 @@ export default function VokaLogo({
   href = "/",
   className = "",
 }: VokaLogoProps) {
-  const { box, text } = sizeMap[size];
+  const { box, icon, text, sub } = sizeMap[size];
 
   const inner = (
-    <span className={`inline-flex items-center gap-2.5 ${className}`}>
+    <span className={`inline-flex items-center gap-2.5 group ${className}`}>
       <span
-        className={`${box} bg-ink-900 border border-ink-700 flex items-center justify-center text-safety-500 font-extrabold shrink-0 tracking-tighter`}
+        className={`${box} bg-sky-500 flex items-center justify-center text-white shadow-md shadow-sky-500/25 shrink-0 group-hover:scale-105 transition duration-150`}
       >
-        V
+        <Lightbulb className={`${icon} text-white`} />
       </span>
       {showText && (
-        <span className={`font-extrabold text-ink-900 tracking-tight ${text}`}>
-          VokaLink
+        <span className="leading-tight">
+          <span className={`font-extrabold text-slate-900 tracking-tight block ${text}`}>
+            VokaLink <span className="text-sky-500">SMK</span>
+          </span>
+          <span className={`font-bold tracking-widest text-slate-400 uppercase block ${sub}`}>
+            Sistem Monitoring PKL
+          </span>
         </span>
       )}
     </span>

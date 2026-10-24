@@ -28,10 +28,10 @@ import {
   TrendingUp,
   FileSpreadsheet,
 } from "lucide-react";
-import Navbar, { NavbarButton } from "@/components/layout/Navbar";
 import Skeleton from "@/components/ui/Skeleton";
 import Button from "@/components/ui/Button";
 import { QrCodeView } from "@/components/ui/QrCodeView";
+import { Disclosure } from "@/components/ui/Disclosure";
 import {
   fetchDudiPartners,
   createDudiPartner,
@@ -431,16 +431,7 @@ export default function DudiDirectoryPage() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      <Navbar
-        variant="sticky"
-        subtitle="Direktori Terfederasi & Onboarding Mitra DUDI (FR-003)"
-        rightSlot={
-          <NavbarButton href="/school/dashboard" label="Kembali ke Dashboard" />
-        }
-      />
-
-      <main className="max-w-6xl mx-auto w-full px-4 py-6 flex-1 space-y-6">
+    <div className="space-y-6">
         {/* Header Title & Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -456,9 +447,6 @@ export default function DudiDirectoryPage() {
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                   Direktori Mitra DUDI Terfederasi
                 </h1>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                  FR-003 · BR-011
-                </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
                 Pendaftaran tempat usaha, pemetaan kapasitas kompetensi, dan aktivasi perangkat mentor Zero-Login.
@@ -470,7 +458,7 @@ export default function DudiDirectoryPage() {
             <button
               onClick={loadPartners}
               disabled={loading}
-              className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold shadow-xs transition inline-flex items-center gap-1.5"
+              className="px-3.5 py-2 rounded-full bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold shadow-xs transition inline-flex items-center gap-1.5"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
               Segarkan
@@ -482,7 +470,7 @@ export default function DudiDirectoryPage() {
                 resetForm();
                 setIsAddModalOpen(true);
               }}
-              className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700"
+              className="text-xs font-bold bg-sky-500 hover:bg-sky-600 rounded-full"
             >
               <Plus className="w-4 h-4 mr-1 inline" />
               Onboarding Mitra Baru
@@ -517,13 +505,13 @@ export default function DudiDirectoryPage() {
           </div>
         )}
 
-        {/* Navigation Tabs (FR-003 vs FR-010) */}
+        {/* Navigation Tabs */}
         <div className="flex border-b border-slate-200 gap-2">
           <button
             onClick={() => setActiveTab("DIRECTORY")}
             className={`pb-3 px-3 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition ${
               activeTab === "DIRECTORY"
-                ? "border-emerald-600 text-emerald-800"
+                ? "border-sky-500 text-sky-600"
                 : "border-transparent text-slate-500 hover:text-slate-800"
             }`}
           >
@@ -537,14 +525,14 @@ export default function DudiDirectoryPage() {
             onClick={() => setActiveTab("QUALITY_INDEX")}
             className={`pb-3 px-3 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition ${
               activeTab === "QUALITY_INDEX"
-                ? "border-emerald-600 text-emerald-800"
+                ? "border-sky-500 text-sky-600"
                 : "border-transparent text-slate-500 hover:text-slate-800"
             }`}
           >
             <TrendingUp className="w-4 h-4" />
             Audit Mutu Kemitraan DUDI
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
-              FR-010 · Indeks Kualitas
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-600 border border-sky-100">
+              Indeks Kualitas
             </span>
           </button>
         </div>
@@ -831,18 +819,24 @@ export default function DudiDirectoryPage() {
               </div>
             </div>
 
-            {/* Formula Explanation Card */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 text-xs text-slate-700 space-y-2">
-              <div className="flex items-center gap-2 font-bold text-blue-900">
-                <TrendingUp className="w-4 h-4 text-blue-700" />
-                <span>Formula Indeks Kualitas Kemitraan DUDI (BR-010 · DESIGN.md §8.6)</span>
-              </div>
-              <p className="text-[11px] text-slate-600 leading-relaxed">
-                Skor gabungan dihitung objektif berdasarkan data lapangan terverifikasi:
-                <strong className="text-slate-800"> 50% Kesesuaian Kurikulum</strong> (rasio jam kompetensi vs non-kompetensi),
-                <strong className="text-slate-800"> 30% Kecepatan Respon Mentor</strong> (latensi validasi log harian), dan
-                <strong className="text-slate-800"> 20% Cakupan Elemen CP</strong> (persentase capaian pembelajaran SKKNI yang terrealisasi).
-              </p>
+            {/* Formula Explanation Disclosure */}
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs">
+              <Disclosure
+                trigger={
+                  <span className="flex items-center gap-2 font-bold text-slate-900 text-xs sm:text-sm">
+                    <TrendingUp className="w-4 h-4 text-sky-500" />
+                    Formula Indeks Kualitas Kemitraan DUDI (50% Kurikulum + 30% Respon + 20% CP)
+                  </span>
+                }
+                className="border-t-0"
+              >
+                <p className="text-xs text-slate-600 leading-relaxed pt-2">
+                  Skor gabungan dihitung objektif berdasarkan data lapangan terverifikasi:
+                  <strong className="text-slate-800"> 50% Kesesuaian Kurikulum</strong> (rasio jam kompetensi vs non-kompetensi),
+                  <strong className="text-slate-800"> 30% Kecepatan Respon Mentor</strong> (latensi validasi log harian), dan
+                  <strong className="text-slate-800"> 20% Cakupan Elemen CP</strong> (persentase capaian pembelajaran SKKNI yang terrealisasi).
+                </p>
+              </Disclosure>
             </div>
 
             {/* Audit Table / List */}
@@ -1019,7 +1013,6 @@ export default function DudiDirectoryPage() {
             )}
           </div>
         )}
-      </main>
 
       {/* Modal Onboarding DUDI Baru */}
       {isAddModalOpen && (
@@ -1028,7 +1021,7 @@ export default function DudiDirectoryPage() {
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-base font-extrabold text-slate-900">
-                  Onboarding Mitra DUDI & Pemetaan Kapasitas (FR-003)
+                  Onboarding Mitra DUDI &amp; Pemetaan Kapasitas
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Petakan ketersediaan pekerjaan di lokasi usaha dan aktifkan verifikasi mentor &lt; 60 detik.
