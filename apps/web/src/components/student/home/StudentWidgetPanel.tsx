@@ -45,7 +45,7 @@ export function StudentWidgetPanel({
               {student.email}
             </p>
             <div className="mt-1 flex items-center gap-1.5">
-              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[10px] tracking-wide font-mono">
+              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[10px] tracking-wide">
                 NISN: {student.nisn}
               </span>
               <span className="text-[11px] text-slate-400 font-normal truncate">· {student.dudi}</span>
@@ -73,7 +73,7 @@ export function StudentWidgetPanel({
           <h3 className="text-xs font-semibold text-slate-900 tracking-tight uppercase">
             Progres Capaian Pembelajaran
           </h3>
-          <span className="text-[10px] font-medium text-sky-700 bg-sky-50 border border-sky-100 px-2.5 py-0.5 rounded-full font-mono">
+          <span className="text-[10px] font-semibold text-sky-700 bg-sky-50 border border-sky-100 px-2.5 py-0.5 rounded-full">
             Fase F
           </span>
         </div>
@@ -82,7 +82,7 @@ export function StudentWidgetPanel({
           <div>
             <div className="flex justify-between text-[11px] font-medium mb-1">
               <span className="text-slate-800">Pemrograman Web & Mobile</span>
-              <span className="text-sky-600 font-semibold font-mono">128 / 240 JP (53%)</span>
+              <span className="text-sky-600 font-semibold tabular-nums">128 / 240 JP (53%)</span>
             </div>
             <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
               <div className="h-full bg-sky-500 rounded-full" style={{ width: "53%" }} />
@@ -92,7 +92,7 @@ export function StudentWidgetPanel({
           <div>
             <div className="flex justify-between text-[11px] font-medium mb-1">
               <span className="text-slate-800">Basis Data Relasional</span>
-              <span className="text-slate-600 font-semibold font-mono">80 / 160 JP (50%)</span>
+              <span className="text-slate-600 font-semibold tabular-nums">80 / 160 JP (50%)</span>
             </div>
             <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
               <div className="h-full bg-slate-700 rounded-full" style={{ width: "50%" }} />
@@ -102,7 +102,7 @@ export function StudentWidgetPanel({
           <div>
             <div className="flex justify-between text-[11px] font-medium mb-1">
               <span className="text-slate-800">Software QA & Testing</span>
-              <span className="text-slate-600 font-semibold font-mono">48 / 120 JP (40%)</span>
+              <span className="text-slate-600 font-semibold tabular-nums">48 / 120 JP (40%)</span>
             </div>
             <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
               <div className="h-full bg-slate-500 rounded-full" style={{ width: "40%" }} />
@@ -112,7 +112,7 @@ export function StudentWidgetPanel({
           <div>
             <div className="flex justify-between text-[11px] font-medium mb-1">
               <span className="text-slate-800">Cloud Architecture & DevOps</span>
-              <span className="text-slate-600 font-semibold font-mono">32 / 120 JP (27%)</span>
+              <span className="text-slate-600 font-semibold tabular-nums">32 / 120 JP (27%)</span>
             </div>
             <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
               <div className="h-full bg-slate-400 rounded-full" style={{ width: "27%" }} />
@@ -132,7 +132,7 @@ export function StudentWidgetPanel({
           </div>
           <div className="flex items-center gap-1 bg-amber-50/80 border border-amber-200/60 px-2 py-0.5 rounded-full text-amber-700">
             <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
-            <span className="text-[11px] font-semibold font-mono">4.9</span>
+            <span className="text-[11px] font-bold">4.9</span>
           </div>
         </div>
 
@@ -155,19 +155,19 @@ export function StudentWidgetPanel({
       </div>
 
       {/* ─── Presensi & Disiplin Pekan Ini ─── */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/70 shadow-card space-y-3.5">
-        <div className="flex items-center justify-between pb-0.5">
-          <div>
-            <h3 className="text-xs font-semibold text-slate-900 tracking-tight uppercase">
-              Presensi & Disiplin Pekan Ini
+      <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-card space-y-3">
+        <div className="flex items-center justify-between gap-2 pb-0.5">
+          <div className="min-w-0">
+            <h3 className="text-xs font-bold text-slate-900 tracking-tight uppercase whitespace-nowrap">
+              Presensi &amp; Disiplin
             </h3>
-            <p className="text-[11px] text-slate-500 font-normal">
-              Pekan ke-8 · 6–10 Oktober 2026
+            <p className="text-[11px] text-slate-500 font-normal truncate">
+              Pekan ke-8 · 6–10 Okt 2026
             </p>
           </div>
-          <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50/80 border border-amber-200/70 text-amber-700 text-[10px] font-medium">
-            <Flame className="w-3 h-3 text-amber-500 fill-amber-500" />
-            <span>4 Pekan Streak</span>
+          <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200/80 text-amber-800 text-[10.5px] font-bold shrink-0 whitespace-nowrap shadow-2xs">
+            <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />
+            <span>4 Pekan</span>
           </div>
         </div>
 
@@ -184,32 +184,31 @@ export function StudentWidgetPanel({
             return (
               <div
                 key={d.day}
-                className={`flex flex-col items-center justify-between p-2 rounded-xl border transition-all text-center ${
+                className={`flex flex-col items-center justify-between py-2 px-1 rounded-xl border transition-all text-center ${
                   isToday
-                    ? "bg-sky-50/50 border-sky-500/80 ring-1 ring-sky-500/20"
-                    : "bg-slate-50/70 border-slate-200/70 hover:bg-slate-100"
+                    ? "bg-sky-50/80 border-sky-400 ring-2 ring-sky-500/15 shadow-2xs"
+                    : "bg-slate-50/70 border-slate-200/80 hover:bg-slate-100/70"
                 }`}
               >
-                <span className="text-[10px] font-medium text-slate-500 uppercase">
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${isToday ? "text-sky-700" : "text-slate-400"}`}>
                   {d.day}
                 </span>
                 <span
-                  className={`text-xs font-semibold my-0.5 font-mono ${
+                  className={`text-xs font-bold my-1 tracking-tight ${
                     isToday ? "text-sky-600" : "text-slate-900"
                   }`}
                 >
-                  {d.jp} JP
+                  {d.jp} <span className="text-[10px] font-semibold text-slate-400">JP</span>
                 </span>
-                <div className="mt-1">
+                <div className="mt-0.5">
                   {isToday ? (
-                    <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-sky-500 text-white text-[9px] font-medium leading-none">
-                      <Clock className="w-2.5 h-2.5" />
-                      <span>{d.label}</span>
+                    <span className="inline-block px-1.5 py-0.5 rounded-full bg-sky-500 text-white text-[9px] font-bold leading-none whitespace-nowrap shadow-2xs">
+                      Hari Ini
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[9px] font-medium leading-none">
-                      <Check className="w-2.5 h-2.5 stroke-[2.5] text-emerald-600" />
-                      <span>{d.label}</span>
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[9px] font-bold leading-none whitespace-nowrap">
+                      <Check className="w-2.5 h-2.5 stroke-[2.5] text-emerald-600 shrink-0" />
+                      <span>Sah</span>
                     </span>
                   )}
                 </div>
@@ -219,21 +218,26 @@ export function StudentWidgetPanel({
         </div>
 
         {/* Weekly Summary Metrics */}
-        <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-200/60 flex items-center justify-between text-xs">
-          <div>
-            <span className="text-[10px] text-slate-400 font-medium uppercase block">
+        <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80 flex items-center justify-between text-xs gap-2">
+          <div className="min-w-0">
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
               Total Minggu Ini
             </span>
-            <span className="font-semibold text-slate-900 text-sm font-mono">
-              40 / 40 JP <span className="text-emerald-700 text-xs font-medium">(100%)</span>
-            </span>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="font-bold text-slate-900 text-sm tracking-tight whitespace-nowrap">
+                40 / 40 JP
+              </span>
+              <span className="text-emerald-700 bg-emerald-50 border border-emerald-200/80 text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
+                100%
+              </span>
+            </div>
           </div>
-          <div className="text-right">
-            <span className="text-[10px] text-slate-400 font-medium uppercase block">
+          <div className="text-right shrink-0">
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
               Status Kehadiran
             </span>
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 mt-0.5 whitespace-nowrap">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span>Nir-Anomali</span>
             </span>
           </div>
@@ -243,22 +247,22 @@ export function StudentWidgetPanel({
         <Link
           href="/verify/andi-pratama-rpl-2026"
           target="_blank"
-          className="flex items-center justify-between p-3.5 rounded-xl bg-white border border-slate-200/70 hover:border-sky-500 shadow-2xs hover:shadow-card transition-all group"
+          className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200/80 hover:border-sky-400 hover:bg-sky-50/30 shadow-2xs hover:shadow-card transition-all group cursor-pointer"
         >
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-sky-500 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-all">
-              <Award className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-500 to-sky-600 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-all">
+              <Award className="w-4 h-4" />
             </div>
-            <div className="truncate">
-              <p className="text-xs font-semibold text-slate-900 group-hover:text-sky-600 transition truncate">
-                Paspor Keterampilan Digital
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-slate-900 group-hover:text-sky-600 transition truncate">
+                Paspor Digital Siswa
               </p>
-              <p className="text-[10px] text-slate-500 font-normal">
-                Segel Kriptografi HMAC-SHA256 (FR-009)
+              <p className="text-[10px] text-slate-500 font-normal truncate">
+                Tersegel HMAC-SHA256 (FR-009)
               </p>
             </div>
           </div>
-          <ExternalLink className="w-4 h-4 text-sky-600 group-hover:translate-x-0.5 transition shrink-0" />
+          <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-0.5 transition shrink-0 ml-1.5" />
         </Link>
       </div>
 

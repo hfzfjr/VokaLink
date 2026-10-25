@@ -204,13 +204,13 @@ export default function StudentHomePage() {
   const strokeDashoffset = 251.32 - (251.32 * progressPercentage) / 100;
 
   return (
-    <div className="w-full flex flex-col lg:flex-row gap-5 items-stretch min-h-[840px]">
+    <div className="w-full flex flex-col lg:flex-row gap-4 sm:gap-5 items-stretch min-h-0 lg:min-h-[840px]">
       {/* ─────────────────────────────────────────────────────────────────────────────
           1. CENTER SECTION: WORKSPACE CANVAS (TIMELINE / MATRIX / EVIDENCE)
           Apple Design System HIG (Calm White Surface, Hairline Border, Zero Clutter)
       ───────────────────────────────────────────────────────────────────────────── */}
-      <section className="flex-1 min-w-0 bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200/70 shadow-card flex flex-col justify-between overflow-hidden space-y-6">
-        <div className="space-y-5">
+      <section className="flex-1 min-w-0 bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between overflow-hidden space-y-5 sm:space-y-6">
+        <div className="space-y-4 sm:space-y-5">
           {/* ─── A. CONTEXT-AWARE HERO ACTION CARD (Glance Test: 3 Detik Siswa Langsung Paham) ─── */}
           <div
             className={cn(
@@ -220,11 +220,11 @@ export default function StudentHomePage() {
                 : "bg-gradient-to-r from-sky-50/90 via-indigo-50/60 to-slate-50 border-sky-200/80 shadow-xs"
             )}
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 sm:gap-4">
               <div className="space-y-1.5 max-w-xl">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-sky-600" />
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10.5px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
                     <span>Jurnal Hari Ini · {formatLogDate(todayStr)}</span>
                   </span>
                   {todayLog ? (
@@ -268,22 +268,22 @@ export default function StudentHomePage() {
                 )}
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 shrink-0">
+              {/* Action Buttons: Full-width on mobile with generous touch target */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 w-full sm:w-auto pt-1 sm:pt-0">
                 {todayLog ? (
                   <button
                     type="button"
                     onClick={() => setShowQrModal(true)}
-                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
+                    className="w-full sm:w-auto h-11 sm:h-10 px-4 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
                   >
                     <QrCode className="w-4 h-4" />
                     <span>Tampilkan QR ke Mentor</span>
                   </button>
                 ) : (
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                     <Link
                       href="/student/log/new"
-                      className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition text-center"
+                      className="w-full sm:w-auto h-11 sm:h-10 px-4 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition text-center"
                     >
                       <PlusCircle className="w-4 h-4" />
                       <span>Catat Jurnal Hari Ini</span>
@@ -291,11 +291,11 @@ export default function StudentHomePage() {
                     <button
                       type="button"
                       onClick={() => setShowQrModal(true)}
-                      className="hidden sm:inline-flex px-3 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium items-center gap-1.5 transition cursor-pointer active:scale-95 shadow-2xs"
+                      className="w-full sm:w-auto h-10 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-95 shadow-2xs"
                       title="Minta mentor memindai QR untuk validasi batch"
                     >
                       <QrCode className="w-3.5 h-3.5 text-slate-500" />
-                      <span>QR PIN</span>
+                      <span>Minta Validasi PIN (QR)</span>
                     </button>
                   </div>
                 )}
@@ -304,10 +304,10 @@ export default function StudentHomePage() {
           </div>
 
           {/* ─── B. VISUAL ACHIEVEMENT & PROGRESS RINGS (Gamified Dual-Ring Hub) ─── */}
-          <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/70 shadow-xs flex flex-col md:flex-row items-center justify-between gap-5">
+          <div className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border border-slate-200/80 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-5">
             {/* Left: Apple Fitness Style SVG Progress Ring */}
-            <div className="flex items-center gap-4.5 shrink-0">
-              <div className="relative w-24 h-24 sm:w-26 sm:h-26 flex items-center justify-center">
+            <div className="flex items-center gap-3.5 sm:gap-4.5 w-full md:w-auto">
+              <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                   {/* Background Track */}
                   <circle
@@ -334,56 +334,56 @@ export default function StudentHomePage() {
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-2xl font-bold tracking-tight text-slate-900 font-mono leading-none">
+                  <span className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 font-mono leading-none">
                     {progressPercentage}%
                   </span>
-                  <span className="text-[9.5px] font-medium text-slate-400 mt-1 uppercase tracking-wider">
+                  <span className="text-[9px] sm:text-[9.5px] font-medium text-slate-400 mt-0.5 sm:mt-1 uppercase tracking-wider">
                     Capaian
                   </span>
                 </div>
               </div>
 
-              <div>
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider block truncate">
                   Target Kelulusan PKL
                 </span>
-                <h3 className="text-lg font-bold text-slate-900 tracking-tight mt-0.5 font-mono">
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight mt-0.5 font-mono truncate">
                   {student.verifiedJp} <span className="text-xs text-slate-400 font-normal">/ {TOTAL_TARGET_JP} JP</span>
                 </h3>
-                <div className="flex items-center gap-1.5 mt-1.5">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10.5px] font-semibold">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
-                    <span>Fase F Kurikulum Merdeka</span>
+                <div className="flex items-center gap-1.5 mt-1 sm:mt-1.5">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] sm:text-[10.5px] font-semibold truncate">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5] shrink-0" />
+                    <span className="truncate">Fase F Kurikulum Merdeka</span>
                   </span>
                 </div>
               </div>
             </div>
 
             {/* Right: 3 Non-Redundant Essential Metrics */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full md:w-auto border-t md:border-t-0 md:border-l border-slate-100 pt-3 md:pt-0 md:pl-5">
-              <div className="p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/60 text-center">
-                <span className="text-[9.5px] font-semibold text-slate-400 uppercase tracking-wider block">Jam Sah</span>
-                <p className="text-base sm:text-lg font-bold text-slate-900 font-mono mt-0.5">{student.verifiedJp}</p>
-                <span className="text-[9.5px] text-emerald-600 font-medium">● Segel HMAC</span>
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-3 w-full md:w-auto border-t md:border-t-0 md:border-l border-slate-100 pt-3 md:pt-0 md:pl-5">
+              <div className="p-2 sm:p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/60 text-center">
+                <span className="text-[9px] sm:text-[9.5px] font-semibold text-slate-400 uppercase tracking-wider block truncate">Jam Sah</span>
+                <p className="text-sm sm:text-base md:text-lg font-bold text-slate-900 font-mono mt-0.5">{student.verifiedJp}</p>
+                <span className="text-[9px] sm:text-[9.5px] text-emerald-600 font-medium block truncate">● HMAC</span>
               </div>
 
               <div
                 onClick={() => setShowQrModal(true)}
-                className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/70 text-center cursor-pointer hover:bg-amber-100/60 transition active:scale-95"
+                className="p-2 sm:p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/70 text-center cursor-pointer hover:bg-amber-100/60 transition active:scale-95"
                 title="Klik untuk membuka QR Verifikasi"
               >
-                <span className="text-[9.5px] font-semibold text-amber-700 uppercase tracking-wider block">Antrean PIN</span>
-                <p className="text-base sm:text-lg font-bold text-amber-900 font-mono mt-0.5">{student.pendingJp}</p>
-                <span className="text-[9.5px] text-amber-700 font-semibold flex items-center justify-center gap-0.5">
+                <span className="text-[9px] sm:text-[9.5px] font-semibold text-amber-700 uppercase tracking-wider block truncate">Antrean</span>
+                <p className="text-sm sm:text-base md:text-lg font-bold text-amber-900 font-mono mt-0.5">{student.pendingJp}</p>
+                <span className="text-[9px] sm:text-[9.5px] text-amber-700 font-semibold flex items-center justify-center gap-0.5 truncate">
                   <span>Minta PIN</span>
-                  <ChevronRight className="w-2.5 h-2.5" />
+                  <ChevronRight className="w-2.5 h-2.5 shrink-0" />
                 </span>
               </div>
 
-              <div className="p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/60 text-center">
-                <span className="text-[9.5px] font-semibold text-slate-400 uppercase tracking-wider block">Sisa Target</span>
-                <p className="text-base sm:text-lg font-bold text-slate-700 font-mono mt-0.5">{Math.max(0, TOTAL_TARGET_JP - student.verifiedJp)}</p>
-                <span className="text-[9.5px] text-slate-400 font-medium">Jam Kerja</span>
+              <div className="p-2 sm:p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/60 text-center">
+                <span className="text-[9px] sm:text-[9.5px] font-semibold text-slate-400 uppercase tracking-wider block truncate">Sisa Target</span>
+                <p className="text-sm sm:text-base md:text-lg font-bold text-slate-700 font-mono mt-0.5">{Math.max(0, TOTAL_TARGET_JP - student.verifiedJp)}</p>
+                <span className="text-[9px] sm:text-[9.5px] text-slate-400 font-medium block truncate">Jam</span>
               </div>
             </div>
           </div>
@@ -403,42 +403,42 @@ export default function StudentHomePage() {
             </div>
 
             {/* Apple Segmented Control Bar */}
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/70 text-xs font-semibold self-start sm:self-auto w-full sm:w-auto overflow-x-auto no-scrollbar">
+            <div className="grid grid-cols-3 sm:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/70 text-xs font-semibold w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => setViewMode("timeline")}
                 className={cn(
-                  "flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-xs flex items-center justify-center gap-1.5",
+                  "px-2.5 sm:px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-[11px] sm:text-xs flex items-center justify-center gap-1",
                   viewMode === "timeline"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
                 )}
               >
-                <span>Timeline Jurnal</span>
+                <span>Timeline</span>
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode("matrix")}
                 className={cn(
-                  "flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-xs flex items-center justify-center gap-1.5",
+                  "px-2.5 sm:px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-[11px] sm:text-xs flex items-center justify-center gap-1",
                   viewMode === "matrix"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
                 )}
               >
-                <span>Matriks SKKNI</span>
+                <span>Matriks</span>
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode("evidence")}
                 className={cn(
-                  "flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-xs flex items-center justify-center gap-1.5",
+                  "px-2.5 sm:px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-[11px] sm:text-xs flex items-center justify-center gap-1",
                   viewMode === "evidence"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
                 )}
               >
-                <span>Galeri Bukti</span>
+                <span>Galeri</span>
               </button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Bell, X } from "lucide-react";
 
 interface MentorNotificationModalProps {
@@ -8,23 +9,38 @@ interface MentorNotificationModalProps {
 }
 
 export function MentorNotificationModal({ onClose }: MentorNotificationModalProps) {
-  // Close on Escape key press
+  const [isMounted, setIsMounted] = useState(false);
+
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Close on Escape key press & lock body scroll
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+    };
   }, [onClose]);
 
-  return (
+  if (!isMounted || typeof document === "undefined") return null;
+
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="mentor-notif-title"
-      className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in-0 duration-150"
+      className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in-0 duration-150"
+      style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
       onClick={onClose}
     >
       <div
@@ -80,6 +96,7 @@ export function MentorNotificationModal({ onClose }: MentorNotificationModalProp
           Mengerti
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

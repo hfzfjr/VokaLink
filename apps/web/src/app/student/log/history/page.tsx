@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   Calendar,
@@ -28,6 +29,8 @@ import {
   LayoutGrid,
   Sparkles,
   TrendingUp,
+  Maximize2,
+  Download,
 } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { convertRealHoursToJp, TOTAL_TARGET_JP } from "@vokalink/shared";
@@ -50,6 +53,7 @@ interface LogEntry {
   verifiedAt?: string | null;
   mentor: string;
   hasPhoto: boolean;
+  samplePhotoUrl?: string;
   isNonCompetency?: boolean;
   nonCompetencyCategory?: string;
   notes?: string;
@@ -71,6 +75,7 @@ const SAMPLE_LOGS: LogEntry[] = [
     verifiedAt: "20 Okt 2026, 17:30 WIB",
     mentor: "Rizky Firmansyah",
     hasPhoto: true,
+    samplePhotoUrl: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1000&q=80",
     notes: "Menyelesaikan 4 router Express v5 dan validasi skema Zod untuk modul daily logs.",
   },
   {
@@ -86,6 +91,7 @@ const SAMPLE_LOGS: LogEntry[] = [
     verifiedAt: null,
     mentor: "Rizky Firmansyah",
     hasPhoto: true,
+    samplePhotoUrl: "https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=1000&q=80",
     notes: "Menambahkan trigger PostgreSQL proteksi integritas logbook pada skema database.",
   },
   {
@@ -117,6 +123,7 @@ const SAMPLE_LOGS: LogEntry[] = [
     verifiedAt: "17 Okt 2026, 17:15 WIB",
     mentor: "Rizky Firmansyah",
     hasPhoto: true,
+    samplePhotoUrl: "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=1000&q=80",
     notes: "Implementasi responsive header, bottom navigation bar, dan status sinkronisasi offline.",
   },
 ];
@@ -157,9 +164,15 @@ export default function LogHistoryPage() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [selectedLogDetail, setSelectedLogDetail] = useState<LogEntry | null>(null);
 
-  // Photo viewer state for modal
+  // Photo viewer state for modal & fullscreen lightbox
   const [detailPhotoUrl, setDetailPhotoUrl] = useState<string | null>(null);
   const [isLoadingDetailPhoto, setIsLoadingDetailPhoto] = useState(false);
+  const [lightboxPhotoUrl, setLightboxPhotoUrl] = useState<string | null>(null);
+  const [isMountedState, setIsMountedState] = useState(false);
+
+  useEffect(() => {
+    setIsMountedState(true);
+  }, []);
 
   // Active Placement Info
   const [placementInfo, setPlacementInfo] = useState<{
@@ -343,12 +356,20 @@ export default function LogHistoryPage() {
         if (photo && photo.blob && isMounted) {
           const url = URL.createObjectURL(photo.blob);
           setDetailPhotoUrl(url);
+        } else if (selectedLogDetail?.samplePhotoUrl && isMounted) {
+          setDetailPhotoUrl(selectedLogDetail.samplePhotoUrl);
+        } else if (selectedLogDetail?.hasPhoto && isMounted) {
+          setDetailPhotoUrl("https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1000&q=80");
         } else {
           setDetailPhotoUrl(null);
         }
       } catch (err) {
         console.warn("Gagal memuat foto lokal:", err);
-        setDetailPhotoUrl(null);
+        if (selectedLogDetail?.samplePhotoUrl && isMounted) {
+          setDetailPhotoUrl(selectedLogDetail.samplePhotoUrl);
+        } else {
+          setDetailPhotoUrl(null);
+        }
       } finally {
         if (isMounted) setIsLoadingDetailPhoto(false);
       }
@@ -358,11 +379,37 @@ export default function LogHistoryPage() {
 
     return () => {
       isMounted = false;
-      if (detailPhotoUrl) {
+      if (detailPhotoUrl && detailPhotoUrl.startsWith("blob:")) {
         URL.revokeObjectURL(detailPhotoUrl);
       }
     };
   }, [selectedLogDetail]);
+
+  // Close Modals on Escape Key & lock body scroll
+  useEffect(() => {
+    const isAnyModalOpen = Boolean(lightboxPhotoUrl || selectedLogDetail || showQrModal);
+    if (!isAnyModalOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (lightboxPhotoUrl) {
+          setLightboxPhotoUrl(null);
+        } else if (selectedLogDetail) {
+          setSelectedLogDetail(null);
+        } else if (showQrModal) {
+          setShowQrModal(false);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [lightboxPhotoUrl, selectedLogDetail, showQrModal]);
 
   // Handler Hapus Log Offline Lokal
   const handleDeleteOfflineLog = async (logId: string) => {
@@ -422,7 +469,7 @@ export default function LogHistoryPage() {
   };
 
   return (
-    <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-200">
+    <div className="space-y-5 sm:space-y-6">
       {/* ─────────────────────────────────────────────────────────────────────────────
           1. HEADER & ACTION BAR (KONSISTEN DENGAN PORTAL SISWA)
       ───────────────────────────────────────────────────────────────────────────── */}
@@ -444,17 +491,17 @@ export default function LogHistoryPage() {
           </p>
         </div>
 
-        {/* Action Buttons: Solid Pill Buttons */}
-        <div className="flex items-center gap-2 sm:gap-2.5 self-start sm:self-auto shrink-0 flex-wrap">
+        {/* Action Buttons: Solid Pill Buttons with generous mobile touch target */}
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
           {pendingCount > 0 && (
             <button
               type="button"
               onClick={() => syncNow()}
               disabled={isSyncing || !isOnline}
-              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-full bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-700 text-xs font-semibold border border-slate-200/80 transition disabled:opacity-50 cursor-pointer shadow-2xs whitespace-nowrap"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 h-10 px-3.5 sm:px-4 rounded-full bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-700 text-xs font-semibold border border-slate-200/80 transition disabled:opacity-50 cursor-pointer shadow-2xs whitespace-nowrap"
             >
-              <RefreshCw className={cn("w-3.5 h-3.5 text-sky-600", isSyncing && "animate-spin")} />
-              <span>{isSyncing ? "Menyinkronkan..." : "Sinkronkan"}</span>
+              <RefreshCw className={cn("w-3.5 h-3.5 text-sky-600 shrink-0", isSyncing && "animate-spin")} />
+              <span>{isSyncing ? "Sinkron..." : "Sinkronkan"}</span>
             </button>
           )}
 
@@ -462,9 +509,9 @@ export default function LogHistoryPage() {
             type="button"
             onClick={handleOpenVerifyModal}
             disabled={isGeneratingLink}
-            className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white text-xs font-semibold shadow-xs transition cursor-pointer whitespace-nowrap"
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 h-10 px-3.5 sm:px-4 rounded-full bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white text-xs font-semibold shadow-xs transition cursor-pointer whitespace-nowrap"
           >
-            <QrCode className="w-3.5 h-3.5 text-sky-400" />
+            <QrCode className="w-3.5 h-3.5 text-sky-400 shrink-0" />
             <span>Minta Validasi (QR)</span>
             {pendingCountTotal > 0 && (
               <span className="px-1.5 py-0.2 rounded-full bg-sky-500 text-white text-[10px] font-bold">
@@ -475,9 +522,9 @@ export default function LogHistoryPage() {
 
           <Link
             href="/student/log/new"
-            className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-full bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs font-semibold shadow-xs transition whitespace-nowrap"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-full bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs font-semibold shadow-xs transition whitespace-nowrap"
           >
-            <PlusCircle className="w-3.5 h-3.5" />
+            <PlusCircle className="w-3.5 h-3.5 shrink-0" />
             <span>Catat Jurnal</span>
           </Link>
         </div>
@@ -487,13 +534,13 @@ export default function LogHistoryPage() {
           2. ACTIVITY SUMMARY WIDGET (UNIFIED SQUIRCLE CARD)
           Satu kartu aktivitas terpadu dengan tipografi sans yang bersih dan proporsional
       ───────────────────────────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-xs space-y-4">
+      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200/80 shadow-xs space-y-4">
         {/* Progress Bar Target 792 JP */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
               <span className="font-semibold text-slate-900 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-sky-500" />
+                <Sparkles className="w-3.5 h-3.5 text-sky-500 shrink-0" />
                 <span>Akumulasi Jam Pembelajaran PKL</span>
               </span>
               <span className="text-[11px] text-slate-400 hidden sm:inline font-normal">
@@ -519,74 +566,74 @@ export default function LogHistoryPage() {
         </div>
 
         {/* 4 Metric Tiles: Tipografi Konsisten dengan StudentWidgetPanel */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 pt-1 border-t border-slate-100">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 pt-1 border-t border-slate-100">
           {/* Tile 1: Terverifikasi */}
-          <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-50/70 border border-slate-200/60 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200/70 flex items-center justify-center shrink-0 shadow-2xs">
-              <CheckCircle2 className="w-5 h-5" />
+          <div className="p-2.5 sm:p-3.5 rounded-2xl bg-slate-50/70 border border-slate-200/60 flex items-center gap-2.5 sm:gap-3">
+            <div className="w-8.5 h-8.5 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200/70 flex items-center justify-center shrink-0 shadow-2xs">
+              <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">
                 Tervalidasi
               </p>
-              <p className="text-base sm:text-lg font-semibold text-slate-900 tracking-tight leading-none mt-0.5">
+              <p className="text-sm sm:text-lg font-bold text-slate-900 tracking-tight leading-none mt-0.5">
                 {totalVerifiedJp} <span className="text-xs font-normal text-slate-500">Jam</span>
               </p>
-              <span className="text-xs text-emerald-700 font-normal truncate block mt-0.5">
-                ≈ {convertRealHoursToJp(totalVerifiedJp).toFixed(1)} JP e-Rapor
+              <span className="text-[10px] sm:text-xs text-emerald-700 font-normal truncate block mt-0.5">
+                ≈ {convertRealHoursToJp(totalVerifiedJp).toFixed(1)} JP
               </span>
             </div>
           </div>
 
           {/* Tile 2: Menunggu PIN */}
-          <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-50/70 border border-slate-200/60 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-200/70 flex items-center justify-center shrink-0 shadow-2xs">
-              <Clock className="w-5 h-5" />
+          <div className="p-2.5 sm:p-3.5 rounded-2xl bg-slate-50/70 border border-slate-200/60 flex items-center gap-2.5 sm:gap-3">
+            <div className="w-8.5 h-8.5 sm:w-10 sm:h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-200/70 flex items-center justify-center shrink-0 shadow-2xs">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">
                 Menunggu PIN
               </p>
-              <p className="text-base sm:text-lg font-semibold text-amber-700 tracking-tight leading-none mt-0.5">
+              <p className="text-sm sm:text-lg font-bold text-amber-700 tracking-tight leading-none mt-0.5">
                 {totalPendingJp} <span className="text-xs font-normal text-slate-500">Jam</span>
               </p>
-              <span className="text-xs text-amber-700 font-normal truncate block mt-0.5">
-                {pendingCountTotal} jurnal pending
+              <span className="text-[10px] sm:text-xs text-amber-700 font-normal truncate block mt-0.5">
+                {pendingCountTotal} pending
               </span>
             </div>
           </div>
 
           {/* Tile 3: Hari Kehadiran */}
-          <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-50/70 border border-slate-200/60 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-200/70 flex items-center justify-center shrink-0 shadow-2xs">
-              <Calendar className="w-5 h-5" />
+          <div className="p-2.5 sm:p-3.5 rounded-2xl bg-slate-50/70 border border-slate-200/60 flex items-center gap-2.5 sm:gap-3">
+            <div className="w-8.5 h-8.5 sm:w-10 sm:h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-200/70 flex items-center justify-center shrink-0 shadow-2xs">
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">
                 Hari Praktik
               </p>
-              <p className="text-base sm:text-lg font-semibold text-slate-900 tracking-tight leading-none mt-0.5">
+              <p className="text-sm sm:text-lg font-bold text-slate-900 tracking-tight leading-none mt-0.5">
                 {allLogs.length} <span className="text-xs font-normal text-slate-500">Hari</span>
               </p>
-              <span className="text-xs text-slate-500 font-normal truncate block mt-0.5">
-                Presensi teratur DUDI
+              <span className="text-[10px] sm:text-xs text-slate-500 font-normal truncate block mt-0.5">
+                Presensi teratur
               </span>
             </div>
           </div>
 
           {/* Tile 4: Kemandirian */}
-          <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-50/70 border border-slate-200/60 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200/70 flex items-center justify-center shrink-0 shadow-2xs">
-              <Award className="w-5 h-5" />
+          <div className="p-2.5 sm:p-3.5 rounded-2xl bg-slate-50/70 border border-slate-200/60 flex items-center gap-2.5 sm:gap-3">
+            <div className="w-8.5 h-8.5 sm:w-10 sm:h-10 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200/70 flex items-center justify-center shrink-0 shadow-2xs">
+              <Award className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">
-                Kemandirian SOP
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">
+                Kemandirian
               </p>
-              <p className="text-base sm:text-lg font-semibold text-slate-900 tracking-tight leading-none mt-0.5">
+              <p className="text-sm sm:text-lg font-bold text-slate-900 tracking-tight leading-none mt-0.5">
                 {mandiriPercentage}%
               </p>
-              <span className="text-xs text-slate-500 font-normal truncate block mt-0.5">
+              <span className="text-[10px] sm:text-xs text-slate-500 font-normal truncate block mt-0.5">
                 Bobot e-Rapor 60%
               </span>
             </div>
@@ -969,9 +1016,18 @@ export default function LogHistoryPage() {
       {/* ─────────────────────────────────────────────────────────────────────────────
           5. MODAL MINTA VALIDASI QR (ZERO-LOGIN MENTOR HAND-OFF)
       ───────────────────────────────────────────────────────────────────────────── */}
-      {showQrModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in-0 duration-150">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 sm:p-7 shadow-modal border border-slate-200/80 space-y-4 animate-in zoom-in-95 duration-150 text-center">
+      {isMountedState && showQrModal && typeof document !== "undefined" && createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setShowQrModal(false)}
+          className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in-0 duration-150"
+          style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-sm w-full p-6 sm:p-7 shadow-modal border border-slate-200/80 space-y-4 animate-in zoom-in-95 duration-150 text-center"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 text-left">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-xs">
@@ -1050,15 +1106,25 @@ export default function LogHistoryPage() {
               </Link>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ─────────────────────────────────────────────────────────────────────────────
           6. MODAL RINCIAN LOG (INSPECTOR SHEET)
       ───────────────────────────────────────────────────────────────────────────── */}
-      {selectedLogDetail && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in-0 duration-150">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-modal border border-slate-200/80 space-y-4 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+      {isMountedState && selectedLogDetail && typeof document !== "undefined" && createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setSelectedLogDetail(null)}
+          className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in-0 duration-150"
+          style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-modal border border-slate-200/80 space-y-4 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto no-scrollbar scrollbar-none"
+          >
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-200/80">
               <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
@@ -1100,20 +1166,44 @@ export default function LogHistoryPage() {
               </h2>
             </div>
 
-            {/* Bukti Foto Terlampir */}
+            {/* Bukti Foto Terlampir & Lightbox Zoomable */}
             {isLoadingDetailPhoto ? (
               <div className="h-44 rounded-2xl bg-slate-100 flex items-center justify-center animate-pulse text-xs text-slate-400">
                 Memuat pratinjau bukti foto...
               </div>
             ) : detailPhotoUrl ? (
-              <div className="relative rounded-2xl overflow-hidden border border-slate-200/80 bg-slate-50 flex items-center justify-center max-h-56">
-                <img
-                  src={detailPhotoUrl}
-                  alt="Bukti Foto Jurnal"
-                  className="w-full h-auto max-h-56 object-contain"
-                />
-                <div className="absolute top-2 right-2 px-3 py-0.5 rounded-full bg-slate-900/80 backdrop-blur-xs text-[10px] font-medium text-white flex items-center gap-1 shadow-xs">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-400" /> WebP Terkompresi
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-slate-700 flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-sky-600" />
+                    <span>Bukti Foto Dokumentasi Kerja</span>
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-normal">
+                    Klik foto untuk perbesar
+                  </span>
+                </div>
+
+                <div
+                  onClick={() => setLightboxPhotoUrl(detailPhotoUrl)}
+                  className="relative rounded-2xl overflow-hidden border border-slate-200/90 bg-slate-950 group cursor-pointer shadow-2xs hover:shadow-card transition-all duration-200"
+                  title="Klik untuk membuka foto layar penuh"
+                >
+                  <img
+                    src={detailPhotoUrl}
+                    alt="Bukti Foto Jurnal"
+                    className="w-full h-44 sm:h-52 object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                  />
+                  {/* Floating badge */}
+                  <div className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full bg-slate-900/85 backdrop-blur-xs text-[10px] font-semibold text-white flex items-center gap-1.5 shadow-xs">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400 stroke-[2.5]" />
+                    <span>WebP &bull; SHA-256 Valid</span>
+                  </div>
+
+                  {/* Hover overlay hint with Zoom icon */}
+                  <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-semibold backdrop-blur-[1px]">
+                    <Maximize2 className="w-4 h-4" />
+                    <span>Perbesar Layar Penuh</span>
+                  </div>
                 </div>
               </div>
             ) : selectedLogDetail.hasPhoto ? (
@@ -1211,7 +1301,44 @@ export default function LogHistoryPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────────────────
+          7. FULL-SCREEN PURE PHOTO VIEWER (PORTAL KE BODY: NO LEAK, IDENTICAL BLUR)
+      ───────────────────────────────────────────────────────────────────────────── */}
+      {isMountedState && lightboxPhotoUrl && typeof document !== "undefined" && createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setLightboxPhotoUrl(null)}
+          className="fixed inset-0 z-[1000] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 cursor-zoom-out select-none animate-in fade-in-0 duration-150"
+          style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
+        >
+          {/* Tombol Tutup Bulat Minimalis di Pojok Kanan Atas */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightboxPhotoUrl(null);
+            }}
+            aria-label="Tutup Foto"
+            className="fixed top-4 right-4 sm:top-6 sm:right-6 w-10 h-10 rounded-full bg-slate-900/60 hover:bg-slate-900/80 active:scale-95 text-white/90 hover:text-white border border-white/20 backdrop-blur-md flex items-center justify-center transition cursor-pointer z-10 shadow-xl"
+            title="Tutup (Esc)"
+          >
+            <X className="w-5 h-5 stroke-[2.5]" />
+          </button>
+
+          {/* Foto Murni Beresolusi Penuh (Tanpa Informasi Apapun) */}
+          <img
+            src={lightboxPhotoUrl}
+            alt="Dokumentasi Bukti Kerja"
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[88vh] max-w-[92vw] w-auto h-auto object-contain rounded-2xl sm:rounded-3xl shadow-2xl animate-in zoom-in-95 duration-150 cursor-default ring-1 ring-black/10"
+          />
+        </div>,
+        document.body
       )}
     </div>
   );
