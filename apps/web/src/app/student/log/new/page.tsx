@@ -50,6 +50,8 @@ import { fetchStudentLogContext, type StudentLogContextResponse } from "@/lib/ap
 import { cn } from "@/lib/cn";
 import { MentorQrModal } from "@/components/student/home/MentorQrModal";
 import { PhotoPrivacyStudioModal } from "@/components/student/log/PhotoPrivacyStudioModal";
+import { SmartDateSelector } from "@/components/student/log/SmartDateSelector";
+import { SmartShiftSelector } from "@/components/student/log/SmartShiftSelector";
 
 interface JobCardItem {
   id: string;
@@ -319,7 +321,7 @@ export default function NewLogPage() {
           };
           localStorage.setItem("vokalink_new_log_draft_v1", JSON.stringify(draftPayload));
           setHasDraft(true);
-        } catch {}
+        } catch { }
       }
     }, 600);
     return () => clearTimeout(timeout);
@@ -345,7 +347,7 @@ export default function NewLogPage() {
           setHasDraft(true);
         }
       }
-    } catch {}
+    } catch { }
   }, []);
 
   const handleRestoreDraft = () => {
@@ -363,14 +365,14 @@ export default function NewLogPage() {
       if (parsed.shortNote) setShortNote(parsed.shortNote);
       if (parsed.selectedJobCardIds) setSelectedJobCardIds(parsed.selectedJobCardIds);
       setHasDraft(false);
-    } catch {}
+    } catch { }
   };
 
   const handleDiscardDraft = () => {
     try {
       localStorage.removeItem("vokalink_new_log_draft_v1");
       setHasDraft(false);
-    } catch {}
+    } catch { }
   };
 
   // 1-Click Copy Yesterday: Duplikasi kartu pekerjaan dan durasi kemarin (FR-005 UX)
@@ -846,7 +848,7 @@ export default function NewLogPage() {
       try {
         localStorage.removeItem("vokalink_new_log_draft_v1");
         setHasDraft(false);
-      } catch {}
+      } catch { }
     } catch (error) {
       alert("Terjadi kesalahan saat menyimpan ke IndexedDB: " + (error instanceof Error ? error.message : String(error)));
     } finally {
@@ -1036,466 +1038,30 @@ export default function NewLogPage() {
             </div>
 
             {/* 2. Tanggal Pelaksanaan Kegiatan (BR-003: H to H-3) */}
-            <div className="bg-slate-50/60 rounded-2xl p-4 sm:p-4.5 border border-slate-200/70 space-y-2">
-              <div className="flex items-center justify-between">
-                <label
-                  htmlFor="log-date"
-                  className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5"
-                >
-                  <Calendar className="w-3.5 h-3.5 text-sky-600" />
-                  <span>Tanggal Pelaksanaan Kegiatan</span>
-                </label>
-                <div className="flex items-center gap-2">
-                  {selectedDate !== today && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/70 text-[10.5px] font-medium animate-in fade-in">
-                      <Clock className="w-3 h-3 text-amber-600" />
-                      <span>Pengisian Susulan</span>
-                    </span>
-                  )}
-                  <span className="text-[11px] text-slate-400 font-medium">
-                    Maksimal H-3 (72 Jam)
-                  </span>
-                </div>
-              </div>
-
-              <input
-                id="log-date"
-                type="date"
-                value={selectedDate}
-                min={minDate}
-                max={today}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full text-xs sm:text-sm font-medium px-3.5 py-2.5 rounded-xl bg-white border border-slate-200/80 text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs"
-              />
-
-              <p className="text-[11px] text-slate-400 flex items-center gap-1.5 leading-snug font-normal">
-                <Info className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                <span>Batas pengisian maksimal 3 hari kerja ke belakang (BR-003) untuk mencegah pencatatan rapelan fiktif.</span>
-              </p>
-            </div>
+            <SmartDateSelector
+              selectedDate={selectedDate}
+              onSelectDate={(newDate) => setSelectedDate(newDate)}
+              minDate={minDate}
+              maxDate={today}
+              offlineLogs={offlineLogs}
+            />
 
             {/* 3. Durasi Jam Kerja Industri (Shift Presensi - BR-002) */}
-            {/* Urutan logis: Hadir -> Tanggal -> Shift Jam Kerja -> Kartu Pekerjaan */}
             {!isSickOrPermit && (
-              <div className="bg-slate-50/60 rounded-2xl p-4 sm:p-5 border border-slate-200/70 space-y-3.5">
-                {/* Header: Title & Interactive Stepper */}
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
-                      Jam Kerja Industri (Shift Presensi):
-                    </label>
-                    <span className="text-[10px] text-slate-400 font-normal">
-                      Durasi waktu kerja riil di tempat magang
-                    </span>
-                  </div>
-
-                  {/* Stepper Controls: Minus, Display Badge, Plus */}
-                  <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-slate-200/70 shadow-2xs">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        hasUserManuallyChangedDuration.current = true;
-                        setDurationJp((prev) =>
-                          Math.max(
-                            !isNonCompetency ? Math.max(MIN_DAILY_JP, selectedJobCardIds.length) : MIN_DAILY_JP,
-                            prev - 1
-                          )
-                        );
-                      }}
-                      disabled={
-                        durationJp <=
-                        (!isNonCompetency ? Math.max(MIN_DAILY_JP, selectedJobCardIds.length) : MIN_DAILY_JP)
-                      }
-                      className="w-8 h-8 rounded-lg bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-slate-700 transition cursor-pointer active:scale-95 border border-slate-200/50 shadow-2xs"
-                      title="Kurangi 1 jam"
-                    >
-                      <Minus className="w-3.5 h-3.5" />
-                    </button>
-                    <span className="text-xs font-semibold text-sky-700 px-2 py-0.5 min-w-[58px] text-center">
-                      {durationJp} Jam
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        hasUserManuallyChangedDuration.current = true;
-                        setDurationJp((prev) => Math.min(MAX_DAILY_JP, prev + 1));
-                      }}
-                      disabled={durationJp >= MAX_DAILY_JP}
-                      className="w-8 h-8 rounded-lg bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-slate-700 transition cursor-pointer active:scale-95 border border-slate-200/50 shadow-2xs"
-                      title="Tambah 1 jam"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Hero Selected Shift Status Box */}
-                <div className="p-3 rounded-2xl bg-gradient-to-br from-sky-50/90 via-sky-50/50 to-blue-50/30 border border-sky-100/90 flex items-center justify-between gap-2.5 shadow-2xs">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-base font-semibold text-slate-900 tracking-tight">
-                        {durationJp} Jam
-                      </span>
-                      <span className="text-[10px] font-medium uppercase tracking-wider text-sky-700 bg-sky-100/80 border border-sky-200/70 px-2 py-0.5 rounded-full">
-                        WAKTU RIIL DUDI
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 font-normal truncate mt-0.5">
-                      {currentShiftSummary}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <span className="text-[10px] text-slate-400 block font-normal">Beban Belajar:</span>
-                    <span className="text-xs font-semibold text-sky-700">
-                      ≈ {convertRealHoursToJp(durationJp).toFixed(1)} JP
-                    </span>
-                  </div>
-                </div>
-
-                {/* 6 Clean Shift Preset Cards (2 columns x 3 rows) */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-slate-500 font-medium">Pilih Preset Shift Cepat:</span>
-                    <span className="text-[10px] text-slate-400">1-Klik Terpilih</span>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {/* 1. 8 Jam (Full Day 5 Hari) */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        hasUserManuallyChangedDuration.current = true;
-                        setDurationJp(8);
-                      }}
-                      className={cn(
-                        "p-2.5 rounded-xl text-left border transition cursor-pointer active:scale-98 flex flex-col justify-between min-h-[52px]",
-                        durationJp === 8
-                          ? "bg-sky-500 text-white border-sky-500 shadow-sm ring-2 ring-sky-500/20"
-                          : "bg-white hover:bg-slate-50 text-slate-800 border-slate-200/70"
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span
-                          className={cn(
-                            "text-xs font-semibold",
-                            durationJp === 8 ? "text-white" : "text-slate-900"
-                          )}
-                        >
-                          8 Jam
-                        </span>
-                        {isWeekday && (
-                          <span
-                            className={cn(
-                              "text-[9px] font-medium px-1.5 py-0.5 rounded",
-                              durationJp === 8 ? "bg-white/20 text-white" : "bg-sky-100 text-sky-700"
-                            )}
-                          >
-                            Default
-                          </span>
-                        )}
-                      </div>
-                      <span
-                        className={cn(
-                          "text-[10px] font-normal truncate mt-1",
-                          durationJp === 8 ? "text-sky-100" : "text-slate-500"
-                        )}
-                      >
-                        Full Day (5 Hari)
-                      </span>
-                    </button>
-
-                    {/* 2. 7 Jam (Full Day 6 Hari) */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        hasUserManuallyChangedDuration.current = true;
-                        setDurationJp(7);
-                      }}
-                      className={cn(
-                        "p-2.5 rounded-xl text-left border transition cursor-pointer active:scale-98 flex flex-col justify-between min-h-[52px]",
-                        durationJp === 7
-                          ? "bg-sky-500 text-white border-sky-500 shadow-sm ring-2 ring-sky-500/20"
-                          : "bg-white hover:bg-slate-50 text-slate-800 border-slate-200/70"
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "text-xs font-semibold",
-                          durationJp === 7 ? "text-white" : "text-slate-900"
-                        )}
-                      >
-                        7 Jam
-                      </span>
-                      <span
-                        className={cn(
-                          "text-[10px] font-normal truncate mt-1",
-                          durationJp === 7 ? "text-sky-100" : "text-slate-500"
-                        )}
-                      >
-                        Full Day (6 Hari)
-                      </span>
-                    </button>
-
-                    {/* 3. 6 Jam (Shift Pagi/Sore) */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        hasUserManuallyChangedDuration.current = true;
-                        setDurationJp(6);
-                      }}
-                      className={cn(
-                        "p-2.5 rounded-xl text-left border transition cursor-pointer active:scale-98 flex flex-col justify-between min-h-[52px]",
-                        durationJp === 6
-                          ? "bg-sky-500 text-white border-sky-500 shadow-sm ring-2 ring-sky-500/20"
-                          : "bg-white hover:bg-slate-50 text-slate-800 border-slate-200/70"
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "text-xs font-semibold",
-                          durationJp === 6 ? "text-white" : "text-slate-900"
-                        )}
-                      >
-                        6 Jam
-                      </span>
-                      <span
-                        className={cn(
-                          "text-[10px] font-normal truncate mt-1",
-                          durationJp === 6 ? "text-sky-100" : "text-slate-500"
-                        )}
-                      >
-                        Shift Pagi / Sore
-                      </span>
-                    </button>
-
-                    {/* 4. 5 Jam (Shift Sabtu) */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        hasUserManuallyChangedDuration.current = true;
-                        setDurationJp(5);
-                      }}
-                      className={cn(
-                        "p-2.5 rounded-xl text-left border transition cursor-pointer active:scale-98 flex flex-col justify-between min-h-[52px]",
-                        durationJp === 5
-                          ? "bg-sky-500 text-white border-sky-500 shadow-sm ring-2 ring-sky-500/20"
-                          : "bg-white hover:bg-slate-50 text-slate-800 border-slate-200/70"
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span
-                          className={cn(
-                            "text-xs font-semibold",
-                            durationJp === 5 ? "text-white" : "text-slate-900"
-                          )}
-                        >
-                          5 Jam
-                        </span>
-                        {isSaturday && (
-                          <span
-                            className={cn(
-                              "text-[9px] font-medium px-1.5 py-0.5 rounded",
-                              durationJp === 5 ? "bg-white/20 text-white" : "bg-sky-100 text-sky-700"
-                            )}
-                          >
-                            Sabtu
-                          </span>
-                        )}
-                      </div>
-                      <span
-                        className={cn(
-                          "text-[10px] font-normal truncate mt-1",
-                          durationJp === 5 ? "text-sky-100" : "text-slate-500"
-                        )}
-                      >
-                        Shift Sabtu
-                      </span>
-                    </button>
-
-                    {/* 5. 4 Jam (Setengah Hari) */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        hasUserManuallyChangedDuration.current = true;
-                        setDurationJp(4);
-                      }}
-                      className={cn(
-                        "p-2.5 rounded-xl text-left border transition cursor-pointer active:scale-98 flex flex-col justify-between min-h-[52px]",
-                        durationJp === 4
-                          ? "bg-sky-500 text-white border-sky-500 shadow-sm ring-2 ring-sky-500/20"
-                          : "bg-white hover:bg-slate-50 text-slate-800 border-slate-200/70"
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "text-xs font-semibold",
-                          durationJp === 4 ? "text-white" : "text-slate-900"
-                        )}
-                      >
-                        4 Jam
-                      </span>
-                      <span
-                        className={cn(
-                          "text-[10px] font-normal truncate mt-1",
-                          durationJp === 4 ? "text-sky-100" : "text-slate-500"
-                        )}
-                      >
-                        Setengah Hari
-                      </span>
-                    </button>
-
-                    {/* 6. 9-10 Jam (Jam Tambahan / Proyek Khusus) */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        hasUserManuallyChangedDuration.current = true;
-                        setDurationJp((prev) => (prev === 9 ? 10 : 9));
-                      }}
-                      className={cn(
-                        "p-2.5 rounded-xl text-left border transition cursor-pointer active:scale-98 flex flex-col justify-between min-h-[52px]",
-                        durationJp === 9 || durationJp === 10
-                          ? "bg-sky-500 text-white border-sky-500 shadow-sm ring-2 ring-sky-500/20"
-                          : "bg-white hover:bg-slate-50 text-slate-800 border-slate-200/70"
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span
-                          className={cn(
-                            "text-xs font-semibold",
-                            durationJp === 9 || durationJp === 10 ? "text-white" : "text-slate-900"
-                          )}
-                        >
-                          {durationJp === 10 ? "10 Jam" : "9 Jam"}
-                        </span>
-                        <span
-                          className={cn(
-                            "text-[8.5px] font-medium px-1.5 py-0.5 rounded",
-                            durationJp === 9 || durationJp === 10
-                              ? "bg-white/20 text-white"
-                              : "bg-amber-100 text-amber-800"
-                          )}
-                        >
-                          Lembur
-                        </span>
-                      </div>
-                      <span
-                        className={cn(
-                          "text-[10px] font-normal truncate mt-1",
-                          durationJp === 9 || durationJp === 10 ? "text-sky-100" : "text-slate-500"
-                        )}
-                      >
-                        Proyek Khusus
-                      </span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Granular Hours Expander */}
-                <div className="pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowCustomHours(!showCustomHours)}
-                    className="w-full flex items-center justify-between text-[11px] text-slate-500 hover:text-slate-800 transition py-1 cursor-pointer"
-                  >
-                    <span className="flex items-center gap-1 font-medium">
-                      <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{showCustomHours ? "Tutup Pengatur Jam Kustom" : "Atur Jam Kustom (1 - 12 Jam)"}</span>
-                    </span>
-                    <ChevronDown
-                      className={cn(
-                        "w-3.5 h-3.5 transition-transform duration-200",
-                        showCustomHours ? "rotate-180" : ""
-                      )}
-                    />
-                  </button>
-
-                  {showCustomHours && (
-                    <div className="mt-2.5 p-3 rounded-xl bg-white border border-slate-200/70 space-y-3 animate-in fade-in duration-150 shadow-2xs">
-                      <div>
-                        <span className="text-[10px] text-slate-400 block mb-1.5">Pilih jam spesifik:</span>
-                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                          {Array.from({ length: 12 }, (_, i) => i + 1).map((hr) => {
-                            const isCur = durationJp === hr;
-                            const isUnderMin = !isNonCompetency && hr < Math.max(MIN_DAILY_JP, selectedJobCardIds.length);
-                            return (
-                              <button
-                                key={hr}
-                                type="button"
-                                disabled={isUnderMin}
-                                onClick={() => {
-                                  hasUserManuallyChangedDuration.current = true;
-                                  setDurationJp(hr);
-                                }}
-                                className={cn(
-                                  "w-7 h-7 rounded-lg text-xs font-semibold transition flex items-center justify-center shrink-0 border cursor-pointer active:scale-95",
-                                  isCur
-                                    ? "bg-slate-900 text-white border-slate-900 shadow-2xs"
-                                    : isUnderMin
-                                    ? "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed opacity-40"
-                                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-                                )}
-                              >
-                                {hr}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <input
-                          type="range"
-                          min={!isNonCompetency ? Math.max(MIN_DAILY_JP, selectedJobCardIds.length) : MIN_DAILY_JP}
-                          max={MAX_DAILY_JP}
-                          value={durationJp}
-                          onChange={(e) => {
-                            hasUserManuallyChangedDuration.current = true;
-                            setDurationJp(parseInt(e.target.value, 10));
-                          }}
-                          className="w-full accent-sky-500 cursor-pointer h-1.5 bg-slate-100 rounded-lg appearance-none"
-                        />
-                        <div className="flex justify-between text-[9px] text-slate-400 font-medium">
-                          <span>Min: {!isNonCompetency ? Math.max(MIN_DAILY_JP, selectedJobCardIds.length) : MIN_DAILY_JP} Jam</span>
-                          <span>Maks: {MAX_DAILY_JP} Jam</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Single Contextual Warning Alert with Demo Reset Button */}
-                {existingDailyJp > 0 && (
-                  <div
-                    className={cn(
-                      "p-3 rounded-xl border text-[11px] leading-snug space-y-1.5 animate-in fade-in",
-                      existingDailyJp + durationJp > MAX_DAILY_JP
-                        ? "bg-rose-50 border-rose-200 text-rose-800"
-                        : "bg-amber-50/70 border-amber-200/70 text-amber-800"
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-start gap-2">
-                        <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600" />
-                        <span>
-                          Tanggal ini sudah memiliki <strong>{existingDailyJp} Jam</strong> tercatat sebelumnya.
-                          {existingDailyJp + durationJp > MAX_DAILY_JP
-                            ? ` Penambahan ${durationJp} Jam (Total ${existingDailyJp + durationJp} Jam) melebihi batas maksimal 12 jam harian.`
-                            : ` Sisa kuota aman untuk hari ini: ${remainingDailyQuota - durationJp} Jam.`}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleResetTodayLogsForDemo}
-                        className="text-[10.5px] font-semibold text-rose-700 hover:text-rose-900 flex items-center gap-1 shrink-0 cursor-pointer underline active:scale-95 ml-2"
-                        title="Hapus log tersimpan pada tanggal ini agar form bersih untuk simulasi demo juri"
-                      >
-                        <RotateCcw className="w-3 h-3" />
-                        <span>Reset Demo</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <SmartShiftSelector
+                durationJp={durationJp}
+                onChangeDuration={(newVal) => {
+                  hasUserManuallyChangedDuration.current = true;
+                  setDurationJp(newVal);
+                }}
+                minJp={!isNonCompetency ? Math.max(MIN_DAILY_JP, selectedJobCardIds.length) : MIN_DAILY_JP}
+                maxJp={MAX_DAILY_JP}
+                isSaturday={isSaturday}
+                isWeekday={isWeekday}
+                existingDailyJp={existingDailyJp}
+                remainingDailyQuota={remainingDailyQuota}
+                onResetTodayLogs={handleResetTodayLogsForDemo}
+              />
             )}
 
             {/* 4. Pilihan Kartu Pekerjaan & Penguasaan SOP (dengan Tombol Jujur Terintegrasi) */}
@@ -1807,8 +1373,8 @@ export default function NewLogPage() {
                           {selectedJobCardIds.length === 1
                             ? `${durationJp} Jam Kerja penuh (Fokus 1 tugas)`
                             : selectedJobCardIds.length === 2
-                            ? `${Math.ceil(durationJp / 2)} Jam + ${Math.floor(durationJp / 2)} Jam (${durationJp} Jam total)`
-                            : `Dibagi rata ke 3 tugas (${durationJp} Jam total)`}
+                              ? `${Math.ceil(durationJp / 2)} Jam + ${Math.floor(durationJp / 2)} Jam (${durationJp} Jam total)`
+                              : `Dibagi rata ke 3 tugas (${durationJp} Jam total)`}
                         </span>
                       </div>
                     )}
@@ -1826,8 +1392,8 @@ export default function NewLogPage() {
                     {attendanceType === "SICK"
                       ? "Foto Surat Keterangan Dokter"
                       : attendanceType === "PERMIT"
-                      ? "Foto Surat Izin / Dispensasi"
-                      : "Foto Bukti Praktik (WebP)"}
+                        ? "Foto Surat Izin / Dispensasi"
+                        : "Foto Bukti Praktik (WebP)"}
                   </span>
                 </span>
                 <span className="text-[10px] font-medium text-slate-500 bg-white border border-slate-200/70 px-2 py-0.5 rounded-full shadow-2xs">
@@ -1903,8 +1469,8 @@ export default function NewLogPage() {
                               {attendanceType === "SICK"
                                 ? "Sensor Data Medis / Privasi Pasien"
                                 : attendanceType === "PERMIT"
-                                ? "Sensor Data Pribadi Dokumen"
-                                : "Sensor Dokumen / Layar DUDI"}
+                                  ? "Sensor Data Pribadi Dokumen"
+                                  : "Sensor Dokumen / Layar DUDI"}
                             </span>
                             {applyPrivacyBlur && (
                               <span className="text-[9.5px] bg-emerald-100 text-emerald-800 font-semibold px-1.5 py-0.2 rounded">
@@ -1916,8 +1482,8 @@ export default function NewLogPage() {
                             {attendanceType === "SICK"
                               ? "Gunakan kuas sensor untuk menyamarkan diagnosa khusus atau NIK di surat dokter"
                               : attendanceType === "PERMIT"
-                              ? "Gunakan kuas sensor untuk menyamarkan tanda tangan atau kontak pribadi"
-                              : "Tarik kotak atau kuas untuk menyamarkan kodingan & token rahasia"}
+                                ? "Gunakan kuas sensor untuk menyamarkan tanda tangan atau kontak pribadi"
+                                : "Tarik kotak atau kuas untuk menyamarkan kodingan & token rahasia"}
                           </p>
                         </div>
                       </div>
@@ -1995,8 +1561,8 @@ export default function NewLogPage() {
                       {attendanceType === "SICK"
                         ? "Gunakan Contoh Surat Dokter (Simulasi Demo)"
                         : attendanceType === "PERMIT"
-                        ? "Gunakan Contoh Surat Dispensasi (Simulasi Demo)"
-                        : "Gunakan Foto Demo Praktik (Simulasi Layar Monitor & Kuas Sensor Privasi)"}
+                          ? "Gunakan Contoh Surat Dispensasi (Simulasi Demo)"
+                          : "Gunakan Foto Demo Praktik (Simulasi Layar Monitor & Kuas Sensor Privasi)"}
                     </span>
                   </button>
                 </div>
@@ -2087,8 +1653,8 @@ export default function NewLogPage() {
                 weeklyWorkStats.isCriticalOverwork
                   ? "bg-rose-50 border-rose-200 text-rose-900"
                   : weeklyWorkStats.isWarningOverwork
-                  ? "bg-amber-50 border-amber-200 text-amber-900"
-                  : "bg-emerald-50/70 border-emerald-200/70 text-emerald-900"
+                    ? "bg-amber-50 border-amber-200 text-amber-900"
+                    : "bg-emerald-50/70 border-emerald-200/70 text-emerald-900"
               )}
             >
               <div className="flex items-center gap-2 min-w-0">
@@ -2098,8 +1664,8 @@ export default function NewLogPage() {
                     weeklyWorkStats.isCriticalOverwork
                       ? "bg-rose-100 text-rose-700"
                       : weeklyWorkStats.isWarningOverwork
-                      ? "bg-amber-100 text-amber-700"
-                      : "bg-emerald-100 text-emerald-700"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-emerald-100 text-emerald-700"
                   )}
                 >
                   {weeklyWorkStats.isCriticalOverwork || weeklyWorkStats.isWarningOverwork ? (
@@ -2113,15 +1679,15 @@ export default function NewLogPage() {
                     {weeklyWorkStats.isCriticalOverwork
                       ? "Peringatan K3: Overwork"
                       : weeklyWorkStats.isWarningOverwork
-                      ? "Perhatian K3: Jam Tinggi"
-                      : "Status K3: Aman & Sehat"}
+                        ? "Perhatian K3: Jam Tinggi"
+                        : "Status K3: Aman & Sehat"}
                   </p>
                   <p className="text-[9.5px] text-slate-500 truncate">
                     {weeklyWorkStats.isCriticalOverwork
                       ? "Melebihi 45 jam / lembur berlebih"
                       : weeklyWorkStats.isWarningOverwork
-                      ? "Mendekati 40 jam normal mingguan"
-                      : "Sesuai batas normal jam belajar"}
+                        ? "Mendekati 40 jam normal mingguan"
+                        : "Sesuai batas normal jam belajar"}
                   </p>
                 </div>
               </div>
@@ -2168,8 +1734,8 @@ export default function NewLogPage() {
               attendanceType === "SICK"
                 ? "Diagnosa dokter atau kondisi sakit..."
                 : attendanceType === "PERMIT"
-                ? "Alasan izin / dispensasi kegiatan..."
-                : "Ringkasan kendala atau fitur yang diselesaikan..."
+                  ? "Alasan izin / dispensasi kegiatan..."
+                  : "Ringkasan kendala atau fitur yang diselesaikan..."
             }
             className="w-full text-xs p-3 rounded-xl bg-slate-50/70 border border-slate-200/80 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 focus:bg-white transition"
           />
@@ -2188,33 +1754,33 @@ export default function NewLogPage() {
               (!isSickOrPermit && durationJp > remainingDailyQuota && existingDailyJp > 0) ||
               (!isSickOrPermit && !isNonCompetency && selectedJobCardIds.length === 0)
             }
-            className="w-full py-3 px-4 bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 px-5 bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white rounded-full text-xs sm:text-sm font-semibold shadow-pill transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ShieldCheck className="w-4 h-4" />
             <span>
               {isSubmitting
-                ? "Menyimpan ke IndexedDB..."
+                ? "Menyimpan Jurnal..."
                 : hasExistingSickOrPermit
-                ? "Sudah Ada Presensi Sakit/Izin"
-                : isSickOrPermit && existingDailyJp > 0
-                ? "Sudah Ada Jam Hadir Tercatat"
-                : !isSickOrPermit && isDailyLimitReached
-                ? "Batas Jam Harian Terpenuhi"
-                : !isSickOrPermit && durationJp > remainingDailyQuota && existingDailyJp > 0
-                ? `Melebihi Batas (${remainingDailyQuota} Jam Sisa)`
-                : !isSickOrPermit && !isNonCompetency && selectedJobCardIds.length === 0
-                ? "Pilih Minimal 1 Pekerjaan"
-                : attendanceType === "SICK"
-                ? "Kirim Presensi Sakit"
-                : attendanceType === "PERMIT"
-                ? "Kirim Presensi Izin"
-                : "Simpan Jurnal Sekarang"}
+                  ? "Sudah Ada Presensi Sakit/Izin"
+                  : isSickOrPermit && existingDailyJp > 0
+                    ? "Sudah Ada Jam Hadir Tercatat"
+                    : !isSickOrPermit && isDailyLimitReached
+                      ? "Batas Jam Harian Terpenuhi"
+                      : !isSickOrPermit && durationJp > remainingDailyQuota && existingDailyJp > 0
+                        ? `Melebihi Batas (${remainingDailyQuota} Jam Sisa)`
+                        : !isSickOrPermit && !isNonCompetency && selectedJobCardIds.length === 0
+                          ? "Pilih Minimal 1 Pekerjaan"
+                          : attendanceType === "SICK"
+                            ? "Kirim Presensi Sakit"
+                            : attendanceType === "PERMIT"
+                              ? "Kirim Presensi Izin"
+                              : "Simpan Jurnal Sekarang"}
             </span>
           </button>
 
           <Link
             href="/student/home"
-            className="w-full py-2.5 px-3 rounded-xl bg-slate-100/80 hover:bg-slate-200/80 text-slate-700 font-medium text-xs flex items-center justify-center gap-1 transition active:scale-[0.98]"
+            className="w-full py-2.5 px-4 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs flex items-center justify-center gap-1 transition active:scale-[0.98] border border-slate-200/80"
           >
             <span>Batalkan &amp; Kembali</span>
           </Link>
@@ -2225,9 +1791,9 @@ export default function NewLogPage() {
           3. CONFIRMATION MODAL & INSTANT MENTOR HAND-OFF
       ───────────────────────────────────────────────────────────────────────────── */}
       {submittedLogUuid && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in-0 duration-150">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-modal border border-slate-200/70 space-y-4 animate-in zoom-in-95 duration-150 text-center">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200/70 flex items-center justify-center mx-auto shadow-xs">
+        <div className="fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in-0 duration-150">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-modal border border-slate-200/80 space-y-4 animate-in zoom-in-95 duration-150 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200/70 flex items-center justify-center mx-auto shadow-2xs">
               <Check className="w-6 h-6 stroke-[3]" />
             </div>
 
@@ -2236,34 +1802,36 @@ export default function NewLogPage() {
                 Jurnal Berhasil Disimpan!
               </h2>
               <p className="text-xs text-slate-500 mt-1 font-normal">
-                Data tersimpan di penyimpanan offline (IndexedDB) perangkat Anda dan siap diverifikasi oleh mentor industri.
+                Data tersimpan di penyimpanan offline perangkat Anda dan siap diverifikasi oleh mentor industri.
               </p>
             </div>
 
-            <div className="p-3.5 bg-slate-50/70 rounded-xl border border-slate-200/60 text-xs text-slate-600 space-y-2 text-left">
+            <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80 text-xs text-slate-600 space-y-2.5 text-left">
               <div className="flex items-center justify-between">
                 <span className="text-slate-400 font-medium">Status Presensi:</span>
                 <span className="font-semibold text-sky-700">
                   {attendanceType === "PRESENT"
                     ? "Hadir Praktik"
                     : attendanceType === "SICK"
-                    ? "Sakit (Surat Dokter)"
-                    : "Izin Resmi"}
+                      ? "Sakit (Surat Dokter)"
+                      : "Izin Resmi"}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-400 font-medium">Status Antrean:</span>
-                <span className="font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/70 text-[10px] font-medium">
-                  QUEUED (Tersimpan Lokal)
+                <span className="font-semibold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200/70 text-[10px]">
+                  Tersimpan Offline (Siap Sinkron)
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-400 font-medium">Durasi &amp; Level SOP:</span>
-                <span className="font-semibold text-slate-900">
+                <span className="font-semibold text-slate-900 font-mono">
                   {durationJp} Jam Kerja{" "}
-                  {attendanceType === "PRESENT"
-                    ? `· ${autonomyLevel === 3 ? "Mandiri (SOP)" : autonomyLevel === 2 ? "Terbimbing" : "Observasi"}`
-                    : "· Administratif"}
+                  <span className="font-sans font-normal text-slate-600">
+                    {attendanceType === "PRESENT"
+                      ? `· ${autonomyLevel === 3 ? "Mandiri (SOP)" : autonomyLevel === 2 ? "Terbimbing" : "Observasi"}`
+                      : "· Administratif"}
+                  </span>
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -2274,12 +1842,12 @@ export default function NewLogPage() {
               </div>
             </div>
 
-            {/* Instant Mentor Verification Hand-Off Buttons */}
+            {/* Instant Mentor Verification Hand-Off Buttons (Pill-shaped) */}
             <div className="space-y-2 pt-1">
               <button
                 type="button"
                 onClick={() => setShowQrModal(true)}
-                className="w-full py-2.5 px-4 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-2 transition shadow-xs cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-full bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-2 transition shadow-pill cursor-pointer"
               >
                 <QrCode className="w-4 h-4" />
                 <span>Minta Validasi PIN Mentor Sekarang (QR)</span>
@@ -2291,7 +1859,7 @@ export default function NewLogPage() {
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-2 transition shadow-xs"
+                className="w-full py-2.5 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-2 transition shadow-xs"
               >
                 <Share2 className="w-4 h-4" />
                 <span>Kirim Tautan ke WhatsApp Mentor</span>
@@ -2301,13 +1869,13 @@ export default function NewLogPage() {
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 font-semibold text-xs transition cursor-pointer"
+                  className="py-2.5 px-3 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 font-semibold text-xs transition cursor-pointer border border-slate-200/80"
                 >
                   Catat Log Lain
                 </button>
                 <Link
                   href="/student/log/history"
-                  className="py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition shadow-xs"
+                  className="py-2.5 px-3 rounded-full bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition shadow-xs"
                 >
                   <span>Lihat Riwayat</span>
                   <ArrowRight className="w-3.5 h-3.5" />
