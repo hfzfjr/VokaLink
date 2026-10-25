@@ -14,7 +14,6 @@ import {
   ExternalLink,
   Copy,
   Check,
-  Sparkles,
   ChevronRight,
   ShieldCheck,
   Image as ImageIcon,
@@ -22,12 +21,18 @@ import {
   Trash2,
   RefreshCw,
   HeartPulse,
-  UserCheck,
   Award,
+  Building2,
+  UserCheck,
+  LayoutList,
+  LayoutGrid,
+  Sparkles,
+  TrendingUp,
 } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
+import { convertRealHoursToJp, TOTAL_TARGET_JP } from "@vokalink/shared";
 import { db } from "@/lib/pwa/db";
-import { generateVerificationLink } from "@/lib/api";
+import { generateVerificationLink, fetchStudentLogContext, type StudentLogContextResponse } from "@/lib/api";
 import { QrCodeView } from "@/components/ui/QrCodeView";
 import { useSyncManager } from "@/lib/pwa/hooks/useSyncManager";
 import { cn } from "@/lib/cn";
@@ -66,7 +71,7 @@ const SAMPLE_LOGS: LogEntry[] = [
     verifiedAt: "20 Okt 2026, 17:30 WIB",
     mentor: "Rizky Firmansyah",
     hasPhoto: true,
-    notes: "Menyelesaikan 4 router Express v5 dan validasi schema Zod untuk modul daily logs.",
+    notes: "Menyelesaikan 4 router Express v5 dan validasi skema Zod untuk modul daily logs.",
   },
   {
     id: "log-2",
@@ -81,7 +86,7 @@ const SAMPLE_LOGS: LogEntry[] = [
     verifiedAt: null,
     mentor: "Rizky Firmansyah",
     hasPhoto: true,
-    notes: "Menambahkan trigger PostgreSQL block_verified_log_update pada skema Prisma.",
+    notes: "Menambahkan trigger PostgreSQL proteksi integritas logbook pada skema database.",
   },
   {
     id: "log-3",
@@ -112,13 +117,42 @@ const SAMPLE_LOGS: LogEntry[] = [
     verifiedAt: "17 Okt 2026, 17:15 WIB",
     mentor: "Rizky Firmansyah",
     hasPhoto: true,
-    notes: "Implementasi responsive header, bottom navigation bar, dan status sync Dexie.",
+    notes: "Implementasi responsive header, bottom navigation bar, dan status sinkronisasi offline.",
   },
 ];
+
+function formatDateIndo(dateStr: string): string {
+  try {
+    const d = new Date(dateStr + "T00:00:00");
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString("id-ID", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
+function parseDateParts(dateStr: string) {
+  try {
+    const d = new Date(dateStr + "T00:00:00");
+    if (isNaN(d.getTime())) return { day: "--", month: "---", weekday: "---" };
+    const day = String(d.getDate());
+    const month = d.toLocaleDateString("id-ID", { month: "short" });
+    const weekday = d.toLocaleDateString("id-ID", { weekday: "short" });
+    return { day, month, weekday };
+  } catch {
+    return { day: "--", month: "---", weekday: "---" };
+  }
+}
 
 export default function LogHistoryPage() {
   const [filter, setFilter] = useState<"ALL" | "PENDING" | "VERIFIED" | "NON_COMPETENCY">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"LIST" | "GRID">("LIST");
   const [showQrModal, setShowQrModal] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [selectedLogDetail, setSelectedLogDetail] = useState<LogEntry | null>(null);
@@ -126,6 +160,17 @@ export default function LogHistoryPage() {
   // Photo viewer state for modal
   const [detailPhotoUrl, setDetailPhotoUrl] = useState<string | null>(null);
   const [isLoadingDetailPhoto, setIsLoadingDetailPhoto] = useState(false);
+
+  // Active Placement Info
+  const [placementInfo, setPlacementInfo] = useState<{
+    dudiName: string;
+    dudiCity: string;
+    mentorName: string;
+  }>({
+    dudiName: "PT Nusantara Tech",
+    dudiCity: "Kota Bandung",
+    mentorName: "Rizky Firmansyah",
+  });
 
   // Sync Manager
   const { isOnline, pendingCount, isSyncing, syncNow } = useSyncManager();
@@ -140,8 +185,47 @@ export default function LogHistoryPage() {
   } | null>(null);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
-  // 1. Reactive Query dari Dexie IndexedDB
+  // Load placement context
+  useEffect(() => {
+    let isMounted = true;
+    async function loadPlacement() {
+      try {
+        const cached = await db.refData.get("student_log_context");
+        if (cached && cached.data && isMounted) {
+          const data = cached.data as StudentLogContextResponse;
+          if (data.activePlacement) {
+            setPlacementInfo({
+              dudiName: data.activePlacement.dudiName,
+              dudiCity: data.activePlacement.dudiCity,
+              mentorName: data.activePlacement.mentorName,
+            });
+          }
+        }
+        if (typeof navigator !== "undefined" && navigator.onLine) {
+          const fresh = await fetchStudentLogContext();
+          if (fresh && fresh.activePlacement && isMounted) {
+            setPlacementInfo({
+              dudiName: fresh.activePlacement.dudiName,
+              dudiCity: fresh.activePlacement.dudiCity,
+              mentorName: fresh.activePlacement.mentorName,
+            });
+          }
+        }
+      } catch {}
+    }
+    loadPlacement();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // 1. Reactive Query dari IndexedDB lokal
   const offlineLogs = useLiveQuery(() => db.logs.toArray(), []) || [];
+  const offlinePhotos = useLiveQuery(() => db.photos.toArray(), []) || [];
+
+  const photoUuidSet = useMemo(() => {
+    return new Set(offlinePhotos.map((p) => p.clientLogUuid));
+  }, [offlinePhotos]);
 
   const convertedOfflineLogs: LogEntry[] = useMemo(() => {
     return offlineLogs.map((ol) => ({
@@ -165,22 +249,23 @@ export default function LogHistoryPage() {
       status: ol.state === "verified" ? "VERIFIED" : "PENDING_VERIFICATION",
       attendanceType: ol.attendanceType || "PRESENT",
       verifiedAt: ol.verifiedAt || null,
-      mentor: "Rizky Firmansyah",
-      hasPhoto: true,
+      mentor: placementInfo.mentorName || "Rizky Firmansyah",
+      hasPhoto: photoUuidSet.has(ol.clientLogUuid),
       isNonCompetency: ol.isNonCompetency,
       nonCompetencyCategory: ol.nonCompetencyCategory,
       notes: ol.shortNote,
       syncState: ol.state,
       isLocalOnly: true,
     }));
-  }, [offlineLogs]);
+  }, [offlineLogs, photoUuidSet, placementInfo.mentorName]);
 
-  // Gabungkan entri offline lokal dengan sampel riwayat
+  // Gabungkan entri offline lokal dengan sampel riwayat (urutkan kronologis terbaru di atas)
   const allLogs = useMemo(() => {
-    return [...convertedOfflineLogs, ...SAMPLE_LOGS];
+    const combined = [...convertedOfflineLogs, ...SAMPLE_LOGS];
+    return combined.sort((a, b) => (a.date < b.date ? 1 : -1));
   }, [convertedOfflineLogs]);
 
-  // Statistik Real-Time
+  // Statistik Real-Time Sesuai Standar 792 JP Intrakurikuler PKL
   const totalVerifiedJp = useMemo(
     () => allLogs.filter((l) => l.status === "VERIFIED").reduce((acc, curr) => acc + curr.durationJp, 0),
     [allLogs]
@@ -188,11 +273,6 @@ export default function LogHistoryPage() {
 
   const totalPendingJp = useMemo(
     () => allLogs.filter((l) => l.status === "PENDING_VERIFICATION").reduce((acc, curr) => acc + curr.durationJp, 0),
-    [allLogs]
-  );
-
-  const totalNonCompetencyJp = useMemo(
-    () => allLogs.filter((l) => l.isNonCompetency).reduce((acc, curr) => acc + curr.durationJp, 0),
     [allLogs]
   );
 
@@ -209,6 +289,23 @@ export default function LogHistoryPage() {
   const nonCompetencyCountTotal = useMemo(
     () => allLogs.filter((l) => l.isNonCompetency).length,
     [allLogs]
+  );
+
+  // Rata-rata Kemandirian SOP Siswa (Menentukan 60% e-Rapor)
+  const mandiriPercentage = useMemo(() => {
+    if (allLogs.length === 0) return 100;
+    const mandiriCount = allLogs.filter((l) => l.autonomy === "Mandiri").length;
+    return Math.round((mandiriCount / allLogs.length) * 100);
+  }, [allLogs]);
+
+  // Persentase Ketercapaian Target 792 JP
+  const verifiedJpEquivalent = useMemo(
+    () => convertRealHoursToJp(totalVerifiedJp),
+    [totalVerifiedJp]
+  );
+  const targetProgressPercent = useMemo(
+    () => Math.min(100, Math.round((verifiedJpEquivalent / TOTAL_TARGET_JP) * 100)),
+    [verifiedJpEquivalent]
   );
 
   // Filter & Pencarian
@@ -231,7 +328,7 @@ export default function LogHistoryPage() {
     });
   }, [allLogs, filter, searchQuery]);
 
-  // Effect untuk memuat foto dari Dexie saat modal detail dibuka
+  // Memuat foto dari IndexedDB saat modal detail dibuka
   useEffect(() => {
     let isMounted = true;
     if (!selectedLogDetail) {
@@ -250,7 +347,7 @@ export default function LogHistoryPage() {
           setDetailPhotoUrl(null);
         }
       } catch (err) {
-        console.warn("Gagal memuat foto dari Dexie:", err);
+        console.warn("Gagal memuat foto lokal:", err);
         setDetailPhotoUrl(null);
       } finally {
         if (isMounted) setIsLoadingDetailPhoto(false);
@@ -325,40 +422,36 @@ export default function LogHistoryPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-200">
       {/* ─────────────────────────────────────────────────────────────────────────────
-          1. HEADER & ACTION BAR (Apple HIG Style)
+          1. HEADER & ACTION BAR (KONSISTEN DENGAN PORTAL SISWA)
       ───────────────────────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200/70">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pb-3 border-b border-slate-200/80">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
             <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
-              Riwayat Logbook PKL
+              Riwayat Logbook
             </h1>
-            {pendingCount > 0 ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200/70 text-xs font-semibold">
+            {pendingCount > 0 && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/70 text-[11px] font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                {pendingCount} Antre Offline
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-xs font-semibold">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                Tersinkron Penuh
+                <span>{pendingCount} Antrean Offline</span>
               </span>
             )}
           </div>
-          <p className="text-xs sm:text-[13px] text-slate-500 mt-1 font-normal">
-            Daftar seluruh aktivitas harian, bukti foto kerja, dan status verifikasi pembimbing DUDI
+          <p className="text-xs text-slate-500 mt-1 font-normal">
+            Arsip aktivitas harian, presensi industri, dan status validasi mentor DUDI
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+        {/* Action Buttons: Solid Pill Buttons */}
+        <div className="flex items-center gap-2 sm:gap-2.5 self-start sm:self-auto shrink-0 flex-wrap">
           {pendingCount > 0 && (
             <button
               type="button"
               onClick={() => syncNow()}
               disabled={isSyncing || !isOnline}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 text-xs font-semibold border border-slate-200/80 transition disabled:opacity-50 cursor-pointer shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-full bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-700 text-xs font-semibold border border-slate-200/80 transition disabled:opacity-50 cursor-pointer shadow-2xs whitespace-nowrap"
             >
               <RefreshCw className={cn("w-3.5 h-3.5 text-sky-600", isSyncing && "animate-spin")} />
               <span>{isSyncing ? "Menyinkronkan..." : "Sinkronkan"}</span>
@@ -369,12 +462,12 @@ export default function LogHistoryPage() {
             type="button"
             onClick={handleOpenVerifyModal}
             disabled={isGeneratingLink}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-xs font-semibold shadow-xs transition cursor-pointer"
+            className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white text-xs font-semibold shadow-xs transition cursor-pointer whitespace-nowrap"
           >
-            <QrCode className="w-4 h-4" />
-            <span>Minta Verifikasi (QR)</span>
+            <QrCode className="w-3.5 h-3.5 text-sky-400" />
+            <span>Minta Validasi (QR)</span>
             {pendingCountTotal > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-white text-emerald-800 text-[10px] font-bold font-mono">
+              <span className="px-1.5 py-0.2 rounded-full bg-sky-500 text-white text-[10px] font-bold">
                 {pendingCountTotal}
               </span>
             )}
@@ -382,208 +475,325 @@ export default function LogHistoryPage() {
 
           <Link
             href="/student/log/new"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs font-semibold shadow-xs transition"
+            className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-full bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs font-semibold shadow-xs transition whitespace-nowrap"
           >
-            <PlusCircle className="w-4 h-4" />
-            <span>Catat Baru</span>
+            <PlusCircle className="w-3.5 h-3.5" />
+            <span>Catat Jurnal</span>
           </Link>
         </div>
       </div>
 
       {/* ─────────────────────────────────────────────────────────────────────────────
-          2. OVERVIEW STATS CARDS (Apple HIG Squircle Metric Cards)
+          2. ACTIVITY SUMMARY WIDGET (UNIFIED SQUIRCLE CARD)
+          Satu kartu aktivitas terpadu dengan tipografi sans yang bersih dan proporsional
       ───────────────────────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {/* Card 1: Jam Terverifikasi */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/70 shadow-2xs hover:shadow-card hover:border-slate-300 transition-all flex flex-col justify-between space-y-3 group">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-              Terverifikasi
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200/70 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-              <CheckCircle2 className="w-4.5 h-4.5" />
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-xs space-y-4">
+        {/* Progress Bar Target 792 JP */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-slate-900 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-sky-500" />
+                <span>Akumulasi Jam Pembelajaran PKL</span>
+              </span>
+              <span className="text-[11px] text-slate-400 hidden sm:inline font-normal">
+                (Target 792 JP Kurikulum Merdeka)
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="font-semibold text-slate-900">
+                {verifiedJpEquivalent.toFixed(1)} / {TOTAL_TARGET_JP} JP
+              </span>
+              <span className="text-slate-400 font-normal ml-1.5 text-xs">
+                ({targetProgressPercent}%)
+              </span>
             </div>
           </div>
-          <div>
-            <p className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight font-mono">
-              {totalVerifiedJp}
-              <span className="text-xs font-normal text-slate-500 font-sans ml-1.5">Jam / JP</span>
-            </p>
-            <p className="text-[11px] text-emerald-700 font-medium mt-0.5 flex items-center gap-1">
-              <Award className="w-3 h-3" />
-              Diakui di e-Rapor & CV
-            </p>
+
+          <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden relative">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-sky-500 via-sky-400 to-emerald-400 transition-all duration-500"
+              style={{ width: `${Math.max(4, targetProgressPercent)}%` }}
+            />
           </div>
         </div>
 
-        {/* Card 2: Menunggu Verifikasi */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/70 shadow-2xs hover:shadow-card hover:border-slate-300 transition-all flex flex-col justify-between space-y-3 group">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-              Menunggu Validasi
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-200/70 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-              <Clock className="w-4.5 h-4.5" />
+        {/* 4 Metric Tiles: Tipografi Konsisten dengan StudentWidgetPanel */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 pt-1 border-t border-slate-100">
+          {/* Tile 1: Terverifikasi */}
+          <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-50/70 border border-slate-200/60 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200/70 flex items-center justify-center shrink-0 shadow-2xs">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">
+                Tervalidasi
+              </p>
+              <p className="text-base sm:text-lg font-semibold text-slate-900 tracking-tight leading-none mt-0.5">
+                {totalVerifiedJp} <span className="text-xs font-normal text-slate-500">Jam</span>
+              </p>
+              <span className="text-xs text-emerald-700 font-normal truncate block mt-0.5">
+                ≈ {convertRealHoursToJp(totalVerifiedJp).toFixed(1)} JP e-Rapor
+              </span>
             </div>
           </div>
-          <div>
-            <p className="text-2xl sm:text-3xl font-bold text-amber-600 tracking-tight font-mono">
-              {totalPendingJp}
-              <span className="text-xs font-normal text-slate-500 font-sans ml-1.5">Jam / JP</span>
-            </p>
-            <p className="text-[11px] text-amber-700 font-medium mt-0.5">
-              {pendingCountTotal} jurnal menunggu PIN mentor
-            </p>
-          </div>
-        </div>
 
-        {/* Card 3: Total Entri Jurnal */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/70 shadow-2xs hover:shadow-card hover:border-slate-300 transition-all flex flex-col justify-between space-y-3 group">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-              Total Jurnal
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 border border-sky-200/70 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-              <Calendar className="w-4.5 h-4.5" />
+          {/* Tile 2: Menunggu PIN */}
+          <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-50/70 border border-slate-200/60 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-200/70 flex items-center justify-center shrink-0 shadow-2xs">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">
+                Menunggu PIN
+              </p>
+              <p className="text-base sm:text-lg font-semibold text-amber-700 tracking-tight leading-none mt-0.5">
+                {totalPendingJp} <span className="text-xs font-normal text-slate-500">Jam</span>
+              </p>
+              <span className="text-xs text-amber-700 font-normal truncate block mt-0.5">
+                {pendingCountTotal} jurnal pending
+              </span>
             </div>
           </div>
-          <div>
-            <p className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight font-mono">
-              {allLogs.length}
-              <span className="text-xs font-normal text-slate-500 font-sans ml-1.5">Catatan</span>
-            </p>
-            <p className="text-[11px] text-slate-500 font-normal mt-0.5">
-              Total riwayat harian PKL
-            </p>
-          </div>
-        </div>
 
-        {/* Card 4: Tugas Non-Jurusan */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/70 shadow-2xs hover:shadow-card hover:border-slate-300 transition-all flex flex-col justify-between space-y-3 group">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-              Tugas Umum
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 border border-purple-200/70 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-              <Sparkles className="w-4.5 h-4.5" />
+          {/* Tile 3: Hari Kehadiran */}
+          <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-50/70 border border-slate-200/60 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-200/70 flex items-center justify-center shrink-0 shadow-2xs">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">
+                Hari Praktik
+              </p>
+              <p className="text-base sm:text-lg font-semibold text-slate-900 tracking-tight leading-none mt-0.5">
+                {allLogs.length} <span className="text-xs font-normal text-slate-500">Hari</span>
+              </p>
+              <span className="text-xs text-slate-500 font-normal truncate block mt-0.5">
+                Presensi teratur DUDI
+              </span>
             </div>
           </div>
-          <div>
-            <p className="text-2xl sm:text-3xl font-bold text-purple-700 tracking-tight font-mono">
-              {totalNonCompetencyJp}
-              <span className="text-xs font-normal text-slate-500 font-sans ml-1.5">Jam / JP</span>
-            </p>
-            <p className="text-[11px] text-purple-700 font-medium mt-0.5">
-              Jam diakui penuh (Maks 15%)
-            </p>
+
+          {/* Tile 4: Kemandirian */}
+          <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-50/70 border border-slate-200/60 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200/70 flex items-center justify-center shrink-0 shadow-2xs">
+              <Award className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">
+                Kemandirian SOP
+              </p>
+              <p className="text-base sm:text-lg font-semibold text-slate-900 tracking-tight leading-none mt-0.5">
+                {mandiriPercentage}%
+              </p>
+              <span className="text-xs text-slate-500 font-normal truncate block mt-0.5">
+                Bobot e-Rapor 60%
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* ─────────────────────────────────────────────────────────────────────────────
-          3. SEARCH BAR & SEGMENTED FILTER CONTROL (Apple Segmented Style)
+          3. APPLE SEGMENTED CONTROL, SEARCH & VIEW SWITCHER (LIST vs GRID)
       ───────────────────────────────────────────────────────────────────────────── */}
-      <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200/70 shadow-2xs space-y-3">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          {/* Segmented Filter Pills */}
-          <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/60 text-xs font-semibold overflow-x-auto w-full md:w-auto">
-            {[
-              { id: "ALL" as const, label: "Semua Jurnal", count: allLogs.length },
-              { id: "PENDING" as const, label: "Menunggu", count: pendingCountTotal },
-              { id: "VERIFIED" as const, label: "Terverifikasi", count: verifiedCountTotal },
-              { id: "NON_COMPETENCY" as const, label: "Non-Jurusan", count: nonCompetencyCountTotal },
-            ].map((tab) => {
-              const isActive = filter === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setFilter(tab.id)}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {/* Segmented Filter Tabs: Tipografi Konsisten */}
+        <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-full border border-slate-200 text-xs font-medium overflow-x-auto w-full sm:w-auto scrollbar-none">
+          {[
+            { id: "ALL" as const, label: "Semua", count: allLogs.length },
+            { id: "PENDING" as const, label: "Menunggu", count: pendingCountTotal },
+            { id: "VERIFIED" as const, label: "Terverifikasi", count: verifiedCountTotal },
+            { id: "NON_COMPETENCY" as const, label: "Non-Kejuruan", count: nonCompetencyCountTotal },
+          ].map((tab) => {
+            const isActive = filter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setFilter(tab.id)}
+                className={cn(
+                  "flex-1 sm:flex-initial px-3.5 py-1.5 rounded-full whitespace-nowrap text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95",
+                  isActive
+                    ? "bg-white text-slate-900 font-semibold shadow-xs"
+                    : "text-slate-600 hover:text-slate-900 font-medium"
+                )}
+              >
+                <span>{tab.label}</span>
+                <span
                   className={cn(
-                    "flex-1 md:flex-initial px-3.5 py-1.5 rounded-lg whitespace-nowrap text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95",
+                    "px-1.5 py-0.2 rounded-full text-[10px]",
                     isActive
-                      ? "bg-white text-slate-900 font-semibold shadow-2xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
+                      ? "bg-slate-100 text-slate-800 font-semibold"
+                      : "bg-slate-300/60 text-slate-600 font-medium"
                   )}
                 >
-                  <span>{tab.label}</span>
-                  <span
-                    className={cn(
-                      "px-1.5 py-0.2 rounded-full text-[10px] font-mono",
-                      isActive
-                        ? "bg-slate-100 text-slate-800 font-bold"
-                        : "bg-slate-200/70 text-slate-600"
-                    )}
-                  >
-                    {tab.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
-          {/* Search Input */}
-          <div className="relative w-full md:w-80">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        {/* Search Bar + View Switcher (List vs Grid) */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {/* Pill Search Bar */}
+          <div className="relative flex-1 sm:w-64">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Cari kegiatan, SKKNI, catatan..."
+              placeholder="Cari tugas, SKKNI, catatan..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 rounded-xl bg-slate-50 focus:bg-white border border-slate-200/80 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs"
+              className="w-full pl-9 pr-8 py-1.5 rounded-full bg-white border border-slate-200/90 text-xs text-slate-900 placeholder:text-slate-400 font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
+
+          {/* View Mode Switcher Toggle */}
+          <div className="flex items-center bg-slate-200/60 p-0.5 rounded-full border border-slate-200 shrink-0">
+            <button
+              type="button"
+              onClick={() => setViewMode("LIST")}
+              aria-label="Tampilan Baris Rapi (List View)"
+              title="Tampilan Baris Rapi"
+              className={cn(
+                "p-1.5 rounded-full transition-all cursor-pointer",
+                viewMode === "LIST"
+                  ? "bg-white text-slate-900 shadow-2xs"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              <LayoutList className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("GRID")}
+              aria-label="Tampilan Kartu (Grid View)"
+              title="Tampilan Kartu Visual"
+              className={cn(
+                "p-1.5 rounded-full transition-all cursor-pointer",
+                viewMode === "GRID"
+                  ? "bg-white text-slate-900 shadow-2xs"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
       {/* ─────────────────────────────────────────────────────────────────────────────
-          4. LOG CARDS GRID (Apple Squircle Feed)
+          4. INSET GROUPED LIST (DEFAULT VIEW: SANGAT RAPI, KRONOLOGIS & MUDAH DISCAN)
       ───────────────────────────────────────────────────────────────────────────── */}
       {filteredLogs.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredLogs.map((log) => {
-            const isVerified = log.status === "VERIFIED";
-            const isSickOrPermit = log.attendanceType === "SICK" || log.attendanceType === "PERMIT";
+        viewMode === "LIST" ? (
+          /* ─── TAMPILAN A: INSET GROUPED LIST TABLE (SUPER CLEAN) ─── */
+          <div className="bg-white rounded-3xl border border-slate-200/80 divide-y divide-slate-100 shadow-xs overflow-hidden">
+            {filteredLogs.map((log) => {
+              const isVerified = log.status === "VERIFIED";
+              const isSickOrPermit = log.attendanceType === "SICK" || log.attendanceType === "PERMIT";
+              const { day, month, weekday } = parseDateParts(log.date);
 
-            return (
-              <div
-                key={log.id}
-                onClick={() => setSelectedLogDetail(log)}
-                className={cn(
-                  "bg-white rounded-2xl p-4 sm:p-5 border transition-all duration-150 cursor-pointer flex flex-col justify-between group active:scale-[0.99] shadow-2xs hover:shadow-card",
-                  isVerified
-                    ? "border-slate-200/70 hover:border-slate-300"
-                    : "border-amber-200/70 bg-amber-50/10 hover:border-amber-300"
-                )}
-              >
-                <div className="space-y-3">
-                  {/* Card Header: Date & Status Badge */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 font-mono">
-                      <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-                      {log.date}
-                    </span>
+              return (
+                <div
+                  key={log.id}
+                  onClick={() => setSelectedLogDetail(log)}
+                  className="group flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:p-4 hover:bg-slate-50/80 transition-colors duration-150 cursor-pointer select-none gap-3"
+                >
+                  {/* Bagian Kiri: Date Badge + Info Utama */}
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    {/* Squircle Date Badge */}
+                    <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200/70 flex flex-col items-center justify-center text-center shrink-0 shadow-2xs group-hover:border-sky-300 transition-colors">
+                      <span className="text-base font-bold text-slate-900 leading-tight">
+                        {day}
+                      </span>
+                      <span className="text-[10px] font-medium text-slate-500 uppercase leading-none">
+                        {month} · {weekday}
+                      </span>
+                    </div>
+
+                    {/* Judul & Detail */}
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold text-xs sm:text-sm text-slate-900 group-hover:text-sky-600 transition-colors truncate">
+                          {log.title}
+                        </h3>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 flex-wrap text-slate-500 text-xs">
+                        {isSickOrPermit ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200/70 text-[10px] font-medium">
+                            <HeartPulse className="w-2.5 h-2.5" />
+                            <span>{log.attendanceType === "SICK" ? "Sakit" : "Izin Resmi"}</span>
+                          </span>
+                        ) : log.isNonCompetency ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/70 text-[10px] font-medium">
+                            <span>Non-Kejuruan: {log.nonCompetencyCategory || "Operasional"}</span>
+                          </span>
+                        ) : (
+                          <>
+                            {log.skkniCode && (
+                              <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md font-medium">
+                                {log.skkniCode}
+                              </span>
+                            )}
+                            <span
+                              className={cn(
+                                "px-2 py-0.5 rounded-full text-[10px] font-medium border",
+                                log.autonomy === "Mandiri"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
+                                  : "bg-sky-50 text-sky-700 border-sky-200/70"
+                              )}
+                            >
+                              {log.autonomy}
+                            </span>
+                          </>
+                        )}
+
+                        {log.hasPhoto && (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full font-medium">
+                            <ImageIcon className="w-2.5 h-2.5 text-slate-400" />
+                            <span>Foto</span>
+                          </span>
+                        )}
+
+                        {log.notes && (
+                          <span className="text-slate-400 truncate max-w-[200px] sm:max-w-xs hidden md:inline font-normal">
+                            &quot;{log.notes}&quot;
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bagian Kanan: Jam, Status Badge & Chevron */}
+                  <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                    <div className="text-left sm:text-right">
+                      <span className="font-semibold text-xs sm:text-sm text-slate-900 block leading-tight">
+                        {log.durationJp} Jam Kerja
+                      </span>
+                      <span className="text-xs text-slate-400 block font-normal">
+                        ≈ {convertRealHoursToJp(log.durationJp).toFixed(1)} JP
+                      </span>
+                    </div>
 
                     <span
                       className={cn(
-                        "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border tracking-wide",
+                        "inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border",
                         isVerified
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
                           : log.syncState === "queued"
                           ? "bg-amber-50 text-amber-800 border-amber-200/80"
-                          : log.syncState === "meta_synced"
-                          ? "bg-sky-50 text-sky-700 border-sky-200/80"
-                          : log.syncState === "failed"
-                          ? "bg-rose-50 text-rose-700 border-rose-200/80"
                           : "bg-amber-50 text-amber-700 border-amber-200/80"
                       )}
                     >
@@ -592,107 +802,143 @@ export default function LogHistoryPage() {
                           <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
                           <span>Terverifikasi</span>
                         </>
-                      ) : log.syncState === "queued" ? (
-                        <>
-                          <Clock className="w-3 h-3 text-amber-600" />
-                          <span>Antrean Offline</span>
-                        </>
-                      ) : log.syncState === "meta_synced" ? (
-                        <>
-                          <RefreshCw className="w-3 h-3 animate-spin text-sky-600" />
-                          <span>Unggah Foto</span>
-                        </>
                       ) : (
                         <>
                           <Clock className="w-3 h-3 text-amber-600" />
-                          <span>Menunggu Mentor</span>
+                          <span>Menunggu PIN</span>
                         </>
                       )}
                     </span>
+
+                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-sky-500 group-hover:translate-x-0.5 transition-transform" />
                   </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* ─── TAMPILAN B: SQUIRCLE GRID CARDS ─── */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredLogs.map((log) => {
+              const isVerified = log.status === "VERIFIED";
+              const isSickOrPermit = log.attendanceType === "SICK" || log.attendanceType === "PERMIT";
 
-                  {/* Log Title */}
-                  <h3 className="font-semibold text-sm sm:text-[14.5px] text-slate-900 group-hover:text-sky-600 transition-colors leading-snug line-clamp-2">
-                    {log.title}
-                  </h3>
+              return (
+                <div
+                  key={log.id}
+                  onClick={() => setSelectedLogDetail(log)}
+                  className="bg-white rounded-3xl p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-card transition-all duration-150 cursor-pointer flex flex-col justify-between group active:scale-[0.99] shadow-xs"
+                >
+                  <div className="space-y-3">
+                    {/* Header */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        <span>{formatDateIndo(log.date)}</span>
+                      </span>
 
-                  {/* Tags (Attendance, SKKNI, Non-Jurusan, Kemandirian, Foto) */}
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {isSickOrPermit ? (
-                      <span className="text-[10px] font-semibold text-rose-700 bg-rose-50 border border-rose-200/70 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                        <HeartPulse className="w-3 h-3" />
-                        {log.attendanceType === "SICK" ? "Presensi Sakit" : "Presensi Izin"}
-                      </span>
-                    ) : log.skkniCode ? (
-                      <span className="text-[10px] font-semibold text-sky-700 bg-sky-50 border border-sky-200/70 px-2 py-0.5 rounded-lg font-mono">
-                        SKKNI {log.skkniCode}
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-semibold text-purple-700 bg-purple-50 border border-purple-200/70 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" />
-                        {log.nonCompetencyCategory || "Tugas Umum"}
-                      </span>
-                    )}
-
-                    {/* Autonomy Level Pill */}
-                    {!isSickOrPermit && (
                       <span
                         className={cn(
-                          "text-[10px] font-semibold px-2 py-0.5 rounded-lg border",
-                          log.autonomy === "Mandiri"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
-                            : log.autonomy === "Terbimbing"
-                            ? "bg-amber-50 text-amber-700 border-amber-200/70"
-                            : "bg-slate-100 text-slate-700 border-slate-200/70"
+                          "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium border",
+                          isVerified
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
+                            : "bg-amber-50 text-amber-700 border-amber-200/80"
                         )}
                       >
-                        {log.autonomy}
+                        {isVerified ? (
+                          <>
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
+                            <span>Terverifikasi</span>
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="w-3 h-3 text-amber-600" />
+                            <span>Menunggu PIN</span>
+                          </>
+                        )}
                       </span>
-                    )}
+                    </div>
 
-                    {log.hasPhoto && (
-                      <span className="text-[10px] font-medium text-slate-600 bg-slate-100/90 px-2 py-0.5 rounded-lg flex items-center gap-1 border border-slate-200/60">
-                        <ImageIcon className="w-3 h-3 text-slate-400" />
-                        Bukti WebP
-                      </span>
+                    {/* Judul */}
+                    <h3 className="font-semibold text-sm sm:text-base text-slate-900 group-hover:text-sky-600 transition-colors leading-snug line-clamp-2">
+                      {log.title}
+                    </h3>
+
+                    {/* Chips Metadata */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {isSickOrPermit ? (
+                        <span className="text-[10px] font-medium text-rose-700 bg-rose-50 border border-rose-200/70 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                          <HeartPulse className="w-3 h-3" />
+                          {log.attendanceType === "SICK" ? "Sakit" : "Izin Resmi"}
+                        </span>
+                      ) : log.isNonCompetency ? (
+                        <span className="text-[10px] font-medium text-amber-800 bg-amber-50 border border-amber-200/70 px-2.5 py-0.5 rounded-full">
+                          Non-Kejuruan: {log.nonCompetencyCategory || "Operasional"}
+                        </span>
+                      ) : (
+                        <>
+                          <span
+                            className={cn(
+                              "text-[10px] font-medium px-2.5 py-0.5 rounded-full border",
+                              log.autonomy === "Mandiri"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
+                                : "bg-sky-50 text-sky-700 border-sky-200/70"
+                            )}
+                          >
+                            {log.autonomy}
+                          </span>
+
+                          {log.skkniCode && (
+                            <span className="text-[10px] font-medium text-slate-600 bg-slate-50 border border-slate-200/70 px-2.5 py-0.5 rounded-full font-mono">
+                              {log.skkniCode}
+                            </span>
+                          )}
+                        </>
+                      )}
+
+                      {log.hasPhoto && (
+                        <span className="text-[10px] font-medium text-slate-600 bg-slate-50 px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-slate-200/60">
+                          <ImageIcon className="w-3 h-3 text-slate-400" />
+                          <span>Foto WebP</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Catatan */}
+                    {log.notes && (
+                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed font-normal">
+                        &quot;{log.notes}&quot;
+                      </p>
                     )}
                   </div>
 
-                  {/* Notes Snippet */}
-                  {log.notes && (
-                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed font-normal">
-                      &quot;{log.notes}&quot;
-                    </p>
-                  )}
-                </div>
-
-                {/* Card Footer: JP, Mentor, Chevron */}
-                <div className="mt-4 pt-2.5 border-t border-slate-100/90 flex items-center justify-between text-xs text-slate-600">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-900 bg-slate-100 px-2.5 py-0.5 rounded-lg font-mono text-[11px] border border-slate-200/50">
-                      {log.durationJp} Jam
-                    </span>
-                    <span className="text-slate-400 text-xs hidden sm:inline">·</span>
-                    <span className="text-slate-500 font-normal text-xs flex items-center gap-1">
-                      <UserCheck className="w-3 h-3 text-slate-400" />
-                      {log.mentor.split(" ")[0]}
-                    </span>
+                  {/* Footer */}
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-slate-900 bg-slate-100 px-3 py-0.5 rounded-full text-xs border border-slate-200/50">
+                        {log.durationJp} Jam Kerja
+                      </span>
+                      <span className="text-slate-500 font-normal text-xs truncate max-w-[140px] flex items-center gap-1">
+                        <UserCheck className="w-3 h-3 text-slate-400" />
+                        {log.mentor}
+                      </span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-sky-500 group-hover:translate-x-0.5 transition" />
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-sky-500 group-hover:translate-x-0.5 transition" />
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )
       ) : (
-        /* Empty State (Apple Style) */
-        <div className="bg-white rounded-3xl p-10 sm:p-14 border border-dashed border-slate-200/90 text-center space-y-3.5 shadow-2xs">
-          <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-400 mx-auto shadow-2xs">
-            <FileText className="w-6 h-6 stroke-[1.5]" />
+        /* Empty State */
+        <div className="bg-white rounded-3xl p-10 sm:p-14 border border-slate-200/80 text-center space-y-3.5 shadow-xs">
+          <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-400 mx-auto shadow-2xs">
+            <FileText className="w-5 h-5 stroke-[1.5]" />
           </div>
           <div>
             <h3 className="text-sm sm:text-base font-semibold text-slate-900">
-              Tidak Ada Logbook yang Sesuai
+              Tidak Ada Jurnal yang Sesuai
             </h3>
             <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 font-normal">
               Silakan sesuaikan filter status atau gunakan kata kunci pencarian lain untuk menemukan catatan aktivitas Anda.
@@ -705,49 +951,49 @@ export default function LogHistoryPage() {
                 setFilter("ALL");
                 setSearchQuery("");
               }}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200/80 transition cursor-pointer active:scale-95"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200/80 transition cursor-pointer active:scale-95"
             >
               Reset Filter
             </button>
             <Link
               href="/student/log/new"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold transition active:scale-95 shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-4.5 py-2 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold transition active:scale-95 shadow-xs"
             >
               <PlusCircle className="w-3.5 h-3.5" />
-              <span>Catat Baru</span>
+              <span>Catat Jurnal</span>
             </Link>
           </div>
         </div>
       )}
 
       {/* ─────────────────────────────────────────────────────────────────────────────
-          5. MODAL MINTA VERIFIKASI QR (Zero-Login Mentor Hand-Off)
+          5. MODAL MINTA VALIDASI QR (ZERO-LOGIN MENTOR HAND-OFF)
       ───────────────────────────────────────────────────────────────────────────── */}
       {showQrModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in-0 duration-150">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-modal border border-slate-200/70 space-y-4 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200/70">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 sm:p-7 shadow-modal border border-slate-200/80 space-y-4 animate-in zoom-in-95 duration-150 text-center">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 text-left">
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200/70 flex items-center justify-center shadow-xs">
-                  <QrCode className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-xs">
+                  <QrCode className="w-4 h-4 text-sky-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm sm:text-base text-slate-900">Minta Verifikasi Mentor</h3>
-                  <p className="text-xs text-slate-500 font-normal">Pindai QR atau kirim tautan sekali pakai</p>
+                  <h3 className="text-sm font-semibold text-slate-900">Validasi Jurnal PKL</h3>
+                  <p className="text-xs text-slate-500 font-normal">Pindai QR atau kirim via WhatsApp</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowQrModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition cursor-pointer active:scale-95"
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition cursor-pointer active:scale-95"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
             {/* QR View Box */}
-            <div className="p-5 bg-slate-50/70 border border-slate-200/70 rounded-2xl flex flex-col items-center justify-center space-y-3 text-center">
-              <div className="w-48 h-48 bg-white border border-slate-200/80 rounded-2xl p-2.5 flex flex-col items-center justify-center shadow-xs relative">
+            <div className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl flex flex-col items-center justify-center space-y-2.5 text-center">
+              <div className="w-44 h-44 bg-white border border-slate-200/80 rounded-2xl p-2 flex flex-col items-center justify-center shadow-xs">
                 <QrCodeView
                   value={
                     activeLinkData?.fullUrl ||
@@ -755,61 +1001,52 @@ export default function LogHistoryPage() {
                       ? `${window.location.origin}${activeLinkData?.verificationUrl || "/v/mock-demo-token-123"}`
                       : `http://localhost:3000${activeLinkData?.verificationUrl || "/v/mock-demo-token-123"}`)
                   }
-                  size={170}
+                  size={160}
                   errorCorrectionLevel="M"
                 />
               </div>
-              <div className="space-y-1">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/70 text-[11px] font-semibold font-mono">
+              <div className="space-y-0.5">
+                <span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/70 text-[10px] font-medium">
                   <Clock className="w-3 h-3 text-amber-600" /> Berlaku 24 Jam
                 </span>
                 <p className="text-xs text-slate-500 font-normal">
-                  Arahkan kamera smartphone mentor DUDI ke kode QR di atas.
+                  Arahkan kamera smartphone mentor industri ke kode QR di atas.
                 </p>
               </div>
             </div>
 
-            {/* Security Explanation */}
-            <div className="text-xs text-slate-600 bg-sky-50/70 p-3.5 rounded-2xl border border-sky-200/60 space-y-1 leading-relaxed">
-              <p className="font-semibold text-sky-900 flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-sky-600" />
-                Verifikasi Cepat Bebas Akun:
-              </p>
-              <p className="text-sky-800 text-[11.5px] font-normal">
-                Mentor industri tidak perlu mengunduh aplikasi atau membuat akun. Cukup scan QR atau klik tautan WhatsApp, lalu masukkan 4 digit PIN mentor yang terdaftar.
-              </p>
-            </div>
-
-            {/* Action Buttons */}
+            {/* Action Buttons: Solid Pill Buttons */}
             <div className="space-y-2 pt-1">
               <a
                 href={`https://wa.me/?text=${encodeURIComponent(
-                  `Halo Bapak/Ibu Mentor, saya telah mengumpulkan logbook PKL VokaLink. Mohon kesediaannya untuk memvalidasi jurnal saya melalui tautan berikut: https://vokalink.id/v/andi-pratama-rpl-2026`
+                  `Halo Bapak/Ibu ${placementInfo.mentorName || "Mentor"}, saya telah mengisi logbook PKL VokaLink. Mohon kesediaannya untuk memvalidasi jurnal saya melalui tautan berikut: ${
+                    activeLinkData?.fullUrl || "https://vokalink.id/v/andi-pratama-rpl-2026"
+                  }`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs"
+                className="w-full py-2.5 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs"
               >
-                <Share2 className="w-4 h-4" />
-                <span>Kirim Langsung ke WhatsApp Mentor</span>
+                <Share2 className="w-3.5 h-3.5" />
+                <span>Kirim ke WhatsApp Mentor</span>
               </a>
 
               <button
                 type="button"
                 onClick={handleCopyLink}
-                className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs"
+                className="w-full py-2.5 px-4 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer border border-slate-200/80"
               >
-                {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                <span>{copiedLink ? "Tautan Berhasil Disalin!" : "Salin Tautan Verifikasi"}</span>
+                {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedLink ? "Tautan Berhasil Disalin!" : "Salin Tautan Validasi"}</span>
               </button>
 
               <Link
                 href={activeLinkData?.verificationUrl || "/v/mock-demo-token-123"}
                 target="_blank"
-                className="w-full py-2.5 px-4 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium text-xs flex items-center justify-center gap-2 transition"
+                className="w-full py-2 px-3 rounded-full hover:bg-slate-50 text-slate-500 font-medium text-xs flex items-center justify-center gap-1.5 transition"
               >
-                <ExternalLink className="w-4 h-4 text-slate-400" />
-                <span>Buka Tampilan Mentor (/v/[token])</span>
+                <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                <span>Buka Antarmuka Mentor (/v/[token])</span>
               </Link>
             </div>
           </div>
@@ -817,40 +1054,42 @@ export default function LogHistoryPage() {
       )}
 
       {/* ─────────────────────────────────────────────────────────────────────────────
-          6. MODAL RINCIAN LOG & PENAMPIL FOTO EVIDENCE
+          6. MODAL RINCIAN LOG (INSPECTOR SHEET)
       ───────────────────────────────────────────────────────────────────────────── */}
       {selectedLogDetail && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in-0 duration-150">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-modal border border-slate-200/70 space-y-4 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200/70">
-              <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 font-mono">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-modal border border-slate-200/80 space-y-4 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200/80">
+              <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-sky-600" />
-                {selectedLogDetail.date}
+                <span>{formatDateIndo(selectedLogDetail.date)}</span>
               </span>
               <button
                 type="button"
                 onClick={() => setSelectedLogDetail(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition cursor-pointer active:scale-95"
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition cursor-pointer active:scale-95"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
+            {/* Title & Status Badges */}
             <div className="space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
                 <span
                   className={cn(
-                    "px-2.5 py-0.5 rounded-full text-[10px] font-semibold border",
+                    "px-3 py-0.5 rounded-full text-[10px] font-medium border",
                     selectedLogDetail.status === "VERIFIED"
                       ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
                       : "bg-amber-50 text-amber-700 border-amber-200/70"
                   )}
                 >
-                  {selectedLogDetail.status === "VERIFIED" ? "Terverifikasi (HMAC)" : "Menunggu Verifikasi"}
+                  {selectedLogDetail.status === "VERIFIED" ? "Terverifikasi (Segel Digital Valid)" : "Menunggu Validasi PIN"}
                 </span>
 
                 {selectedLogDetail.skkniCode && (
-                  <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-semibold bg-sky-50 text-sky-700 border border-sky-200/70 font-mono">
+                  <span className="px-3 py-0.5 rounded-full text-[10px] font-medium bg-sky-50 text-sky-700 border border-sky-200/70 font-mono">
                     SKKNI {selectedLogDetail.skkniCode}
                   </span>
                 )}
@@ -861,93 +1100,112 @@ export default function LogHistoryPage() {
               </h2>
             </div>
 
-            {/* Bukti Foto Terlampir (IndexedDB Blob atau Mock Server) */}
+            {/* Bukti Foto Terlampir */}
             {isLoadingDetailPhoto ? (
               <div className="h-44 rounded-2xl bg-slate-100 flex items-center justify-center animate-pulse text-xs text-slate-400">
                 Memuat pratinjau bukti foto...
               </div>
             ) : detailPhotoUrl ? (
-              <div className="relative rounded-2xl overflow-hidden border border-slate-200/80 bg-slate-950 flex items-center justify-center max-h-56">
+              <div className="relative rounded-2xl overflow-hidden border border-slate-200/80 bg-slate-50 flex items-center justify-center max-h-56">
                 <img
                   src={detailPhotoUrl}
                   alt="Bukti Foto Jurnal"
                   className="w-full h-auto max-h-56 object-contain"
                 />
-                <div className="absolute top-2 right-2 px-2.5 py-0.5 rounded-full bg-slate-900/80 backdrop-blur-xs text-[10px] font-mono text-white flex items-center gap-1 shadow-xs">
+                <div className="absolute top-2 right-2 px-3 py-0.5 rounded-full bg-slate-900/80 backdrop-blur-xs text-[10px] font-medium text-white flex items-center gap-1 shadow-xs">
                   <CheckCircle2 className="w-3 h-3 text-emerald-400" /> WebP Terkompresi
                 </div>
               </div>
             ) : selectedLogDetail.hasPhoto ? (
-              <div className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/70 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-200/70 flex items-center justify-center shrink-0 shadow-2xs">
-                  <ImageIcon className="w-5 h-5" />
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 border border-sky-200/70 flex items-center justify-center shrink-0 shadow-2xs">
+                  <ImageIcon className="w-4.5 h-4.5" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-slate-800">Bukti Foto Terlampir</p>
-                  <p className="text-[11.5px] text-slate-500 font-normal">
-                    Foto dokumentasi kerja telah tersimpan aman di server penyimpanan bukti DUDI.
+                  <p className="text-xs text-slate-500 font-normal">
+                    Dokumentasi kerja tersimpan aman di penyimpanan terenkripsi perangkat.
                   </p>
                 </div>
               </div>
-            ) : (
-              <div className="p-3.5 rounded-2xl bg-slate-50/60 border border-slate-200/60 text-xs text-slate-400 text-center font-normal">
-                Tanpa lampiran foto pada entri ini
-              </div>
-            )}
+            ) : null}
 
-            {/* Grid Informasi Metrik */}
-            <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50/80 rounded-2xl border border-slate-200/70 text-xs">
-              <div>
-                <p className="text-slate-400 font-medium text-[10px] uppercase tracking-wider">Durasi Pembelajaran</p>
-                <p className="font-semibold text-slate-900 mt-0.5 font-mono">{selectedLogDetail.durationJp} Jam (JP)</p>
+            {/* Grid Informasi Metrik (Key-Value Specification Grid) */}
+            <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80 text-xs space-y-2.5">
+              <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
+                <span className="text-slate-500 font-normal">Mitra DUDI:</span>
+                <span className="font-semibold text-slate-800 flex items-center gap-1">
+                  <Building2 className="w-3.5 h-3.5 text-sky-600" />
+                  <span>{placementInfo.dudiName}</span>
+                </span>
               </div>
-              <div>
-                <p className="text-slate-400 font-medium text-[10px] uppercase tracking-wider">Kemandirian</p>
-                <p className="font-semibold text-slate-900 mt-0.5">
+
+              <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
+                <span className="text-slate-500 font-normal">Mentor Pembimbing:</span>
+                <span className="font-semibold text-slate-800">{selectedLogDetail.mentor}</span>
+              </div>
+
+              <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
+                <span className="text-slate-500 font-normal">Alokasi Waktu:</span>
+                <span className="font-semibold text-slate-800 text-xs">
+                  {selectedLogDetail.durationJp} Jam Kerja{" "}
+                  <span className="text-slate-400 font-normal">
+                    (≈ {convertRealHoursToJp(selectedLogDetail.durationJp).toFixed(1)} JP)
+                  </span>
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
+                <span className="text-slate-500 font-normal">Tingkat Kemandirian:</span>
+                <span className="font-semibold text-slate-800">
                   {selectedLogDetail.attendanceType === "SICK" || selectedLogDetail.attendanceType === "PERMIT"
-                    ? "Dispensasi"
-                    : `${selectedLogDetail.autonomy} (${selectedLogDetail.autonomyScore}%)`}
-                </p>
+                    ? "Dispensasi Medis / Resmi"
+                    : `${selectedLogDetail.autonomy} Sesuai SOP (Skor ${selectedLogDetail.autonomyScore})`}
+                </span>
               </div>
-              <div>
-                <p className="text-slate-400 font-medium text-[10px] uppercase tracking-wider">Pembimbing DUDI</p>
-                <p className="font-semibold text-slate-900 mt-0.5">{selectedLogDetail.mentor}</p>
-              </div>
-              <div>
-                <p className="text-slate-400 font-medium text-[10px] uppercase tracking-wider">Waktu Verifikasi</p>
-                <p className="font-semibold text-slate-900 mt-0.5">
-                  {selectedLogDetail.verifiedAt || "Menunggu persetujuan"}
-                </p>
+
+              <div className="flex items-center justify-between py-1">
+                <span className="text-slate-500 font-normal">Status Verifikasi:</span>
+                <span className="font-semibold text-slate-800">
+                  {selectedLogDetail.verifiedAt ? (
+                    <span className="text-emerald-700 flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>{selectedLogDetail.verifiedAt}</span>
+                    </span>
+                  ) : (
+                    <span className="text-amber-700">Menunggu validasi PIN mentor</span>
+                  )}
+                </span>
               </div>
             </div>
 
-            {/* Catatan Siswa */}
+            {/* Catatan Aktivitas Siswa */}
             {selectedLogDetail.notes && (
               <div className="space-y-1.5">
                 <p className="text-xs font-semibold text-slate-700">Catatan Aktivitas Siswa:</p>
-                <p className="text-xs text-slate-600 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/70 leading-relaxed font-normal">
-                  {selectedLogDetail.notes}
+                <p className="text-xs text-slate-600 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 leading-relaxed font-normal">
+                  &quot;{selectedLogDetail.notes}&quot;
                 </p>
               </div>
             )}
 
-            {/* Actions: Hapus jika masih antrean offline, atau Tutup */}
-            <div className="space-y-2 pt-2">
+            {/* Actions: Pill-shaped Buttons */}
+            <div className="space-y-2 pt-1">
               {selectedLogDetail.isLocalOnly && selectedLogDetail.syncState === "queued" && (
                 <button
                   type="button"
                   onClick={() => handleDeleteOfflineLog(selectedLogDetail.id)}
-                  className="w-full py-2.5 rounded-xl border border-rose-200/80 text-rose-600 hover:bg-rose-50 active:scale-[0.98] font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  className="w-full py-2.5 rounded-full border border-rose-200 text-rose-600 hover:bg-rose-50 active:scale-[0.98] font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Hapus Antrean Jurnal Ini</span>
+                  <span>Hapus dari Antrean Offline</span>
                 </button>
               )}
 
               <button
                 type="button"
                 onClick={() => setSelectedLogDetail(null)}
-                className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-semibold text-xs transition cursor-pointer shadow-xs"
+                className="w-full py-2.5 rounded-full bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-semibold text-xs transition cursor-pointer shadow-xs"
               >
                 Tutup Rincian
               </button>
