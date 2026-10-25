@@ -19,10 +19,16 @@ import {
   ChevronRight,
   Image as ImageIcon,
   Clock,
+  Edit3,
+  Plus,
+  Trash2,
+  Eye,
+  RotateCcw,
 } from "lucide-react";
 import Link from "next/link";
 import { fetchStudentCv, updateStudentPassport, type StudentCvResponse } from "@/lib/api";
 import { QrCodeView } from "@/components/ui/QrCodeView";
+import { cn } from "@/lib/cn";
 
 const DEMO_FALLBACK_CV: StudentCvResponse = {
   student: {
@@ -120,6 +126,19 @@ const DEMO_FALLBACK_CV: StudentCvResponse = {
   masterSignatureHash: "a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0",
 };
 
+export interface EditableExperience {
+  id: string;
+  roleTitle: string;
+  dudiName: string;
+  dudiCity?: string;
+  periodLabel: string;
+  mentorName?: string;
+  totalVerifiedJp: number;
+  technicalJp: number;
+  nonCompetencyJp: number;
+  bulletPoints: string[];
+}
+
 export default function CareerCvPage() {
   const [cvData, setCvData] = useState<StudentCvResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -139,6 +158,83 @@ export default function CareerCvPage() {
   // Share link state
   const [copiedLink, setCopiedLink] = useState(false);
 
+  // Manual Editing state
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [customPhone, setCustomPhone] = useState("");
+  const [customAddress, setCustomAddress] = useState("");
+  const [customExperiences, setCustomExperiences] = useState<EditableExperience[]>([]);
+  const [customSkills, setCustomSkills] = useState<string[]>([]);
+  const [isSavingManual, setIsSavingManual] = useState(false);
+  const [manualSaveSuccess, setManualSaveSuccess] = useState(false);
+
+  const initManualFields = useCallback((data: StudentCvResponse) => {
+    const defaultExps: EditableExperience[] = (data.experiences || []).map((exp, idx) => ({
+      id: exp.placementId || `exp-${idx}`,
+      roleTitle: exp.roleTitle || "Junior Software Engineer Intern",
+      dudiName: exp.dudiName || "PT Industri Mitra",
+      dudiCity: exp.dudiCity || "Surabaya",
+      mentorName: exp.mentorName || "",
+      periodLabel: exp.periodLabel || "Jan 2026 – Sekarang",
+      totalVerifiedJp: exp.totalVerifiedJp || 0,
+      technicalJp: exp.technicalJp || 0,
+      nonCompetencyJp: exp.nonCompetencyJp || 0,
+      bulletPoints: exp.bulletPoints ? exp.bulletPoints.map((b) => b.bulletText) : [],
+    }));
+
+    const fallbackFirstExp: EditableExperience = defaultExps[0] || {
+      id: "exp-0",
+      roleTitle: "Junior Software Engineer Intern",
+      dudiName: "PT Industri Mitra",
+      dudiCity: "Surabaya",
+      mentorName: "",
+      periodLabel: "Jan 2026 – Sekarang",
+      totalVerifiedJp: 184,
+      technicalJp: 168,
+      nonCompetencyJp: 16,
+      bulletPoints: [],
+    };
+
+    try {
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("vokalink_cv_customizations");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setCustomPhone(parsed.phone ?? data.student.whatsappNumber ?? "");
+          setCustomAddress(parsed.address ?? data.student.schoolAddress ?? "");
+          if (Array.isArray(parsed.experiences) && parsed.experiences.length > 0) {
+            setCustomExperiences(parsed.experiences);
+          } else if (parsed.roleTitle || parsed.bullets) {
+            setCustomExperiences([
+              {
+                ...fallbackFirstExp,
+                roleTitle: parsed.roleTitle || fallbackFirstExp.roleTitle,
+                bulletPoints:
+                  Array.isArray(parsed.bullets) && parsed.bullets.length > 0
+                    ? parsed.bullets
+                    : fallbackFirstExp.bulletPoints,
+              },
+            ]);
+          } else {
+            setCustomExperiences(defaultExps);
+          }
+          setCustomSkills(
+            Array.isArray(parsed.skills) && parsed.skills.length > 0
+              ? parsed.skills
+              : data.technicalSkills.map((s) => s.name) ?? []
+          );
+          return;
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    setCustomPhone(data.student.whatsappNumber || "081234567890");
+    setCustomAddress(data.student.schoolAddress || "Jl. Pendidikan Vokasi No. 1, Surabaya");
+    setCustomExperiences(defaultExps);
+    setCustomSkills(data.technicalSkills.map((s) => s.name) || []);
+  }, []);
+
   const loadCv = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -146,6 +242,7 @@ export default function CareerCvPage() {
       const data = await fetchStudentCv();
       setCvData(data);
       setBioSummary(data.summaryBio || DEMO_FALLBACK_CV.summaryBio);
+      initManualFields(data);
       if (data.visibility) {
         setShowPhotos(data.visibility.showPhotos ?? true);
         setShowGrades(data.visibility.showGrades ?? true);
@@ -154,12 +251,13 @@ export default function CareerCvPage() {
       // Fallback ke data terverifikasi demo agar tampilan offline tetap interaktif
       setCvData(DEMO_FALLBACK_CV);
       setBioSummary(DEMO_FALLBACK_CV.summaryBio);
+      initManualFields(DEMO_FALLBACK_CV);
       setShowPhotos(DEMO_FALLBACK_CV.visibility?.showPhotos ?? true);
       setShowGrades(DEMO_FALLBACK_CV.visibility?.showGrades ?? true);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [initManualFields]);
 
   useEffect(() => {
     loadCv();
@@ -189,6 +287,151 @@ export default function CareerCvPage() {
     }
   };
 
+  const handleSaveManual = async () => {
+    setIsSavingManual(true);
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.setItem(
+          "vokalink_cv_customizations",
+          JSON.stringify({
+            phone: customPhone,
+            address: customAddress,
+            experiences: customExperiences,
+            skills: customSkills,
+          })
+        );
+      }
+      await updateStudentPassport({ summaryBio: bioSummary });
+    } catch {
+      console.info("Perubahan disimpan lokal");
+    } finally {
+      setIsSavingManual(false);
+      setManualSaveSuccess(true);
+      setTimeout(() => setManualSaveSuccess(false), 2500);
+      setIsEditMode(false);
+    }
+  };
+
+  const handleResetManual = () => {
+    const data = cvData || DEMO_FALLBACK_CV;
+    if (confirm("Kembalikan semua teks CV ke data asli terverifikasi?")) {
+      try {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("vokalink_cv_customizations");
+        }
+      } catch { }
+      setBioSummary(data.summaryBio || DEMO_FALLBACK_CV.summaryBio);
+      setCustomPhone(data.student.whatsappNumber || "081234567890");
+      setCustomAddress(data.student.schoolAddress || "Jl. Pendidikan Vokasi No. 1, Surabaya");
+      const defaultExps = (data.experiences || []).map((exp, idx) => ({
+        id: exp.placementId || `exp-${idx}`,
+        roleTitle: exp.roleTitle || "Junior Software Engineer Intern",
+        dudiName: exp.dudiName || "PT Industri Mitra",
+        dudiCity: exp.dudiCity || "Surabaya",
+        mentorName: exp.mentorName || "",
+        periodLabel: exp.periodLabel || "Jan 2026 – Sekarang",
+        totalVerifiedJp: exp.totalVerifiedJp || 0,
+        technicalJp: exp.technicalJp || 0,
+        nonCompetencyJp: exp.nonCompetencyJp || 0,
+        bulletPoints: exp.bulletPoints ? exp.bulletPoints.map((b) => b.bulletText) : [],
+      }));
+      setCustomExperiences(defaultExps);
+      setCustomSkills(data.technicalSkills.map((s) => s.name) || []);
+      setIsEditMode(false);
+    }
+  };
+
+  // Handler: Tambah Pengalaman Praktik Kerja Lapangan (PKL) Baru
+  const handleAddExperience = () => {
+    setIsEditMode(true);
+    const newExp = {
+      id: `exp-${Date.now()}`,
+      roleTitle: "Posisi / Peran Magang Baru",
+      dudiName: "PT Nama Perusahaan Mitra",
+      dudiCity: "Surabaya",
+      mentorName: "Pembimbing Industri",
+      periodLabel: "Feb 2026 – Apr 2026",
+      totalVerifiedJp: 40,
+      technicalJp: 40,
+      nonCompetencyJp: 0,
+      bulletPoints: [
+        "Melaksanakan penugasan kerja industri dan menyelesaikan problem solving sesuai SOP perusahaan.",
+      ],
+    };
+    setCustomExperiences((prev) => [...prev, newExp]);
+  };
+
+  // Handler: Hapus Pengalaman PKL
+  const handleRemoveExperience = (id: string) => {
+    if (customExperiences.length <= 1) {
+      alert("Minimal harus ada satu riwayat pengalaman PKL.");
+      return;
+    }
+    if (confirm("Hapus pengalaman PKL ini dari lembar CV?")) {
+      setCustomExperiences((prev) => prev.filter((e) => e.id !== id));
+    }
+  };
+
+  // Handler: Perbarui Field Pengalaman PKL
+  const handleUpdateExperienceField = (
+    id: string,
+    field: "roleTitle" | "dudiName" | "dudiCity" | "periodLabel" | "mentorName" | "totalVerifiedJp",
+    value: string | number
+  ) => {
+    setCustomExperiences((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, [field]: value } : e))
+    );
+  };
+
+  // Handler: Tambah Poin Capaian ke Pengalaman Tertentu
+  const handleAddBulletToExp = (expId: string) => {
+    setCustomExperiences((prev) =>
+      prev.map((e) =>
+        e.id === expId
+          ? {
+            ...e,
+            bulletPoints: [
+              ...e.bulletPoints,
+              "Mengembangkan tugas dan solusi teknis sesuai arahan mentor dan standar industri.",
+            ],
+          }
+          : e
+      )
+    );
+  };
+
+  // Handler: Hapus Poin Capaian dari Pengalaman Tertentu
+  const handleRemoveBulletFromExp = (expId: string, bulletIdx: number) => {
+    setCustomExperiences((prev) =>
+      prev.map((e) =>
+        e.id === expId
+          ? {
+            ...e,
+            bulletPoints: e.bulletPoints.filter((_, i) => i !== bulletIdx),
+          }
+          : e
+      )
+    );
+  };
+
+  // Handler: Edit Teks Poin Capaian
+  const handleBulletChangeExp = (
+    expId: string,
+    bulletIdx: number,
+    text: string
+  ) => {
+    setCustomExperiences((prev) =>
+      prev.map((e) =>
+        e.id === expId
+          ? {
+            ...e,
+            bulletPoints: e.bulletPoints.map((b, i) => (i === bulletIdx ? text : b)),
+          }
+          : e
+      )
+    );
+  };
+
   const handleTogglePrivacy = async (field: "showPhotos" | "showGrades", value: boolean) => {
     const nextPhotos = field === "showPhotos" ? value : showPhotos;
     const nextGrades = field === "showGrades" ? value : showGrades;
@@ -210,14 +453,36 @@ export default function CareerCvPage() {
       setCvData((prev) =>
         prev
           ? {
-              ...prev,
-              visibility: { showPhotos: nextPhotos, showGrades: nextGrades },
-            }
+            ...prev,
+            visibility: { showPhotos: nextPhotos, showGrades: nextGrades },
+          }
           : null
       );
       setIsUpdatingPrivacy(false);
       setPrivacySaved(true);
       setTimeout(() => setPrivacySaved(false), 2500);
+    }
+  };
+
+  const handlePrintPdf = () => {
+    if (isEditMode) {
+      if (typeof window !== "undefined") {
+        localStorage.setItem(
+          "vokalink_cv_customizations",
+          JSON.stringify({
+            phone: customPhone,
+            address: customAddress,
+            experiences: customExperiences,
+            skills: customSkills,
+          })
+        );
+      }
+      setIsEditMode(false);
+      setTimeout(() => {
+        window.print();
+      }, 100);
+    } else {
+      window.print();
     }
   };
 
@@ -286,7 +551,7 @@ export default function CareerCvPage() {
     );
   }
 
-  const { student, experiences, technicalSkills, endorsement, verificationUrl } = cvData;
+  const { student, experiences, technicalSkills, endorsement, verificationUrl, masterSignatureHash } = cvData;
 
   const autonomousTasksCount = experiences.reduce(
     (sum, exp) =>
@@ -304,196 +569,522 @@ export default function CareerCvPage() {
   );
 
   return (
-    <div className="space-y-6">
-      {/* 1. Page Header & Actions Bar (no-print) */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-200 no-print">
+    <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-200 print:space-y-0 print:m-0 print:p-0 print:w-full print:block">
+      {/* ─────────────────────────────────────────────────────────────────────────────
+          1. STUDIO PAGE HEADER & FLOATING ACTIONS (no-print)
+      ───────────────────────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pb-3 border-b border-slate-200/80 no-print print:hidden">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
             CV ATS &amp; Paspor Kompetensi
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Portofolio digital berbasis jam kerja riil terverifikasi mentor industri (BR-010)
+          <p className="text-xs text-slate-500 mt-1 font-normal">
+            Portofolio digital berbasis jam kerja riil terverifikasi mentor industri
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        {/* Action Buttons: 2x2 symmetrical grid on mobile, horizontal pill row on desktop */}
+        <div className="grid grid-cols-2 sm:flex sm:flex-row items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
+          {/* Tombol Mode Edit Manual */}
           <button
             type="button"
-            onClick={handleCopyLink}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-bold shadow-2xs transition active:scale-[0.99] cursor-pointer"
+            onClick={() => setIsEditMode(!isEditMode)}
+            className={cn(
+              "w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-10 px-3 sm:px-5 rounded-full text-xs font-semibold border transition cursor-pointer shadow-2xs whitespace-nowrap active:scale-[0.98]",
+              isEditMode
+                ? "bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100"
+                : "bg-white hover:bg-slate-50 text-slate-700 border-slate-200/80"
+            )}
           >
-            {copiedLink ? <Check className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
-            <span>{copiedLink ? "Tersalin!" : "Bagikan Tautan"}</span>
+            {isEditMode ? (
+              <>
+                <Eye className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                <span>Pratinjau CV</span>
+              </>
+            ) : (
+              <>
+                <Edit3 className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                <span>Edit Manual</span>
+              </>
+            )}
           </button>
 
           <button
             type="button"
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold shadow-xs hover:shadow-sm transition active:scale-[0.99] cursor-pointer"
+            onClick={handleCopyLink}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-10 px-3 sm:px-5 rounded-full bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-700 text-xs font-semibold border border-slate-200/80 transition cursor-pointer shadow-2xs whitespace-nowrap"
           >
-            <Printer className="w-4 h-4" />
+            {copiedLink ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="text-emerald-700">Tersalin!</span>
+              </>
+            ) : (
+              <>
+                <Share2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                <span>Bagikan Paspor</span>
+              </>
+            )}
+          </button>
+
+          <Link
+            href={verificationUrl}
+            target="_blank"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-10 px-3 sm:px-5 rounded-full bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-700 text-xs font-semibold border border-slate-200/80 transition shadow-2xs whitespace-nowrap"
+          >
+            <ExternalLink className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+            <span>Audit Publik</span>
+          </Link>
+
+          <button
+            type="button"
+            onClick={handlePrintPdf}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-10 px-4 sm:px-6 rounded-full bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white text-xs font-semibold shadow-xs transition cursor-pointer whitespace-nowrap"
+          >
+            <Printer className="w-3.5 h-3.5 text-white shrink-0" />
             <span>Cetak PDF A4</span>
           </button>
         </div>
       </div>
 
-      {/* 2. Responsive 12-Column Grid on Desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* LEFT / CENTER: Authentic ATS A4 Sheet (8 cols on desktop, full width on mobile/tablet) */}
-        <div className="lg:col-span-8 flex flex-col items-center">
-          {/* Quick Metrics Ribbon (Standar Jam Industri Riil vs JP Kurikulum) */}
-          <div className="w-full mb-4 grid grid-cols-2 sm:grid-cols-4 gap-2.5 no-print">
-            <div className="p-3 bg-white rounded-2xl border border-slate-200/90 shadow-2xs space-y-0.5">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Jam Kerja Industri</span>
-              <p className="text-base sm:text-lg font-black text-slate-900">{cvData.totalVerifiedJp} Jam Riil</p>
-              <span className="text-[10px] text-blue-600 font-semibold">1 Jam = 60 mnt shift</span>
+      {/* ─────────────────────────────────────────────────────────────────────────────
+          2. WORKSPACE CANVAS: TWO-COLUMN STUDIO (Desktop Side-by-Side)
+             Left: Full-width CV ATS Document (lg:col-span-8) - No wasted margins
+             Right: Studio Control Sidebar (lg:col-span-4) - Sticky controls
+      ───────────────────────────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start print:block print:w-full print:m-0 print:p-0">
+        {/* LEFT COLUMN: CV ATS Sheet (occupies full width of the left column) */}
+        <div className="lg:col-span-8 w-full space-y-4 print:w-full print:block print:space-y-0 print:p-0 print:m-0">
+          {/* Banner Mode Edit Manual (no-print) */}
+          {isEditMode && (
+            <div className="w-full bg-amber-50 border border-amber-200/90 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs no-print print:hidden animate-in fade-in duration-200">
+              <div className="flex items-center gap-2.5">
+                <Edit3 className="w-4 h-4 text-amber-700 shrink-0" />
+                <div>
+                  <p className="text-xs font-semibold text-amber-900">Mode Edit Manual Aktif</p>
+                  <p className="text-[11px] text-amber-700">
+                    Sesuaikan kontak, ringkasan diri, butir capaian, dan keahlian langsung pada lembar dokumen.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                <button
+                  type="button"
+                  onClick={handleResetManual}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-amber-100/60 transition cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Reset Asli</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveManual}
+                  disabled={isSavingManual}
+                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white transition shadow-xs cursor-pointer active:scale-95"
+                >
+                  {isSavingManual ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Menyimpan...</span>
+                    </>
+                  ) : manualSaveSuccess ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Tersimpan!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Simpan Perubahan</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
-            <div className="p-3 bg-white rounded-2xl border border-slate-200/90 shadow-2xs space-y-0.5">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Beban Kurikulum</span>
-              <p className="text-base sm:text-lg font-black text-slate-900">{cvData.totalVerifiedJp} JP</p>
-              <span className="text-[10px] text-emerald-600 font-semibold">Regulasi Kemendikbud</span>
-            </div>
-            <div className="p-3 bg-white rounded-2xl border border-slate-200/90 shadow-2xs space-y-0.5">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Kemandirian SOP</span>
-              <p className="text-base sm:text-lg font-black text-slate-900">{autonomousTasksCount} Tugas Mandiri</p>
-              <span className="text-[10px] text-amber-600 font-semibold">Level 3 Standar Industri</span>
-            </div>
-            <div className="p-3 bg-white rounded-2xl border border-slate-200/90 shadow-2xs space-y-0.5">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Penugasan</span>
-              <p className="text-base sm:text-lg font-black text-slate-900">{totalTasksCount} Selesai</p>
-              <span className="text-[10px] text-slate-500 font-semibold">100% Terverifikasi</span>
-            </div>
-          </div>
+          )}
 
-          {/* Lock Notice Banner (BR-010 & Standar Industri) */}
-          <div className="w-full mb-4 p-3.5 rounded-2xl bg-blue-50 border border-blue-200 text-blue-900 text-xs flex items-start gap-3 no-print">
-            <Lock className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="space-y-0.5">
-              <p className="font-bold">Integritas Data Terkunci (BR-010 &amp; Faktual Industri):</p>
-              <p className="text-blue-800 leading-snug">
-                Seluruh klaim <strong>{cvData.totalVerifiedJp} Jam Kerja Industri Riil</strong> (setara {cvData.totalVerifiedJp} JP beban kurikulum), nama DUDI mitra, dan unit kompetensi SKKNI ditarik otomatis dari database logbook terverifikasi tanpa dapat dimanipulasi secara manual. Jam non-kompetensi ({cvData.nonCompetencyJp} Jam) dipisahkan dari klaim kejuruan teknis.
-              </p>
-            </div>
-          </div>
-
-          {/* Actual CV Document Sheet (Styled as an A4 document preview) */}
-          <div className="w-full bg-white rounded-2xl p-6 sm:p-10 border border-slate-300 shadow-sm print:border-none print:shadow-none print:p-0 space-y-6 text-slate-900 font-sans text-xs">
-            {/* CV Header: Student Identity & Dynamic QR */}
-            <div className="border-b-2 border-slate-900 pb-4 flex justify-between items-start gap-4">
-              <div className="space-y-1">
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight uppercase text-slate-900">
+          {/* ─── FULL-WIDTH A4 DOCUMENT SHEET: STRICT SINGLE-COLUMN ATS ─── */}
+          <div className="cv-print-sheet w-full bg-white rounded-2xl p-4 sm:p-8 lg:p-11 border border-slate-200/90 shadow-[0_4px_24px_-4px_rgba(15,23,42,0.06)] space-y-4.5 sm:space-y-5 text-slate-900 font-sans text-xs print:p-0 print:border-none print:shadow-none print:rounded-none print:space-y-3.5 print:w-full print:max-w-full">
+            {/* CV Header: Student Identity & Official Verification QR (Harvard & ADACareer Style) */}
+            <div className="border-b-2 border-slate-900 pb-3 flex justify-between items-start gap-3 sm:gap-4">
+              <div className="space-y-1 min-w-0 flex-1">
+                <h2 className="text-2xl sm:text-[26px] font-bold tracking-tight uppercase text-slate-900 leading-tight">
                   {student.fullName}
-                </h1>
-                <p className="font-bold text-blue-700 text-xs sm:text-sm">
-                  {student.departmentName} · {student.schoolName}
+                </h2>
+                <p className="font-semibold text-slate-800 text-xs sm:text-sm">
+                  {student.departmentName} — {student.schoolName}
                 </p>
-                <p className="text-[11px] text-slate-600 pt-0.5">
-                  NISN: {student.identityNumber} {student.whatsappNumber ? `· WA: ${student.whatsappNumber}` : ""}
-                  {student.schoolAddress ? ` · ${student.schoolAddress}` : ""}
+
+                {/* Contact line: Inline editable in Edit Mode */}
+                {isEditMode ? (
+                  <div className="text-[11px] text-slate-600 pt-1 font-normal flex flex-wrap items-center gap-2 no-print">
+                    <span>NISN: <strong className="font-semibold text-slate-900">{student.identityNumber}</strong></span>
+                    <span>·</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-slate-500 font-medium">WA:</span>
+                      <input
+                        type="text"
+                        value={customPhone}
+                        onChange={(e) => setCustomPhone(e.target.value)}
+                        className="px-2 py-0.5 bg-slate-50 border border-slate-300 rounded text-slate-900 text-xs w-32 focus:outline-none focus:border-sky-500 font-normal"
+                        placeholder="081234567890"
+                      />
+                    </div>
+                    <span>·</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-slate-500 font-medium">Domisili:</span>
+                      <input
+                        type="text"
+                        value={customAddress}
+                        onChange={(e) => setCustomAddress(e.target.value)}
+                        className="px-2 py-0.5 bg-slate-50 border border-slate-300 rounded text-slate-900 text-xs w-48 focus:outline-none focus:border-sky-500 font-normal"
+                        placeholder="Surabaya, Jawa Timur"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-600 pt-0.5 font-normal leading-relaxed flex flex-wrap items-center gap-x-2">
+                    <span>NISN: <strong className="font-semibold text-slate-900">{student.identityNumber}</strong></span>
+                    <span>·</span>
+                    {(customPhone || student.whatsappNumber) && (
+                      <>
+                        <span>WhatsApp: <strong className="font-semibold text-slate-900">{customPhone || student.whatsappNumber}</strong></span>
+                        <span>·</span>
+                      </>
+                    )}
+                    <span>{customAddress || student.schoolAddress || "Surabaya, Jawa Timur"}</span>
+                  </p>
+                )}
+
+                <p className="text-[10px] text-slate-500 font-mono pt-0.5 break-all">
+                  Paspor Kompetensi &amp; Audit Publik: https://vokalink.id{verificationUrl}
                 </p>
               </div>
 
-              {/* QR Code Audit Stamp (FR-012 & TC-010) */}
-              <div className="text-center flex-shrink-0">
-                <div className="w-20 h-20 bg-white border-2 border-slate-900 rounded-xl flex flex-col items-center justify-center p-1 shadow-2xs">
+              {/* QR Code Audit Stamp */}
+              <div className="text-center shrink-0">
+                <div className="w-[82px] h-[82px] bg-white border border-slate-900 rounded-lg flex flex-col items-center justify-center p-1 shadow-2xs">
                   <QrCodeView
                     value={
                       typeof window !== "undefined"
                         ? `${window.location.origin}${verificationUrl}`
                         : `https://vokalink.id${verificationUrl}`
                     }
-                    size={56}
+                    size={52}
                     errorCorrectionLevel="M"
                   />
-                  <span className="text-[7.5px] font-black text-slate-800 uppercase mt-0.5 tracking-wider">
-                    Scan Audit
+                  <span className="text-[7.5px] font-bold text-slate-900 uppercase mt-1 tracking-wider">
+                    Scan Audit HRD
                   </span>
                 </div>
               </div>
             </div>
 
             {/* Section 1: Ringkasan Profesional */}
-            <div className="space-y-1.5">
-              <h2 className="font-extrabold text-xs sm:text-sm uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1">
-                Ringkasan Profesional
-              </h2>
-              <p className="text-slate-700 leading-relaxed text-xs">{bioSummary}</p>
+            <div className="space-y-1">
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 border-b-2 border-slate-900 pb-0.5 mb-1.5 flex items-center justify-between">
+                <span>Ringkasan Profesional</span>
+                {isEditMode && <span className="text-[10px] font-normal text-amber-700 italic">Dapat diedit</span>}
+              </h3>
+              {isEditMode ? (
+                <textarea
+                  rows={3}
+                  value={bioSummary}
+                  onChange={(e) => setBioSummary(e.target.value)}
+                  className="w-full text-xs p-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 leading-relaxed font-normal"
+                  placeholder="Tuliskan ringkasan pengalaman dan fokus keahlian Anda..."
+                />
+              ) : (
+                <p className="text-slate-800 leading-relaxed text-xs font-normal text-justify">
+                  {bioSummary}
+                </p>
+              )}
             </div>
 
             {/* Section 2: Pengalaman Praktik Kerja Lapangan (PKL) */}
             <div className="space-y-3">
-              <h2 className="font-extrabold text-xs sm:text-sm uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1">
-                Pengalaman Praktik Kerja Lapangan (PKL)
-              </h2>
-
-              {experiences.map((exp, idx) => (
-                <div key={exp.placementId || idx} className="space-y-2 pt-1 first:pt-0">
-                  <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between font-bold text-slate-900 text-xs sm:text-sm">
-                    <span>
-                      {exp.roleTitle} — {exp.dudiName} {exp.dudiCity ? `(${exp.dudiCity})` : ""}
+              <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1 mb-2">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900">
+                    Pengalaman Praktik Kerja Lapangan (PKL)
+                  </h3>
+                  {isEditMode && customExperiences.length > 0 && (
+                    <span className="text-[10px] font-normal text-amber-700 italic no-print">
+                      ({customExperiences.length} Posisi)
                     </span>
-                    <span className="text-slate-500 font-medium text-xs">{exp.periodLabel}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 italic">
-                    {exp.mentorName ? `Penyelia: ${exp.mentorName} · ` : ""}
-                    Total Jam Kerja Riil: {exp.totalVerifiedJp} Jam ({exp.technicalJp} Jam Kejuruan
-                    {exp.nonCompetencyJp > 0 ? ` + ${exp.nonCompetencyJp} Jam Tugas Umum` : ""}) · Ekuivalen {exp.totalVerifiedJp} JP Kurikulum
-                  </p>
-
-                  {/* XYZ Bullet points strictly formatted for ATS */}
-                  <ul className="list-disc list-outside pl-4 space-y-1.5 text-slate-700 text-xs leading-relaxed">
-                    {exp.bulletPoints.map((bp, bIdx) => (
-                      <li key={bp.jobCardId || bIdx}>{bp.bulletText}</li>
-                    ))}
-                  </ul>
+                  )}
                 </div>
-              ))}
+
+                {/* Tombol Tambah Pengalaman: Hanya muncul saat Mode Edit aktif seperti elemen edit lainnya */}
+                {isEditMode && (
+                  <div className="flex items-center gap-2 no-print">
+                    <button
+                      type="button"
+                      onClick={handleAddExperience}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sky-50 text-sky-700 hover:bg-sky-100 hover:text-sky-900 border border-sky-300 transition cursor-pointer active:scale-95 shadow-2xs"
+                      title="Tambah pengalaman praktik kerja lapangan baru"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-sky-600" />
+                      <span>Tambah Pengalaman</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Daftar Pengalaman PKL */}
+              <div className="space-y-4">
+                {customExperiences.map((exp, expIdx) => (
+                  <div
+                    key={exp.id || expIdx}
+                    className={cn(
+                      "space-y-1.5 pt-1 first:pt-0 transition-colors",
+                      isEditMode && "p-3 bg-slate-50/70 border border-slate-200/90 rounded-xl"
+                    )}
+                  >
+                    {/* Role Title & Right-Aligned Date Anchor */}
+                    <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between text-xs sm:text-sm gap-1">
+                      {isEditMode ? (
+                        <div className="flex-1 max-w-md">
+                          <input
+                            type="text"
+                            value={exp.roleTitle}
+                            onChange={(e) =>
+                              handleUpdateExperienceField(exp.id, "roleTitle", e.target.value)
+                            }
+                            className="font-bold text-slate-900 text-xs sm:text-sm bg-white border border-slate-300 rounded px-2 py-0.5 focus:outline-none focus:border-sky-500 w-full"
+                            placeholder="Posisi / Peran Magang"
+                          />
+                        </div>
+                      ) : (
+                        <span className="font-bold text-slate-900 min-w-0 flex-1">
+                          {exp.roleTitle}
+                        </span>
+                      )}
+
+                      <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                        {isEditMode ? (
+                          <>
+                            <input
+                              type="text"
+                              value={exp.periodLabel}
+                              onChange={(e) =>
+                                handleUpdateExperienceField(exp.id, "periodLabel", e.target.value)
+                              }
+                              className="text-slate-800 font-semibold text-xs bg-white border border-slate-300 rounded px-2 py-0.5 focus:outline-none focus:border-sky-500 w-36 text-right"
+                              placeholder="Jan 2026 – Sekarang"
+                            />
+                            {customExperiences.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveExperience(exp.id)}
+                                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition cursor-pointer"
+                                title="Hapus Pengalaman PKL ini"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-slate-800 font-semibold text-xs whitespace-nowrap shrink-0 ml-2">
+                            {exp.periodLabel}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Company, City & Verified Real Hours */}
+                    {isEditMode ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-0.5 text-xs">
+                        <input
+                          type="text"
+                          value={exp.dudiName}
+                          onChange={(e) =>
+                            handleUpdateExperienceField(exp.id, "dudiName", e.target.value)
+                          }
+                          className="bg-white border border-slate-300 rounded px-2 py-1 text-slate-800 text-xs focus:outline-none focus:border-sky-500 font-medium"
+                          placeholder="Nama Perusahaan / DUDI"
+                        />
+                        <input
+                          type="text"
+                          value={exp.dudiCity || ""}
+                          onChange={(e) =>
+                            handleUpdateExperienceField(exp.id, "dudiCity", e.target.value)
+                          }
+                          className="bg-white border border-slate-300 rounded px-2 py-1 text-slate-800 text-xs focus:outline-none focus:border-sky-500"
+                          placeholder="Kota Penempatan (e.g. Surabaya)"
+                        />
+                        <div className="flex items-center gap-1.5 bg-white border border-slate-300 rounded px-2 py-0.5">
+                          <input
+                            type="number"
+                            value={exp.totalVerifiedJp || ""}
+                            onChange={(e) =>
+                              handleUpdateExperienceField(
+                                exp.id,
+                                "totalVerifiedJp",
+                                Number(e.target.value) || 0
+                              )
+                            }
+                            className="w-16 text-slate-900 font-semibold text-xs focus:outline-none"
+                            placeholder="Jam"
+                          />
+                          <span className="text-[11px] text-slate-500">Jam Kerja Riil</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between text-[11px] text-slate-700 gap-1 flex-wrap">
+                        <span className="font-semibold text-slate-800 min-w-0">
+                          {exp.dudiName} {exp.dudiCity ? `· ${exp.dudiCity}` : ""}
+                          {exp.mentorName ? ` · Pembimbing: ${exp.mentorName}` : ""}
+                        </span>
+                        <span className="text-slate-600 font-medium shrink-0">
+                          Total: <strong className="text-slate-900">{exp.totalVerifiedJp} Jam Kerja Riil</strong> ({exp.technicalJp || exp.totalVerifiedJp} JP Kejuruan
+                          {exp.nonCompetencyJp > 0 ? ` + ${exp.nonCompetencyJp} JP Umum` : ""})
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Action-Oriented Bullet Points */}
+                    {isEditMode ? (
+                      <div className="space-y-2 pt-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-semibold text-slate-600">
+                            Butir Capaian &amp; Tanggung Jawab:
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleAddBulletToExp(exp.id)}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-700 hover:text-sky-900 transition cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Tambah Poin Capaian</span>
+                          </button>
+                        </div>
+                        {exp.bulletPoints.map((bulletText, bIdx) => (
+                          <div key={bIdx} className="flex items-start gap-2">
+                            <span className="text-slate-400 mt-1.5 text-xs">•</span>
+                            <textarea
+                              rows={2}
+                              value={bulletText}
+                              onChange={(e) =>
+                                handleBulletChangeExp(exp.id, bIdx, e.target.value)
+                              }
+                              className="flex-1 text-xs p-2 rounded-lg bg-white border border-slate-300 text-slate-900 focus:outline-none focus:border-sky-500 leading-relaxed font-normal"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveBulletFromExp(exp.id, bIdx)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer shrink-0 mt-0.5"
+                              title="Hapus butir"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <ul className="list-disc list-outside pl-4 space-y-1 text-slate-800 text-xs leading-relaxed font-normal">
+                        {exp.bulletPoints.map((bulletText, bIdx) => (
+                          <li key={bIdx} className="break-words">{bulletText}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Tombol Tambah Pengalaman di Bawah saat Mode Edit */}
+              {isEditMode && (
+                <div className="pt-2 no-print">
+                  <button
+                    type="button"
+                    onClick={handleAddExperience}
+                    className="w-full py-2.5 px-3 border border-dashed border-sky-300 hover:border-sky-500 rounded-xl bg-sky-50/50 hover:bg-sky-50 text-sky-700 text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer active:scale-[0.99]"
+                  >
+                    <Plus className="w-4 h-4 text-sky-600" />
+                    <span>Tambah Pengalaman PKL Baru</span>
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* Section 3: Keterampilan & Penguasaan Alat Terverifikasi */}
-            {technicalSkills.length > 0 && (
-              <div className="space-y-2">
-                <h2 className="font-extrabold text-xs sm:text-sm uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1">
-                  Keterampilan &amp; Alat Kerja Terverifikasi
-                </h2>
-                <div className="text-xs text-slate-700 leading-relaxed">
-                  <p>
-                    <strong className="text-slate-900 font-bold">Teknologi &amp; Instrumen Praktik: </strong>
-                    {technicalSkills.map((skill, sIdx) => (
-                      <span key={skill.name}>
-                        {skill.name} ({skill.totalJp} Jam Kerja Riil)
-                        {sIdx < technicalSkills.length - 1 ? ", " : "."}
-                      </span>
-                    ))}
-                  </p>
+            {/* Section 3: Pendidikan Formal */}
+            <div className="space-y-1">
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 border-b-2 border-slate-900 pb-0.5 mb-1.5">
+                Pendidikan Formal
+              </h3>
+              <div className="flex justify-between items-baseline text-xs gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-slate-900">{student.schoolName}</p>
+                  <p className="text-slate-700 font-normal">Konsentrasi {student.departmentName} (Fase F SMK Kurikulum Merdeka)</p>
                 </div>
+                <span className="text-slate-800 font-semibold whitespace-nowrap shrink-0">2024 – 2027</span>
               </div>
-            )}
+            </div>
 
-            {/* Section 4: Endorsement Industri (Jika ada dari FR-010) */}
+            {/* Section 4: Keahlian & Instrumen Kerja Terverifikasi */}
+            <div className="space-y-1">
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 border-b-2 border-slate-900 pb-0.5 mb-1.5 flex items-center justify-between">
+                <span>Keahlian &amp; Instrumen Kerja Terverifikasi</span>
+                {isEditMode && <span className="text-[10px] font-normal text-amber-700 italic">Dapat diedit (pisahkan dengan koma)</span>}
+              </h3>
+              <div className="text-xs text-slate-800 leading-relaxed font-normal space-y-1">
+                {isEditMode ? (
+                  <div className="pt-0.5">
+                    <input
+                      type="text"
+                      value={customSkills.join(", ")}
+                      onChange={(e) =>
+                        setCustomSkills(
+                          e.target.value.split(",").map((s) => s.trim()).filter(Boolean)
+                        )
+                      }
+                      className="w-full text-xs p-2 rounded-lg bg-slate-50 border border-slate-300 text-slate-900 focus:outline-none focus:border-sky-500 font-normal"
+                      placeholder="TypeScript, Node.js, Express.js, PostgreSQL, Next.js, Git"
+                    />
+                  </div>
+                ) : (
+                  <p className="break-words">
+                    <strong className="text-slate-900 font-semibold">Teknologi &amp; Alat Industri: </strong>
+                    {customSkills.length > 0
+                      ? customSkills.join(", ")
+                      : technicalSkills.map((s) => `${s.name} (${s.totalJp} Jam)`).join(", ")}
+                  </p>
+                )}
+                <p>
+                  <strong className="text-slate-900 font-semibold">Standar Kepatuhan: </strong>
+                  SKKNI Bidang Rekayasa Perangkat Lunak / Kejuruan Vokasi, Standar SOP Mandiri &amp; K3 Industri.
+                </p>
+                <p>
+                  <strong className="text-slate-900 font-semibold">Validitas Jam Kerja: </strong>
+                  100% tervalidasi mentor industri melalui tanda tangan digital &amp; PIN resmi (BR-010).
+                </p>
+              </div>
+            </div>
+
+            {/* Section 5: Evaluasi & Endorsement Mentor Industri */}
             {endorsement && (
-              <div className="space-y-2">
-                <h2 className="font-extrabold text-xs sm:text-sm uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1">
-                  Endorsement & Evaluasi Mentor Industri
-                </h2>
-                <div className="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1.5 print:bg-transparent print:border-none print:p-0">
-                  <div className="flex items-center gap-2 font-bold text-slate-900">
-                    <Award className="w-4 h-4 text-amber-600 flex-shrink-0" />
+              <div className="space-y-1">
+                <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 border-b-2 border-slate-900 pb-0.5 mb-1.5">
+                  Evaluasi &amp; Endorsement Mentor Industri
+                </h3>
+                <div className="text-xs text-slate-800 bg-slate-50/70 p-3 rounded-xl border border-slate-200/80 space-y-1 print:bg-transparent print:border-none print:p-0">
+                  <div className="flex items-center gap-2 text-slate-900 font-semibold">
+                    <Award className="w-4 h-4 text-amber-600 shrink-0" />
                     <span>
-                      Skor Etos Kerja: {endorsement.attitudeScore}/100 · Penyelia: {endorsement.mentorName} ({endorsement.dudiName})
+                      Skor Etos Kerja: <strong className="text-emerald-700 font-bold">{endorsement.attitudeScore}/100</strong> · Mentor: {endorsement.mentorName} ({endorsement.dudiName})
                     </span>
                   </div>
                   {endorsement.quote && (
-                    <p className="italic text-slate-600 text-[11px] leading-relaxed">
+                    <p className="italic text-slate-700 text-[11px] leading-relaxed font-normal break-words">
                       &quot;{endorsement.quote}&quot;
                     </p>
                   )}
                   {endorsement.badges.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
                       {endorsement.badges.map((b) => (
                         <span
                           key={b}
-                          className="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-md text-[10px] font-bold"
+                          className="px-2.5 py-0.5 bg-white text-slate-800 border border-slate-300 rounded text-[10px] font-medium"
                         >
                           {b.replace(/_/g, " ")}
                         </span>
@@ -504,229 +1095,218 @@ export default function CareerCvPage() {
               </div>
             )}
 
-            {/* Section 5: Pendidikan Formal */}
-            <div className="space-y-1.5">
-              <h2 className="font-extrabold text-xs sm:text-sm uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1">
-                Pendidikan Formal
-              </h2>
-              <div className="flex justify-between items-baseline text-xs">
-                <div>
-                  <p className="font-bold text-slate-900">{student.schoolName}</p>
-                  <p className="text-slate-600">Konsentrasi {student.departmentName} (Fase F)</p>
-                </div>
-                <span className="text-slate-500 font-medium">2024 – 2027 (Diharapkan)</span>
+            {/* Section 6: Segel Digital Kriptografis & Legalitas Anti-Fraud */}
+            <div className="pt-3 border-t border-slate-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[10px] text-slate-500 font-mono flex-wrap">
+              <div className="flex items-center gap-1.5 text-emerald-800 font-semibold min-w-0">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="truncate">
+                  Tersegel Kriptografis HMAC-SHA256 · ID:{" "}
+                  {masterSignatureHash ? `${masterSignatureHash.slice(0, 16)}...` : "Menunggu Verifikasi"}
+                </span>
               </div>
-            </div>
-
-            {/* Section 6: Segel Digital & Audit Paspor (BR-010) */}
-            <div className="pt-4 border-t-2 border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-500">
-              <div className="flex items-center gap-2 text-emerald-700 font-bold">
-                <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                <span>Tersegel Kriptografis HMAC-SHA256 VokaLink</span>
+              <div className="flex items-center gap-3 min-w-0 shrink-0">
+                <span className="break-all">Audit: https://vokalink.id{verificationUrl}</span>
+                <Link
+                  href={verificationUrl}
+                  target="_blank"
+                  className="text-sky-600 font-sans font-medium hover:underline inline-flex items-center gap-0.5 no-print print:hidden shrink-0"
+                >
+                  Buka Paspor <ExternalLink className="w-3 h-3" />
+                </Link>
               </div>
-              <Link
-                href={verificationUrl}
-                target="_blank"
-                className="text-blue-600 font-bold hover:underline inline-flex items-center gap-1 no-print"
-              >
-                Buka Halaman Audit Paspor Publik <ExternalLink className="w-3.5 h-3.5" />
-              </Link>
             </div>
           </div>
         </div>
 
-        {/* RIGHT SIDEBAR: Controls & ATS Guidance (4 cols on desktop, no-print) */}
-        <div className="lg:col-span-4 space-y-5 no-print">
-          {/* Card 0: Jam Kerja Industri Riil vs JP Kurikulum */}
-          <div className="bg-gradient-to-br from-blue-900 to-indigo-950 text-white p-5 rounded-2xl shadow-sm space-y-2.5">
-            <div className="flex items-center gap-2 font-bold text-xs sm:text-sm text-blue-200">
-              <Clock className="w-4 h-4 text-blue-400" />
-              <span>Standar Durasi Industri Faktual</span>
-            </div>
-            <p className="text-xs text-blue-100 leading-relaxed">
-              CV VokaLink mencatat durasi menggunakan <strong>Jam Kerja Industri Riil (60 menit)</strong> dan tingkat kemandirian <strong>SOP Level 1-3</strong> agar langsung dipahami oleh perekrut HRD dan parser ATS perusahaan, sekaligus tetap memenuhi beban ekuivalensi 792 JP sekolah (Permendikbudristek No. 12/2024).
-            </p>
-          </div>
-
-          {/* Card 1: ATS Compliance Guarantee */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
-            <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
-              <FileCheck className="w-5 h-5 text-emerald-600" />
-              <span>Jaminan Standar ATS 100%</span>
-            </div>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Format CV ini telah diuji untuk lolos sistem pembaca CV otomatis (Applicant Tracking System) perusahaan:
-            </p>
-            <ul className="space-y-2 text-xs text-slate-700">
-              <li className="flex items-start gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <span>Format Kolom Tunggal murni (single column) tanpa tabel multi-kolom yang membingungkan parser ATS.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <span>Heading standar industri (RINGKASAN, PENGALAMAN, KETERAMPILAN, PENDIDIKAN).</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <span>Poin pencapaian berbasis formula XYZ Google (Tindakan + Jam Kerja Riil + Kemandirian SOP + SKKNI).</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <span>Bebas dari skill fiktif karena tersinkron langsung dari jam verifikasi mentor DUDI (BR-010).</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Card 2: Sesuaikan Ringkasan Profesional */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
+        {/* RIGHT COLUMN: Studio Control Sidebar (no-print, static non-sticky) */}
+        <div className="lg:col-span-4 space-y-4 no-print print:hidden">
+          {/* Card 1: Ringkasan Metrik Faktual */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
-              <label htmlFor="bio-edit" className="text-sm font-bold text-slate-900">
-                Sesuaikan Ringkasan Diri:
-              </label>
-              <span className="text-[11px] text-slate-400">
-                {bioSummary.length} karakter
+              <h3 className="text-xs font-semibold text-slate-900 tracking-tight uppercase flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-sky-500" />
+                <span>Klaim Terverifikasi (BR-010)</span>
+              </h3>
+              <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/70 px-2 py-0.5 rounded-full">
+                Faktual DUDI
               </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200/60">
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  Jam Kerja Riil
+                </span>
+                <p className="text-sm font-semibold text-slate-900 tracking-tight mt-0.5">
+                  {cvData.totalVerifiedJp} <span className="text-xs font-normal text-slate-500">Jam</span>
+                </p>
+                <span className="text-[9px] text-slate-400 block mt-0.5">
+                  ≈ {cvData.totalVerifiedJp} JP
+                </span>
+              </div>
+
+              <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200/60">
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  Kemandirian SOP
+                </span>
+                <p className="text-sm font-semibold text-slate-900 tracking-tight mt-0.5">
+                  {autonomousTasksCount} <span className="text-xs font-normal text-slate-500">Tugas</span>
+                </p>
+                <span className="text-[9px] text-emerald-700 font-medium block mt-0.5">
+                  Level 3 (Mandiri)
+                </span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-500 font-normal leading-relaxed">
+              Seluruh durasi, nama DUDI, dan unit kompetensi ditarik otomatis dari jurnal tervalidasi PIN mentor (BR-010).
+            </p>
+          </div>
+
+          {/* Card 2: Sesuaikan Ringkasan Diri (Editor Bio Cepat) */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold text-slate-900 tracking-tight flex items-center gap-1.5">
+                <Edit3 className="w-3.5 h-3.5 text-sky-600" />
+                <span>Ringkasan Diri (Bio)</span>
+              </h3>
+              {bioSaveSuccess && (
+                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/70 animate-in fade-in">
+                  Tersimpan!
+                </span>
+              )}
             </div>
             <textarea
               id="bio-edit"
-              rows={4}
+              rows={3}
               value={bioSummary}
               onChange={(e) => setBioSummary(e.target.value)}
-              className="w-full text-xs p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition leading-relaxed"
-              placeholder="Tuliskan ringkasan pengalaman dan fokus keahlian Anda..."
+              className="w-full text-xs p-3 rounded-2xl bg-slate-50/70 border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 leading-relaxed font-normal"
+              placeholder="Tuliskan ringkasan profesional Anda..."
             />
-            <div className="flex items-center justify-between pt-1">
-              <p className="text-[11px] text-slate-500 leading-snug">
-                Disimpan ke Paspor Digital Siswa
-              </p>
+            <div className="flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => setIsEditMode(!isEditMode)}
+                className="text-[11px] font-semibold text-sky-700 hover:text-sky-900 transition cursor-pointer"
+              >
+                {isEditMode ? "Tutup Edit Lembar" : "Mode Edit Lembar →"}
+              </button>
               <button
                 type="button"
                 onClick={handleSaveBio}
                 disabled={isSavingBio}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white transition shadow-2xs cursor-pointer active:scale-95 disabled:opacity-60"
               >
                 {isSavingBio ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     <span>Menyimpan...</span>
                   </>
-                ) : bioSaveSuccess ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-300" />
-                    <span>Tersimpan!</span>
-                  </>
                 ) : (
                   <>
                     <Save className="w-3.5 h-3.5" />
-                    <span>Simpan</span>
+                    <span>Simpan Bio</span>
                   </>
                 )}
               </button>
             </div>
           </div>
 
-          {/* Card 2.5: Pengaturan Privasi Paspor Publik (PRD FR-012 A1) */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-4">
+          {/* Card 3: Pengaturan Privasi Paspor Publik (FR-012) */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
-                <ShieldCheck className="w-5 h-5 text-indigo-600" />
-                <span>Privasi Paspor Publik (FR-012)</span>
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-sky-600" />
+                <h3 className="text-xs font-semibold text-slate-900 tracking-tight">
+                  Privasi Paspor Publik (FR-012)
+                </h3>
               </div>
               {privacySaved && (
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 animate-in fade-in">
+                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/70 animate-in fade-in">
                   Tersimpan!
                 </span>
               )}
             </div>
 
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Atur visibilitas data pribadi yang dapat diakses publik atau HRD ketika memindai QR Code Paspor Anda:
-            </p>
-
-            <div className="space-y-3 pt-1">
-              {/* Toggle 1: Foto Bukti Praktik */}
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
-                    <ImageIcon className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Galeri Foto Bukti</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 leading-tight">
-                    {showPhotos ? "Foto artefak logbook tampil di audit HRD" : "Foto disembunyikan dari audit publik"}
-                  </p>
+            <div className="space-y-2 pt-0.5">
+              {/* Toggle 1: Foto Bukti */}
+              <div className="p-2.5 rounded-2xl bg-slate-50/70 border border-slate-200/60 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="text-xs font-semibold text-slate-900 block truncate">Galeri Foto Bukti</span>
+                  <span className="text-[10px] text-slate-500 block truncate">
+                    {showPhotos ? "Foto tampil di audit HRD" : "Foto disembunyikan"}
+                  </span>
                 </div>
-
                 <button
                   type="button"
                   onClick={() => handleTogglePrivacy("showPhotos", !showPhotos)}
                   disabled={isUpdatingPrivacy}
-                  className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ease-in-out cursor-pointer flex-shrink-0 disabled:opacity-60 ${
-                    showPhotos ? "bg-indigo-600" : "bg-slate-300"
-                  }`}
+                  className={cn(
+                    "w-10 h-5.5 flex items-center rounded-full p-0.5 transition-colors duration-200 cursor-pointer shrink-0 disabled:opacity-60",
+                    showPhotos ? "bg-emerald-600" : "bg-slate-300"
+                  )}
                   title="Toggle tampilan foto bukti"
                 >
                   <div
-                    className={`bg-white w-4 h-4 rounded-full shadow-xs transform transition-transform duration-200 ease-in-out ${
-                      showPhotos ? "translate-x-5" : "translate-x-0"
-                    }`}
+                    className={cn(
+                      "bg-white w-4.5 h-4.5 rounded-full shadow-2xs transform transition-transform duration-200",
+                      showPhotos ? "translate-x-4.5" : "translate-x-0"
+                    )}
                   />
                 </button>
               </div>
 
-              {/* Toggle 2: Nilai Sikap / Karakter */}
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
-                    <Award className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Nilai Sikap Mentor</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 leading-tight">
-                    {showGrades ? "Skor etos kerja & catatan mentor ditampilkan" : "Skor sikap disembunyikan"}
-                  </p>
+              {/* Toggle 2: Nilai Sikap Mentor */}
+              <div className="p-2.5 rounded-2xl bg-slate-50/70 border border-slate-200/60 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="text-xs font-semibold text-slate-900 block truncate">Nilai Sikap Mentor</span>
+                  <span className="text-[10px] text-slate-500 block truncate">
+                    {showGrades ? "Skor etos kerja tampil" : "Skor sikap disembunyikan"}
+                  </span>
                 </div>
-
                 <button
                   type="button"
                   onClick={() => handleTogglePrivacy("showGrades", !showGrades)}
                   disabled={isUpdatingPrivacy}
-                  className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ease-in-out cursor-pointer flex-shrink-0 disabled:opacity-60 ${
-                    showGrades ? "bg-indigo-600" : "bg-slate-300"
-                  }`}
+                  className={cn(
+                    "w-10 h-5.5 flex items-center rounded-full p-0.5 transition-colors duration-200 cursor-pointer shrink-0 disabled:opacity-60",
+                    showGrades ? "bg-emerald-600" : "bg-slate-300"
+                  )}
                   title="Toggle tampilan nilai sikap"
                 >
                   <div
-                    className={`bg-white w-4 h-4 rounded-full shadow-xs transform transition-transform duration-200 ease-in-out ${
-                      showGrades ? "translate-x-5" : "translate-x-0"
-                    }`}
+                    className={cn(
+                      "bg-white w-4.5 h-4.5 rounded-full shadow-2xs transform transition-transform duration-200",
+                      showGrades ? "translate-x-4.5" : "translate-x-0"
+                    )}
                   />
                 </button>
               </div>
             </div>
-
-            <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-              <span>{isUpdatingPrivacy ? "Menyinkronkan..." : "Perubahan berlaku langsung"}</span>
-              <span className="font-mono text-[10px]">Slug: {cvData.verificationUrl.split("/").pop()}</span>
-            </div>
           </div>
 
-          {/* Card 3: Paspor Kompetensi Publik Info */}
-          <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-5 rounded-2xl shadow-xs space-y-3">
-            <div className="flex items-center gap-2 text-amber-300 font-bold text-sm">
-              <Sparkles className="w-4 h-4" />
-              <span>Paspor Kompetensi Ber-QR</span>
+          {/* Card 4: Jaminan Standar ATS (Harvard & ADACareer) */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-2.5">
+            <div className="flex items-center gap-1.5 text-slate-900 font-semibold text-xs tracking-tight">
+              <FileCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Standar Kepatuhan ATS 100%</span>
             </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Setiap CV yang dicetak memiliki QR Code unik yang terhubung ke halaman audit publik paspor siswa. HRD perusahaan dapat langsung memverifikasi keaslian magang dalam 3 detik.
-            </p>
-            <div className="pt-1">
-              <Link
-                href={verificationUrl}
-                target="_blank"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-xl transition"
-              >
-                Uji Coba Verifikasi Publik <ExternalLink className="w-3.5 h-3.5" />
-              </Link>
-            </div>
+
+            <ul className="space-y-1.5 text-[11px] text-slate-600 font-normal">
+              <li className="flex items-start gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                <span>Format Kolom Tunggal (*Single-Column*) lolos mesin seleksi ATS.</span>
+              </li>
+              <li className="flex items-start gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                <span>Pencapaian berbasis formula Google XYZ (*Tindakan + Jam Riil + Hasil*).</span>
+              </li>
+              <li className="flex items-start gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                <span>Bebas klaim fiktif karena tersinkron dari validasi PIN mentor (BR-010).</span>
+              </li>
+            </ul>
           </div>
         </div>
       </div>

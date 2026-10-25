@@ -16,25 +16,29 @@ export default function StudentLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-slate-50/80 text-slate-900 selection:bg-sky-500 selection:text-white flex flex-col font-sans">
-      <div className="flex-1 flex flex-col md:flex-row">
-        {/* 2. Mobile-only top header (hidden on desktop md:hidden) */}
-        <StudentHeader />
+    <div className="min-h-screen bg-slate-50/80 text-slate-900 selection:bg-sky-500 selection:text-white flex flex-col font-sans print:bg-white print:p-0 print:m-0 print:min-h-0 print:block">
+      <div className="flex-1 flex flex-col md:flex-row print:block print:w-full print:p-0 print:m-0">
+        {/* 2. Mobile-only top header (hidden on desktop md:hidden, hidden on print) */}
+        <div className="md:hidden no-print print:hidden">
+          <StudentHeader />
+        </div>
 
-        {/* 3. Desktop Left Slim Sidebar Dock (hidden on mobile, sticky on desktop) */}
-        <div className="hidden md:flex pl-3.5 lg:pl-4 py-4 shrink-0">
+        {/* 3. Desktop Left Slim Sidebar Dock (hidden on mobile, sticky on desktop, hidden on print) */}
+        <div className="hidden md:flex pl-3.5 lg:pl-4 py-4 shrink-0 no-print print:hidden">
           <StudentSidebar />
         </div>
 
         {/* 4. Main Content Container */}
-        <div className="flex-1 min-w-0 flex flex-col">
-          <main className="flex-1 w-full max-w-[1520px] mx-auto px-2 sm:px-3 lg:px-4 py-4 pb-24 md:pb-8">
+        <div className="flex-1 min-w-0 flex flex-col print:block print:w-full print:p-0 print:m-0">
+          <main className="flex-1 w-full max-w-[1520px] mx-auto px-3 sm:px-4 lg:px-6 py-3.5 sm:py-5 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:pb-8 print:p-0 print:m-0 print:max-w-none print:w-full">
             {children}
           </main>
         </div>
 
-        {/* 5. Bottom Navigation (Only visible on mobile screens < 768px via md:hidden) */}
-        <BottomNav />
+        {/* 5. Bottom Navigation (Only visible on mobile screens < 768px via md:hidden, hidden on print) */}
+        <div className="md:hidden no-print print:hidden">
+          <BottomNav />
+        </div>
       </div>
     </div>
   );

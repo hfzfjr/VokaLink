@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   QrCode,
@@ -18,16 +19,27 @@ interface MentorQrModalProps {
 
 export function MentorQrModal({ onClose }: MentorQrModalProps) {
   const [copiedLink, setCopiedLink] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Close on Escape key press
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Close on Escape key press & lock body scroll
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+    };
   }, [onClose]);
 
   const handleCopyValidationLink = () => {
@@ -38,12 +50,15 @@ export function MentorQrModal({ onClose }: MentorQrModalProps) {
     }
   };
 
-  return (
+  if (!isMounted || typeof document === "undefined") return null;
+
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="mentor-qr-title"
-      className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in-0 duration-150"
+      className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in-0 duration-150"
+      style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
       onClick={onClose}
     >
       <div
@@ -59,74 +74,80 @@ export function MentorQrModal({ onClose }: MentorQrModalProps) {
               <h3 id="mentor-qr-title" className="text-sm font-semibold text-slate-900">
                 Minta Validasi Mentor
               </h3>
-              <p className="text-[10px] text-slate-500 font-normal">Verifikasi 1-Click Tanpa Akun</p>
+              <p className="text-xs text-slate-500 font-normal">Pindai QR atau kirim via WhatsApp</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Tutup modal QR"
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition cursor-pointer active:scale-95"
+            aria-label="Tutup dialog QR"
+            className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition cursor-pointer active:scale-95"
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* QR Code Illustration & Scanner Frame */}
-        <div className="py-1 flex flex-col items-center">
-          <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col items-center justify-center relative group">
-            <div className="w-44 h-44 bg-white rounded-xl flex flex-col items-center justify-center border border-slate-200/70 relative overflow-hidden shadow-2xs">
-              <div className="grid grid-cols-6 gap-1 p-3 w-full h-full opacity-90">
-                {Array.from({ length: 36 }).map((_, idx) => (
-                  <div
-                    key={idx}
-                    className={`rounded-xs ${
-                      idx % 2 === 0 || idx % 7 === 0 || idx < 7 || idx > 28
-                        ? "bg-slate-900"
-                        : "bg-slate-100"
-                    }`}
-                  />
-                ))}
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-10 h-10 rounded-xl bg-sky-500 text-white font-bold text-base flex items-center justify-center shadow-xs border-2 border-white">
-                  V
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Mock QR Canvas Card */}
+        <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/80 flex flex-col items-center justify-center">
+          <div className="w-44 h-44 bg-white rounded-xl border border-slate-200 p-2.5 flex items-center justify-center shadow-xs">
+            <svg
+              className="w-full h-full text-slate-900"
+              viewBox="0 0 100 100"
+              fill="currentColor"
+            >
+              <rect x="0" y="0" width="30" height="30" rx="4" />
+              <rect x="5" y="5" width="20" height="20" rx="2" fill="white" />
+              <rect x="10" y="10" width="10" height="10" />
 
-          <div className="mt-3 flex items-center gap-1.5 text-slate-500 text-[11px] font-normal">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span>Mentor scan via kamera HP · PIN 6-digit (BR-007)</span>
+              <rect x="70" y="0" width="30" height="30" rx="4" />
+              <rect x="75" y="5" width="20" height="20" rx="2" fill="white" />
+              <rect x="80" y="10" width="10" height="10" />
+
+              <rect x="0" y="70" width="30" height="30" rx="4" />
+              <rect x="5" y="75" width="20" height="20" rx="2" fill="white" />
+              <rect x="10" y="80" width="10" height="10" />
+
+              <rect x="40" y="10" width="20" height="10" />
+              <rect x="40" y="30" width="10" height="20" />
+              <rect x="60" y="40" width="30" height="10" />
+              <rect x="40" y="60" width="20" height="10" />
+              <rect x="70" y="60" width="10" height="30" />
+              <rect x="40" y="80" width="20" height="10" />
+            </svg>
           </div>
+          <span className="text-[11px] text-slate-400 mt-2.5 font-mono">
+            Token: vkl-auth-382947 (Berlaku 24 jam)
+          </span>
         </div>
 
-        {/* Validation Link Box */}
-        <div className="p-2.5 rounded-xl bg-slate-50/70 border border-slate-200/60 text-left flex items-center justify-between gap-2">
-          <div className="truncate text-[11px] font-mono text-slate-600">
-            https://vokalink.id/v/andi-pratama...
-          </div>
+        {/* One-click Copy Link */}
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl border border-slate-200/70 text-xs">
+          <input
+            type="text"
+            readOnly
+            value="https://vokalink.id/v/andi-pratama-rpl-2026"
+            className="flex-1 bg-transparent px-2 text-slate-600 font-mono text-[11px] outline-none truncate"
+          />
           <button
             type="button"
             onClick={handleCopyValidationLink}
-            className="shrink-0 px-2.5 py-1 rounded-lg bg-white border border-slate-200/70 text-[10px] font-semibold text-slate-800 hover:bg-slate-50 flex items-center gap-1 transition cursor-pointer active:scale-95 shadow-2xs"
+            className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs border border-slate-200/80 flex items-center gap-1 shadow-2xs transition active:scale-95 cursor-pointer shrink-0"
           >
             {copiedLink ? (
               <>
-                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                <span className="text-emerald-700">Tersalin!</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="text-emerald-700">Tersalin</span>
               </>
             ) : (
               <>
-                <Copy className="w-3 h-3 text-slate-500" />
+                <Copy className="w-3.5 h-3.5 text-slate-500" />
                 <span>Salin</span>
               </>
             )}
           </button>
         </div>
 
-        {/* Action Buttons */}
+        {/* WhatsApp Hand-off Button */}
         <div className="space-y-2 pt-1">
           <a
             href="https://wa.me/?text=Halo%20Bapak%2FIbu%20Mentor%2C%20mohon%20verifikasi%20logbook%20PKL%20VokaLink%20saya%20melalui%20tautan%20ini%3A%20https%3A%2F%2Fvokalink.id%2Fv%2Fandi-pratama-rpl-2026"
@@ -148,6 +169,7 @@ export function MentorQrModal({ onClose }: MentorQrModalProps) {
           </Link>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
