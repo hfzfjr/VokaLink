@@ -18,7 +18,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { type KanbanTask, getCategoryDotColor, getCategoryShortLabel } from "./types";
+import { type KanbanTask } from "./types";
 
 interface DailyTimelineFeedProps {
   tasks: KanbanTask[];
@@ -299,7 +299,6 @@ export function DailyTimelineFeed({
         <div className="space-y-3 animate-in fade-in duration-150">
           {paginatedTasks.map((task) => {
             const isVerified = task.status === "verified";
-            const dotColor = getCategoryDotColor(task.categoryColor);
             const { day, month, weekday } = parseTaskDateParts(task.date);
 
             return (
@@ -334,13 +333,16 @@ export function DailyTimelineFeed({
                     </h3>
 
                     <div className="flex items-center gap-1.5 flex-wrap text-slate-500 text-xs">
-                      {/* Kategori Dot + Label */}
-                      <span className="inline-flex items-center gap-1 text-[10.5px] font-medium text-slate-600">
-                        <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", dotColor)} />
-                        <span>{getCategoryShortLabel(task.category)}</span>
-                      </span>
-
-                      <span className="text-slate-300">·</span>
+                      {/* Tag Khusus Non-Kompetensi (BR-004) */}
+                      {task.category.toLowerCase().includes("non-kompetensi") && (
+                        <>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200/70 text-[10px] font-semibold text-amber-700">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                            <span>Non-Kompetensi</span>
+                          </span>
+                          <span className="text-slate-300">·</span>
+                        </>
+                      )}
 
                       {/* Kemandirian Badge */}
                       <span
@@ -414,7 +416,6 @@ export function DailyTimelineFeed({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4 animate-in fade-in duration-150">
           {paginatedTasks.map((task) => {
             const isVerified = task.status === "verified";
-            const dotColor = getCategoryDotColor(task.categoryColor);
 
             return (
               <div
@@ -459,13 +460,15 @@ export function DailyTimelineFeed({
                     </div>
                   </div>
 
-                  {/* Category Pill Tag */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-50 border border-slate-200/60 text-[10.5px] font-medium text-slate-600">
-                      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", dotColor)} />
-                      <span className="truncate">{getCategoryShortLabel(task.category)}</span>
-                    </span>
-                  </div>
+                  {/* Tag Khusus Non-Kompetensi jika tugas umum (BR-004) */}
+                  {task.category.toLowerCase().includes("non-kompetensi") && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200/70 text-[10.5px] font-semibold text-amber-700">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                        <span>Non-Kompetensi</span>
+                      </span>
+                    </div>
+                  )}
 
                   {/* Task Title (Prominent & Clear) */}
                   <h3 className="text-[13.5px] sm:text-sm font-semibold text-slate-900 group-hover:text-sky-600 transition-colors leading-snug line-clamp-2">
