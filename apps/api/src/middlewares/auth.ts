@@ -55,11 +55,24 @@ export async function requireAuth(
     return;
   }
 
+  let payload: Record<string, unknown>;
   try {
     const secretKey = new TextEncoder().encode(jwtSecret);
-    const { payload } = await jwtVerify(token, secretKey);
+    const result = await jwtVerify(token, secretKey);
+    payload = result.payload as Record<string, unknown>;
+  } catch {
+    try {
+      const secretKey = Buffer.from(jwtSecret, "base64");
+      const result = await jwtVerify(token, secretKey);
+      payload = result.payload as Record<string, unknown>;
+    } catch {
+      next(new AppError("Sesi telah kedaluwarsa atau token tidak valid", 401, "UNAUTHORIZED"));
+      return;
+    }
+  }
 
-    const sub = payload.sub;
+  try {
+    const sub = payload["sub"] as string | undefined;
     const appMetadata = (payload["app_metadata"] ?? {}) as Record<string, unknown>;
     let userRole = (appMetadata["role"] ?? "STUDENT") as UserRole;
     let schoolId = (appMetadata["school_id"] ?? "") as string;
