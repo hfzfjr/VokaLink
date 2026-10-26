@@ -12,8 +12,6 @@ import {
   CheckCircle2,
   Award,
   ExternalLink,
-  PlusCircle,
-  QrCode,
 } from "lucide-react";
 import type { StudentInfo, KanbanTask } from "./types";
 
@@ -31,7 +29,7 @@ interface StudentWidgetPanelProps {
   workDays?: WorkDayItem[];
   endorsementQuote?: string;
   onOpenNotifications: () => void;
-  onOpenQrModal: () => void;
+  onOpenQrModal?: () => void;
 }
 
 export function StudentWidgetPanel({
@@ -41,7 +39,7 @@ export function StudentWidgetPanel({
   workDays: propWorkDays,
   endorsementQuote,
   onOpenNotifications,
-  onOpenQrModal,
+  onOpenQrModal: _onOpenQrModal,
 }: StudentWidgetPanelProps) {
   // Hitung dinamika 5 hari kerja pekan berjalan (Senin s/d Jumat)
   const workDays = React.useMemo(() => {
@@ -272,26 +270,6 @@ export function StudentWidgetPanel({
             <span>Terverifikasi</span>
           </span>
         </div>
-      </div>
-
-      {/* Quick Action Buttons (Desktop only, mobile has primary card + bottom nav) */}
-      <div className="hidden lg:grid grid-cols-2 gap-2.5 pt-1">
-        <Link
-          href="/student/log/new"
-          className="flex items-center justify-center gap-1.5 py-3 px-3 bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white rounded-xl text-xs font-semibold shadow-xs transition-all"
-        >
-          <PlusCircle className="w-4 h-4" />
-          <span>Catat Jurnal</span>
-        </Link>
-
-        <button
-          type="button"
-          onClick={onOpenQrModal}
-          className="flex items-center justify-center gap-1.5 py-3 px-3 bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer"
-        >
-          <QrCode className="w-4 h-4" />
-          <span>Minta Validasi</span>
-        </button>
       </div>
     </aside>
   );

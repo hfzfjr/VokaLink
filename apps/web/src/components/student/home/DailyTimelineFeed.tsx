@@ -367,7 +367,7 @@ export function DailyTimelineFeed({
         </div>
       ) : (
         /* ─── TAMPILAN B: NOTION MINIMALIST BENTO CARDS ─── */
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-4 animate-in fade-in duration-150">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4 animate-in fade-in duration-150">
           {filteredTasks.map((task) => {
             const isVerified = task.status === "verified";
             const dotColor = getCategoryDotColor(task.categoryColor);
