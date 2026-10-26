@@ -531,15 +531,23 @@ async function handleGetHeatmap(req: Request, res: Response, next: NextFunction)
     }
 
     // ─── QUERY DATABASE PRISMA ───────────────────────────────────────────────
-    // 1. Ambil Departemen & Elemen CP
-    const department = await prisma.schoolDepartment.findFirst({
-      where: departmentId ? { id: departmentId } : {},
-      include: {
-        cpElements: {
-          orderBy: { sortOrder: "asc" },
+    // 1. Ambil Departemen & Elemen CP (Default ke RPL jika tidak dispesifikasikan)
+    const department =
+      (await prisma.schoolDepartment.findFirst({
+        where: departmentId ? { id: departmentId } : { sectorCode: "RPL" },
+        include: {
+          cpElements: {
+            orderBy: { sortOrder: "asc" },
+          },
         },
-      },
-    });
+      })) ||
+      (await prisma.schoolDepartment.findFirst({
+        include: {
+          cpElements: {
+            orderBy: { sortOrder: "asc" },
+          },
+        },
+      }));
 
     if (!department) {
       res.status(200).json(getMockHeatmapData());

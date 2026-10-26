@@ -5,10 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ShieldCheck,
-  QrCode,
   Flame,
   Layers,
-  ArrowRight,
   LogIn,
   KeyRound,
   Sparkles,
@@ -18,9 +16,14 @@ import {
   EyeOff,
   User,
   Loader2,
+  CheckCircle2,
+  TrendingUp,
+  FileText,
+  School,
+  Building2,
+  Users,
 } from "lucide-react";
 import Navbar, { NavbarButton } from "@/components/layout/Navbar";
-import { DemoBar } from "@/components/shell/DemoBar";
 import { supabase } from "@/lib/supabase";
 
 function GoogleIcon({ className = "w-5 h-5" }: { className?: string }) {
@@ -103,14 +106,14 @@ function LoginForm() {
     }
   };
 
-  // Handler Masuk Manual (Email/NISN & Password)
+  // Handler Masuk Manual (Email/NIP/NISN & Password)
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setUnlinkedEmail(null);
 
     if (!identifier.trim()) {
-      setErrorMsg("Email resmi atau NISN siswa wajib diisi.");
+      setErrorMsg("Email resmi, NIP, atau NISN siswa wajib diisi.");
       return;
     }
     if (!password) {
@@ -164,7 +167,7 @@ function LoginForm() {
         return;
       }
 
-      // 2. Jika identifier adalah NISN atau Nomor Identitas Resmi, validasi ke server VokaLink
+      // 2. Jika identifier adalah NISN atau NIP Resmi, validasi ke server VokaLink
       const res = await fetch(`${apiUrl}/auth/login-identifier`, {
         method: "POST",
         headers: {
@@ -200,23 +203,126 @@ function LoginForm() {
     }
   };
 
-  const handleQuickDemo = (rolePath: string) => {
-    router.push(rolePath);
-  };
-
   return (
-    <main className="max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-      {/* Left Column: Login Form */}
-      <div className="lg:col-span-6 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs space-y-6">
+    <main className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-stretch">
+      {/* SECTION KIRI: Banner Ilustrasi Grafis Fitur VokaLink */}
+      <section className="lg:col-span-7 rounded-3xl bg-linear-to-br from-slate-950 via-slate-900 to-indigo-950 text-white p-7 sm:p-10 border border-slate-800/80 shadow-2xl flex flex-col justify-between relative overflow-hidden">
+        {/* Ambient Glow Decorative Elements */}
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-sky-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Top Header Badge & Tagline */}
+        <div className="relative z-10 space-y-4">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/10 border border-sky-400/20 text-sky-300 text-xs font-semibold tracking-wide backdrop-blur-xs">
+            <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+            <span>Ekosistem PKL Terintegrasi SKKNI</span>
+          </div>
+
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight">
+            Transparansi Nyata, Bukti Kerja Terverifikasi Kriptografi.
+          </h2>
+
+          <p className="text-sm text-slate-300 leading-relaxed max-w-xl">
+            VokaLink menghubungkan Sekolah Vokasi, Siswa Praktik, dan Mitra Industri dalam satu platform cerdas: bebas manipulasi, tanpa login rumit untuk mentor, dan siap menghasilkan portofolio standar industri.
+          </p>
+        </div>
+
+        {/* Middle: Feature Highlights (Interactive Look Cards) */}
+        <div className="relative z-10 my-8 space-y-3.5">
+          {/* Feature 1: Live Heatmap & Drift Detection */}
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-start gap-4 transition hover:bg-white/[0.08]">
+            <div className="p-2.5 rounded-xl bg-sky-500/20 text-sky-400 shrink-0 mt-0.5">
+              <Flame className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-sm text-white">Live Heatmap & Deteksi Drift Otomatis</h3>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                  Real-Time
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                Guru pembimbing memantau ketercapaian 792 JP dan mendeteksi deviasi penugasan non-kompetensi (mis. admin umum berlebih) sebelum terlambat.
+              </p>
+            </div>
+          </div>
+
+          {/* Feature 2: Zero-Login Mentor Verification */}
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-start gap-4 transition hover:bg-white/[0.08]">
+            <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 shrink-0 mt-0.5">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-sm text-white">Zero-Login Industry Verification</h3>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                  &lt; 10 Detik
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                Mentor industri memvalidasi logbook siswa secara aman lewat tautan sekali pakai, device token terikat, dan PIN tanpa perlu membuat akun baru.
+              </p>
+            </div>
+          </div>
+
+          {/* Feature 3: Paspor Keterampilan & CV ATS */}
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-start gap-4 transition hover:bg-white/[0.08]">
+            <div className="p-2.5 rounded-xl bg-indigo-500/20 text-indigo-400 shrink-0 mt-0.5">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-sm text-white">Paspor Kompetensi & e-Rapor Siap Kerja</h3>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
+                  HMAC-SHA256
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                Logbook tervalidasi otomatis bertransformasi menjadi resume ATS ramah rekruter dan halaman publik ber-QR resmi yang diaudit perusahaan.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Statistics Ribbon */}
+        <div className="relative z-10 pt-5 border-t border-white/10 grid grid-cols-3 gap-4 text-center">
+          <div className="space-y-1">
+            <div className="flex items-center justify-center gap-1.5 text-sky-400">
+              <School className="w-4 h-4" />
+              <span className="text-base sm:text-lg font-black text-white">3 SMK</span>
+            </div>
+            <p className="text-[11px] text-slate-400">Medan, Bandung, Jakarta</p>
+          </div>
+
+          <div className="space-y-1 border-x border-white/10">
+            <div className="flex items-center justify-center gap-1.5 text-emerald-400">
+              <Users className="w-4 h-4" />
+              <span className="text-base sm:text-lg font-black text-white">300 Siswa</span>
+            </div>
+            <p className="text-[11px] text-slate-400">100 Siswa per Sekolah</p>
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center justify-center gap-1.5 text-amber-400">
+              <Building2 className="w-4 h-4" />
+              <span className="text-base sm:text-lg font-black text-white">18 DUDI</span>
+            </div>
+            <p className="text-[11px] text-slate-400">Mitra Industri Aktif</p>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION KANAN: Formulir Login Autentikasi Terpadu */}
+      <section className="lg:col-span-5 bg-white p-7 sm:p-9 rounded-3xl border border-slate-200/90 shadow-xl flex flex-col justify-between space-y-6">
         <div>
-          <span className="text-[11px] font-extrabold uppercase tracking-wider text-sky-600 bg-sky-50 px-3 py-1 rounded-full border border-sky-100 inline-block mb-2">
+          <span className="text-[11px] font-extrabold uppercase tracking-wider text-sky-600 bg-sky-50 px-3 py-1 rounded-full border border-sky-100 inline-block mb-2.5">
             Autentikasi Terpadu
           </span>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
             Masuk ke VokaLink
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
-            Gunakan akun Google, Email Sekolah, atau NISN Siswa untuk mengakses sistem.
+          <p className="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
+            Gunakan Akun Google, Email Sekolah, atau NISN Siswa untuk mengakses sistem.
           </p>
         </div>
 
@@ -259,7 +365,7 @@ function LoginForm() {
         {errorMsg && (
           <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5">
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-            <span>{errorMsg}</span>
+            <span className="leading-relaxed">{errorMsg}</span>
           </div>
         )}
 
@@ -267,12 +373,12 @@ function LoginForm() {
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              Email Resmi atau NISN Siswa
+              Email Resmi, NIP Guru, atau NISN Siswa
             </label>
             <div className="relative">
               <input
                 type="text"
-                placeholder="admin.smk@vokalink.id / 0078901234"
+                placeholder="admin.telkommedan@vokalink.id / 0078901234"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition font-medium placeholder:text-slate-400 bg-slate-50/50 focus:bg-white"
@@ -322,7 +428,11 @@ function LoginForm() {
             disabled={loading || googleLoading}
             className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold shadow-md shadow-sky-500/20 transition active:scale-[0.98] disabled:opacity-50 cursor-pointer"
           >
-            <LogIn className="w-4 h-4" />
+            {loading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <LogIn className="w-4 h-4" />
+            )}
             <span>{loading ? "Memverifikasi..." : "Masuk ke Sistem"}</span>
           </button>
         </form>
@@ -361,136 +471,7 @@ function LoginForm() {
             Daftar Multi-Tenant (2 Menit)
           </Link>
         </div>
-      </div>
-
-      {/* Right Column: Judge Quick Switcher (1-Click Role Switcher) */}
-      <div className="lg:col-span-6 space-y-4">
-        <div className="p-6 rounded-3xl bg-slate-900 text-white shadow-xl border border-slate-800">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="p-1.5 rounded-full bg-sky-500/20 text-sky-400">
-              <Sparkles className="w-4 h-4" />
-            </span>
-            <h2 className="font-extrabold text-sm sm:text-base text-white tracking-tight">
-              Judge Demo Switcher (Simulasi Peran Juri)
-            </h2>
-          </div>
-          <p className="text-xs text-slate-300 leading-relaxed mb-4">
-            Uji seluruh alur sistem secara langsung tanpa perlu login manual. Pilih peran yang ingin Anda simulasikan:
-          </p>
-
-          <div className="space-y-2.5">
-            {/* Option 1: School Admin */}
-            <button
-              type="button"
-              onClick={() => handleQuickDemo("/school/dashboard")}
-              className="w-full p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition flex items-center justify-between text-left group cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-sky-500/20 text-sky-300">
-                  <Layers className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-xs sm:text-sm text-white group-hover:text-sky-300 transition">
-                    1. Admin Pokja PKL (SMK Demo)
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    Dasbor Sekolah, Master Kurikulum & Job Cards, Smart Placement
-                  </p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition shrink-0" />
-            </button>
-
-            {/* Option 2: Teacher */}
-            <button
-              type="button"
-              onClick={() => handleQuickDemo("/teacher/heatmap")}
-              className="w-full p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition flex items-center justify-between text-left group cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-300">
-                  <Flame className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-xs sm:text-sm text-white group-hover:text-emerald-300 transition">
-                    2. Guru Pembimbing (Budi Santoso)
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    Live Heatmap 2D, Deteksi Drift, Peringatan & Intervensi WA
-                  </p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition shrink-0" />
-            </button>
-
-            {/* Option 3: Student */}
-            <button
-              type="button"
-              onClick={() => handleQuickDemo("/student/home")}
-              className="w-full p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition flex items-center justify-between text-left group cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-sky-500/20 text-sky-300">
-                  <QrCode className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-xs sm:text-sm text-white group-hover:text-sky-300 transition">
-                    3. Siswa PKL PWA (Andi Pratama - RPL)
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    Zero-Typing Logger, Tombol Jujur, Kompresi Foto, CV ATS
-                  </p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition shrink-0" />
-            </button>
-
-            {/* Option 4: Industry Mentor */}
-            <button
-              type="button"
-              onClick={() => handleQuickDemo("/v/demo-token")}
-              className="w-full p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition flex items-center justify-between text-left group cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-amber-500/20 text-amber-300">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-xs sm:text-sm text-white group-hover:text-amber-300 transition">
-                    4. Mentor Industri (PT Nusantara Tech)
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    Validasi Zero-Login (&lt;10 dtk), Pengikatan Token & PIN
-                  </p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition shrink-0" />
-            </button>
-
-            {/* Option 5: HRD / Public Verifier */}
-            <button
-              type="button"
-              onClick={() => handleQuickDemo("/verify/andi-pratama-rpl-2026")}
-              className="w-full p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition flex items-center justify-between text-left group cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-300">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-xs sm:text-sm text-white group-hover:text-indigo-300 transition">
-                    5. Verifikator Publik / HRD Rekruter
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    Audit Paspor Kompetensi Publik Ber-QR & Segel Kriptografi
-                  </p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition shrink-0" />
-            </button>
-          </div>
-        </div>
-      </div>
+      </section>
     </main>
   );
 }
@@ -498,10 +479,7 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <div className="min-h-screen bg-canvas text-content-primary flex flex-col justify-between font-sans selection:bg-sky-500 selection:text-white">
-      {/* 1. DEMO BAR (Top Judge Switcher) */}
-      <DemoBar />
-
-      {/* 2. TOP NAVBAR */}
+      {/* 1. TOP NAVBAR */}
       <Navbar
         rightSlot={
           <NavbarButton
@@ -512,7 +490,7 @@ export default function LoginPage() {
         }
       />
 
-      {/* 3. MAIN WORKSPACE WITH SUSPENSE FOR SEARCH PARAMS */}
+      {/* 2. MAIN WORKSPACE WITH SUSPENSE FOR SEARCH PARAMS */}
       <Suspense
         fallback={
           <div className="flex-1 flex items-center justify-center p-12">
@@ -523,7 +501,7 @@ export default function LoginPage() {
         <LoginForm />
       </Suspense>
 
-      {/* 4. FOOTER */}
+      {/* 3. FOOTER */}
       <footer className="border-t border-slate-200/80 bg-white py-4 text-center text-xs text-slate-500">
         <p>&copy; 2026 VokaLink &bull; Ekosistem PKL SMK Terintegrasi &bull; UINIC 8.0</p>
       </footer>
