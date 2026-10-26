@@ -929,6 +929,8 @@ export interface StudentLogContextResponse {
   student: {
     id: string;
     fullName: string;
+    identityNumber?: string;
+    whatsappNumber?: string;
     departmentName: string;
     schoolName: string;
   };
@@ -961,6 +963,42 @@ export async function fetchStudentLogContext(
   if (!res.ok) throw new Error(json.detail || "Gagal memuat konteks penempatan dan job card");
   return json;
 }
+
+export interface StudentDailyLogItem {
+  id: string;
+  clientLogUuid: string;
+  placementId: string;
+  logDate: string;
+  status: "PENDING_VERIFICATION" | "VERIFIED" | "REVISION_REQUIRED" | "REJECTED";
+  attendanceType: "PRESENT" | "SICK" | "PERMIT";
+  shortNote?: string | null;
+  verifiedAt?: string | null;
+  signatureHash?: string | null;
+  rejectionReason?: string | null;
+  evidenceSha256?: string | null;
+  evidenceWebpUrl?: string | null;
+  items?: Array<{
+    id: string;
+    durationJp: number;
+    autonomyLevel: number;
+    nonCompetencyCategory?: string | null;
+    jobCard?: {
+      id: string;
+      title: string;
+      skkniUnitCode?: string | null;
+      isNonCompetency?: boolean;
+    };
+  }>;
+}
+
+/** GET /api/v1/logs/me?placementId=... */
+export async function fetchStudentLogs(placementId: string): Promise<StudentDailyLogItem[]> {
+  const res = await fetch(`${API_BASE_URL}/logs/me?placementId=${encodeURIComponent(placementId)}`);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal memuat riwayat logbook");
+  return json.logs || [];
+}
+
 
 // ─────────────────────────────────────────────────────────
 // FR-007: Zero-Login Mentor Verification & Batch Approval

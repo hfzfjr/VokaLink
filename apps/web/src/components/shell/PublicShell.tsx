@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { ShieldCheck, Printer, QrCode } from "lucide-react";
+import { ShieldCheck, Printer } from "lucide-react";
 import VokaIcon from "@/components/common/VokaIcon";
 import { DemoBar } from "./DemoBar";
 

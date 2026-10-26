@@ -109,6 +109,27 @@ verifyRouter.get(
                 },
               ],
             },
+            {
+              id: "demo-log-3",
+              clientLogUuid: "00000000-0000-0000-0000-000000000103",
+              logDate: "2026-10-18",
+              attendanceType: "PRESENT",
+              shortNote: "Deploy aplikasi ke platform cloud, konfigurasi SSL domain, dan pengujian performa.",
+              evidenceWebpUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&auto=format&fit=crop&q=80",
+              totalDurationJp: 8,
+              items: [
+                {
+                  id: "item-3",
+                  jobCardId: "00000000-0000-0000-0000-000000000035",
+                  title: "Deploy Aplikasi & Konfigurasi Server Produksi",
+                  skkniUnitCode: "J.620100.035.02",
+                  durationJp: 8,
+                  autonomyLevel: 3,
+                  autonomyLabel: "Mandiri",
+                  isNonCompetency: false,
+                },
+              ],
+            },
           ],
         });
         return;
@@ -378,10 +399,10 @@ verifyRouter.post(
         res.status(200).json({
           success: true,
           decision,
-          processedCount: 2,
+          processedCount: 3,
           message:
             decision === "APPROVE"
-              ? "Berhasil memvalidasi dan menyegel 2 entri jurnal harian secara resmi (Segel Digital Kriptografi)."
+              ? "Berhasil memvalidasi dan menyegel 3 entri jurnal harian secara resmi (Segel Digital Kriptografi)."
               : "Catatan perbaikan telah dikirim ke siswa.",
           verifiedAt: new Date().toISOString(),
         });

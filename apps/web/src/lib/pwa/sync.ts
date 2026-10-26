@@ -83,7 +83,7 @@ export async function executeTwoPhaseSync(
           const jcIds =
             log.jobCardIds && log.jobCardIds.length > 0
               ? log.jobCardIds
-              : ["00000000-0000-0000-0000-000000000037"]; // Fallback UUID non-kompetensi
+              : ["85544774-bbd3-43d8-bcdc-ee38c800ef98"]; // Fallback UUID non-kompetensi resmi DUDI
 
           const maxPossibleItems = Math.max(1, Math.min(jcIds.length, log.durationJp));
           const activeJcIds = jcIds.slice(0, maxPossibleItems);

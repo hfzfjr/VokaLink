@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { StudentHeader } from "@/components/student/StudentHeader";
 import { StudentSidebar } from "@/components/student/StudentSidebar";
 import { BottomNav } from "@/components/student/BottomNav";
+import { PwaInstallPrompt } from "@/components/student/PwaInstallPrompt";
 
 export const metadata: Metadata = {
   title: "Portal Siswa PKL — VokaLink",
@@ -35,7 +36,12 @@ export default function StudentLayout({
           </main>
         </div>
 
-        {/* 5. Bottom Navigation (Only visible on mobile screens < 768px via md:hidden, hidden on print) */}
+        {/* 5. PWA Install Floating Banner (mobile & desktop prompt) */}
+        <div className="no-print print:hidden">
+          <PwaInstallPrompt />
+        </div>
+
+        {/* 6. Bottom Navigation (Only visible on mobile screens < 768px via md:hidden, hidden on print) */}
         <div className="md:hidden no-print print:hidden">
           <BottomNav />
         </div>

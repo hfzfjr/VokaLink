@@ -8,6 +8,7 @@ import {
   Home,
   PlusCircle,
   BookOpen,
+  QrCode,
   Award,
   HelpCircle,
   ArrowLeft,
@@ -20,8 +21,12 @@ import {
   Save,
   Wifi,
   WifiOff,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { usePwaInstall } from "@/hooks/usePwaInstall";
+import { db } from "@/lib/pwa/db";
+import { fetchStudentLogContext, type StudentLogContextResponse } from "@/lib/api";
 import VokaIcon from "@/components/common/VokaIcon";
 
 interface NavItem {
@@ -55,6 +60,13 @@ const NAV_ITEMS: NavItem[] = [
     icon: BookOpen,
   },
   {
+    id: "verify-request",
+    label: "Validasi Mentor",
+    sublabel: "QR Dinamis & WhatsApp",
+    href: "/student/log/verify-request",
+    icon: QrCode,
+  },
+  {
     id: "career-cv",
     label: "CV ATS & Paspor",
     sublabel: "Portofolio & Verifikasi QR",
@@ -68,6 +80,7 @@ export function StudentSidebar() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [activeTab, setActiveTab] = useState<"profile" | "privacy" | "offline">("profile");
+  const { isInstallable, isInstalled, promptInstall } = usePwaInstall();
 
   // Form states for settings
   const [phone, setPhone] = useState("081234567890");
@@ -78,7 +91,19 @@ export function StudentSidebar() {
   const [isOnline, setIsOnline] = useState(true);
   const [syncStatus, setSyncStatus] = useState<string>("Tersinkronisasi penuh (0 antrean)");
 
-  // Load from localStorage if present
+  const [studentProfile, setStudentProfile] = useState<{
+    fullName: string;
+    identityNumber: string;
+    departmentName: string;
+    schoolName: string;
+  }>({
+    fullName: "Andi Pratama",
+    identityNumber: "0078901234",
+    departmentName: "Rekayasa Perangkat Lunak (RPL)",
+    schoolName: "SMK Demo VokaLink",
+  });
+
+  // Load from localStorage & database context
   useEffect(() => {
     if (typeof window !== "undefined") {
       setIsOnline(navigator.onLine);
@@ -86,6 +111,37 @@ export function StudentSidebar() {
       const handleOffline = () => setIsOnline(false);
       window.addEventListener("online", handleOnline);
       window.addEventListener("offline", handleOffline);
+
+      const loadProfile = async () => {
+        try {
+          const cached = await db.refData.get("student_log_context");
+          if (cached?.data) {
+            const data = cached.data as StudentLogContextResponse;
+            if (data.student) {
+              setStudentProfile({
+                fullName: data.student.fullName || "Andi Pratama",
+                identityNumber: data.student.identityNumber || "0078901234",
+                departmentName: data.student.departmentName || "Rekayasa Perangkat Lunak (RPL)",
+                schoolName: data.student.schoolName || "SMK Demo VokaLink",
+              });
+              if (data.student.whatsappNumber) setPhone(data.student.whatsappNumber);
+            }
+          }
+          if (navigator.onLine) {
+            const fresh = await fetchStudentLogContext();
+            if (fresh?.student) {
+              setStudentProfile({
+                fullName: fresh.student.fullName || "Andi Pratama",
+                identityNumber: fresh.student.identityNumber || "0078901234",
+                departmentName: fresh.student.departmentName || "Rekayasa Perangkat Lunak (RPL)",
+                schoolName: fresh.student.schoolName || "SMK Demo VokaLink",
+              });
+              if (fresh.student.whatsappNumber) setPhone(fresh.student.whatsappNumber);
+            }
+          }
+        } catch {}
+      };
+      loadProfile();
 
       try {
         const saved = localStorage.getItem("vokalink_cv_customizations");
@@ -172,10 +228,10 @@ export function StudentSidebar() {
     <>
       <aside
         aria-label="Navigasi Samping Siswa"
-        className="hidden md:flex flex-col items-center justify-between w-[76px] shrink-0 sticky top-4 h-[calc(100vh-2rem)] py-5 px-2 bg-white/90 backdrop-blur-md rounded-[28px] border border-slate-200/70 shadow-xs z-30 transition-all select-none"
+        className="hidden md:flex flex-col items-center w-[72px] shrink-0 sticky top-4 h-[calc(100vh-2rem)] py-4 px-2 bg-white/90 backdrop-blur-xl rounded-[28px] border border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.05)] z-30 select-none transition-all"
       >
-        {/* Top: Brand Logo 'V' + Back to Landing Portal */}
-        <div className="flex flex-col items-center gap-4 w-full">
+        {/* Top: Brand Logo 'V' */}
+        <div className="flex flex-col items-center w-full">
           <Link
             href="/student/home"
             title="VokaLink Siswa — Beranda"
@@ -183,14 +239,13 @@ export function StudentSidebar() {
           >
             <VokaIcon className="w-full h-full object-contain" />
           </Link>
-
-          <div className="w-8 h-px bg-slate-200/70" />
+          <div className="w-8 h-px bg-slate-200/80 my-3" />
         </div>
 
-        {/* Center: Main Navigation Stack */}
+        {/* Center: Main Navigation Stack (Grouped smoothly below logo) */}
         <nav
           aria-label="Menu Utama"
-          className="flex flex-col items-center gap-3.5 w-full my-auto"
+          className="flex flex-col items-center gap-2 w-full"
         >
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
@@ -200,27 +255,34 @@ export function StudentSidebar() {
                 (item.href !== "/student/home" && pathname!.startsWith(item.href)));
 
             return (
-              <div key={item.id} className="relative group">
+              <div key={item.id} className="relative group flex items-center justify-center">
+                {/* Active Indicator Bar on left edge */}
+                {isActive && (
+                  <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 rounded-full bg-sky-500 shadow-sm shadow-sky-500/50 animate-in fade-in-0 duration-200" />
+                )}
+
                 <Link
                   href={item.href}
                   className={cn(
                     "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 active:scale-95",
                     isActive
-                      ? "bg-sky-50 text-sky-600 ring-2 ring-sky-500/20 shadow-2xs scale-105"
+                      ? "bg-sky-50 text-sky-600 border border-sky-200/80 shadow-2xs font-semibold"
                       : "text-slate-400 hover:text-slate-700 hover:bg-slate-100/80"
                   )}
                   aria-label={item.label}
                 >
                   <Icon
                     className={cn(
-                      "w-5 h-5",
-                      isActive ? "text-sky-600 stroke-[2.2]" : "text-slate-400"
+                      "w-5 h-5 transition-transform duration-200",
+                      isActive
+                        ? "text-sky-600 stroke-[2.3]"
+                        : "text-slate-400 group-hover:text-slate-700 group-hover:scale-105"
                     )}
                   />
                 </Link>
 
                 {/* Floating Tooltip on Hover */}
-                <div className="absolute left-[calc(100%+12px)] top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col z-50 pointer-events-none whitespace-nowrap bg-slate-900 text-white text-xs px-3 py-1.5 rounded-xl shadow-lg border border-slate-800 animate-in fade-in-0 zoom-in-95 duration-150">
+                <div className="absolute left-[calc(100%+14px)] top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col z-50 pointer-events-none whitespace-nowrap bg-slate-900/95 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-xl shadow-xl border border-slate-700/60 animate-in fade-in-0 zoom-in-95 duration-150">
                   <span className="font-semibold">{item.label}</span>
                   <span className="text-[10px] text-slate-400 font-normal">
                     {item.sublabel}
@@ -232,9 +294,12 @@ export function StudentSidebar() {
           })}
         </nav>
 
-        {/* Bottom: Settings, Help & Exit */}
-        <div className="flex flex-col items-center gap-3 w-full">
-          <div className="w-8 h-px bg-slate-200/70" />
+        {/* Natural Elastic Spacer */}
+        <div className="flex-1 min-h-[20px]" />
+
+        {/* Bottom: Settings, Help & Exit (Grouped cleanly with safe clearance) */}
+        <div className="flex flex-col items-center gap-2 w-full">
+          <div className="w-8 h-px bg-slate-200/80 mb-1" />
 
           {/* Settings Trigger: Profil, Privasi Paspor, Offline PWA */}
           <div className="relative group">
@@ -243,15 +308,15 @@ export function StudentSidebar() {
               onClick={() => setShowSettingsModal(true)}
               aria-label="Pengaturan & Profil Siswa"
               className={cn(
-                "w-10 h-10 rounded-xl flex items-center justify-center transition active:scale-95 cursor-pointer",
+                "w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer",
                 showSettingsModal
-                  ? "bg-sky-50 text-sky-600 ring-2 ring-sky-500/20"
-                  : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                  ? "bg-sky-50 text-sky-600 border border-sky-200/80 shadow-2xs"
+                  : "text-slate-400 hover:text-slate-700 hover:bg-slate-100/80"
               )}
             >
-              <Settings className="w-5 h-5" />
+              <Settings className="w-5 h-5 transition-transform group-hover:rotate-45 duration-300" />
             </button>
-            <div className="absolute left-[calc(100%+12px)] top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col z-50 pointer-events-none whitespace-nowrap bg-slate-900 text-white text-xs px-3 py-1.5 rounded-xl shadow-lg border border-slate-800">
+            <div className="absolute left-[calc(100%+14px)] top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col z-50 pointer-events-none whitespace-nowrap bg-slate-900/95 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-xl shadow-xl border border-slate-700/60">
               <span className="font-semibold text-white">Pengaturan &amp; Akun</span>
               <span className="text-[10px] text-slate-400">
                 Profil, privasi paspor &amp; offline
@@ -266,11 +331,16 @@ export function StudentSidebar() {
               type="button"
               onClick={() => setShowHelpModal(true)}
               aria-label="Panduan Penggunaan"
-              className="w-10 h-10 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition active:scale-95 cursor-pointer"
+              className={cn(
+                "w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer",
+                showHelpModal
+                  ? "bg-sky-50 text-sky-600 border border-sky-200/80 shadow-2xs"
+                  : "text-slate-400 hover:text-slate-700 hover:bg-slate-100/80"
+              )}
             >
-              <HelpCircle className="w-5 h-5" />
+              <HelpCircle className="w-5 h-5 transition-transform group-hover:scale-105 duration-200" />
             </button>
-            <div className="absolute left-[calc(100%+12px)] top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col z-50 pointer-events-none whitespace-nowrap bg-slate-900 text-white text-xs px-3 py-1.5 rounded-xl shadow-lg border border-slate-800">
+            <div className="absolute left-[calc(100%+14px)] top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col z-50 pointer-events-none whitespace-nowrap bg-slate-900/95 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-xl shadow-xl border border-slate-700/60">
               <span className="font-semibold">Bantuan &amp; Panduan</span>
               <span className="text-[10px] text-slate-400">
                 Alur logbook &amp; verifikasi mentor
@@ -285,11 +355,11 @@ export function StudentSidebar() {
               href="/"
               title="Keluar ke Portal Utama"
               aria-label="Keluar ke Portal Utama"
-              className="w-10 h-10 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition active:scale-95 cursor-pointer"
+              className="w-11 h-11 rounded-2xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-5 h-5 transition-transform group-hover:-translate-x-0.5 duration-200" />
             </Link>
-            <div className="absolute left-[calc(100%+12px)] top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col z-50 pointer-events-none whitespace-nowrap bg-slate-900 text-white text-xs px-3 py-1.5 rounded-xl shadow-lg border border-slate-800">
+            <div className="absolute left-[calc(100%+14px)] top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col z-50 pointer-events-none whitespace-nowrap bg-slate-900/95 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-xl shadow-xl border border-slate-700/60">
               <span className="font-semibold text-rose-400">Keluar Portal</span>
               <span className="text-[10px] text-slate-400">
                 Kembali ke Beranda Utama
@@ -385,14 +455,14 @@ export function StudentSidebar() {
                       Siswa Terdaftar (Fase F)
                     </span>
                     <p className="font-bold text-slate-900 text-sm mt-0.5">
-                      Ahmad Rizki Pratama
+                      {studentProfile.fullName}
                     </p>
                     <p className="text-[11px] text-slate-500 font-normal">
-                      NISN: 0071234567 · SMKN 1 Surabaya
+                      NISN: {studentProfile.identityNumber} · {studentProfile.schoolName}
                     </p>
                   </div>
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200">
-                    RPL · 792 JP
+                    {studentProfile.departmentName.includes("RPL") ? "RPL" : "Vokasi"} · 792 JP
                   </span>
                 </div>
 
@@ -527,6 +597,23 @@ export function StudentSidebar() {
                     Seluruh jurnal dan foto bukti dikompres secara lokal (WebP &lt; 150 KB) dan tetap aman tersimpan di HP Anda walaupun tanpa koneksi internet.
                   </p>
                 </div>
+
+                {isInstallable && !isInstalled && (
+                  <div className="p-3 rounded-2xl bg-gradient-to-r from-sky-50 to-indigo-50 border border-sky-200/80 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-xs text-slate-900 truncate">Pasang Aplikasi VokaLink</p>
+                      <p className="text-[10.5px] text-slate-500 font-normal truncate">Akses instan di layar desktop atau HP</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={promptInstall}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-semibold shadow-xs transition cursor-pointer shrink-0"
+                    >
+                      <Download className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>Pasang</span>
+                    </button>
+                  </div>
+                )}
 
                 <button
                   type="button"

@@ -1,15 +1,17 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo } from "react";
 import {
   Code2,
   Database,
   CheckCircle,
   Cloud,
-  CheckCheck,
-  TrendingUp,
-  Sparkles,
-  ExternalLink,
+  Search,
+  X,
+  LayoutList,
+  LayoutGrid,
+  Inbox,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -126,169 +128,467 @@ const MODULES: SkkniModule[] = [
   },
 ];
 
-export function SkkniMatrixView() {
-  const totalVerified = MODULES.reduce((acc, m) => acc + m.verifiedJp, 0);
-  const totalTarget = MODULES.reduce((acc, m) => acc + m.targetJp, 0);
-  const totalPercentage = Math.round((totalVerified / totalTarget) * 100);
+import type { KanbanTask } from "./types";
+
+interface SkkniMatrixViewProps {
+  tasks?: KanbanTask[];
+}
+
+export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
+  const [matrixLayout, setMatrixLayout] = useState<"GRID" | "LIST">("GRID");
+  const [levelFilter, setLevelFilter] = useState<"ALL" | "READY" | "PROGRESS">("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [expandedModuleId, setExpandedModuleId] = useState<string | null>(null);
+
+  // Hitung akumulasi JP dinamis per modul SKKNI dari logbook yang berstatus verified
+  const dynamicModules = useMemo(() => {
+    if (!tasks || tasks.length === 0) return MODULES;
+
+    const verifiedTasks = tasks.filter((t) => t.status === "verified");
+
+    return MODULES.map((mod) => {
+      const matchingJp = verifiedTasks
+        .filter((t) => {
+          if (mod.id === "web-mobile") {
+            return t.category.includes("Web") || t.skkniUnitCode.includes("009") || t.title.includes("API") || t.title.includes("UI");
+          }
+          if (mod.id === "database") {
+            return t.category.includes("Basis Data") || t.skkniUnitCode.includes("010") || t.title.includes("Database") || t.title.includes("PostgreSQL");
+          }
+          if (mod.id === "software-qa") {
+            return t.category.includes("Testing") || t.skkniUnitCode.includes("015") || t.title.includes("QA") || t.title.includes("Test");
+          }
+          if (mod.id === "cloud-devops") {
+            return t.category.includes("Cloud") || t.skkniUnitCode.includes("020") || t.title.includes("CI/CD") || t.title.includes("Docker");
+          }
+          return false;
+        })
+        .reduce((sum, t) => sum + t.durationJp, 0);
+
+      const totalVerified = matchingJp;
+      const percentage = Math.min(100, Math.round((totalVerified / mod.targetJp) * 100));
+      const badgeLevel = percentage >= 50 ? "Mahir (Ready)" : "Menengah";
+
+      return {
+        ...mod,
+        verifiedJp: totalVerified,
+        percentage,
+        badgeLevel,
+      };
+    });
+  }, [tasks]);
+
+  const readyCount = useMemo(() => dynamicModules.filter((m) => m.percentage >= 50).length, [dynamicModules]);
+  const progressCount = useMemo(() => dynamicModules.filter((m) => m.percentage < 50).length, [dynamicModules]);
+
+  // Filtered Modules
+  const filteredModules = useMemo(() => {
+    return dynamicModules.filter((m) => {
+      // 1. Level Filter
+      if (levelFilter === "READY" && m.percentage < 50) return false;
+      if (levelFilter === "PROGRESS" && m.percentage >= 50) return false;
+
+      // 2. Search Query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesTitle = m.title.toLowerCase().includes(q);
+        const matchesCode = m.code.toLowerCase().includes(q);
+        const matchesDesc = m.description.toLowerCase().includes(q);
+        const matchesSkills = m.skills.some((s) => s.toLowerCase().includes(q));
+        if (!matchesTitle && !matchesCode && !matchesDesc && !matchesSkills) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [dynamicModules, levelFilter, searchQuery]);
 
   return (
     <div className="space-y-4 pt-1 pb-6 animate-in fade-in duration-200">
-      {/* ─── Summary Header Strip ─── */}
-      <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center shrink-0">
-            <Sparkles className="w-5 h-5 text-sky-600" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-slate-900 text-sm tracking-tight">
-                Matriks Capaian SKKNI (Fase F)
-              </h3>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                4 Unit Kompetensi
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 font-normal mt-0.5">
-              Akumulasi jam riil tervalidasi mentor industri sesuai standar kurikulum vokasi
-            </p>
-          </div>
+      {/* ─── Control Bar: Status Filter Tabs, Search & List/Grid Switcher ─── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+        {/* Status Filter Segmented Buttons (Mobile-Tuned) */}
+        <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-full border border-slate-200 text-xs font-medium w-full sm:w-auto overflow-x-auto scrollbar-none">
+          <button
+            type="button"
+            onClick={() => setLevelFilter("ALL")}
+            className={cn(
+              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95 text-[11px] sm:text-xs",
+              levelFilter === "ALL"
+                ? "bg-white text-slate-900 shadow-xs font-semibold"
+                : "text-slate-600 hover:text-slate-900 font-medium"
+            )}
+          >
+            <span className="sm:hidden">Semua</span>
+            <span className="hidden sm:inline">Semua Unit</span>
+            <span
+              className={cn(
+                "px-1.5 py-0.2 rounded-full text-[10px] font-semibold",
+                levelFilter === "ALL" ? "bg-slate-100 text-slate-800" : "bg-slate-300/60 text-slate-600"
+              )}
+            >
+              {MODULES.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setLevelFilter("READY")}
+            className={cn(
+              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95 text-[11px] sm:text-xs",
+              levelFilter === "READY"
+                ? "bg-white text-emerald-800 shadow-xs font-semibold"
+                : "text-slate-600 hover:text-slate-900 font-medium"
+            )}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+            <span className="sm:hidden">Mahir</span>
+            <span className="hidden sm:inline">Mahir (Ready)</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-semibold">
+              {readyCount}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setLevelFilter("PROGRESS")}
+            className={cn(
+              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95 text-[11px] sm:text-xs",
+              levelFilter === "PROGRESS"
+                ? "bg-white text-amber-800 shadow-xs font-semibold"
+                : "text-slate-600 hover:text-slate-900 font-medium"
+            )}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+            <span className="sm:hidden">Progres</span>
+            <span className="hidden sm:inline">Dalam Progres</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 text-[10px] font-semibold">
+              {progressCount}
+            </span>
+          </button>
         </div>
 
-        <div className="flex items-center gap-3 bg-slate-50/80 border border-slate-200/70 py-2 px-3.5 rounded-2xl shrink-0 self-start sm:self-auto">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-              Total Kejuruan
-            </span>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="font-bold text-slate-900 text-sm tracking-tight tabular-nums">
-                {totalVerified} / {totalTarget} JP
-              </span>
-              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.2 rounded-full">
-                {totalPercentage}%
-              </span>
-            </div>
+        {/* Search Bar + View Mode Switcher (List vs Grid) */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {/* Pill Search Input */}
+          <div className="relative flex-1 sm:w-60 md:w-64">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cari modul, SKKNI, tools..."
+              className="w-full pl-9 pr-8 py-1.5 rounded-full bg-white border border-slate-200/90 text-xs text-slate-900 placeholder:text-slate-400 font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
-          <div className="w-px h-7 bg-slate-200" />
-          <div className="text-right">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-              Status Validasi
-            </span>
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 mt-0.5">
-              <CheckCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span>100% Faktual</span>
-            </span>
+
+          {/* View Switcher: LIST vs GRID Toggle */}
+          <div className="flex items-center bg-slate-200/60 p-0.5 rounded-full border border-slate-200 shrink-0">
+            <button
+              type="button"
+              onClick={() => setMatrixLayout("LIST")}
+              aria-label="Tampilan Baris Rapi (List View)"
+              title="Tampilan Baris Rapi (List)"
+              className={cn(
+                "p-1.5 rounded-full transition-all cursor-pointer",
+                matrixLayout === "LIST"
+                  ? "bg-white text-slate-900 shadow-2xs"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              <LayoutList className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setMatrixLayout("GRID")}
+              aria-label="Tampilan Kartu (Grid View)"
+              title="Tampilan Kartu Visual (Grid)"
+              className={cn(
+                "p-1.5 rounded-full transition-all cursor-pointer",
+                matrixLayout === "GRID"
+                  ? "bg-white text-slate-900 shadow-2xs"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
 
-      {/* ─── 4 SKKNI Matrix Cards Grid ─── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-        {MODULES.map((module) => {
-          const Icon = module.icon;
-          return (
-            <div
-              key={module.id}
-              className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-card hover:shadow-lg hover:border-slate-300 transition-all duration-200 flex flex-col justify-between group space-y-4"
-            >
-              {/* Header: Icon, Title, SKKNI Code & Level Badge */}
-              <div className="space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
+      {/* ─── Empty Search State ─── */}
+      {filteredModules.length === 0 && (
+        <div className="py-12 bg-white rounded-3xl border border-slate-200/80 text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+            <Inbox className="w-6 h-6" />
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold text-slate-900">Unit Kompetensi Tidak Ditemukan</h4>
+            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+              Tidak ada modul yang cocok dengan kata kunci &quot;{searchQuery}&quot;. Coba cari istilah lain atau reset filter.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setSearchQuery("");
+              setLevelFilter("ALL");
+            }}
+            className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
+          >
+            Reset Pencarian
+          </button>
+        </div>
+      )}
+
+      {/* ─── Mode 1: GRID VIEW (Apple Minimalist Cards) ─── */}
+      {matrixLayout === "GRID" && filteredModules.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4 animate-in fade-in duration-150">
+          {filteredModules.map((module) => {
+            const Icon = module.icon;
+            const isExpanded = expandedModuleId === module.id;
+            return (
+              <div
+                key={module.id}
+                className={cn(
+                  "bg-white rounded-2xl p-4 sm:p-5 border transition-all duration-200 flex flex-col justify-between group",
+                  isExpanded
+                    ? "border-slate-300 shadow-sm"
+                    : "border-slate-200/70 shadow-xs hover:border-slate-300 hover:shadow-xs"
+                )}
+              >
+                {/* Header: Icon, Title, SKKNI Code & Level Badge */}
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className={cn(
+                          "w-9 h-9 rounded-xl border flex items-center justify-center font-bold shadow-2xs transition-all duration-200 shrink-0",
+                          module.iconBg,
+                          module.iconText
+                        )}
+                      >
+                        <Icon className="w-4.5 h-4.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-sm font-semibold text-slate-900 tracking-tight leading-snug">
+                          {module.title}
+                        </h4>
+                        <p className="text-[11px] text-slate-400 font-normal mt-0.5 font-mono">
+                          {module.code}
+                        </p>
+                      </div>
+                    </div>
+
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold shrink-0 border",
+                        module.badgeColor.bg,
+                        module.badgeColor.border,
+                        module.badgeColor.text
+                      )}
+                    >
+                      <span className={cn("w-1.5 h-1.5 rounded-full", module.badgeColor.dot)} />
+                      <span>{module.badgeLevel}</span>
+                    </span>
+                  </div>
+
+                  {/* Progress Row */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[11px] font-medium text-slate-500">
+                        Progres Capaian
+                      </span>
+                      <div className="flex items-baseline gap-1 font-sans tabular-nums">
+                        <span className="font-bold text-slate-900 text-xs">
+                          {module.verifiedJp}
+                        </span>
+                        <span className="text-slate-400 text-[11px] font-normal">
+                          / {module.targetJp} JP
+                        </span>
+                        <span className="text-xs font-bold text-sky-600 ml-1">
+                          ({module.percentage}%)
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Sleek Progress Bar */}
+                    <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full rounded-full bg-gradient-to-r transition-all duration-500",
+                          module.progressGradient
+                        )}
+                        style={{ width: `${module.percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer: Clean Expandable Syllabus */}
+                <div className="pt-2.5 mt-2.5 border-t border-slate-100/90 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[11px] text-slate-400 font-normal">
+                      Standar Kompetensi Kerja (SKKNI)
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => setExpandedModuleId(isExpanded ? null : module.id)}
+                      className="text-[11px] text-slate-500 hover:text-sky-600 font-semibold inline-flex items-center gap-1 shrink-0 transition cursor-pointer"
+                    >
+                      <span>{isExpanded ? "Tutup Silabus" : "Rincian Silabus"}</span>
+                      <ChevronDown
+                        className={cn(
+                          "w-3.5 h-3.5 transition-transform duration-200",
+                          isExpanded && "rotate-180 text-sky-600"
+                        )}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Expandable Clean Syllabus Description */}
+                  {isExpanded && (
+                    <div className="pt-2 animate-in fade-in duration-200 text-xs text-slate-600 leading-relaxed font-normal bg-slate-50/70 p-3 rounded-xl border border-slate-200/60">
+                      <p className="font-semibold text-slate-800 mb-1">Deskripsi Silabus SKKNI:</p>
+                      <p>{module.description}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ─── Mode 2: LIST VIEW (Clean, high-density rows) ─── */}
+      {matrixLayout === "LIST" && filteredModules.length > 0 && (
+        <div className="space-y-2.5 animate-in fade-in duration-150">
+          {filteredModules.map((module) => {
+            const Icon = module.icon;
+            const isExpanded = expandedModuleId === module.id;
+            return (
+              <div
+                key={module.id}
+                className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/70 shadow-xs hover:border-slate-300 transition-all flex flex-col group"
+              >
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
+                  {/* Left: Icon + Title & SKKNI Code */}
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div
                       className={cn(
-                        "w-11 h-11 rounded-2xl border flex items-center justify-center font-bold shadow-2xs transition-all duration-200 shrink-0",
+                        "w-9 h-9 rounded-xl border flex items-center justify-center font-bold shadow-2xs transition-all shrink-0",
                         module.iconBg,
                         module.iconText
                       )}
                     >
-                      <Icon className="w-5 h-5" />
+                      <Icon className="w-4.5 h-4.5" />
                     </div>
-                    <div className="min-w-0">
-                      <h4 className="text-sm font-bold text-slate-900 tracking-tight leading-snug">
-                        {module.title}
-                      </h4>
-                      <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                        Kode SKKNI: <span className="font-semibold text-slate-600">{module.code}</span>
-                      </p>
-                    </div>
-                  </div>
 
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold shrink-0 border shadow-2xs",
-                      module.badgeColor.bg,
-                      module.badgeColor.border,
-                      module.badgeColor.text
-                    )}
-                  >
-                    <span className={cn("w-1.5 h-1.5 rounded-full", module.badgeColor.dot)} />
-                    <span>{module.badgeLevel}</span>
-                  </span>
-                </div>
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-sm font-semibold text-slate-900 tracking-tight">
+                          {module.title}
+                        </h4>
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 font-medium">
+                          {module.code}
+                        </span>
+                      </div>
 
-                {/* Description */}
-                <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                  {module.description}
-                </p>
-              </div>
-
-              {/* Progress & Verification Metric */}
-              <div className="space-y-3 pt-2 border-t border-slate-100">
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                      Jam Terverifikasi Mentor
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-slate-900 tracking-tight tabular-nums text-xs">
-                        {module.verifiedJp} / {module.targetJp} JP
-                      </span>
-                      <span
-                        className={cn(
-                          "text-[10.5px] font-bold px-1.5 py-0.2 rounded-full border",
-                          module.badgeColor.bg,
-                          module.badgeColor.border,
-                          module.badgeColor.text
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {module.skills.slice(0, 3).map((skill) => (
+                          <span
+                            key={skill}
+                            className="px-1.5 py-0.5 rounded bg-slate-50 text-slate-500 text-[10.5px] font-normal"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                        {module.skills.length > 3 && (
+                          <span className="text-[10.5px] text-slate-400 font-normal">
+                            +{module.skills.length - 3} lainnya
+                          </span>
                         )}
-                      >
-                        {module.percentage}%
-                      </span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* High Quality Progress Bar */}
-                  <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden ring-1 ring-slate-200/50">
-                    <div
+                  {/* Right: Metrics + Progress Bar + Status Badge */}
+                  <div className="flex items-center justify-between lg:justify-end gap-3.5 shrink-0 pt-2.5 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                    {/* Progress & Numbers */}
+                    <div className="space-y-1 min-w-[130px] sm:min-w-[150px]">
+                      <div className="flex items-baseline justify-between text-xs">
+                        <span className="font-semibold text-slate-900 tabular-nums text-xs">
+                          {module.verifiedJp} / {module.targetJp} JP
+                        </span>
+                        <span className="text-xs font-bold text-sky-600">
+                          {module.percentage}%
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                        <div
+                          className={cn(
+                            "h-full rounded-full bg-gradient-to-r transition-all duration-300",
+                            module.progressGradient
+                          )}
+                          style={{ width: `${module.percentage}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Level Badge */}
+                    <span
                       className={cn(
-                        "h-full rounded-full bg-gradient-to-r transition-all duration-500",
-                        module.progressGradient
+                        "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold shrink-0 border",
+                        module.badgeColor.bg,
+                        module.badgeColor.border,
+                        module.badgeColor.text
                       )}
-                      style={{ width: `${module.percentage}%` }}
-                    />
+                    >
+                      <span className={cn("w-1.5 h-1.5 rounded-full", module.badgeColor.dot)} />
+                      <span className="hidden sm:inline">{module.badgeLevel}</span>
+                      <span className="sm:hidden">{module.percentage >= 50 ? "Mahir" : "Progres"}</span>
+                    </span>
+
+                    {/* Expand Detail Button */}
+                    <button
+                      type="button"
+                      onClick={() => setExpandedModuleId(isExpanded ? null : module.id)}
+                      className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition cursor-pointer"
+                      title="Lihat detail silabus"
+                    >
+                      <ChevronDown
+                        className={cn(
+                          "w-4 h-4 transition-transform duration-200",
+                          isExpanded && "rotate-180"
+                        )}
+                      />
+                    </button>
                   </div>
                 </div>
 
-                {/* Technology Skill Pills with Context Label */}
-                <div className="space-y-1.5 pt-1">
-                  <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block">
-                    Teknologi &amp; Alat Industri:
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {module.skills.map((skill) => (
-                      <span
-                        key={skill}
-                        className="px-2.5 py-1 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200/70 text-slate-700 text-xs font-semibold transition-all shadow-2xs"
-                      >
-                        {skill}
-                      </span>
-                    ))}
+                {/* Expanded Syllabus Description in List */}
+                {isExpanded && (
+                  <div className="mt-3 pt-3 border-t border-slate-100 animate-in fade-in duration-200 text-xs text-slate-600 leading-relaxed font-normal bg-slate-50/70 p-3 rounded-xl border border-slate-200/60">
+                    <p className="font-semibold text-slate-800 mb-1">Cakupan Unit Pembelajaran SKKNI:</p>
+                    <p>{module.description}</p>
                   </div>
-                </div>
+                )}
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

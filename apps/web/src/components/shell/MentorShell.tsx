@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { ShieldCheck, Building } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import VokaIcon from "@/components/common/VokaIcon";
 import { DemoBar } from "./DemoBar";
 

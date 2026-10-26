@@ -16,9 +16,18 @@ import {
 import { convertRealHoursToJp } from "@vokalink/shared";
 import { cn } from "@/lib/cn";
 
+export const OVERTIME_JUSTIFICATIONS = [
+  { id: "Rilis / Deployment Sistem", label: "Rilis / Deployment Sistem", desc: "Membantu rilis aplikasi ke server live" },
+  { id: "Deadline Proyek Klien", label: "Deadline Proyek Klien", desc: "Penyelesaian milestone mendesak klien" },
+  { id: "Perbaikan Server Mendesak", label: "Perbaikan Server Mendesak", desc: "Troubleshooting insiden teknis di luar jam normal" },
+  { id: "Inventaris & Stock Opname", label: "Inventaris & Stock Opname", desc: "Penghitungan berkala aset & logistik DUDI" },
+];
+
 interface SmartShiftSelectorProps {
   durationJp: number;
   onChangeDuration: (duration: number) => void;
+  overtimeReason?: string;
+  onChangeOvertimeReason?: (reason: string) => void;
   minJp?: number;
   maxJp?: number;
   isSaturday?: boolean;
@@ -41,10 +50,12 @@ interface ShiftOption {
 export function SmartShiftSelector({
   durationJp,
   onChangeDuration,
+  overtimeReason = "",
+  onChangeOvertimeReason,
   minJp = 1,
   maxJp = 12,
   isSaturday = false,
-  isWeekday = true,
+  isWeekday: _isWeekday = true,
   existingDailyJp = 0,
   remainingDailyQuota = 12,
   onResetTodayLogs,
@@ -388,14 +399,44 @@ export function SmartShiftSelector({
         </div>
       )}
 
-      {/* ─── KETERANGAN RAMPING 1 BARIS DI BAWAH (PERSIS SEPERTI TANGGAL) ─── */}
+      {/* ─── JUSTIFIKASI LEMBUR / PROYEK KHUSUS (DOKUMENTASI K3 & GURU PEMBIMBING) ─── */}
       {isOvertime ? (
-        <p className="text-[11px] text-amber-700/90 flex items-center gap-1.5 font-medium animate-in fade-in leading-snug">
-          <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-          <span>
-            Jam kerja lembur (<strong>{durationJp} Jam</strong>): Memerlukan verifikasi izin khusus dari mentor industri.
-          </span>
-        </p>
+        <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/80 space-y-2 animate-in fade-in">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-amber-900 flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span>Justifikasi Proyek Lembur ({durationJp} Jam):</span>
+            </span>
+            <span className="text-[10px] text-amber-700 font-medium">Wajib Sesuai SOP</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-1.5">
+            {OVERTIME_JUSTIFICATIONS.map((just) => {
+              const isSelected = overtimeReason === just.id;
+              return (
+                <button
+                  key={just.id}
+                  type="button"
+                  onClick={() => onChangeOvertimeReason?.(just.id)}
+                  className={cn(
+                    "p-2 rounded-lg text-left transition-all border text-xs cursor-pointer active:scale-95 flex items-center justify-between gap-1.5",
+                    isSelected
+                      ? "bg-amber-100/90 text-amber-950 font-semibold border-amber-300 shadow-2xs"
+                      : "bg-white text-slate-700 hover:bg-slate-50 border-amber-200/60"
+                  )}
+                  title={just.desc}
+                >
+                  <span className="truncate text-[11px] leading-tight">{just.label}</span>
+                  {isSelected && <Check className="w-3 h-3 text-amber-700 shrink-0 stroke-[3]" />}
+                </button>
+              );
+            })}
+          </div>
+
+          <p className="text-[10.5px] text-amber-800/80 font-normal leading-tight">
+            Dicatat transparan agar guru pembimbing mengetahui bahwa jam lembur adalah penugasan resmi proyek industri, bukan eksploitasi kerja.
+          </p>
+        </div>
       ) : (
         <p className="text-[11px] text-slate-400 flex items-center gap-1.5 font-normal leading-snug">
           <Info className="w-3.5 h-3.5 text-slate-400 shrink-0" />

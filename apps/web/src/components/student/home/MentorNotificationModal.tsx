@@ -44,7 +44,7 @@ export function MentorNotificationModal({ onClose }: MentorNotificationModalProp
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl p-6 max-w-md w-full border border-slate-200/70 shadow-modal space-y-4 animate-in zoom-in-95 duration-150"
+        className="bg-white rounded-3xl p-5 sm:p-6 max-w-md w-full border border-slate-200/70 shadow-modal space-y-4 animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between pb-3 border-b border-slate-200/70">
@@ -73,7 +73,7 @@ export function MentorNotificationModal({ onClose }: MentorNotificationModalProp
               <span className="text-[10px] text-emerald-700 font-semibold font-mono">20 Okt 2026</span>
             </div>
             <p className="text-slate-600 font-normal leading-relaxed">
-              Rizky Firmansyah telah memvalidasi 8 JP untuk &quot;Implementasi REST API & Router Express&quot; dengan segel HMAC.
+              Rizky Firmansyah telah memvalidasi 8 JP untuk &quot;Implementasi Alur Autentikasi Pengguna & Keamanan Sistem&quot; secara sah.
             </p>
           </div>
 
