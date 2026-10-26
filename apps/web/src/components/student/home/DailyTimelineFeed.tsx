@@ -157,13 +157,13 @@ export function DailyTimelineFeed({
     <div ref={containerRef} className="space-y-4 pt-1 pb-6 animate-in fade-in duration-200">
       {/* ─── Control Bar: Status chips (sekunder) | Bulan, Cari & List/Grid ─── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
-        {/* Status chips ringan — tanpa wadah berat agar tidak bersaing dengan tab utama */}
+        {/* Status chips ringan — warna biru VokaLink saat aktif, bersih tanpa dot */}
         <div className="flex items-center gap-1 w-full md:w-auto overflow-x-auto scrollbar-none">
           {(
             [
-              { key: "ALL", label: "Semua", count: tasks.length, dot: null },
-              { key: "VERIFIED", label: "Sah", count: verifiedCount, dot: "bg-emerald-500" },
-              { key: "IN_REVIEW", label: "Menunggu", count: pendingCount, dot: "bg-amber-500" },
+              { key: "ALL", label: "Semua", count: tasks.length },
+              { key: "VERIFIED", label: "Sah", count: verifiedCount },
+              { key: "IN_REVIEW", label: "Menunggu", count: pendingCount },
             ] as const
           ).map((chip) => {
             const active = statusFilter === chip.key;
@@ -174,15 +174,14 @@ export function DailyTimelineFeed({
                 onClick={() => setStatusFilter(chip.key)}
                 aria-pressed={active}
                 className={cn(
-                  "h-8 px-3 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-colors cursor-pointer",
+                  "h-8 px-3 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer",
                   active
-                    ? "bg-slate-900 text-white"
+                    ? "bg-sky-500 text-white shadow-xs font-semibold"
                     : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                 )}
               >
-                {chip.dot && <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", chip.dot)} />}
                 <span>{chip.label}</span>
-                <span className={cn("tabular-nums", active ? "text-white/70" : "text-slate-400")}>
+                <span className={cn("tabular-nums text-[11px]", active ? "text-white/80 font-medium" : "text-slate-400")}>
                   {chip.count}
                 </span>
               </button>
@@ -542,10 +541,10 @@ export function DailyTimelineFeed({
                         type="button"
                         onClick={() => handlePageChange(page)}
                         className={cn(
-                          "w-8.5 h-8.5 rounded-xl text-xs font-semibold flex items-center justify-center transition cursor-pointer shadow-2xs",
+                          "min-w-[34px] h-[34px] px-2 rounded-xl text-xs flex items-center justify-center transition-all cursor-pointer",
                           safeCurrentPage === page
-                            ? "bg-slate-900 text-white font-bold"
-                            : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                            ? "bg-sky-500 text-white font-bold shadow-xs border border-sky-500"
+                            : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs"
                         )}
                       >
                         {page}
