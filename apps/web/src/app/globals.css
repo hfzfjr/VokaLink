@@ -6,6 +6,7 @@
   /* Offset scroll padding agar target section anchor tidak tertutup sticky navbar (h-20 / 80px) */
   html {
     scroll-padding-top: 5rem;
+    scrollbar-gutter: stable; /* Mencegah layout shift: ruang scrollbar selalu stabil & fixed */
   }
 
   /* Smooth scrolling alami dengan pertimbangan aksesibilitas (prefers-reduced-motion) */
@@ -19,6 +20,33 @@
     html {
       scroll-behavior: auto;
     }
+  }
+
+  /* ─── Global Slim & Clean Scrollbar (Seluruh Halaman & Komponen) ─── */
+  /* WebKit (Chrome, Edge, Safari, Opera) */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1; /* slate-300 */
+    border-radius: 9999px;
+    transition: background-color 0.2s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8; /* slate-400 */
+  }
+
+  /* Firefox Standard Scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
   }
 
   html,
@@ -118,5 +146,3 @@ body {
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
 }
-
-

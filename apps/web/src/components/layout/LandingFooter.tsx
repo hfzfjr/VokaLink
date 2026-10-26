@@ -18,7 +18,7 @@ export default function LandingFooter() {
   };
 
   return (
-    <footer className="bg-white border-t border-slate-100 pt-16 pb-12">
+    <footer className="bg-surface border-t border-slate-100 pt-16 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-slate-100">
           {/* Col 1: Brand Info */}

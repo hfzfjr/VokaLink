@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import VokaIcon from "@/components/common/VokaIcon";
 import LandingNavbar from "@/components/layout/LandingNavbar";
 import LandingFooter from "@/components/layout/LandingFooter";
 import {
@@ -12,14 +11,12 @@ import {
   Star,
   ChevronDown,
   X,
-  Menu,
   Play,
   FileText,
   UserCheck,
   Building2,
   GraduationCap,
   QrCode,
-  ExternalLink,
   Award,
   CheckCircle2,
 } from "lucide-react";
@@ -205,7 +202,7 @@ export default function Home() {
         </section>
 
         {/* 4. QUICK METRICS COUNTER BANNER */}
-        <section className="py-10 bg-white border-y border-slate-100">
+        <section className="py-10 bg-surface border-y border-slate-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
               <div className="p-3">
@@ -594,7 +591,7 @@ export default function Home() {
       </section>
 
       {/* 6. ALUR KERJA PKL 4 TAHAP */}
-      <section id="alur" className="py-20 bg-slate-50/50 border-y border-slate-100">
+      <section id="alur" className="py-20 bg-canvas border-y border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <p className="text-xs font-bold text-sky-600 uppercase tracking-widest mb-3">
@@ -769,7 +766,7 @@ export default function Home() {
       </section>
 
       {/* 8. TESTIMONI DUDI & KEPALA SEKOLAH */}
-      <section id="testimoni" className="py-20 bg-white border-t border-slate-100">
+      <section id="testimoni" className="py-20 bg-surface border-t border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-3">
