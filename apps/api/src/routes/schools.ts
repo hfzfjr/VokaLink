@@ -339,8 +339,8 @@ schoolsRouter.get(
         throw new AppError("Sekolah tidak ditemukan", 404, "SCHOOL_NOT_FOUND");
       }
 
-      // Count students, teachers, placements
-      const [totalStudents, totalTeachers, totalPlacements] = await Promise.all([
+      // Count students, teachers, placements, dudis, and fetch priority students
+      const [totalStudents, totalTeachers, totalPlacements, totalDudis, rawPlacements] = await Promise.all([
         tenantDb.userProfile.count({
           where: { schoolId: user.schoolId, role: "STUDENT" },
         }),
@@ -350,7 +350,70 @@ schoolsRouter.get(
         tenantDb.placement.count({
           where: { academicPeriod: { schoolId: user.schoolId } },
         }),
+        prisma.dudiPartner.count(),
+        tenantDb.placement.findMany({
+          where: { academicPeriod: { schoolId: user.schoolId } },
+          include: {
+            student: {
+              include: { schoolDepartment: true },
+            },
+            dudiPartner: true,
+            dailyLogs: {
+              select: {
+                status: true,
+                items: {
+                  select: { durationJp: true },
+                },
+              },
+            },
+            driftAlerts: {
+              where: { status: "OPEN" },
+              take: 1,
+            },
+          },
+          take: 8,
+          orderBy: { createdAt: "desc" },
+        }),
       ]);
+
+      const priorityStudents = rawPlacements.map((p) => {
+        const verifiedJp = p.dailyLogs
+          .filter((l) => l.status === "VERIFIED")
+          .reduce(
+            (acc, log) =>
+              acc + log.items.reduce((s, it) => s + it.durationJp, 0),
+            0
+          );
+        const pendingLogs = p.dailyLogs.filter(
+          (l) => l.status === "PENDING_VERIFICATION"
+        ).length;
+        const activeAlert = p.driftAlerts[0];
+
+        let statusText = "Progres Aktif";
+        let severity: "warning" | "info" | "success" = "info";
+
+        if (activeAlert) {
+          statusText = `Drift: ${activeAlert.alertType.replace(/_/g, " ")}`;
+          severity = "warning";
+        } else if (verifiedJp >= 700) {
+          statusText = "Target JP Tuntas";
+          severity = "success";
+        } else if (pendingLogs > 2) {
+          statusText = `${pendingLogs} Log Belum Terverifikasi`;
+          severity = "warning";
+        }
+
+        return {
+          id: p.student.id,
+          name: p.student.fullName,
+          department: p.student.schoolDepartment?.name || "Konsentrasi Keahlian",
+          dudiName: p.dudiPartner.name,
+          jpProgress: verifiedJp,
+          pendingLogs,
+          statusText,
+          severity,
+        };
+      });
 
       res.json({
         success: true,
@@ -370,13 +433,16 @@ schoolsRouter.get(
             name: d.name,
             cpElementsCount: d._count.cpElements,
             jobCardsCount: d._count.jobCards,
+            isLocked: d.isLocked,
           })),
           stats: {
             totalStudents,
             totalTeachers,
             totalDepartments: school.schoolDepartments.length,
             totalPlacements,
+            totalDudis,
           },
+          priorityStudents,
         },
       });
     } catch (err) {

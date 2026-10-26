@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import Navbar, { NavbarButton } from "@/components/layout/Navbar";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/use-auth";
 
 function GoogleIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
@@ -46,6 +47,7 @@ function GoogleIcon({ className = "w-5 h-5" }: { className?: string }) {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { setSession, loginWithIdentifier, isAuthenticated, role: userRole } = useAuth();
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -54,6 +56,19 @@ function LoginForm() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [unlinkedEmail, setUnlinkedEmail] = useState<string | null>(null);
+
+  // Jika sudah login, redirect otomatis ke dashboard yang sesuai
+  useEffect(() => {
+    if (isAuthenticated && userRole) {
+      if (userRole === "SCHOOL_ADMIN") {
+        router.replace("/school/dashboard");
+      } else if (userRole === "TEACHER") {
+        router.replace("/teacher/heatmap");
+      } else if (userRole === "STUDENT") {
+        router.replace("/student/home");
+      }
+    }
+  }, [isAuthenticated, userRole, router]);
 
   useEffect(() => {
     const errorParam = searchParams.get("error");
@@ -119,67 +134,69 @@ function LoginForm() {
     try {
       const apiUrl = process.env["NEXT_PUBLIC_API_URL"] || "http://localhost:3001/api/v1";
 
-      // 1. Jika identifier berformat email, validasi melalui Supabase Auth
+      // 1. Jika identifier berformat email, coba validasi melalui Supabase Auth terlebih dahulu
       if (identifier.includes("@")) {
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
           email: identifier.trim(),
           password,
         });
 
-        if (authError || !authData.session) {
-          throw new Error("Email atau kata sandi tidak valid. Periksa kembali kredensial Anda.");
-        }
+        if (!authError && authData?.session) {
+          const res = await fetch(`${apiUrl}/auth/me`, {
+            headers: {
+              Authorization: `Bearer ${authData.session.access_token}`,
+            },
+          });
 
-        const res = await fetch(`${apiUrl}/auth/me`, {
-          headers: {
-            Authorization: `Bearer ${authData.session.access_token}`,
-          },
-        });
+          if (res.status === 403) {
+            await supabase.auth.signOut();
+            setUnlinkedEmail(identifier.trim());
+            return;
+          }
 
-        if (res.status === 403) {
-          await supabase.auth.signOut();
-          setUnlinkedEmail(identifier.trim());
-          return;
-        }
+          if (res.ok) {
+            const json = await res.json();
+            const profileData = json?.data;
+            const role = profileData?.role;
 
-        if (!res.ok) {
-          const errJson = await res.json().catch(() => ({}));
-          throw new Error(errJson.detail || "Gagal memverifikasi akun ke server VokaLink.");
-        }
+            // Simpan sesi ke AuthContext & cookies
+            setSession(authData.session.access_token, profileData);
 
-        const json = await res.json();
-        const role = json?.data?.role;
-        if (role === "SCHOOL_ADMIN") {
-          router.push("/school/dashboard");
-        } else if (role === "TEACHER") {
-          router.push("/teacher/heatmap");
-        } else if (role === "STUDENT") {
-          router.push("/student/home");
-        } else {
-          router.push("/school/dashboard");
+            const fromParam = searchParams.get("from");
+            if (fromParam && fromParam.startsWith("/")) {
+              router.push(fromParam);
+              return;
+            }
+
+            if (role === "SCHOOL_ADMIN") {
+              router.push("/school/dashboard");
+            } else if (role === "TEACHER") {
+              router.push("/teacher/heatmap");
+            } else if (role === "STUDENT") {
+              router.push("/student/home");
+            } else {
+              router.push("/school/dashboard");
+            }
+            return;
+          }
         }
+        // Jika tidak ada di Supabase Auth, lanjutkan ke alur kredensial database (loginWithIdentifier)
+      }
+
+      // 2. Jika identifier adalah NISN atau NIP Resmi, validasi via loginWithIdentifier
+      const result = await loginWithIdentifier(identifier.trim(), password);
+
+      if (!result.success) {
+        throw new Error(result.error || "Kredensial tidak valid.");
+      }
+
+      const role = result.role;
+      const fromParam = searchParams.get("from");
+      if (fromParam && fromParam.startsWith("/")) {
+        router.push(fromParam);
         return;
       }
 
-      // 2. Jika identifier adalah NISN atau NIP Resmi, validasi ke server VokaLink
-      const res = await fetch(`${apiUrl}/auth/login-identifier`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          identifier: identifier.trim(),
-          password,
-        }),
-      });
-
-      const json = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        throw new Error(json.detail || json.title || "Kredensial tidak valid.");
-      }
-
-      const role = json?.data?.role;
       if (role === "STUDENT") {
         router.push("/student/home");
       } else if (role === "TEACHER") {

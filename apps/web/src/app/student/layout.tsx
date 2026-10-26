@@ -4,6 +4,7 @@ import { StudentHeader } from "@/components/student/StudentHeader";
 import { StudentSidebar } from "@/components/student/StudentSidebar";
 import { BottomNav } from "@/components/student/BottomNav";
 import { PwaInstallPrompt } from "@/components/student/PwaInstallPrompt";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 
 export const metadata: Metadata = {
   title: "Portal Siswa PKL — VokaLink",
@@ -17,7 +18,8 @@ export default function StudentLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-slate-50/80 text-slate-900 selection:bg-sky-500 selection:text-white flex flex-col font-sans print:bg-white print:p-0 print:m-0 print:min-h-0 print:block">
+    <AuthGuard allowedRoles={["STUDENT"]}>
+      <div className="min-h-screen bg-slate-50/80 text-slate-900 selection:bg-sky-500 selection:text-white flex flex-col font-sans print:bg-white print:p-0 print:m-0 print:min-h-0 print:block">
       <div className="flex-1 flex flex-col md:flex-row print:block print:w-full print:p-0 print:m-0">
         {/* 2. Mobile-only top header (hidden on desktop md:hidden, hidden on print) */}
         <div className="md:hidden no-print print:hidden">
@@ -47,5 +49,6 @@ export default function StudentLayout({
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }
