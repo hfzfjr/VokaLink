@@ -22,6 +22,10 @@ describe("Auth & Session Verification Routes (FR-001 & Multi-Tenant Google OAuth
     process.env["SUPABASE_JWT_SECRET"] ||
     "UJsz4xEKudTZFxJYNb67h+Xx/cqnkkmCj4IZDlrXEh/eK8Y7+vFeZ530uoFbIyGWB3iHjJ+335qHv1ks5wc5dw==";
 
+  beforeEach(() => {
+    process.env["SUPABASE_JWT_SECRET"] = jwtSecret;
+  });
+
   async function generateToken(sub: string, email: string) {
     const key = new TextEncoder().encode(jwtSecret);
     return new SignJWT({
