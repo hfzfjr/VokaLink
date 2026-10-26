@@ -80,7 +80,8 @@ const SCHOOLS_DATA = [
     city: "Medan",
     latitude: 3.5852,
     longitude: 98.6756,
-    adminEmail: "admin.telkommedan@vokalink.id",
+    emailDomain: "smktelkom1medan.sch.id",
+    adminEmail: "adminpkl@smktelkom1medan.sch.id",
     adminName: "Drs. H. Mulyadi, M.Kom (Pokja PKL)",
   },
   {
@@ -92,7 +93,8 @@ const SCHOOLS_DATA = [
     city: "Bandung",
     latitude: -6.9175,
     longitude: 107.6191,
-    adminEmail: "admin.smkn1bdg@vokalink.id",
+    emailDomain: "smkn1bandung.sch.id",
+    adminEmail: "adminpkl@smkn1bandung.sch.id",
     adminName: "Dr. Hj. Nina Herlina, M.Pd (Pokja PKL)",
   },
   {
@@ -104,10 +106,31 @@ const SCHOOLS_DATA = [
     city: "Jakarta Timur",
     latitude: -6.2088,
     longitude: 106.8824,
-    adminEmail: "admin.smkn26jkt@vokalink.id",
+    emailDomain: "smkn26jkt.sch.id",
+    adminEmail: "adminpkl@smkn26jkt.sch.id",
     adminName: "Ir. Bambang Widyatmoko, M.T (Pokja PKL)",
   },
 ];
+
+const usedEmailsSet = new Set<string>();
+
+function generateUniqueEmail(rawName: string, domain: string): string {
+  const cleanName = rawName
+    .replace(/(drs\.|dr\.|hj\.|h\.|ir\.)/gi, "")
+    .replace(/\(.*?\)/g, "")
+    .split(",")[0]!
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
+  let candidate = `${cleanName}@${domain}`;
+  let counter = 2;
+  while (usedEmailsSet.has(candidate)) {
+    candidate = `${cleanName}${counter}@${domain}`;
+    counter++;
+  }
+  usedEmailsSet.add(candidate);
+  return candidate;
+}
 
 // ─── Generator Nama Indonesia ─────────────────────────────────────────────────
 
@@ -540,6 +563,7 @@ export async function seedV2(): Promise<void> {
         id: adminId,
         schoolId: schoolInfo.id,
         role: UserRole.SCHOOL_ADMIN,
+        email: schoolInfo.adminEmail,
         fullName: schoolInfo.adminName,
         identityNumber: schoolInfo.npsn,
         whatsappNumber: `62811000${sIdx + 1}001`,
@@ -554,6 +578,7 @@ export async function seedV2(): Promise<void> {
           id: genericAdminId,
           schoolId: schoolInfo.id,
           role: UserRole.SCHOOL_ADMIN,
+          email: "admin@smktelkom1medan.sch.id",
           fullName: "Admin Pokja PKL (SMK Telkom 1 Medan)",
           identityNumber: "99000001",
           whatsappNumber: "6281199000001",
@@ -649,12 +674,18 @@ export async function seedV2(): Promise<void> {
           ? "Budi Santoso, S.Kom"
           : `${generateIndonesianName(globalTeacherCount * 3 + 1)}, S.Pd., M.Kom`;
 
+      const teacherEmail =
+        sIdx === 0 && t === 0
+          ? "budisantoso@smktelkom1medan.sch.id"
+          : generateUniqueEmail(teacherName, schoolInfo.emailDomain);
+
       const tProfile = await prisma.userProfile.create({
         data: {
           id: teacherId,
           schoolId: schoolInfo.id,
           schoolDepartmentId: assignedDept.id,
           role: UserRole.TEACHER,
+          email: teacherEmail,
           fullName: teacherName,
           identityNumber: sIdx === 0 && t === 0 ? "197501012000011001" : nip,
           whatsappNumber: `628123456${1000 + globalTeacherCount}`,
@@ -692,18 +723,26 @@ export async function seedV2(): Promise<void> {
 
       // Akun demo khusus di SMK Telkom 1 Medan
       let studentName = generateIndonesianName(globalStudentCount);
+      let studentEmail = "";
+
       if (sIdx === 0 && s === 0) {
         nisn = "0078901234";
         studentName = "Andi Pratama";
+        studentEmail = "andipratama@smktelkom1medan.sch.id";
       } else if (sIdx === 0 && s === 1) {
         nisn = "0078901235";
         studentName = "Bintang Ramadhan";
+        studentEmail = "bintangramadhan@smktelkom1medan.sch.id";
       } else if (sIdx === 0 && s === 2) {
         nisn = "0078901236";
         studentName = "Citra Maharani";
+        studentEmail = "citramaharani@smktelkom1medan.sch.id";
       } else if (sIdx === 0 && s === 3) {
         nisn = "0078901237";
         studentName = "Dewi Anggraini";
+        studentEmail = "dewianggraini@smktelkom1medan.sch.id";
+      } else {
+        studentEmail = generateUniqueEmail(studentName, schoolInfo.emailDomain);
       }
 
       const latOffset = ((s % 10) - 5) * 0.005;
@@ -714,6 +753,7 @@ export async function seedV2(): Promise<void> {
         schoolId: schoolInfo.id,
         schoolDepartmentId: assignedDept.id,
         role: UserRole.STUDENT,
+        email: studentEmail,
         fullName: studentName,
         identityNumber: nisn,
         whatsappNumber: `628129876${String(globalStudentCount).padStart(4, "0")}`,

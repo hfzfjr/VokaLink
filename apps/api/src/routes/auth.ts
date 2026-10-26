@@ -69,10 +69,13 @@ authRouter.post(
       }
 
       const cleanIdentifier = identifier.trim();
+      const isEmail = cleanIdentifier.includes("@");
 
-      // 1. Cari userProfile berdasarkan identityNumber
+      // 1. Cari userProfile berdasarkan identityNumber ATAU email resmi
       const profile = await prisma.userProfile.findFirst({
-        where: { identityNumber: cleanIdentifier },
+        where: isEmail
+          ? { email: { equals: cleanIdentifier, mode: "insensitive" } }
+          : { identityNumber: cleanIdentifier },
         include: {
           school: {
             select: {
@@ -99,17 +102,20 @@ authRouter.post(
           type: "https://vokalink.id/errors/invalid-credentials",
           title: "Kredensial Tidak Valid",
           status: 401,
-          detail: `NISN atau nomor identitas "${cleanIdentifier}" tidak terdaftar di database sekolah manapun di VokaLink.`,
+          detail: isEmail
+            ? `Email "${cleanIdentifier}" belum terdaftar di database sekolah manapun di VokaLink.`
+            : `NISN atau nomor identitas "${cleanIdentifier}" tidak terdaftar di database sekolah manapun di VokaLink.`,
           code: "INVALID_CREDENTIALS",
         });
         return;
       }
 
       // 2. Verifikasi kata sandi / kode akses
-      // Sesuai DESIGN.md §5: kode akses awal siswa adalah VokaLink2026!, 123456, atau NISN itu sendiri
+      // Sesuai DESIGN.md §5: kode akses awal siswa adalah VokaLink2026!, 123456, NISN, atau password
       const validAccessCodes = [
         "VokaLink2026!",
         "123456",
+        profile.identityNumber,
         cleanIdentifier,
         "password",
       ];
@@ -128,11 +134,12 @@ authRouter.post(
       }
 
       // 3. Buat JWT sesi resmi
+      const sessionEmail = profile.email || `${profile.identityNumber}@siswa.vokalink.id`;
       const token = await generateSessionToken({
         sub: profile.id,
         role: profile.role,
         schoolId: profile.schoolId,
-        email: `${cleanIdentifier}@siswa.vokalink.id`,
+        email: sessionEmail,
       });
 
       res.json({
@@ -140,6 +147,7 @@ authRouter.post(
         token,
         data: {
           id: profile.id,
+          email: sessionEmail,
           role: profile.role,
           fullName: profile.fullName,
           identityNumber: profile.identityNumber,
@@ -177,8 +185,8 @@ authRouter.get(
         return;
       }
 
-      // Query UserProfile from database
-      const profile = await prisma.userProfile.findUnique({
+      // Query UserProfile from database (by ID or fallback to email)
+      let profile = await prisma.userProfile.findUnique({
         where: { id: user.id },
         include: {
           school: {
@@ -200,6 +208,31 @@ authRouter.get(
           },
         },
       });
+
+      if (!profile && user.email) {
+        profile = await prisma.userProfile.findFirst({
+          where: { email: { equals: user.email, mode: "insensitive" } },
+          include: {
+            school: {
+              select: {
+                id: true,
+                name: true,
+                npsn: true,
+                province: true,
+                city: true,
+                isDemoSandbox: true,
+              },
+            },
+            schoolDepartment: {
+              select: {
+                id: true,
+                name: true,
+                sectorCode: true,
+              },
+            },
+          },
+        });
+      }
 
       // If user profile does not exist or has no school associated
       if (!profile || !profile.schoolId || !profile.school) {
