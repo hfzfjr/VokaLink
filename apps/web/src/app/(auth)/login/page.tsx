@@ -198,10 +198,10 @@ function LoginForm() {
   };
 
   return (
-    <main className="max-w-md lg:max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12 flex-1 flex flex-col justify-center">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-stretch w-full">
+    <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12 flex-1 flex flex-col justify-center">
+      <div className="max-w-md mx-auto lg:max-w-none w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-stretch">
         {/* SECTION KIRI: Banner Grafis Fitur VokaLink (Hanya tampil di Desktop lg:flex, disembunyikan di Mobile) */}
-        <section className="hidden lg:flex lg:col-span-7 rounded-3xl bg-slate-900 text-white p-8 sm:p-10 border border-slate-800 shadow-xl flex-col justify-between relative overflow-hidden">
+        <section className="hidden lg:flex lg:col-span-6 rounded-3xl bg-slate-900 text-white p-8 sm:p-10 lg:p-12 border border-slate-800 shadow-xl flex-col justify-between relative overflow-hidden">
           {/* Ambient Glow */}
           <div className="absolute top-0 right-0 -mr-20 -mt-20 w-72 h-72 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -276,7 +276,7 @@ function LoginForm() {
         </section>
 
         {/* SECTION KANAN: Formulir Login Autentikasi Terpadu */}
-        <section className="w-full lg:col-span-5 bg-white p-7 sm:p-9 rounded-3xl border border-slate-200/90 shadow-xl flex flex-col justify-between space-y-6">
+        <section className="w-full lg:col-span-6 bg-white p-7 sm:p-9 lg:p-12 rounded-3xl border border-slate-200/90 shadow-xl flex flex-col justify-between space-y-6">
         <div>
           <span className="text-[11px] font-extrabold uppercase tracking-wider text-sky-600 bg-sky-50 px-3 py-1 rounded-full border border-sky-100 inline-block mb-2.5">
             Autentikasi Terpadu
