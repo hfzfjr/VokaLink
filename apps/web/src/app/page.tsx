@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import VokaIcon from "@/components/common/VokaIcon";
 import LandingNavbar from "@/components/layout/LandingNavbar";
 import LandingFooter from "@/components/layout/LandingFooter";
 import {
@@ -12,14 +11,12 @@ import {
   Star,
   ChevronDown,
   X,
-  Menu,
   Play,
   FileText,
   UserCheck,
   Building2,
   GraduationCap,
   QrCode,
-  ExternalLink,
   Award,
   CheckCircle2,
 } from "lucide-react";
@@ -160,7 +157,7 @@ export default function Home() {
   const currentMajor: MajorDetail = MAJORS_DATA[activeMajor] ?? DEFAULT_MAJOR;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFD] text-[#0F172A] font-sans selection:bg-sky-500 selection:text-white">
+    <div className="min-h-screen bg-canvas text-content-primary font-sans selection:bg-sky-500 selection:text-white">
       {/* 1. STICKY NAVBAR */}
       <LandingNavbar onScheduleDemo={() => setDemoModalOpen(true)} />
 
@@ -172,7 +169,7 @@ export default function Home() {
             <div className="text-center max-w-4xl mx-auto">
               <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 leading-[1.12]">
                 Monitoring PKL SMK{" "}
-                <span className="text-sky-600">Lebih Terukur</span>{" "}
+                <span className="text-sky-500">Lebih Terukur</span>{" "}
                 & Bebas Dokumen Kertas
               </h1>
               <p className="mt-6 text-base sm:text-lg lg:text-xl text-slate-600 font-normal leading-relaxed max-w-2xl mx-auto">
@@ -186,7 +183,7 @@ export default function Home() {
               <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
                 <Link
                   href="/login"
-                  className="px-8 py-4 rounded-full bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-sm sm:text-base shadow-lg shadow-sky-600/25 hover:scale-105 transition duration-150 flex items-center gap-2"
+                  className="px-8 py-4 rounded-full bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-sm sm:text-base shadow-lg shadow-sky-500/25 hover:scale-105 transition duration-150 flex items-center gap-2"
                 >
                   <span>Buka Live Dashboard PKL</span>
                   <ArrowRight className="size-4" />
@@ -196,21 +193,16 @@ export default function Home() {
                   onClick={() => setDemoModalOpen(true)}
                   className="px-8 py-4 rounded-full bg-white hover:bg-slate-50 text-slate-700 font-bold text-sm sm:text-base border border-slate-200/80 shadow-xs hover:shadow transition flex items-center gap-2"
                 >
-                  <Play className="size-4 text-sky-600 fill-sky-600" />
+                  <Play className="size-4 text-sky-500 fill-sky-500" />
                   <span>Simulasi Peran Juri & Guru</span>
                 </button>
               </div>
-
-              <p className="text-xs text-slate-500 mt-6 flex items-center justify-center gap-2">
-                <Check className="size-3.5 text-emerald-600" />
-                <span>Tanpa instalasi server rumit &bull; Integrasi data via Excel / Dapodik &bull; PWA Offline-First</span>
-              </p>
             </div>
           </div>
         </section>
 
         {/* 4. QUICK METRICS COUNTER BANNER */}
-        <section className="py-10 bg-white border-y border-slate-100">
+        <section className="py-10 bg-surface border-y border-slate-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
               <div className="p-3">
@@ -599,7 +591,7 @@ export default function Home() {
       </section>
 
       {/* 6. ALUR KERJA PKL 4 TAHAP */}
-      <section id="alur" className="py-20 bg-slate-50/50 border-y border-slate-100">
+      <section id="alur" className="py-20 bg-canvas border-y border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <p className="text-xs font-bold text-sky-600 uppercase tracking-widest mb-3">
@@ -774,7 +766,7 @@ export default function Home() {
       </section>
 
       {/* 8. TESTIMONI DUDI & KEPALA SEKOLAH */}
-      <section id="testimoni" className="py-20 bg-white border-t border-slate-100">
+      <section id="testimoni" className="py-20 bg-surface border-t border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-3">
@@ -908,7 +900,7 @@ export default function Home() {
 
       {/* 10. CTA BANNER SECTION (Pastel Clean, Welcoming, Zero Dark) */}
       <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-[#EFF6FF]/90 border border-sky-100 rounded-[36px] p-8 sm:p-14 text-slate-800 relative overflow-hidden shadow-[0_12px_40px_-10px_rgba(14,165,233,0.12)]">
+        <div className="bg-sky-50/90 border border-sky-100 rounded-[36px] p-8 sm:p-14 text-slate-800 relative overflow-hidden shadow-soft">
           <div className="relative z-10 max-w-3xl">
             <p className="text-xs font-bold text-sky-700 uppercase tracking-widest mb-3">
               Konsultasi & Simulasi Gratis untuk SMK

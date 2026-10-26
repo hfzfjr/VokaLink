@@ -63,7 +63,7 @@ export default function PublicPassportVerifyPage({ params }: PageProps) {
   // ─── 1. State: Loading Skeleton ────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#F8FAFD] py-10 px-4 sm:px-6">
+      <div className="min-h-screen bg-canvas py-10 px-4 sm:px-6">
         <div className="max-w-3xl mx-auto space-y-6 animate-pulse">
           <div className="h-16 bg-slate-200 rounded-3xl w-full" />
           <div className="h-48 bg-slate-200 rounded-3xl w-full" />
@@ -82,7 +82,7 @@ export default function PublicPassportVerifyPage({ params }: PageProps) {
   // ─── 2. State: Invalid / Not Found (Error Handling) ────────────
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-[#F8FAFD] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-canvas flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-rose-200 shadow-xl text-center space-y-5">
           <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto border border-rose-100">
             <AlertTriangle className="w-8 h-8" />
@@ -124,7 +124,7 @@ export default function PublicPassportVerifyPage({ params }: PageProps) {
   const { student, metrics, competencies, endorsement, artifactPhotos, isCryptographicallyValid } = data;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFD] text-slate-900 font-sans pb-16">
+    <div className="min-h-screen bg-canvas text-slate-900 font-sans pb-16">
       {/* 1. Official Header Top Bar */}
       <header className="bg-slate-900 text-white py-4 px-4 sm:px-8 border-b border-slate-800 sticky top-0 z-20 shadow-md print:hidden">
         <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">

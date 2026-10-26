@@ -1,14 +1,29 @@
+"use client";
+
 import Link from "next/link";
 import VokaLogo from "@/components/common/VokaLogo";
 
 export default function LandingFooter() {
+  const scrollTo = (id: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  const scrollToTop = (e: React.MouseEvent) => {
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
-    <footer className="bg-white border-t border-slate-100 pt-16 pb-12">
+    <footer className="bg-surface border-t border-slate-100 pt-16 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-slate-100">
           {/* Col 1: Brand Info */}
           <div className="lg:col-span-2 space-y-4">
-            <VokaLogo size="md" href="/" />
+            <VokaLogo size="md" href="/" onClick={scrollToTop} />
             <p className="text-xs text-slate-500 leading-relaxed max-w-sm">
               Interconnected Multi-Sector Vocational Internship Competency, Zero-Login Verification & Verifiable Career Ecosystem. Platform PKL SMK Kurikulum Merdeka Fase F 792 JP.
             </p>
@@ -21,11 +36,11 @@ export default function LandingFooter() {
           <div>
             <p className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-4">Fitur Utama</p>
             <ul className="space-y-2 text-xs font-medium text-slate-500">
-              <li><a href="#fitur" className="hover:text-sky-600 transition">Presensi GPS Geofencing</a></li>
-              <li><a href="#fitur" className="hover:text-sky-600 transition">Logbook PWA Offline-First</a></li>
-              <li><a href="#fitur" className="hover:text-sky-600 transition">Stempel Zero-Login Mentor</a></li>
-              <li><a href="#fitur" className="hover:text-sky-600 transition">Live Heatmap & Drift Alert</a></li>
-              <li><a href="#fitur" className="hover:text-sky-600 transition">Ekspor e-Rapor Dapodik</a></li>
+              <li><a href="#fitur" onClick={scrollTo("fitur")} className="hover:text-sky-600 transition cursor-pointer">Presensi GPS Geofencing</a></li>
+              <li><a href="#fitur" onClick={scrollTo("fitur")} className="hover:text-sky-600 transition cursor-pointer">Logbook PWA Offline-First</a></li>
+              <li><a href="#fitur" onClick={scrollTo("fitur")} className="hover:text-sky-600 transition cursor-pointer">Stempel Zero-Login Mentor</a></li>
+              <li><a href="#fitur" onClick={scrollTo("fitur")} className="hover:text-sky-600 transition cursor-pointer">Live Heatmap & Drift Alert</a></li>
+              <li><a href="#fitur" onClick={scrollTo("fitur")} className="hover:text-sky-600 transition cursor-pointer">Ekspor e-Rapor Dapodik</a></li>
             </ul>
           </div>
 
@@ -33,11 +48,11 @@ export default function LandingFooter() {
           <div>
             <p className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-4">Program Keahlian</p>
             <ul className="space-y-2 text-xs font-medium text-slate-500">
-              <li><a href="#simulasi" className="hover:text-sky-600 transition">RPL / PPLG</a></li>
-              <li><a href="#simulasi" className="hover:text-sky-600 transition">TKJ / TJKT</a></li>
-              <li><a href="#simulasi" className="hover:text-sky-600 transition">DKV / Desain Grafis</a></li>
-              <li><a href="#simulasi" className="hover:text-sky-600 transition">TKR / Otomotif Mobil</a></li>
-              <li><a href="#simulasi" className="hover:text-sky-600 transition">Akuntansi & Keuangan</a></li>
+              <li><a href="#simulasi" onClick={scrollTo("simulasi")} className="hover:text-sky-600 transition cursor-pointer">RPL / PPLG</a></li>
+              <li><a href="#simulasi" onClick={scrollTo("simulasi")} className="hover:text-sky-600 transition cursor-pointer">TKJ / TJKT</a></li>
+              <li><a href="#simulasi" onClick={scrollTo("simulasi")} className="hover:text-sky-600 transition cursor-pointer">DKV / Desain Grafis</a></li>
+              <li><a href="#simulasi" onClick={scrollTo("simulasi")} className="hover:text-sky-600 transition cursor-pointer">TKR / Otomotif Mobil</a></li>
+              <li><a href="#simulasi" onClick={scrollTo("simulasi")} className="hover:text-sky-600 transition cursor-pointer">Akuntansi & Keuangan</a></li>
             </ul>
           </div>
 
@@ -48,8 +63,6 @@ export default function LandingFooter() {
               <li><Link href="/login" className="hover:text-sky-600 transition font-bold text-sky-600">Simulasi Demo Juri</Link></li>
               <li><Link href="/register-school" className="hover:text-sky-600 transition">Daftarkan Sekolah Baru</Link></li>
               <li><Link href="/verify/andi-pratama-rpl-2026" className="hover:text-sky-600 transition">Uji Paspor Ber-QR &rarr;</Link></li>
-              <li className="text-slate-500 pt-1">Permendikbudristek 12/2024</li>
-              <li className="text-slate-500">Target 792 JP Intrakurikuler</li>
             </ul>
           </div>
         </div>
@@ -57,17 +70,12 @@ export default function LandingFooter() {
         {/* Copyright & Legal */}
         <div className="pt-8 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
           <p>&copy; 2026 VokaLink SMK. Hak Cipta Dilindungi Undang-Undang. Zero-Cost Architecture.</p>
-          <div className="flex items-center gap-6">
-            <Link href="/login" className="hover:text-slate-600 transition">
-              Mode Uji Juri
-            </Link>
-            <span>&bull;</span>
-            <a href="#" className="hover:text-slate-600 transition">
-              Kembali ke Atas &uarr;
-            </a>
-          </div>
+          <a href="#" onClick={scrollToTop} className="hover:text-slate-600 transition cursor-pointer">
+            Kembali ke Atas &uarr;
+          </a>
         </div>
       </div>
     </footer>
   );
 }
+

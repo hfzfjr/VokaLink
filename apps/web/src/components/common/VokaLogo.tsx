@@ -12,6 +12,8 @@ export interface VokaLogoProps extends React.SVGProps<SVGSVGElement> {
   size?: "sm" | "md" | "lg";
   /** URL tautan jika ingin dibungkus Link. Kosongkan jika hanya ingin render SVG */
   href?: string;
+  /** Callback saat logo diklik (berguna untuk scroll-to-top di landing page) */
+  onClick?: (e: React.MouseEvent) => void;
   className?: string;
 }
 
@@ -35,6 +37,7 @@ export default function VokaLogo({
   showText = true,
   size = "md",
   href = "/",
+  onClick,
   className = "",
   ...props
 }: VokaLogoProps) {
@@ -67,9 +70,22 @@ export default function VokaLogo({
     </span>
   );
 
-  if (!href) return content;
+  if (!href) {
+    if (onClick) {
+      return (
+        <button
+          type="button"
+          onClick={onClick}
+          className="inline-flex items-center group py-0.5 cursor-pointer bg-transparent border-0 p-0 focus:outline-none"
+        >
+          {content}
+        </button>
+      );
+    }
+    return content;
+  }
   return (
-    <Link href={href} className="inline-flex items-center group py-0.5">
+    <Link href={href} onClick={onClick} className="inline-flex items-center group py-0.5 cursor-pointer">
       {content}
     </Link>
   );

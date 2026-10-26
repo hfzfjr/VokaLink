@@ -41,12 +41,13 @@ const config: Config = {
           700: "#1D4ED8",
         },
         primary: {
-          50: "#EFF6FF",
-          100: "#DBEAFE",
-          600: "#2563EB",
-          700: "#1D4ED8",
+          50: "#F0F9FF",
+          100: "#E0F2FE",
+          500: "#0EA5E9",
+          600: "#0EA5E9",
+          700: "#0284C7",
         },
-        canvas: "#FFFFFF",
+        canvas: "#F8FAFD",
         surface: "#FFFFFF",
         muted: "#F8FAFC",
         content: {
