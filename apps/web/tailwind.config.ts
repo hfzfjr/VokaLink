@@ -96,8 +96,8 @@ const config: Config = {
         capsule: "0 6px 18px -2px rgba(0, 0, 0, 0.1)",
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
+        sans: ["var(--font-sans)", "system-ui", "-apple-system", "sans-serif"],
+        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
       },
       maxWidth: {
         page: "80rem",

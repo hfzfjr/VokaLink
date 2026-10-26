@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   Check,
@@ -65,15 +66,26 @@ export function PhotoPrivacyStudioModal({
   // History stack for Undo
   const actionHistoryRef = useRef<ActionRecord[]>([]);
 
-  // Close on Escape key press
+  const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Close on Escape key press & lock body scroll
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+    };
   }, [onClose]);
 
   // Redraw helper: composites original image + mask layers onto visible canvas using zero-allocation reusable buffer
@@ -547,12 +559,15 @@ export function PhotoPrivacyStudioModal({
     }
   };
 
-  return (
+  if (!isMounted || typeof document === "undefined") return null;
+
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="privacy-studio-title"
-      className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in-0 duration-150"
+      className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in-0 duration-150"
+      style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
       onClick={onClose}
     >
       <div
@@ -759,6 +774,7 @@ export function PhotoPrivacyStudioModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

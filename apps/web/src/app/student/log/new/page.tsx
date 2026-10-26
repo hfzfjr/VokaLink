@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   Calendar,
@@ -876,7 +877,7 @@ export default function NewLogPage() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full flex flex-col lg:flex-row gap-5 items-stretch min-h-[840px]"
+      className="w-full flex flex-col lg:flex-row gap-4 sm:gap-5 items-stretch min-h-0 lg:min-h-[840px]"
     >
       {/* ─────────────────────────────────────────────────────────────────────────────
           1. CENTER SECTION: WORKSPACE CANVAS (FORM ENTRY)
@@ -1790,8 +1791,13 @@ export default function NewLogPage() {
       {/* ─────────────────────────────────────────────────────────────────────────────
           3. CONFIRMATION MODAL & INSTANT MENTOR HAND-OFF
       ───────────────────────────────────────────────────────────────────────────── */}
-      {submittedLogUuid && (
-        <div className="fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in-0 duration-150">
+      {submittedLogUuid && typeof document !== "undefined" && createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in-0 duration-150"
+          style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
+        >
           <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-modal border border-slate-200/80 space-y-4 animate-in zoom-in-95 duration-150 text-center">
             <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200/70 flex items-center justify-center mx-auto shadow-2xs">
               <Check className="w-6 h-6 stroke-[3]" />
@@ -1883,7 +1889,8 @@ export default function NewLogPage() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Accessible Mentor QR Modal triggered from Confirmation Hand-off */}
