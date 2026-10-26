@@ -19,7 +19,7 @@ export interface VokaLogoProps extends React.SVGProps<SVGSVGElement> {
 
 const fullLogoSizes = {
   sm: "h-7 w-auto",
-  md: "h-8.5 sm:h-9 w-auto",
+  md: "h-8 sm:h-9 w-auto",
   lg: "h-10 sm:h-11 w-auto",
 };
 
