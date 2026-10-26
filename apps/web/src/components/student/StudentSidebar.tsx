@@ -27,6 +27,7 @@ import { cn } from "@/lib/cn";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
 import { db } from "@/lib/pwa/db";
 import { fetchStudentLogContext, type StudentLogContextResponse } from "@/lib/api";
+import VokaIcon from "@/components/common/VokaIcon";
 
 interface NavItem {
   id: string;
@@ -234,9 +235,9 @@ export function StudentSidebar() {
           <Link
             href="/student/home"
             title="VokaLink Siswa — Beranda"
-            className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-600 via-sky-500 to-sky-400 text-white font-extrabold text-xl shadow-sm shadow-sky-500/25 ring-1 ring-white/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200"
+            className="w-12 h-12 rounded-2xl bg-white border border-slate-200/80 shadow-xs p-2.5 flex items-center justify-center hover:scale-105 hover:border-sky-300 transition-all active:scale-95 group"
           >
-            V
+            <VokaIcon className="w-full h-full object-contain" />
           </Link>
           <div className="w-8 h-px bg-slate-200/80 my-3" />
         </div>

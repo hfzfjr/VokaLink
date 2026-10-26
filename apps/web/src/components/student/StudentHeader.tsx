@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { ArrowLeft, Sparkles, Download } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
+import VokaIcon from "@/components/common/VokaIcon";
 
 export function StudentHeader() {
   const pathname = usePathname();
@@ -47,22 +48,22 @@ export function StudentHeader() {
   const pageInfo = getPageInfo();
 
   return (
-    <header className="md:hidden sticky top-0 z-30 bg-white/90 backdrop-blur-xl border-b border-slate-200/80 pt-[env(safe-area-inset-top,0px)] shadow-2xs transition-all">
+    <header className="md:hidden sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 pt-[env(safe-area-inset-top,0px)] shadow-2xs transition-all">
       <div className="px-4 py-2.5 flex items-center justify-between gap-3">
-        {/* Left Section: Contextual Back on subpages, Brand icon on Home */}
+        {/* Left Section: Contextual Back on subpages, VokaIcon on Home */}
         <div className="flex items-center gap-2.5 min-w-0">
           {!isHome ? (
             <Link
               href="/student/home"
               title="Kembali ke Beranda Siswa"
               aria-label="Kembali ke Beranda Siswa"
-              className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-slate-700 transition cursor-pointer shrink-0 border border-slate-200/60"
+              className="w-8.5 h-8.5 min-w-[34px] rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-slate-700 transition cursor-pointer shrink-0 border border-slate-200/60"
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
           ) : (
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-600 to-sky-400 text-white flex items-center justify-center font-bold text-sm shadow-xs shadow-sky-500/25 shrink-0 select-none">
-              VL
+            <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 p-1.5 flex items-center justify-center shrink-0 shadow-2xs">
+              <VokaIcon className="w-full h-full object-contain" />
             </div>
           )}
 

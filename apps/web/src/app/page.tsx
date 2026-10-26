@@ -2,22 +2,21 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import LandingNavbar from "@/components/layout/LandingNavbar";
+import LandingFooter from "@/components/layout/LandingFooter";
 import {
-  Lightbulb,
   Clock,
   ArrowRight,
   Check,
   Star,
   ChevronDown,
   X,
-  Menu,
   Play,
   FileText,
   UserCheck,
   Building2,
   GraduationCap,
   QrCode,
-  ExternalLink,
   Award,
   CheckCircle2,
 } from "lucide-react";
@@ -130,7 +129,6 @@ const DEFAULT_MAJOR: MajorDetail = {
 };
 
 export default function Home() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDimension, setActiveDimension] = useState<"siswa" | "guru" | "dudi">("siswa");
   const [activeMajor, setActiveMajor] = useState<string>("rpl");
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
@@ -159,132 +157,9 @@ export default function Home() {
   const currentMajor: MajorDetail = MAJORS_DATA[activeMajor] ?? DEFAULT_MAJOR;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFD] text-[#0F172A] font-sans selection:bg-sky-500 selection:text-white">
+    <div className="min-h-screen bg-canvas text-content-primary font-sans selection:bg-sky-500 selection:text-white">
       {/* 1. STICKY NAVBAR */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-100 transition-all duration-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-11 h-11 rounded-2xl bg-sky-500 flex items-center justify-center text-white shadow-md shadow-sky-500/25 group-hover:scale-105 transition duration-200">
-              <Lightbulb className="size-6 text-white" />
-            </div>
-            <div>
-              <span className="text-xl font-extrabold tracking-tight text-slate-900 block leading-none">
-                VokaLink <span className="text-sky-600">SMK</span>
-              </span>
-              <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">
-                Sistem Monitoring Vokasi
-              </span>
-            </div>
-          </Link>
-
-          {/* Desktop Nav Menu */}
-          <nav className="hidden lg:flex items-center gap-1 bg-slate-100/70 p-1.5 rounded-full border border-slate-200/60 text-xs font-semibold text-slate-600">
-            <a href="#fitur" className="px-4 py-2 rounded-full hover:text-sky-600 hover:bg-white transition">
-              Fitur 3 Dimensi
-            </a>
-            <a href="#alur" className="px-4 py-2 rounded-full hover:text-sky-600 hover:bg-white transition">
-              Alur Kerja PKL
-            </a>
-            <a href="#simulasi" className="px-4 py-2 rounded-full hover:text-sky-600 hover:bg-white transition">
-              Simulasi Jurusan
-            </a>
-            <a href="#testimoni" className="px-4 py-2 rounded-full hover:text-sky-600 hover:bg-white transition">
-              Testimoni Sekolah
-            </a>
-            <a href="#faq" className="px-4 py-2 rounded-full hover:text-sky-600 hover:bg-white transition">
-              FAQ
-            </a>
-          </nav>
-
-          {/* CTA Buttons Right */}
-          <div className="hidden sm:flex items-center gap-3">
-            <Link
-              href="/login"
-              className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-700 bg-white border border-slate-200/80 hover:border-slate-300 hover:bg-slate-50 transition shadow-xs inline-flex items-center gap-1.5"
-            >
-              <ExternalLink className="size-3.5 text-sky-500" />
-              <span>Masuk Portal</span>
-            </Link>
-            <button
-              type="button"
-              onClick={() => setDemoModalOpen(true)}
-              className="px-5 py-2.5 rounded-full text-xs font-bold text-white bg-sky-500 hover:bg-sky-600 shadow-md shadow-sky-500/25 transition"
-            >
-              Jadwalkan Demo Sekolah
-            </button>
-          </div>
-
-          {/* Mobile Hamburger Button */}
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-base focus:outline-none"
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
-          </button>
-        </div>
-
-        {/* Mobile Drawer Menu */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden bg-white border-b border-slate-200 px-6 py-5 space-y-3">
-            <a
-              href="#fitur"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-sm font-semibold text-slate-700 hover:text-sky-600 py-1.5"
-            >
-              Fitur 3 Dimensi
-            </a>
-            <a
-              href="#alur"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-sm font-semibold text-slate-700 hover:text-sky-600 py-1.5"
-            >
-              Alur Kerja PKL
-            </a>
-            <a
-              href="#simulasi"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-sm font-semibold text-slate-700 hover:text-sky-600 py-1.5"
-            >
-              Simulasi Jurusan SMK
-            </a>
-            <a
-              href="#testimoni"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-sm font-semibold text-slate-700 hover:text-sky-600 py-1.5"
-            >
-              Testimoni DUDI
-            </a>
-            <a
-              href="#faq"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-sm font-semibold text-slate-700 hover:text-sky-600 py-1.5"
-            >
-              FAQ
-            </a>
-            <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
-              <Link
-                href="/login"
-                className="w-full text-center py-2.5 rounded-full text-xs font-bold text-slate-700 bg-slate-100"
-              >
-                Masuk Portal
-              </Link>
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  setDemoModalOpen(true);
-                }}
-                className="w-full text-center py-2.5 rounded-full text-xs font-bold text-white bg-sky-500 hover:bg-sky-600"
-              >
-                Jadwalkan Demo
-              </button>
-            </div>
-          </div>
-        )}
-      </header>
+      <LandingNavbar onScheduleDemo={() => setDemoModalOpen(true)} />
 
       {/* MAIN CONTENT LANDMARK */}
       <main id="main-content">
@@ -294,7 +169,7 @@ export default function Home() {
             <div className="text-center max-w-4xl mx-auto">
               <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 leading-[1.12]">
                 Monitoring PKL SMK{" "}
-                <span className="text-sky-600">Lebih Terukur</span>{" "}
+                <span className="text-sky-500">Lebih Terukur</span>{" "}
                 & Bebas Dokumen Kertas
               </h1>
               <p className="mt-6 text-base sm:text-lg lg:text-xl text-slate-600 font-normal leading-relaxed max-w-2xl mx-auto">
@@ -308,7 +183,7 @@ export default function Home() {
               <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
                 <Link
                   href="/login"
-                  className="px-8 py-4 rounded-full bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-sm sm:text-base shadow-lg shadow-sky-600/25 hover:scale-105 transition duration-150 flex items-center gap-2"
+                  className="px-8 py-4 rounded-full bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-sm sm:text-base shadow-lg shadow-sky-500/25 hover:scale-105 transition duration-150 flex items-center gap-2"
                 >
                   <span>Buka Live Dashboard PKL</span>
                   <ArrowRight className="size-4" />
@@ -318,21 +193,16 @@ export default function Home() {
                   onClick={() => setDemoModalOpen(true)}
                   className="px-8 py-4 rounded-full bg-white hover:bg-slate-50 text-slate-700 font-bold text-sm sm:text-base border border-slate-200/80 shadow-xs hover:shadow transition flex items-center gap-2"
                 >
-                  <Play className="size-4 text-sky-600 fill-sky-600" />
+                  <Play className="size-4 text-sky-500 fill-sky-500" />
                   <span>Simulasi Peran Juri & Guru</span>
                 </button>
               </div>
-
-              <p className="text-xs text-slate-500 mt-6 flex items-center justify-center gap-2">
-                <Check className="size-3.5 text-emerald-600" />
-                <span>Tanpa instalasi server rumit &bull; Integrasi data via Excel / Dapodik &bull; PWA Offline-First</span>
-              </p>
             </div>
           </div>
         </section>
 
         {/* 4. QUICK METRICS COUNTER BANNER */}
-        <section className="py-10 bg-white border-y border-slate-100">
+        <section className="py-10 bg-surface border-y border-slate-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
               <div className="p-3">
@@ -721,7 +591,7 @@ export default function Home() {
       </section>
 
       {/* 6. ALUR KERJA PKL 4 TAHAP */}
-      <section id="alur" className="py-20 bg-slate-50/50 border-y border-slate-100">
+      <section id="alur" className="py-20 bg-canvas border-y border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <p className="text-xs font-bold text-sky-600 uppercase tracking-widest mb-3">
@@ -896,7 +766,7 @@ export default function Home() {
       </section>
 
       {/* 8. TESTIMONI DUDI & KEPALA SEKOLAH */}
-      <section id="testimoni" className="py-20 bg-white border-t border-slate-100">
+      <section id="testimoni" className="py-20 bg-surface border-t border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-3">
@@ -1030,7 +900,7 @@ export default function Home() {
 
       {/* 10. CTA BANNER SECTION (Pastel Clean, Welcoming, Zero Dark) */}
       <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-[#EFF6FF]/90 border border-sky-100 rounded-[36px] p-8 sm:p-14 text-slate-800 relative overflow-hidden shadow-[0_12px_40px_-10px_rgba(14,165,233,0.12)]">
+        <div className="bg-sky-50/90 border border-sky-100 rounded-[36px] p-8 sm:p-14 text-slate-800 relative overflow-hidden shadow-soft">
           <div className="relative z-10 max-w-3xl">
             <p className="text-xs font-bold text-sky-700 uppercase tracking-widest mb-3">
               Konsultasi & Simulasi Gratis untuk SMK
@@ -1064,79 +934,7 @@ export default function Home() {
       </main>
 
       {/* 11. FOOTER 5-KOLOM */}
-      <footer className="bg-white border-t border-slate-100 pt-16 pb-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-slate-100">
-            {/* Col 1: Brand Info */}
-            <div className="lg:col-span-2 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-sky-500 flex items-center justify-center text-white font-bold shadow-md shadow-sky-500/25">
-                  <Lightbulb className="size-5 text-white" />
-                </div>
-                <span className="text-xl font-bold tracking-tight text-slate-800">
-                  VokaLink <span className="text-sky-600">SMK</span>
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 leading-relaxed max-w-sm">
-                Interconnected Multi-Sector Vocational Internship Competency, Zero-Login Verification & Verifiable Career Ecosystem. Platform PKL SMK Kurikulum Merdeka Fase F 792 JP.
-              </p>
-              <div className="text-[11px] text-slate-500">
-                Dikembangkan untuk kompetisi <strong>UINIC 8.0 Web Development 2026</strong> (Subtema: Education).
-              </div>
-            </div>
-
-            {/* Col 2: Fitur Utama */}
-            <div>
-              <p className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-4">Fitur Utama</p>
-              <ul className="space-y-2 text-xs font-medium text-slate-500">
-                <li><a href="#fitur" className="hover:text-sky-600 transition">Presensi GPS Geofencing</a></li>
-                <li><a href="#fitur" className="hover:text-sky-600 transition">Logbook PWA Offline-First</a></li>
-                <li><a href="#fitur" className="hover:text-sky-600 transition">Stempel Zero-Login Mentor</a></li>
-                <li><a href="#fitur" className="hover:text-sky-600 transition">Live Heatmap & Drift Alert</a></li>
-                <li><a href="#fitur" className="hover:text-sky-600 transition">Ekspor e-Rapor Dapodik</a></li>
-              </ul>
-            </div>
-
-            {/* Col 3: Program Keahlian */}
-            <div>
-              <p className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-4">Program Keahlian</p>
-              <ul className="space-y-2 text-xs font-medium text-slate-500">
-                <li><a href="#simulasi" className="hover:text-sky-600 transition">RPL / PPLG</a></li>
-                <li><a href="#simulasi" className="hover:text-sky-600 transition">TKJ / TJKT</a></li>
-                <li><a href="#simulasi" className="hover:text-sky-600 transition">DKV / Desain Grafis</a></li>
-                <li><a href="#simulasi" className="hover:text-sky-600 transition">TKR / Otomotif Mobil</a></li>
-                <li><a href="#simulasi" className="hover:text-sky-600 transition">Akuntansi & Keuangan</a></li>
-              </ul>
-            </div>
-
-            {/* Col 4: Regulasi & Akses Portal */}
-            <div>
-              <p className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-4">Akses & Regulasi</p>
-              <ul className="space-y-2 text-xs font-medium text-slate-500">
-                <li><Link href="/login" className="hover:text-sky-600 transition font-bold text-sky-600">Simulasi Demo Juri</Link></li>
-                <li><Link href="/register-school" className="hover:text-sky-600 transition">Daftarkan Sekolah Baru</Link></li>
-                <li><Link href="/verify/andi-pratama-rpl-2026" className="hover:text-sky-600 transition">Uji Paspor Ber-QR &rarr;</Link></li>
-                <li className="text-slate-500 pt-1">Permendikbudristek 12/2024</li>
-                <li className="text-slate-500">Target 792 JP Intrakurikuler</li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Copyright & Legal */}
-          <div className="pt-8 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
-            <p>&copy; 2026 VokaLink SMK. Hak Cipta Dilindungi Undang-Undang. Zero-Cost Architecture.</p>
-            <div className="flex items-center gap-6">
-              <Link href="/login" className="hover:text-slate-600 transition">
-                Mode Uji Juri
-              </Link>
-              <span>&bull;</span>
-              <a href="#" className="hover:text-slate-600 transition">
-                Kembali ke Atas &uarr;
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <LandingFooter />
 
       {/* 12. MODAL JADWALKAN DEMO SEKOLAH */}
       {demoModalOpen && (
