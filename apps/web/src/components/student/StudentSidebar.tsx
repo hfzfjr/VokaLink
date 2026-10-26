@@ -258,55 +258,39 @@ export function StudentSidebar() {
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         className={cn(
-          "hidden md:flex flex-col shrink-0 sticky top-4 h-[calc(100vh-2rem)] py-4 bg-white/95 backdrop-blur-xl rounded-[28px] border border-slate-200/80 z-40 select-none transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+          "hidden md:flex flex-col shrink-0 sticky top-4 h-[calc(100vh-2rem)] py-3 px-3 bg-white/95 backdrop-blur-xl rounded-[28px] border border-slate-200/80 z-40 select-none overflow-hidden transition-[width,box-shadow] duration-250 ease-out",
           isExpanded
-            ? "w-[240px] px-3 shadow-[0_16px_40px_rgba(15,23,42,0.12),0_0_0_1px_rgba(226,232,240,0.8)]"
-            : "w-[72px] px-2 shadow-[0_8px_30px_rgba(15,23,42,0.05)] items-center"
+            ? "w-[240px] shadow-[0_16px_40px_rgba(15,23,42,0.12),0_0_0_1px_rgba(226,232,240,0.8)]"
+            : "w-[72px] shadow-[0_8px_30px_rgba(15,23,42,0.05)]"
         )}
       >
-        {/* Top: Brand Logo 'V' + Title */}
+        {/* Top: Brand Logo 'V' + Title (Fixed Icon Position) */}
         <div className="flex flex-col w-full">
           <Link
             href="/student/home"
             onClick={handleItemClick}
             title="VokaLink Siswa — Beranda"
-            className={cn(
-              "h-12 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center transition-all duration-300 active:scale-95 group overflow-hidden",
-              isExpanded
-                ? "w-full px-2.5 gap-3 hover:border-sky-300 hover:shadow-2xs"
-                : "w-12 p-2.5 justify-center mx-auto hover:scale-105 hover:border-sky-300"
-            )}
+            className="w-full h-12 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center overflow-hidden hover:border-sky-300 transition-colors duration-150"
           >
-            <div className="w-7 h-7 shrink-0 flex items-center justify-center">
+            <div className="w-12 h-12 shrink-0 flex items-center justify-center p-2.5">
               <VokaIcon className="w-full h-full object-contain" />
             </div>
             <div
               className={cn(
-                "min-w-0 transition-all duration-200 overflow-hidden",
-                isExpanded ? "opacity-100 max-w-[150px] translate-x-0" : "opacity-0 max-w-0 -translate-x-2 pointer-events-none"
+                "min-w-0 transition-opacity duration-200 overflow-hidden pl-1 pr-2",
+                isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
               )}
             >
               <span className="font-bold text-slate-900 text-sm tracking-tight leading-none block whitespace-nowrap">
                 VokaLink
               </span>
-              <span className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase mt-1 block whitespace-nowrap">
-                Portal Siswa
-              </span>
             </div>
           </Link>
-          <div
-            className={cn(
-              "h-px bg-slate-200/80 my-3 transition-all duration-300",
-              isExpanded ? "w-full" : "w-8 mx-auto"
-            )}
-          />
+          <div className="w-full h-px bg-slate-200/80 my-2.5" />
         </div>
 
-        {/* Center: Main Navigation Stack */}
-        <nav
-          aria-label="Menu Utama"
-          className="flex flex-col gap-2 w-full"
-        >
+        {/* Center: Main Navigation Stack (Fixed Icon Positions) */}
+        <nav aria-label="Menu Utama" className="flex flex-col gap-1.5 w-full">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -316,41 +300,39 @@ export function StudentSidebar() {
 
             return (
               <div key={item.id} className="relative flex items-center w-full">
-                {/* Active Indicator Bar on left edge */}
+                {/* Active Indicator Bar on left edge - completely fixed position */}
                 {isActive && (
-                  <span
-                    className={cn(
-                      "absolute top-1/2 -translate-y-1/2 w-1.5 h-6 rounded-full bg-sky-500 shadow-sm shadow-sky-500/50 transition-all duration-200",
-                      isExpanded ? "-left-1" : "-left-1.5"
-                    )}
-                  />
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full bg-sky-500 z-10" />
                 )}
 
                 <Link
                   href={item.href}
                   onClick={handleItemClick}
                   className={cn(
-                    "h-12 rounded-2xl flex items-center transition-all duration-200 active:scale-95 group overflow-hidden",
-                    isExpanded ? "w-full px-3 gap-3 justify-start" : "w-12 justify-center mx-auto",
+                    "w-full h-12 rounded-2xl flex items-center overflow-hidden transition-colors duration-150 group",
                     isActive
                       ? "bg-sky-50 text-sky-600 border border-sky-200/80 shadow-2xs font-semibold"
                       : "text-slate-400 hover:text-slate-700 hover:bg-slate-100/80"
                   )}
                   aria-label={item.label}
                 >
-                  <Icon
-                    className={cn(
-                      "w-5 h-5 shrink-0 transition-transform duration-200",
-                      isActive
-                        ? "text-sky-600 stroke-[2.3]"
-                        : "text-slate-400 group-hover:text-slate-700 group-hover:scale-105"
-                    )}
-                  />
+                  <div className="w-12 h-12 shrink-0 flex items-center justify-center">
+                    <Icon
+                      className={cn(
+                        "w-5 h-5",
+                        isActive
+                          ? "text-sky-600 stroke-[2.3]"
+                          : "text-slate-500 group-hover:text-slate-800"
+                      )}
+                    />
+                  </div>
 
                   <div
                     className={cn(
-                      "min-w-0 transition-all duration-200 overflow-hidden text-left",
-                      isExpanded ? "opacity-100 max-w-[160px] translate-x-0" : "opacity-0 max-w-0 -translate-x-2 pointer-events-none"
+                      "min-w-0 transition-opacity duration-200 overflow-hidden text-left pr-2",
+                      isExpanded
+                        ? "opacity-100"
+                        : "opacity-0 pointer-events-none"
                     )}
                   >
                     <p
@@ -374,14 +356,9 @@ export function StudentSidebar() {
         {/* Natural Elastic Spacer */}
         <div className="flex-1 min-h-[20px]" />
 
-        {/* Bottom: Settings, Help & Exit */}
-        <div className="flex flex-col gap-2 w-full">
-          <div
-            className={cn(
-              "h-px bg-slate-200/80 mb-1 transition-all duration-300",
-              isExpanded ? "w-full" : "w-8 mx-auto"
-            )}
-          />
+        {/* Bottom: Settings, Help & Exit (Fixed Icon Positions) */}
+        <div className="flex flex-col gap-1.5 w-full">
+          <div className="w-full h-px bg-slate-200/80 my-1" />
 
           {/* Settings Trigger */}
           <button
@@ -392,18 +369,19 @@ export function StudentSidebar() {
             }}
             aria-label="Pengaturan & Profil Siswa"
             className={cn(
-              "h-11 rounded-2xl flex items-center transition-all duration-200 active:scale-95 cursor-pointer group overflow-hidden",
-              isExpanded ? "w-full px-3 gap-3 justify-start" : "w-11 justify-center mx-auto",
+              "w-full h-12 rounded-2xl flex items-center overflow-hidden transition-colors duration-150 cursor-pointer group text-left",
               showSettingsModal
                 ? "bg-sky-50 text-sky-600 border border-sky-200/80 shadow-2xs"
                 : "text-slate-400 hover:text-slate-700 hover:bg-slate-100/80"
             )}
           >
-            <Settings className="w-5 h-5 shrink-0 transition-transform group-hover:rotate-45 duration-300" />
+            <div className="w-12 h-12 shrink-0 flex items-center justify-center">
+              <Settings className="w-5 h-5 text-slate-500 group-hover:text-slate-800" />
+            </div>
             <div
               className={cn(
-                "min-w-0 transition-all duration-200 overflow-hidden text-left",
-                isExpanded ? "opacity-100 max-w-[160px] translate-x-0" : "opacity-0 max-w-0 -translate-x-2 pointer-events-none"
+                "min-w-0 transition-opacity duration-200 overflow-hidden text-left pr-2",
+                isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
               )}
             >
               <p className="text-xs font-semibold text-slate-800 truncate leading-tight whitespace-nowrap">
@@ -424,18 +402,19 @@ export function StudentSidebar() {
             }}
             aria-label="Panduan Penggunaan"
             className={cn(
-              "h-11 rounded-2xl flex items-center transition-all duration-200 active:scale-95 cursor-pointer group overflow-hidden",
-              isExpanded ? "w-full px-3 gap-3 justify-start" : "w-11 justify-center mx-auto",
+              "w-full h-12 rounded-2xl flex items-center overflow-hidden transition-colors duration-150 cursor-pointer group text-left",
               showHelpModal
                 ? "bg-sky-50 text-sky-600 border border-sky-200/80 shadow-2xs"
                 : "text-slate-400 hover:text-slate-700 hover:bg-slate-100/80"
             )}
           >
-            <HelpCircle className="w-5 h-5 shrink-0 transition-transform group-hover:scale-105 duration-200" />
+            <div className="w-12 h-12 shrink-0 flex items-center justify-center">
+              <HelpCircle className="w-5 h-5 text-slate-500 group-hover:text-slate-800" />
+            </div>
             <div
               className={cn(
-                "min-w-0 transition-all duration-200 overflow-hidden text-left",
-                isExpanded ? "opacity-100 max-w-[160px] translate-x-0" : "opacity-0 max-w-0 -translate-x-2 pointer-events-none"
+                "min-w-0 transition-opacity duration-200 overflow-hidden text-left pr-2",
+                isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
               )}
             >
               <p className="text-xs font-semibold text-slate-800 truncate leading-tight whitespace-nowrap">
@@ -453,16 +432,15 @@ export function StudentSidebar() {
             onClick={handleItemClick}
             title="Keluar ke Portal Utama"
             aria-label="Keluar ke Portal Utama"
-            className={cn(
-              "h-11 rounded-2xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center transition-all duration-200 active:scale-95 cursor-pointer group overflow-hidden",
-              isExpanded ? "w-full px-3 gap-3 justify-start" : "w-11 justify-center mx-auto"
-            )}
+            className="w-full h-12 rounded-2xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center overflow-hidden transition-colors duration-150 cursor-pointer group text-left"
           >
-            <ArrowLeft className="w-5 h-5 shrink-0 transition-transform group-hover:-translate-x-0.5 duration-200" />
+            <div className="w-12 h-12 shrink-0 flex items-center justify-center">
+              <ArrowLeft className="w-5 h-5 text-slate-500 group-hover:text-rose-600" />
+            </div>
             <div
               className={cn(
-                "min-w-0 transition-all duration-200 overflow-hidden text-left",
-                isExpanded ? "opacity-100 max-w-[160px] translate-x-0" : "opacity-0 max-w-0 -translate-x-2 pointer-events-none"
+                "min-w-0 transition-opacity duration-200 overflow-hidden text-left pr-2",
+                isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
               )}
             >
               <p className="text-xs font-semibold text-rose-600 truncate leading-tight whitespace-nowrap">
