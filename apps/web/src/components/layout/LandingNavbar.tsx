@@ -132,11 +132,18 @@ export default function LandingNavbar({ onScheduleDemo }: LandingNavbarProps) {
     }
   };
 
+  const scrollToTop = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setActiveSection(null);
+    setMobileMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-100 transition-all duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-        {/* Brand Logo */}
-        <VokaLogo size="md" href="/" />
+        {/* Brand Logo with Smooth Scroll to Top */}
+        <VokaLogo size="md" href="/" onClick={scrollToTop} />
 
         {/* Desktop Nav Menu with Animated Sliding Indicator */}
         <nav className="relative hidden lg:flex items-center gap-1 bg-slate-100/70 p-1.5 rounded-full border border-slate-200/60 text-xs font-semibold text-slate-600">

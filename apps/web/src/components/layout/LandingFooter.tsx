@@ -23,7 +23,7 @@ export default function LandingFooter() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-slate-100">
           {/* Col 1: Brand Info */}
           <div className="lg:col-span-2 space-y-4">
-            <VokaLogo size="md" href="/" />
+            <VokaLogo size="md" href="/" onClick={scrollToTop} />
             <p className="text-xs text-slate-500 leading-relaxed max-w-sm">
               Interconnected Multi-Sector Vocational Internship Competency, Zero-Login Verification & Verifiable Career Ecosystem. Platform PKL SMK Kurikulum Merdeka Fase F 792 JP.
             </p>
@@ -63,8 +63,6 @@ export default function LandingFooter() {
               <li><Link href="/login" className="hover:text-sky-600 transition font-bold text-sky-600">Simulasi Demo Juri</Link></li>
               <li><Link href="/register-school" className="hover:text-sky-600 transition">Daftarkan Sekolah Baru</Link></li>
               <li><Link href="/verify/andi-pratama-rpl-2026" className="hover:text-sky-600 transition">Uji Paspor Ber-QR &rarr;</Link></li>
-              <li className="text-slate-500 pt-1">Permendikbudristek 12/2024</li>
-              <li className="text-slate-500">Target 792 JP Intrakurikuler</li>
             </ul>
           </div>
         </div>
@@ -72,15 +70,9 @@ export default function LandingFooter() {
         {/* Copyright & Legal */}
         <div className="pt-8 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
           <p>&copy; 2026 VokaLink SMK. Hak Cipta Dilindungi Undang-Undang. Zero-Cost Architecture.</p>
-          <div className="flex items-center gap-6">
-            <Link href="/login" className="hover:text-slate-600 transition">
-              Mode Uji Juri
-            </Link>
-            <span>&bull;</span>
-            <a href="#" onClick={scrollToTop} className="hover:text-slate-600 transition cursor-pointer">
-              Kembali ke Atas &uarr;
-            </a>
-          </div>
+          <a href="#" onClick={scrollToTop} className="hover:text-slate-600 transition cursor-pointer">
+            Kembali ke Atas &uarr;
+          </a>
         </div>
       </div>
     </footer>

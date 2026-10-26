@@ -200,11 +200,6 @@ export default function Home() {
                   <span>Simulasi Peran Juri & Guru</span>
                 </button>
               </div>
-
-              <p className="text-xs text-slate-500 mt-6 flex items-center justify-center gap-2">
-                <Check className="size-3.5 text-emerald-600" />
-                <span>Tanpa instalasi server rumit &bull; Integrasi data via Excel / Dapodik &bull; PWA Offline-First</span>
-              </p>
             </div>
           </div>
         </section>
