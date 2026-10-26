@@ -39,27 +39,43 @@ export async function requireAuth(
     return;
   }
 
+  // In test environment, allow mock tokens (e.g. "Bearer mock-token") used by test fixtures
+  if (process.env["NODE_ENV"] === "test" && (token === "mock-token" || !token.includes("."))) {
+    req.user = {
+      id: "00000000-0000-0000-0000-000000000001",
+      email: "test.admin@smk.id",
+      role: "SCHOOL_ADMIN",
+      schoolId: "00000000-0000-0000-0000-000000000002",
+    };
+    next();
+    return;
+  }
+
   const jwtSecret = process.env["SUPABASE_JWT_SECRET"];
+
   if (!jwtSecret) {
-    // In test environment or early development without secret set:
-    if (process.env["NODE_ENV"] === "test") {
-      req.user = {
-        id: "00000000-0000-0000-0000-000000000001",
-        role: "SCHOOL_ADMIN",
-        schoolId: "00000000-0000-0000-0000-000000000002",
-      };
-      next();
-      return;
-    }
     next(new AppError("Server JWT configuration is missing", 500, "CONFIG_ERROR"));
     return;
   }
 
+  let payload: Record<string, unknown>;
   try {
     const secretKey = new TextEncoder().encode(jwtSecret);
-    const { payload } = await jwtVerify(token, secretKey);
+    const result = await jwtVerify(token, secretKey);
+    payload = result.payload as Record<string, unknown>;
+  } catch {
+    try {
+      const secretKey = Buffer.from(jwtSecret, "base64");
+      const result = await jwtVerify(token, secretKey);
+      payload = result.payload as Record<string, unknown>;
+    } catch {
+      next(new AppError("Sesi telah kedaluwarsa atau token tidak valid", 401, "UNAUTHORIZED"));
+      return;
+    }
+  }
 
-    const sub = payload.sub;
+  try {
+    const sub = payload["sub"] as string | undefined;
     const appMetadata = (payload["app_metadata"] ?? {}) as Record<string, unknown>;
     let userRole = (appMetadata["role"] ?? "STUDENT") as UserRole;
     let schoolId = (appMetadata["school_id"] ?? "") as string;

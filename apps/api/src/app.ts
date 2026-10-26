@@ -13,6 +13,7 @@ import { verifyRouter } from "./routes/verify.js";
 import { teachersRouter } from "./routes/teachers.js";
 import { interventionsRouter } from "./routes/interventions.js";
 import { endorsementsRouter } from "./routes/endorsements.js";
+import { authRouter } from "./routes/auth.js";
 import { errorHandler } from "./middlewares/error-handler.js";
 import { zeroLoginRateLimiter } from "./middlewares/rate-limiter.js";
 
@@ -54,6 +55,10 @@ export function createApp(): Express {
 
   // Health and readiness endpoints
   app.use(healthRouter);
+
+  // Auth & Session Verification (Multi-Tenant & Google OAuth)
+  app.use("/api/auth", authRouter);
+  app.use("/api/v1/auth", authRouter);
 
   // School onboarding and management routes
   app.use("/api/schools", schoolsRouter);

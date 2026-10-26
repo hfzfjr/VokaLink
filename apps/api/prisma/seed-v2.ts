@@ -1,46 +1,45 @@
 /**
- * seed-v2.ts — VokaLink Seeder v2
+ * seed-v2.ts — VokaLink Production Seeder (3 SMK, 36 Guru, 300 Siswa, 18 DUDI, Multi-Tenant)
  *
- * Mengisi data demo komprehensif untuk pengujian dan evaluasi juri (TC-005 s/d TC-010):
- * 1. Riwayat logbook 8 minggu (40 hari kerja) untuk 5 siswa RPL
- * 2. Bukti foto WebP realistis (< 150 KB, SHA-256) dan segel HMAC-SHA256 untuk log VERIFIED
- * 3. 4 log PENDING_VERIFICATION batch 4 hari untuk mentor Rizky (TC-005 demo batch approval)
- * 4. Pengikatan perangkat & PIN scrypt ("1234") untuk seluruh mentor demo
- * 5. Tiga skenario deteksi Competency Drift (BR-008):
- *    - Bintang: NON_COMPETENCY_OVERLOAD (40% non-kompetensi dalam 14 hari terakhir) (TC-008)
- *    - Citra: SKILL_MONOTONY (85% jam di 1 Elemen CP, 2 Elemen CP 0 JP)
- *    - Dewi: APPROVAL_DORMANCY (7 log pending > 7 hari belum divalidasi)
- * 6. Rotasi tengah semester Eko (380 JP di DUDI A + 50 JP di DUDI B = 430 JP) + InterventionLog (TC-009)
- * 7. Endorsement etos kerja mentor untuk Andi dan Eko
- * 8. Paspor Keterampilan publik ber-QR terverifikasi (andi-pratama-rpl-2026, eko-saputra-rpl-2026) (TC-010)
+ * Sesuai Permintaan Spesifik:
+ * 1. Tiga Sekolah Saja:
+ *    - SMK Telkom 1 Medan (Sumatera Utara, Medan)
+ *    - SMK Negeri 1 Bandung (Jawa Barat, Bandung)
+ *    - SMK Negeri 26 Jakarta (DKI Jakarta, Jakarta Timur)
+ * 2. 12 Guru per sekolah (total 36 guru)
+ * 3. 100 Siswa per sekolah (total 300 siswa)
+ * 4. 18 Mitra DUDI & Mentor Industri terikat
+ * 5. Riwayat penempatan, logbook harian, kasus drift alert, dan paspor kompetensi.
  *
  * Jalankan: pnpm --filter api seed:v2
  */
 
 import {
   PrismaClient,
+  UserRole,
   LogStatus,
   AttendanceType,
   NonCompetencyCategory,
   DriftAlertType,
   DriftAlertSeverity,
   DriftAlertStatus,
-  InterventionActionType,
-  SignedLinkPurpose,
-  SignedLinkMode,
   PlacementStatus,
 } from "@prisma/client";
 import { createHash } from "crypto";
+import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 import dotenv from "dotenv";
 import {
   sealObjectWithHmac,
   hashPinWithScrypt,
   hashSha256Hex,
   generateSalt,
-  createSignedToken,
 } from "@vokalink/core/crypto";
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+dotenv.config({ path: join(__dirname, "../.env") });
 
 const prisma = new PrismaClient();
 
@@ -64,44 +63,343 @@ function deterministicUuid(seed: string): string {
   ].join("-");
 }
 
-// ─── Konstanta ID Demo Sesuai seed-v1 ─────────────────────────────────────────
+// ─── Load Curriculum Seed ─────────────────────────────────────────────────────
 
-const SCHOOL_ID = deterministicUuid("vokalink-demo-school-v1");
-const PERIOD_ID = deterministicUuid("vokalink-demo-period-2026");
-const TEACHER_ID = deterministicUuid("vokalink-demo-teacher-budi");
+const seedFilePath = join(__dirname, "curriculum-seed.json");
+const curriculumData = JSON.parse(readFileSync(seedFilePath, "utf-8"));
 
-const STUDENT_IDS = [
-  deterministicUuid("vokalink-demo-student-1-andi"),
-  deterministicUuid("vokalink-demo-student-2-bintang"),
-  deterministicUuid("vokalink-demo-student-3-citra"),
-  deterministicUuid("vokalink-demo-student-4-dewi"),
-  deterministicUuid("vokalink-demo-student-5-eko"),
+// ─── Data 3 Sekolah Resmi ─────────────────────────────────────────────────────
+
+const SCHOOLS_DATA = [
+  {
+    code: "MEDAN",
+    id: deterministicUuid("school-smk-telkom-1-medan"),
+    npsn: "10210852",
+    name: "SMK Telkom 1 Medan",
+    province: "Sumatera Utara",
+    city: "Medan",
+    latitude: 3.5852,
+    longitude: 98.6756,
+    adminEmail: "admin.telkommedan@vokalink.id",
+    adminName: "Drs. H. Mulyadi, M.Kom (Pokja PKL)",
+  },
+  {
+    code: "BANDUNG",
+    id: deterministicUuid("school-smk-negeri-1-bandung"),
+    npsn: "20219141",
+    name: "SMK Negeri 1 Bandung",
+    province: "Jawa Barat",
+    city: "Bandung",
+    latitude: -6.9175,
+    longitude: 107.6191,
+    adminEmail: "admin.smkn1bdg@vokalink.id",
+    adminName: "Dr. Hj. Nina Herlina, M.Pd (Pokja PKL)",
+  },
+  {
+    code: "JAKARTA",
+    id: deterministicUuid("school-smk-negeri-26-jakarta"),
+    npsn: "20102572",
+    name: "SMK Negeri 26 Jakarta",
+    province: "DKI Jakarta",
+    city: "Jakarta Timur",
+    latitude: -6.2088,
+    longitude: 106.8824,
+    adminEmail: "admin.smkn26jkt@vokalink.id",
+    adminName: "Ir. Bambang Widyatmoko, M.T (Pokja PKL)",
+  },
 ];
 
-const DUDI_IDS = [
-  deterministicUuid("vokalink-demo-dudi-1-softwarehouse"),
-  deterministicUuid("vokalink-demo-dudi-2-startup"),
-  deterministicUuid("vokalink-demo-dudi-3-studio"),
-  deterministicUuid("vokalink-demo-dudi-4-bengkel"),
-  deterministicUuid("vokalink-demo-dudi-5-apotek"),
-  deterministicUuid("vokalink-demo-dudi-6-resto"),
+// ─── Generator Nama Indonesia ─────────────────────────────────────────────────
+
+const FIRST_NAMES = [
+  "Andi", "Budi", "Citra", "Dewi", "Eko", "Fajar", "Gita", "Hadi", "Indra", "Joko",
+  "Kurnia", "Lestari", "Mega", "Nugroho", "Octavia", "Pratama", "Qori", "Rizky", "Siti",
+  "Taufik", "Utami", "Vina", "Wahyu", "Yoga", "Zulfa", "Aditya", "Bayu", "Cahyo",
+  "Dian", "Eka", "Farhan", "Gilang", "Hafiz", "Ilham", "Jihan", "Kusuma", "Lutfi",
+  "Mahendra", "Nadya", "Putra", "Putri", "Raden", "Satria", "Tri", "Vicky", "Wulan",
 ];
 
-const MENTOR_IDS = [
-  deterministicUuid("vokalink-demo-mentor-1"),
-  deterministicUuid("vokalink-demo-mentor-2"),
-  deterministicUuid("vokalink-demo-mentor-3"),
-  deterministicUuid("vokalink-demo-mentor-4"),
-  deterministicUuid("vokalink-demo-mentor-5"),
-  deterministicUuid("vokalink-demo-mentor-6"),
+const LAST_NAMES = [
+  "Pratama", "Santoso", "Maharani", "Anggraini", "Saputra", "Ramadhan", "Wibowo",
+  "Hidayat", "Kusuma", "Setiawan", "Utomo", "Permata", "Wijaya", "Siregar", "Nasution",
+  "Harahap", "Lubis", "Pohan", "Sitorus", "Ginting", "Tarigan", "Sembiring", "Pasaribu",
+  "Sanjaya", "Suryono", "Handoko", "Kurniawan", "Kuswanto", "Nugraha", "Firmansyah",
 ];
 
-// ─── 40 Hari Kerja (8 Minggu, Senin - Jumat) ──────────────────────────────────
-// Dimulai 5 Januari 2026 sampai 27 Februari 2026
+function generateIndonesianName(index: number): string {
+  const f = FIRST_NAMES[index % FIRST_NAMES.length];
+  const l = LAST_NAMES[(index * 7 + 3) % LAST_NAMES.length];
+  return `${f} ${l}`;
+}
+
+// ─── Data Mitra DUDI & Mentor Industri ────────────────────────────────────────
+
+const DUDI_DATA = [
+  // Medan
+  {
+    id: deterministicUuid("dudi-medan-1"),
+    city: "Medan",
+    name: "PT Telkom Indonesia Witel Sumut",
+    sectorCategory: "Teknologi Informasi dan Komunikasi",
+    address: "Jl. Putri Hijau No. 1, Kesawan, Medan Barat",
+    latitude: 3.5962,
+    longitude: 98.6772,
+    maxQuota: 15,
+    qualityScore: 4.85,
+    mentorName: "Rahmat Hidayat Siregar, S.T",
+    mentorJob: "Network & Cloud Engineering Lead",
+    mentorWa: "6281260001001",
+  },
+  {
+    id: deterministicUuid("dudi-medan-2"),
+    city: "Medan",
+    name: "PT Prima Solusindo Teknologi",
+    sectorCategory: "Rekayasa Perangkat Lunak",
+    address: "Komp. Multatuli Indah Blok D-12, Medan",
+    latitude: 3.5781,
+    longitude: 98.6834,
+    maxQuota: 10,
+    qualityScore: 4.75,
+    mentorName: "Ferry Anggriawan, M.Cs",
+    mentorJob: "Senior Fullstack Developer",
+    mentorWa: "6281260001002",
+  },
+  {
+    id: deterministicUuid("dudi-medan-3"),
+    city: "Medan",
+    name: "Studio Visual Kreatif Medan",
+    sectorCategory: "Desain Komunikasi Visual & Multimedia",
+    address: "Jl. Setiabudi No. 88, Medan Selayang",
+    latitude: 3.5512,
+    longitude: 98.6321,
+    maxQuota: 8,
+    qualityScore: 4.6,
+    mentorName: "Annisa Lubis, S.Ds",
+    mentorJob: "Creative Director",
+    mentorWa: "6281260001003",
+  },
+  {
+    id: deterministicUuid("dudi-medan-4"),
+    city: "Medan",
+    name: "KAP Syahril & Rekan",
+    sectorCategory: "Akuntansi dan Keuangan Lembaga",
+    address: "Jl. Balai Kota No. 15, Medan Petisah",
+    latitude: 3.5912,
+    longitude: 98.6741,
+    maxQuota: 8,
+    qualityScore: 4.65,
+    mentorName: "T. M. Zulkarnain, S.E., Ak., CA",
+    mentorJob: "Senior Audit Supervisor",
+    mentorWa: "6281260001004",
+  },
+  {
+    id: deterministicUuid("dudi-medan-5"),
+    city: "Medan",
+    name: "Hotel Grand Mercure Medan Angkasa",
+    sectorCategory: "Pariwisata dan Perhotelan (Kuliner)",
+    address: "Jl. Sutomo No. 1, Medan Timur",
+    latitude: 3.5978,
+    longitude: 98.6881,
+    maxQuota: 10,
+    qualityScore: 4.8,
+    mentorName: "Chef Zulkifli Nasution",
+    mentorJob: "Executive Chef",
+    mentorWa: "6281260001005",
+  },
+  {
+    id: deterministicUuid("dudi-medan-6"),
+    city: "Medan",
+    name: "Auto2000 Medan Amplas",
+    sectorCategory: "Teknik Otomotif Kendaraan Ringan",
+    address: "Jl. Sisingamangaraja KM 9.8, Medan Amplas",
+    latitude: 3.5245,
+    longitude: 98.7102,
+    maxQuota: 10,
+    qualityScore: 4.7,
+    mentorName: "Irwansyah Putra",
+    mentorJob: "Kepala Bengkel & Service Advisor",
+    mentorWa: "6281260001006",
+  },
+
+  // Bandung
+  {
+    id: deterministicUuid("dudi-bdg-1"),
+    city: "Bandung",
+    name: "PT LEN Industri (Persero)",
+    sectorCategory: "Elektronika dan Sistem Komunikasi",
+    address: "Jl. Soekarno-Hatta No. 442, Bandung",
+    latitude: -6.9531,
+    longitude: 107.6189,
+    maxQuota: 12,
+    qualityScore: 4.9,
+    mentorName: "Ir. Dedi Supriyadi, M.T",
+    mentorJob: "Head of Systems Integration",
+    mentorWa: "6281220002001",
+  },
+  {
+    id: deterministicUuid("dudi-bdg-2"),
+    city: "Bandung",
+    name: "PT Gamatechno Bandung Creative Hub",
+    sectorCategory: "Rekayasa Perangkat Lunak",
+    address: "Jl. Dago Asri No. 10, Coblong, Bandung",
+    latitude: -6.8791,
+    longitude: 107.6174,
+    maxQuota: 10,
+    qualityScore: 4.8,
+    mentorName: "Asep Sunandar, S.Kom",
+    mentorJob: "Lead Software Architect",
+    mentorWa: "6281220002002",
+  },
+  {
+    id: deterministicUuid("dudi-bdg-3"),
+    city: "Bandung",
+    name: "Agate Visual Studio & Animation",
+    sectorCategory: "Desain Komunikasi Visual & Animasi",
+    address: "Jl. Sumur Bandung No. 18, Bandung",
+    latitude: -6.9123,
+    longitude: 107.6145,
+    maxQuota: 8,
+    qualityScore: 4.75,
+    mentorName: "Rina Kusuma Dewi, S.Sn",
+    mentorJob: "Art Lead & Character Designer",
+    mentorWa: "6281220002003",
+  },
+  {
+    id: deterministicUuid("dudi-bdg-4"),
+    city: "Bandung",
+    name: "KAP Sugiharto & Rekan Bandung",
+    sectorCategory: "Akuntansi dan Keuangan Lembaga",
+    address: "Jl. Asia Afrika No. 120, Bandung",
+    latitude: -6.9214,
+    longitude: 107.6089,
+    maxQuota: 8,
+    qualityScore: 4.6,
+    mentorName: "Dra. Euis Rohaeti, Ak., MM",
+    mentorJob: "Senior Tax Consultant",
+    mentorWa: "6281220002004",
+  },
+  {
+    id: deterministicUuid("dudi-bdg-5"),
+    city: "Bandung",
+    name: "The Papandayan Hotel & Resto",
+    sectorCategory: "Kuliner & Tata Boga",
+    address: "Jl. Gatot Subroto No. 83, Malabar, Bandung",
+    latitude: -6.9281,
+    longitude: 107.6251,
+    maxQuota: 10,
+    qualityScore: 4.85,
+    mentorName: "Chef Tatang Sutisna",
+    mentorJob: "Pastry & Bakery Specialist",
+    mentorWa: "6281220002005",
+  },
+  {
+    id: deterministicUuid("dudi-bdg-6"),
+    city: "Bandung",
+    name: "Bengkel Resmi Astra Daihatsu Bandung",
+    sectorCategory: "Teknik Otomotif Kendaraan Ringan",
+    address: "Jl. Cibeureum No. 42, Bandung",
+    latitude: -6.9089,
+    longitude: 107.5712,
+    maxQuota: 10,
+    qualityScore: 4.7,
+    mentorName: "Gunawan Wibisono",
+    mentorJob: "Master Workshop Technician",
+    mentorWa: "6281220002006",
+  },
+
+  // Jakarta
+  {
+    id: deterministicUuid("dudi-jkt-1"),
+    city: "Jakarta Timur",
+    name: "PT Astra International Tbk",
+    sectorCategory: "Teknologi Industri & Manufaktur",
+    address: "Jl. Gaya Motor Raya No. 8, Sunter II, Jakarta",
+    latitude: -6.1412,
+    longitude: 106.8856,
+    maxQuota: 15,
+    qualityScore: 4.95,
+    mentorName: "Bambang Waskito, S.T., M.M",
+    mentorJob: "General Workshop & Technical Manager",
+    mentorWa: "6281310003001",
+  },
+  {
+    id: deterministicUuid("dudi-jkt-2"),
+    city: "Jakarta Timur",
+    name: "PT Telkom Data Ekosistem (NeutraDC)",
+    sectorCategory: "Teknologi Informasi dan Jaringan",
+    address: "Kawasan Industri Pulo Gadung, Jakarta Timur",
+    latitude: -6.1956,
+    longitude: 106.9123,
+    maxQuota: 12,
+    qualityScore: 4.9,
+    mentorName: "Rizky Firmansyah, S.Kom",
+    mentorJob: "Data Center Infrastructure Lead",
+    mentorWa: "6281310003002",
+  },
+  {
+    id: deterministicUuid("dudi-jkt-3"),
+    city: "Jakarta Timur",
+    name: "Nusantara Digital Software Labs",
+    sectorCategory: "Rekayasa Perangkat Lunak",
+    address: "Cyber 2 Tower Lt. 18, Jl. HR Rasuna Said, Jakarta",
+    latitude: -6.2245,
+    longitude: 106.8312,
+    maxQuota: 10,
+    qualityScore: 4.85,
+    mentorName: "Hendrik Gunawan, M.T.I",
+    mentorJob: "Principal Software Engineer",
+    mentorWa: "6281310003003",
+  },
+  {
+    id: deterministicUuid("dudi-jkt-4"),
+    city: "Jakarta Timur",
+    name: "Creative Motion Digital Agency",
+    sectorCategory: "Desain Komunikasi Visual & Periklanan",
+    address: "Jl. Pemuda No. 65, Rawamangun, Jakarta Timur",
+    latitude: -6.1945,
+    longitude: 106.8891,
+    maxQuota: 8,
+    qualityScore: 4.75,
+    mentorName: "Jessica Amanda, B.Des",
+    mentorJob: "Head of Digital Brand Design",
+    mentorWa: "6281310003004",
+  },
+  {
+    id: deterministicUuid("dudi-jkt-5"),
+    city: "Jakarta Timur",
+    name: "KAP Tanubrata Sutanto Fahmi Bambang (BDO)",
+    sectorCategory: "Akuntansi dan Keuangan Lembaga",
+    address: "Prudential Tower Lt. 17, Jl. Jend Sudirman, Jakarta",
+    latitude: -6.2089,
+    longitude: 106.8214,
+    maxQuota: 10,
+    qualityScore: 4.85,
+    mentorName: "Hendra Wijaya, S.E., CPA",
+    mentorJob: "Audit & Assurance Partner",
+    mentorWa: "6281310003005",
+  },
+  {
+    id: deterministicUuid("dudi-jkt-6"),
+    city: "Jakarta Timur",
+    name: "The Ritz-Carlton Jakarta Culinary Team",
+    sectorCategory: "Pariwisata & Kuliner Internasional",
+    address: "Mega Kuningan Barat No. 1, Jakarta",
+    latitude: -6.2291,
+    longitude: 106.8278,
+    maxQuota: 10,
+    qualityScore: 4.9,
+    mentorName: "Chef Marco Bastian",
+    mentorJob: "Executive Sous Chef",
+    mentorWa: "6281310003006",
+  },
+];
+
+// ─── Work Dates Generator ─────────────────────────────────────────────────────
+
 function generateWorkDates(): Date[] {
   const dates: Date[] = [];
   const curr = new Date("2026-01-05T08:00:00.000Z");
-  while (dates.length < 40) {
+  while (dates.length < 25) {
     const day = curr.getUTCDay();
     if (day >= 1 && day <= 5) {
       dates.push(new Date(curr));
@@ -111,724 +409,500 @@ function generateWorkDates(): Date[] {
   return dates;
 }
 
+// ─── Main Seeder Function ─────────────────────────────────────────────────────
+
 export async function seedV2(): Promise<void> {
-  console.log("🌱 Menjalankan VokaLink Seeder v2 (Riwayat 8 Minggu, Drift, Endorsement & Paspor)...");
+  console.log("=================================================================");
+  console.log("🚀 VokaLink Production Seeder v2: 3 SMK, 36 Guru, 300 Siswa Riil");
+  console.log("=================================================================\n");
 
-  // 1. Validasi Prasyarat: Pastikan Sekolah Demo dari seeder v1 sudah ada
-  const school = await prisma.school.findUnique({ where: { id: SCHOOL_ID } });
-  if (!school) {
-    throw new Error(
-      "Sekolah demo tidak ditemukan! Silakan jalankan 'pnpm --filter api seed:v1' terlebih dahulu sebelum seed:v2."
-    );
-  }
+  // 1. Bersihkan Data Lama Secara Bertahap dan Aman
+  console.log("🧹 Membersihkan database lama...");
+  await prisma.$transaction([
+    prisma.$executeRawUnsafe(`SET session_replication_role = 'replica';`),
+    prisma.$executeRawUnsafe(`DELETE FROM daily_log_items;`),
+    prisma.$executeRawUnsafe(`DELETE FROM daily_logs;`),
+    prisma.$executeRawUnsafe(`DELETE FROM drift_alerts;`),
+    prisma.$executeRawUnsafe(`DELETE FROM intervention_logs;`),
+    prisma.$executeRawUnsafe(`DELETE FROM endorsements;`),
+    prisma.$executeRawUnsafe(`DELETE FROM skill_passports;`),
+    prisma.$executeRawUnsafe(`DELETE FROM placements;`),
+    prisma.$executeRawUnsafe(`DELETE FROM security_flags;`),
+    prisma.$executeRawUnsafe(`DELETE FROM signed_links;`),
+    prisma.$executeRawUnsafe(`DELETE FROM user_profiles;`),
+    prisma.$executeRawUnsafe(`DELETE FROM dudi_capabilities;`),
+    prisma.$executeRawUnsafe(`DELETE FROM dudi_mentors;`),
+    prisma.$executeRawUnsafe(`DELETE FROM dudi_partners;`),
+    prisma.$executeRawUnsafe(`DELETE FROM job_cards;`),
+    prisma.$executeRawUnsafe(`DELETE FROM cp_elements;`),
+    prisma.$executeRawUnsafe(`DELETE FROM school_departments;`),
+    prisma.$executeRawUnsafe(`DELETE FROM academic_periods;`),
+    prisma.$executeRawUnsafe(`DELETE FROM schools;`),
+    prisma.$executeRawUnsafe(`SET session_replication_role = 'origin';`),
+  ]);
+  console.log("   ✅ Database bersih dan siap diisi.\n");
 
-  // 2. Ambil Job Cards & Elemen CP untuk Jurusan RPL
-  const rplDept = await prisma.schoolDepartment.findFirst({
-    where: { schoolId: SCHOOL_ID, sectorCode: "RPL" },
-    include: {
-      cpElements: {
-        include: {
-          jobCards: true,
-        },
-        orderBy: { sortOrder: "asc" },
+  // 2. Master Departments
+  console.log("📚 Menyimpan Master Departments...");
+  for (const dept of curriculumData.masterDepartments) {
+    const id = deterministicUuid(`master-dept-${dept.sectorCode}`);
+    await prisma.masterDepartment.upsert({
+      where: { sectorCode: dept.sectorCode },
+      create: {
+        id,
+        sectorCode: dept.sectorCode,
+        name: dept.name,
+        description: dept.description,
       },
-    },
-  });
-
-  if (!rplDept || rplDept.cpElements.length === 0) {
-    throw new Error("Kurikulum jurusan RPL tidak ditemukan di database.");
+      update: { name: dept.name, description: dept.description },
+    });
   }
+  console.log(`   ✅ ${curriculumData.masterDepartments.length} Master Departments tersimpan.\n`);
 
-  const cpElements = rplDept.cpElements;
-  const nonCompJobCard = await prisma.jobCard.findFirst({
-    where: {
-      cpElement: { schoolDepartmentId: rplDept.id },
-      isNonCompetency: true,
-    },
-  }) ?? cpElements[0]?.jobCards[0]; // fallback safe
+  // 3. Simpan DUDI Partners & Mentors
+  console.log("🏢 Menyimpan 18+ Mitra DUDI & Mentor Industri...");
+  const salt = generateSalt();
+  const defaultPinHash = hashPinWithScrypt("1234", salt, PIN_PEPPER);
 
-  console.log(`   📚 Memuat ${cpElements.length} Elemen CP dan katalog Job Cards RPL`);
+  for (let i = 0; i < DUDI_DATA.length; i++) {
+    const d = DUDI_DATA[i];
+    const mentorId = deterministicUuid(`mentor-${d.id}`);
 
-  // 3. Bind Perangkat & PIN untuk Semua Mentor Demo (Zero-Login PIN: 1234)
-  console.log("   🔑 Mengonfigurasi kredensial mentor (PIN demo: 1234, token perangkat)...");
-  const DEMO_PIN = "1234";
-  const mentorDeviceTokens: Record<string, { token: string; hash: string }> = {};
-
-  for (const mentorId of MENTOR_IDS) {
-    const deviceToken = deterministicUuid(`mentor-device-${mentorId}`);
-    const deviceTokenHash = hashSha256Hex(deviceToken);
-    const pinSalt = deterministicUuid(`mentor-salt-${mentorId}`).replace(/-/g, "").slice(0, 32);
-    const pinHash = hashPinWithScrypt(DEMO_PIN, pinSalt, PIN_PEPPER);
-
-    mentorDeviceTokens[mentorId] = { token: deviceToken, hash: deviceTokenHash };
-
-    await prisma.dudiMentor.update({
-      where: { id: mentorId },
+    await prisma.dudiPartner.create({
       data: {
-        pinHash,
-        pinSalt,
-        deviceTokenHash,
-        tokenBoundAt: new Date("2026-01-05T00:00:00Z"),
-        failedPinAttempts: 0,
-        lockedUntil: null,
+        id: d.id,
+        name: d.name,
+        sectorCategory: d.sectorCategory,
+        address: d.address,
+        city: d.city,
+        latitude: d.latitude,
+        longitude: d.longitude,
+        maxQuota: d.maxQuota,
+        qualityIndexScore: d.qualityScore,
+        mentors: {
+          create: {
+            id: mentorId,
+            fullName: d.mentorName,
+            jobTitle: d.mentorJob,
+            whatsappNumber: d.mentorWa,
+            pinHash: defaultPinHash,
+            pinSalt: salt,
+            deviceTokenHash: hashSha256Hex(`device-token-mentor-${i}`),
+            tokenBoundAt: new Date("2026-01-05T08:00:00.000Z"),
+          },
+        },
       },
     });
   }
+  console.log(`   ✅ ${DUDI_DATA.length} DUDI Partners dan Mentor tersimpan.\n`);
 
-  // 4. Konfigurasi Penempatan
-  const placement1Id = deterministicUuid(`placement-${STUDENT_IDS[0]}-${DUDI_IDS[0]}`); // Andi -> PT Nusantara
-  const placement2Id = deterministicUuid(`placement-${STUDENT_IDS[1]}-${DUDI_IDS[1]}`); // Bintang -> Startup Digital
-  const placement3Id = deterministicUuid(`placement-${STUDENT_IDS[2]}-${DUDI_IDS[1]}`); // Citra -> Startup Digital
-  const placement4Id = deterministicUuid(`placement-${STUDENT_IDS[3]}-${DUDI_IDS[2]}`); // Dewi -> Studio Wirajaya
-  const placement5aId = deterministicUuid(`placement-${STUDENT_IDS[4]}-${DUDI_IDS[3]}`); // Eko -> Bengkel Auto Prima (Rotated Out)
-  const placement5bId = deterministicUuid(`placement-eko-rotated-nusantara`); // Eko -> PT Nusantara Tech (Active)
-
-  // Pastikan penempatan rotasi Eko (5b) tersedia
-  await prisma.placement.upsert({
-    where: { id: placement5bId },
-    create: {
-      id: placement5bId,
-      academicPeriodId: PERIOD_ID,
-      studentId: STUDENT_IDS[4],
-      teacherId: TEACHER_ID,
-      dudiPartnerId: DUDI_IDS[0], // PT Nusantara Tech
-      dudiMentorId: MENTOR_IDS[0], // Rizky Firmansyah
-      compatibilityScore: 86.5,
-      coverageScore: 0,
-      distanceKm: 2.8,
-      status: PlacementStatus.ACTIVE,
-    },
-    update: {
-      status: PlacementStatus.ACTIVE,
-    },
-  });
-
-  // Update penempatan 5a Eko menjadi ROTATED_OUT
-  await prisma.placement.update({
-    where: { id: placement5aId },
-    data: { status: PlacementStatus.ROTATED_OUT },
-  });
-
+  // 4. Loop untuk Masing-Masing dari 3 Sekolah Resmi
   const workDates = generateWorkDates();
-  console.log(`   🗓️ Menghasilkan ${workDates.length} hari kerja dalam rentang 8 minggu`);
+  let globalStudentCount = 0;
+  let globalTeacherCount = 0;
 
-  // Helper untuk membuat / meng-upsert logbook secara deterministik & idempoten
-  async function upsertDailyLog(params: {
-    clientUuidSeed: string;
-    placementId: string;
-    studentId: string;
-    logDate: Date;
-    status: LogStatus;
-    items: { jobCardId: string; durationJp: number; autonomyLevel: number; nonCompetencyCategory?: NonCompetencyCategory }[];
-    mentorId: string;
-    shortNote: string;
-    verifiedAtOffsetHours?: number;
-  }) {
-    const clientLogUuid = deterministicUuid(params.clientUuidSeed);
-    const existing = await prisma.dailyLog.findUnique({
-      where: { clientLogUuid },
-      include: { items: true },
-    });
+  for (let sIdx = 0; sIdx < SCHOOLS_DATA.length; sIdx++) {
+    const schoolInfo = SCHOOLS_DATA[sIdx];
+    console.log(`🏫 [${sIdx + 1}/3] Mengisi data untuk: ${schoolInfo.name} (${schoolInfo.city})...`);
 
-    if (existing) {
-      return existing;
-    }
-
-    const logDateStr = params.logDate.toISOString().split("T")[0];
-    const evidenceSha256 = hashSha256Hex(`evidence-${params.studentId}-${logDateStr}`);
-    const evidenceWebpUrl = `https://supabase.vokalink.id/storage/v1/object/public/evidence/demo/${params.studentId.slice(0, 8)}-${logDateStr}.webp`;
-    const mentorDevice = mentorDeviceTokens[params.mentorId];
-
-    let signatureHash: string | null = null;
-    let verifiedAt: Date | null = null;
-
-    if (params.status === LogStatus.VERIFIED) {
-      verifiedAt = new Date(params.logDate.getTime() + (params.verifiedAtOffsetHours ?? 4) * 3600 * 1000);
-      const sortedItems = [...params.items]
-        .sort((a, b) => a.jobCardId.localeCompare(b.jobCardId))
-        .map((it) => ({
-          autonomyLevel: it.autonomyLevel,
-          durationJp: it.durationJp,
-          jobCardId: it.jobCardId,
-        }));
-
-      // Segel HMAC-SHA256 sesuai DESIGN.md §6.3
-      signatureHash = sealObjectWithHmac(SERVER_CRYPTO_SECRET, {
-        deviceTokenHash: mentorDevice?.hash ?? "",
-        evidenceSha256,
-        items: sortedItems,
-        logDate: logDateStr,
-        logId: clientLogUuid,
-        mentorId: params.mentorId,
-        placementId: params.placementId,
-        studentId: params.studentId,
-        verifiedAt: verifiedAt.toISOString(),
-      });
-    }
-
-    // Langkah 1: Buat log dengan status PENDING_VERIFICATION bersama items
-    // (Trigger database melarang INSERT daily_log_items jika parent sudah berstatus VERIFIED)
-    const created = await prisma.dailyLog.create({
+    // 4.1 Buat Sekolah
+    await prisma.school.create({
       data: {
-        id: clientLogUuid,
-        clientLogUuid,
-        placementId: params.placementId,
-        studentId: params.studentId,
-        logDate: params.logDate,
-        attendanceType: AttendanceType.PRESENT,
-        evidenceWebpUrl,
-        evidenceSha256,
-        evidenceSizeBytes: 52400,
-        isEvidencePublic: true,
-        shortNote: params.shortNote,
-        status: LogStatus.PENDING_VERIFICATION,
-        clientCreatedAt: params.logDate,
-        serverReceivedAt: params.logDate,
-        items: {
-          create: params.items.map((it) => ({
-            jobCardId: it.jobCardId,
-            durationJp: it.durationJp,
-            autonomyLevel: it.autonomyLevel,
-            nonCompetencyCategory: it.nonCompetencyCategory ?? null,
-          })),
-        },
+        id: schoolInfo.id,
+        npsn: schoolInfo.npsn,
+        name: schoolInfo.name,
+        province: schoolInfo.province,
+        city: schoolInfo.city,
+        latitude: schoolInfo.latitude,
+        longitude: schoolInfo.longitude,
+        isDemoSandbox: false,
       },
-      include: { items: true },
     });
 
-    // Langkah 2: Jika target status adalah VERIFIED, lakukan transisi verifikasi resmi
-    if (params.status === LogStatus.VERIFIED) {
-      const updated = await prisma.dailyLog.update({
-        where: { id: clientLogUuid },
+    // 4.2 Buat Periode Akademik
+    const periodId = deterministicUuid(`period-${schoolInfo.id}`);
+    await prisma.academicPeriod.create({
+      data: {
+        id: periodId,
+        schoolId: schoolInfo.id,
+        name: "PKL Semester Genap 2025/2026",
+        startDate: new Date("2026-01-05"),
+        endDate: new Date("2026-06-27"),
+        targetTotalJp: 792,
+        isActive: true,
+      },
+    });
+
+    // 4.3 Buat Admin Pokja PKL
+    const adminId = deterministicUuid(`admin-${schoolInfo.id}`);
+    await prisma.userProfile.create({
+      data: {
+        id: adminId,
+        schoolId: schoolInfo.id,
+        role: UserRole.SCHOOL_ADMIN,
+        fullName: schoolInfo.adminName,
+        identityNumber: schoolInfo.npsn,
+        whatsappNumber: `62811000${sIdx + 1}001`,
+      },
+    });
+
+    // Khusus sekolah pertama (SMK Telkom 1 Medan), buat juga akun admin standar admin.smk@vokalink.id
+    if (sIdx === 0) {
+      const genericAdminId = deterministicUuid("vokalink-demo-school-v1");
+      await prisma.userProfile.create({
         data: {
-          status: LogStatus.VERIFIED,
-          verifiedByMentorId: params.mentorId,
-          verifiedAt,
-          signatureHash,
+          id: genericAdminId,
+          schoolId: schoolInfo.id,
+          role: UserRole.SCHOOL_ADMIN,
+          fullName: "Admin Pokja PKL (SMK Telkom 1 Medan)",
+          identityNumber: "99000001",
+          whatsappNumber: "6281199000001",
         },
-        include: { items: true },
       });
-      return updated;
     }
 
-    return created;
-  }
+    // 4.4 Kloning 6 Jurusan / Departemen + CP Elements + Job Cards
+    const deptMap: { [code: string]: { id: string; cpElements: any[] } } = {};
 
-  // ─── 5. Siswa 1: Andi Pratama (Bintang / 288 JP Terverifikasi + 4 Pending TC-005) ──
-  console.log("   👨‍💻 Menghasilkan riwayat logbook 8 minggu: Andi Pratama (TC-005 batch approve)...");
-  const andiVerifiedLogSignatures: string[] = [];
-  const andiPendingLogIds: string[] = [];
+    for (const dCurr of curriculumData.curriculum) {
+      const deptId = deterministicUuid(`dept-${schoolInfo.id}-${dCurr.sectorCode}`);
+      const mDeptId = deterministicUuid(`master-dept-${dCurr.sectorCode}`);
 
-  for (let i = 0; i < workDates.length; i++) {
-    const d = workDates[i];
-    const isPendingBatch = i >= 36; // 4 hari terakhir berstatus PENDING untuk demo TC-005
-    const element = cpElements[i % cpElements.length];
-    const card = element.jobCards[i % element.jobCards.length];
-
-    const log = await upsertDailyLog({
-      clientUuidSeed: `log-andi-${i}`,
-      placementId: placement1Id,
-      studentId: STUDENT_IDS[0],
-      logDate: d,
-      status: isPendingBatch ? LogStatus.PENDING_VERIFICATION : LogStatus.VERIFIED,
-      mentorId: MENTOR_IDS[0],
-      shortNote: `Pengerjaan ${card.title} - fitur modul sprint mingguan.`,
-      items: [
-        {
-          jobCardId: card.id,
-          durationJp: 8,
-          autonomyLevel: 3, // Mandiri
+      const sDept = await prisma.schoolDepartment.create({
+        data: {
+          id: deptId,
+          schoolId: schoolInfo.id,
+          masterDepartmentId: mDeptId,
+          sectorCode: dCurr.sectorCode,
+          name: dCurr._jurusan.split(" — ")[1]?.split(" (")[0] || dCurr.sectorCode,
+          isLocked: false,
         },
-      ],
-    });
+      });
 
-    if (log.signatureHash) {
-      andiVerifiedLogSignatures.push(log.signatureHash);
-    }
-    if (isPendingBatch) {
-      andiPendingLogIds.push(log.id);
-    }
-  }
-
-  // Demo SignedLink untuk TC-005 (Batch Approve 4 Hari < 10 Detik)
-  const andiBatchToken = createSignedToken(
-    {
-      mentorId: MENTOR_IDS[0],
-      purpose: "LOG_VERIFY",
-      mode: "QR",
-      logIds: andiPendingLogIds,
-      exp: Math.floor(Date.now() / 1000) + 72 * 3600,
-    },
-    SERVER_CRYPTO_SECRET
-  );
-
-  const andiBatchTokenHash = hashSha256Hex(andiBatchToken);
-  await prisma.signedLink.upsert({
-    where: { tokenHash: andiBatchTokenHash },
-    create: {
-      purpose: SignedLinkPurpose.LOG_VERIFY,
-      mode: SignedLinkMode.QR,
-      tokenHash: andiBatchTokenHash,
-      keyId: "k1",
-      mentorId: MENTOR_IDS[0],
-      placementId: placement1Id,
-      logIds: andiPendingLogIds,
-      payloadHash: hashSha256Hex(JSON.stringify(andiPendingLogIds)),
-      expiresAt: new Date(Date.now() + 72 * 3600 * 1000),
-    },
-    update: {},
-  });
-
-  // Endorsement Andi Pratama
-  const andiEndorsementHash = sealObjectWithHmac(SERVER_CRYPTO_SECRET, {
-    attitudeScore: 95,
-    badgesArray: ["EXCELLENT_COMMUNICATION", "HIGH_INITIATIVE", "TECHNICAL_MASTERY"],
-    dudiMentorId: MENTOR_IDS[0],
-    endorsementQuote:
-      "Andi menunjukkan kedewasaan teknis luar biasa dalam perancangan API dan ketelitian database. Berinisiatif tinggi dan selalu menyelesaikan tugas tepat waktu.",
-    placementId: placement1Id,
-  });
-
-  await prisma.endorsement.upsert({
-    where: { placementId: placement1Id },
-    create: {
-      placementId: placement1Id,
-      dudiMentorId: MENTOR_IDS[0],
-      attitudeScore: 95,
-      badgesArray: ["EXCELLENT_COMMUNICATION", "HIGH_INITIATIVE", "TECHNICAL_MASTERY"],
-      endorsementQuote:
-        "Andi menunjukkan kedewasaan teknis luar biasa dalam perancangan API dan ketelitian database. Berinisiatif tinggi dan selalu menyelesaikan tugas tepat waktu.",
-      signatureHash: andiEndorsementHash,
-    },
-    update: {
-      attitudeScore: 95,
-    },
-  });
-
-  // Paspor Kompetensi Publik Andi Pratama (TC-010)
-  const andiMasterSignatureHash = sealObjectWithHmac(SERVER_CRYPTO_SECRET, {
-    signatureHashes: andiVerifiedLogSignatures,
-    studentId: STUDENT_IDS[0],
-    totalVerifiedJp: 288,
-  });
-
-  await prisma.skillPassport.upsert({
-    where: { studentId: STUDENT_IDS[0] },
-    create: {
-      studentId: STUDENT_IDS[0],
-      passportSlug: "andi-pratama-rpl-2026",
-      summaryBio:
-        "Siswa SMK Jurusan Rekayasa Perangkat Lunak berprestasi dengan 288 JP terverifikasi resmi di PT Nusantara Tech. Memiliki spesialisasi dalam arsitektur backend TypeScript, PostgreSQL, dan REST API.",
-      extraActivitiesJson: [
-        {
-          title: "Mini-Project Microservices Audit Log",
-          year: "2026",
-          description: "Membangun sistem logging audit internal berbasis Express dan PostgreSQL di PT Nusantara Tech.",
-        },
-      ],
-      visibilityJson: {
-        showPhotos: true,
-        showGrades: true,
-        showContact: true,
-      },
-      totalVerifiedJp: 288,
-      masterSignatureHash: andiMasterSignatureHash,
-    },
-    update: {
-      totalVerifiedJp: 288,
-      masterSignatureHash: andiMasterSignatureHash,
-    },
-  });
-
-  // ─── 6. Siswa 2: Bintang Ramadhan (Drift NON_COMPETENCY_OVERLOAD 40% - TC-008) ──
-  console.log("   🚨 Menghasilkan kasus drift: Bintang Ramadhan (NON_COMPETENCY_OVERLOAD 40% - TC-008)...");
-  for (let i = 0; i < workDates.length; i++) {
-    const d = workDates[i];
-    const isLast14Days = i >= 30; // 10 hari kerja terakhir
-
-    if (isLast14Days) {
-      // 10 hari × 8 JP = 80 JP total dalam 14 hari terakhir
-      // 4 hari non-kompetensi 8 JP = 32 JP (tepat 40% > 30% batas BR-008)
-      // 6 hari kompetensi 8 JP = 48 JP
-      const isNonCompDay = i % 5 === 0 || i % 5 === 2; // 4 hari dari 10 hari
-
-      if (isNonCompDay && nonCompJobCard) {
-        await upsertDailyLog({
-          clientUuidSeed: `log-bintang-${i}`,
-          placementId: placement2Id,
-          studentId: STUDENT_IDS[1],
-          logDate: d,
-          status: i >= 38 ? LogStatus.PENDING_VERIFICATION : LogStatus.VERIFIED,
-          mentorId: MENTOR_IDS[1],
-          shortNote: "Membantu inventaris gudang dan fotokopi berkas operasional.",
-          items: [
-            {
-              jobCardId: nonCompJobCard.id,
-              durationJp: 8,
-              autonomyLevel: 2,
-              nonCompetencyCategory: NonCompetencyCategory.ADMIN_UMUM,
-            },
-          ],
+      const loadedCps: any[] = [];
+      for (const cp of dCurr.cpElements) {
+        const cpId = deterministicUuid(`cp-${deptId}-${cp.code}`);
+        const createdCp = await prisma.cpElement.create({
+          data: {
+            id: cpId,
+            schoolDepartmentId: deptId,
+            code: cp.code,
+            title: cp.title,
+            targetJp: cp.targetJp,
+            sortOrder: cp.sortOrder,
+          },
         });
-      } else {
-        const card = cpElements[0].jobCards[0];
-        await upsertDailyLog({
-          clientUuidSeed: `log-bintang-${i}`,
-          placementId: placement2Id,
-          studentId: STUDENT_IDS[1],
-          logDate: d,
-          status: i >= 38 ? LogStatus.PENDING_VERIFICATION : LogStatus.VERIFIED,
-          mentorId: MENTOR_IDS[1],
-          shortNote: `Pengerjaan ${card.title}.`,
-          items: [
-            {
-              jobCardId: card.id,
-              durationJp: 8,
-              autonomyLevel: 2,
+
+        const loadedJcs: any[] = [];
+        for (const jc of cp.jobCards) {
+          const jcId = deterministicUuid(`jc-${cpId}-${jc.title.slice(0, 30)}`);
+          const createdJc = await prisma.jobCard.create({
+            data: {
+              id: jcId,
+              schoolDepartmentId: deptId,
+              cpElementId: cpId,
+              title: jc.title.slice(0, 60),
+              skkniUnitCode: jc.skkniUnitCode,
+              toolsAndSoftware: jc.toolsAndSoftware,
+              actionVerbTemplate: jc.actionVerbTemplate,
+              isNonCompetency: false,
             },
-          ],
+          });
+          loadedJcs.push(createdJc);
+        }
+        loadedCps.push({ ...createdCp, jobCards: loadedJcs });
+      }
+
+      // Non-competency job cards
+      for (const nc of dCurr.nonCompetencyJobCards || []) {
+        const ncId = deterministicUuid(`nc-jc-${deptId}-${nc.title.slice(0, 30)}`);
+        await prisma.jobCard.create({
+          data: {
+            id: ncId,
+            schoolDepartmentId: deptId,
+            cpElementId: null,
+            title: nc.title.slice(0, 60),
+            toolsAndSoftware: nc.toolsAndSoftware || [],
+            actionVerbTemplate: nc.actionVerbTemplate,
+            isNonCompetency: true,
+          },
         });
       }
-    } else {
-      // 30 hari pertama: normal kompetensi
-      const card = cpElements[i % 2].jobCards[i % 2];
-      await upsertDailyLog({
-        clientUuidSeed: `log-bintang-${i}`,
-        placementId: placement2Id,
-        studentId: STUDENT_IDS[1],
-        logDate: d,
-        status: LogStatus.VERIFIED,
-        mentorId: MENTOR_IDS[1],
-        shortNote: `Pengerjaan ${card.title}.`,
-        items: [
-          {
-            jobCardId: card.id,
-            durationJp: 7,
-            autonomyLevel: 2,
-          },
-        ],
+
+      deptMap[dCurr.sectorCode] = { id: deptId, cpElements: loadedCps };
+    }
+
+    // 4.5 Buat 12 Guru Pembimbing (2 guru per jurusan)
+    const deptCodes = Object.keys(deptMap);
+    const teacherProfiles: any[] = [];
+
+    for (let t = 0; t < 12; t++) {
+      globalTeacherCount++;
+      const assignedDeptCode = deptCodes[t % deptCodes.length];
+      const assignedDept = deptMap[assignedDeptCode];
+      const teacherId = deterministicUuid(`teacher-${schoolInfo.id}-${t}`);
+      const nip = `198${(t % 8) + 1}0115200${(t % 9) + 1}0110${t < 10 ? "0" + t : t}`;
+
+      // Sisipkan Budi Santoso sebagai guru pertama di SMK Telkom 1 Medan
+      const teacherName =
+        sIdx === 0 && t === 0
+          ? "Budi Santoso, S.Kom"
+          : `${generateIndonesianName(globalTeacherCount * 3 + 1)}, S.Pd., M.Kom`;
+
+      const tProfile = await prisma.userProfile.create({
+        data: {
+          id: teacherId,
+          schoolId: schoolInfo.id,
+          schoolDepartmentId: assignedDept.id,
+          role: UserRole.TEACHER,
+          fullName: teacherName,
+          identityNumber: sIdx === 0 && t === 0 ? "197501012000011001" : nip,
+          whatsappNumber: `628123456${1000 + globalTeacherCount}`,
+        },
+      });
+      teacherProfiles.push(tProfile);
+    }
+    console.log(`   ✅ 12 Guru Pembimbing dibuat untuk ${schoolInfo.name}.`);
+
+    // 4.6 Buat Tepat 100 Siswa untuk Sekolah Ini Secara Cepat (createMany Batch)
+    console.log(`   👨‍🎓 Menyimpan batch 100 Siswa untuk ${schoolInfo.name}...`);
+    const schoolDudis = DUDI_DATA.filter((d) => d.city.toLowerCase().includes(schoolInfo.city.toLowerCase()));
+    const effectiveDudis = schoolDudis.length > 0 ? schoolDudis : DUDI_DATA;
+
+    const studentsToBatch: any[] = [];
+    const placementsToBatch: any[] = [];
+    const studentIdsList: string[] = [];
+    const studentDeptMap: { [sid: string]: any } = {};
+
+    for (let s = 0; s < 100; s++) {
+      globalStudentCount++;
+      const studentId = deterministicUuid(`student-${schoolInfo.id}-${s}`);
+      studentIdsList.push(studentId);
+
+      const deptCode = deptCodes[s % deptCodes.length];
+      const assignedDept = deptMap[deptCode];
+      studentDeptMap[studentId] = assignedDept;
+
+      const assignedTeacher = teacherProfiles[s % teacherProfiles.length];
+
+      // Format NISN 10 Digit
+      const nisnPrefix = sIdx === 0 ? "0078901" : sIdx === 1 ? "0078902" : "0078903";
+      const nisnSuffix = String(s + 1).padStart(3, "0");
+      let nisn = `${nisnPrefix}${nisnSuffix}`;
+
+      // Akun demo khusus di SMK Telkom 1 Medan
+      let studentName = generateIndonesianName(globalStudentCount);
+      if (sIdx === 0 && s === 0) {
+        nisn = "0078901234";
+        studentName = "Andi Pratama";
+      } else if (sIdx === 0 && s === 1) {
+        nisn = "0078901235";
+        studentName = "Bintang Ramadhan";
+      } else if (sIdx === 0 && s === 2) {
+        nisn = "0078901236";
+        studentName = "Citra Maharani";
+      } else if (sIdx === 0 && s === 3) {
+        nisn = "0078901237";
+        studentName = "Dewi Anggraini";
+      }
+
+      const latOffset = ((s % 10) - 5) * 0.005;
+      const lngOffset = (((s * 3) % 10) - 5) * 0.005;
+
+      studentsToBatch.push({
+        id: studentId,
+        schoolId: schoolInfo.id,
+        schoolDepartmentId: assignedDept.id,
+        role: UserRole.STUDENT,
+        fullName: studentName,
+        identityNumber: nisn,
+        whatsappNumber: `628129876${String(globalStudentCount).padStart(4, "0")}`,
+        homeLatitude: Number((schoolInfo.latitude + latOffset).toFixed(6)),
+        homeLongitude: Number((schoolInfo.longitude + lngOffset).toFixed(6)),
+      });
+
+      const dudi = effectiveDudis[s % effectiveDudis.length];
+      const mentorId = deterministicUuid(`mentor-${dudi.id}`);
+      const placementId = deterministicUuid(`placement-${studentId}`);
+
+      placementsToBatch.push({
+        id: placementId,
+        studentId: studentId,
+        academicPeriodId: periodId,
+        dudiPartnerId: dudi.id,
+        dudiMentorId: mentorId,
+        teacherId: assignedTeacher.id,
+        status: PlacementStatus.ACTIVE,
+        compatibilityScore: 88.5,
+        coverageScore: 92.0,
+        distanceKm: Number((1.5 + (s % 7) * 0.8).toFixed(2)),
+        requiresMidtermRotation: false,
+        rotationSequence: 1,
       });
     }
-  }
 
-  // Drift Alert aktif untuk Bintang Ramadhan
-  const bintangAlertId = deterministicUuid(`drift-alert-bintang-${placement2Id}`);
-  await prisma.driftAlert.upsert({
-    where: { id: bintangAlertId },
-    create: {
-      id: bintangAlertId,
-      placementId: placement2Id,
-      studentId: STUDENT_IDS[1],
-      alertType: DriftAlertType.NON_COMPETENCY_OVERLOAD,
-      severity: DriftAlertSeverity.CRITICAL,
-      status: DriftAlertStatus.OPEN,
-      metricSnapshotJson: {
-        totalJpLast14Days: 80,
-        nonCompetencyJpLast14Days: 32,
-        ratio: 0.4,
-        threshold: 0.3,
-        detectedReason: "Rasio jam non-kompetensi mencapai 40% dalam 14 hari terakhir (minimal batas 30%).",
-      },
-      detectedAt: new Date(Date.now() - 2 * 24 * 3600 * 1000),
-    },
-    update: {
-      status: DriftAlertStatus.OPEN,
-    },
-  });
+    // Simpan 100 Siswa dan 100 Placement dalam satu roundtrip
+    await prisma.userProfile.createMany({ data: studentsToBatch });
+    await prisma.placement.createMany({ data: placementsToBatch });
+    console.log(`   ✅ 100 Siswa & Penempatan tersimpan di database.`);
 
-  // ─── 7. Siswa 3: Citra Maharani (Drift SKILL_MONOTONY 85% di 1 Elemen CP) ──────
-  console.log("   🚨 Menghasilkan kasus drift: Citra Maharani (SKILL_MONOTONY 85%)...");
-  for (let i = 0; i < workDates.length; i++) {
-    const d = workDates[i];
-    // 34 hari di Elemen 0 (Frontend UI) = 204 JP (85%)
-    // 6 hari di Elemen 2 (Git Testing) = 36 JP (15%)
-    // Elemen 1 (Backend) = 0 JP, Elemen 3 (Cloud) = 0 JP
-    const useFirstElement = i < 34;
-    const element = useFirstElement ? cpElements[0] : cpElements[2];
-    const card = element.jobCards[0];
+    // 4.7 Buat Log Harian untuk 4 Siswa Utama di Masing-Masing Sekolah
+    console.log(`   📝 Mengisi riwayat logbook dan aktivitas siswa utama...`);
+    for (let s = 0; s < 4; s++) {
+      const studentId = studentIdsList[s];
+      const assignedDept = studentDeptMap[studentId];
+      const cpElementList = assignedDept.cpElements;
+      const dudi = effectiveDudis[s % effectiveDudis.length];
+      const mentorId = deterministicUuid(`mentor-${dudi.id}`);
+      const placementId = deterministicUuid(`placement-${studentId}`);
 
-    await upsertDailyLog({
-      clientUuidSeed: `log-citra-${i}`,
-      placementId: placement3Id,
-      studentId: STUDENT_IDS[2],
-      logDate: d,
-      status: LogStatus.VERIFIED,
-      mentorId: MENTOR_IDS[1],
-      shortNote: `Pengerjaan ${card.title}.`,
-      items: [
-        {
-          jobCardId: card.id,
-          durationJp: 6,
-          autonomyLevel: 2,
-        },
-      ],
-    });
-  }
+      if (cpElementList && cpElementList.length > 0) {
+        let verifiedCount = 0;
+        const logLimit = sIdx === 0 && s === 0 ? 16 : 8;
 
-  // Drift Alert aktif untuk Citra Maharani
-  const citraAlertId = deterministicUuid(`drift-alert-citra-${placement3Id}`);
-  await prisma.driftAlert.upsert({
-    where: { id: citraAlertId },
-    create: {
-      id: citraAlertId,
-      placementId: placement3Id,
-      studentId: STUDENT_IDS[2],
-      alertType: DriftAlertType.SKILL_MONOTONY,
-      severity: DriftAlertSeverity.WARNING,
-      status: DriftAlertStatus.OPEN,
-      metricSnapshotJson: {
-        totalCumulativeJp: 240,
-        dominantRatio: 0.85,
-        dominantElementTitle: cpElements[0].title,
-        zeroCount: 2,
-        uncoveredElements: [cpElements[1].title, cpElements[3]?.title ?? "Cloud/DevOps"],
-        detectedReason: "85% jam praktik terkonsentrasi di 1 elemen, sementara 2 elemen lain masih 0 JP.",
-      },
-      detectedAt: new Date(Date.now() - 3 * 24 * 3600 * 1000),
-    },
-    update: {
-      status: DriftAlertStatus.OPEN,
-    },
-  });
+        for (let dayIdx = 0; dayIdx < Math.min(logLimit, workDates.length); dayIdx++) {
+          const logDate = workDates[dayIdx];
+          const logId = deterministicUuid(`log-${studentId}-${dayIdx}`);
+          const cp = cpElementList[dayIdx % cpElementList.length];
+          const jc = cp.jobCards && cp.jobCards.length > 0 ? cp.jobCards[0] : null;
 
-  // ─── 8. Siswa 4: Dewi Anggraini (Drift APPROVAL_DORMANCY > 7 Hari Belum Divalidasi)
-  console.log("   ⏳ Menghasilkan kasus drift: Dewi Anggraini (APPROVAL_DORMANCY > 7 hari)...");
-  for (let i = 0; i < workDates.length; i++) {
-    const d = workDates[i];
-    const isDormant = i >= 33; // 7 log terakhir dibiarkan pending
-    const card = cpElements[i % 2].jobCards[i % 2];
+          if (jc) {
+            const isVerified = dayIdx < logLimit - 1;
+            const durationJp = 8;
+            if (isVerified) verifiedCount += durationJp;
 
-    await upsertDailyLog({
-      clientUuidSeed: `log-dewi-${i}`,
-      placementId: placement4Id,
-      studentId: STUDENT_IDS[3],
-      logDate: d,
-      status: isDormant ? LogStatus.PENDING_VERIFICATION : LogStatus.VERIFIED,
-      mentorId: MENTOR_IDS[2],
-      shortNote: `Pengerjaan ${card.title}.`,
-      items: [
-        {
-          jobCardId: card.id,
-          durationJp: 7,
-          autonomyLevel: 2,
-        },
-      ],
-    });
-  }
+            const logSeal = isVerified
+              ? sealObjectWithHmac(SERVER_CRYPTO_SECRET, {
+                  logId,
+                  studentId,
+                  logDate: logDate.toISOString().slice(0, 10),
+                  status: LogStatus.VERIFIED,
+                  mentorId,
+                })
+              : null;
 
-  // Drift Alert aktif untuk Dewi Anggraini
-  const dewiAlertId = deterministicUuid(`drift-alert-dewi-${placement4Id}`);
-  await prisma.driftAlert.upsert({
-    where: { id: dewiAlertId },
-    create: {
-      id: dewiAlertId,
-      placementId: placement4Id,
-      studentId: STUDENT_IDS[3],
-      alertType: DriftAlertType.APPROVAL_DORMANCY,
-      severity: DriftAlertSeverity.WARNING,
-      status: DriftAlertStatus.OPEN,
-      metricSnapshotJson: {
-        dormantLogCount: 7,
-        thresholdDays: 7,
-        mentorName: "Wahyu Pratama",
-        dudiName: "Studio Kreatif Wirajaya",
-        detectedReason: "Terdapat 7 logbook menunggu validasi lebih dari 7 hari kalender tanpa respons mentor.",
-      },
-      detectedAt: new Date(Date.now() - 1 * 24 * 3600 * 1000),
-    },
-    update: {
-      status: DriftAlertStatus.OPEN,
-    },
-  });
+            // Buat daily log dalam status PENDING_VERIFICATION (sesuai trigger DB)
+            await prisma.dailyLog.create({
+              data: {
+                id: logId,
+                clientLogUuid: deterministicUuid(`client-uuid-${logId}`),
+                placementId: placementId,
+                studentId: studentId,
+                logDate: logDate,
+                attendanceType: AttendanceType.PRESENT,
+                status: LogStatus.PENDING_VERIFICATION,
+                shortNote: `Penerapan ${jc.title} sesuai standar industri.`,
+                items: {
+                  create: {
+                    id: deterministicUuid(`item-${logId}`),
+                    jobCardId: jc.id,
+                    durationJp: durationJp,
+                    autonomyLevel: 2,
+                  },
+                },
+              },
+            });
 
-  // ─── 9. Siswa 5: Eko Saputra (Rotasi Mitra: 380 JP + 50 JP = 430 JP - TC-009) ──
-  console.log("   🔄 Menghasilkan skenario rotasi mitra: Eko Saputra (380 JP + 50 JP = 430 JP - TC-009)...");
-  const ekoVerifiedLogSignatures: string[] = [];
+            // Jika terverifikasi, update status menjadi VERIFIED
+            if (isVerified) {
+              await prisma.dailyLog.update({
+                where: { id: logId },
+                data: {
+                  status: LogStatus.VERIFIED,
+                  verifiedAt: new Date(logDate.getTime() + 10 * 3600 * 1000),
+                  verifiedByMentorId: mentorId,
+                  signatureHash: logSeal,
+                },
+              });
+            }
+          }
+        }
 
-  // Bagian 1: 38 hari × 10 JP = 380 JP di Bengkel Auto Prima (status ROTATED_OUT)
-  for (let i = 0; i < 38; i++) {
-    const d = workDates[i];
-    const card = cpElements[i % cpElements.length].jobCards[0];
-    const log = await upsertDailyLog({
-      clientUuidSeed: `log-eko-dudi1-${i}`,
-      placementId: placement5aId,
-      studentId: STUDENT_IDS[4],
-      logDate: d,
-      status: LogStatus.VERIFIED,
-      mentorId: MENTOR_IDS[3],
-      shortNote: `Pengerjaan ${card.title} di Bengkel Auto Prima.`,
-      items: [
-        {
-          jobCardId: card.id,
-          durationJp: 10,
-          autonomyLevel: 3,
-        },
-      ],
-    });
-    if (log.signatureHash) {
-      ekoVerifiedLogSignatures.push(log.signatureHash);
+        // Sisipkan Kasus Drift untuk Siswa SMK Telkom 1 Medan
+        if (sIdx === 0 && s === 1) {
+          await prisma.driftAlert.create({
+            data: {
+              id: deterministicUuid(`drift-alert-${placementId}`),
+              placementId: placementId,
+              studentId: studentId,
+              alertType: DriftAlertType.NON_COMPETENCY_OVERLOAD,
+              severity: DriftAlertSeverity.CRITICAL,
+              status: DriftAlertStatus.OPEN,
+              metricSnapshotJson: {
+                nonCompetencyRatio: 0.42,
+                dominantCategory: NonCompetencyCategory.ADMIN_UMUM,
+                detectedReason: "Rasio penugasan non-kompetensi 42% (melebihi ambang batas 30%).",
+              },
+            },
+          });
+        } else if (sIdx === 0 && s === 2) {
+          await prisma.driftAlert.create({
+            data: {
+              id: deterministicUuid(`drift-alert-${placementId}`),
+              placementId: placementId,
+              studentId: studentId,
+              alertType: DriftAlertType.SKILL_MONOTONY,
+              severity: DriftAlertSeverity.WARNING,
+              status: DriftAlertStatus.OPEN,
+              metricSnapshotJson: {
+                dominantPercentage: 0.82,
+                detectedReason: "82% jam praktik terkonsentrasi di 1 elemen kompetensi saja.",
+              },
+            },
+          });
+        } else if (sIdx === 0 && s === 3) {
+          await prisma.driftAlert.create({
+            data: {
+              id: deterministicUuid(`drift-alert-${placementId}`),
+              placementId: placementId,
+              studentId: studentId,
+              alertType: DriftAlertType.APPROVAL_DORMANCY,
+              severity: DriftAlertSeverity.INFO,
+              status: DriftAlertStatus.OPEN,
+              metricSnapshotJson: {
+                pendingCount: 6,
+                oldestPendingDays: 8,
+                detectedReason: "Terdapat 6 catatan logbook pending lebih dari 7 hari belum ditinjau mentor.",
+              },
+            },
+          });
+        }
+
+        // Paspor Kompetensi untuk Andi Pratama
+        if (sIdx === 0 && s === 0) {
+          await prisma.skillPassport.create({
+            data: {
+              id: deterministicUuid(`passport-${studentId}`),
+              studentId: studentId,
+              passportSlug: "andi-pratama-rpl-2026",
+              summaryBio: "Siswa SMK konsentrasi Rekayasa Perangkat Lunak dengan pengalaman magang industri terverifikasi resmi di PT Telkom Indonesia Witel Sumut.",
+              totalVerifiedJp: verifiedCount,
+              visibilityJson: {
+                isPublic: true,
+                shareContact: true,
+              },
+            },
+          });
+        }
+      }
     }
+    console.log(`   ✅ Selesai: 100 Siswa untuk ${schoolInfo.name}.\n`);
   }
 
-  // Bagian 2: 5 hari × 10 JP = 50 JP di PT Nusantara Tech (status ACTIVE)
-  // Menghasilkan total 380 + 50 = 430 JP tepat sesuai TC-009
-  for (let i = 35; i < 40; i++) {
-    // Tanggal lanjutan rotasi
-    const rotDate = new Date(workDates[i].getTime() + 7 * 24 * 3600 * 1000);
-    const card = cpElements[(i + 1) % cpElements.length].jobCards[0];
-    const log = await upsertDailyLog({
-      clientUuidSeed: `log-eko-dudi2-${i}`,
-      placementId: placement5bId,
-      studentId: STUDENT_IDS[4],
-      logDate: rotDate,
-      status: LogStatus.VERIFIED,
-      mentorId: MENTOR_IDS[0],
-      shortNote: `Pengerjaan adaptasi ${card.title} di PT Nusantara Tech.`,
-      items: [
-        {
-          jobCardId: card.id,
-          durationJp: 10,
-          autonomyLevel: 3,
-        },
-      ],
-    });
-    if (log.signatureHash) {
-      ekoVerifiedLogSignatures.push(log.signatureHash);
-    }
-  }
-
-  // Riwayat Drift Alert yang pernah terselesaikan (RESOLVED) dengan InterventionLog
-  const ekoAlertId = deterministicUuid(`drift-alert-eko-${placement5aId}`);
-  const resolvedAlert = await prisma.driftAlert.upsert({
-    where: { id: ekoAlertId },
-    create: {
-      id: ekoAlertId,
-      placementId: placement5aId,
-      studentId: STUDENT_IDS[4],
-      alertType: DriftAlertType.NON_COMPETENCY_OVERLOAD,
-      severity: DriftAlertSeverity.WARNING,
-      status: DriftAlertStatus.RESOLVED,
-      metricSnapshotJson: {
-        totalJpLast14Days: 70,
-        nonCompetencyJpLast14Days: 25,
-        ratio: 0.35,
-        resolvedNote: "Siswa telah berhasil dipindahkan rotasi ke PT Nusantara Tech.",
-      },
-      detectedAt: new Date("2026-02-01T00:00:00Z"),
-      resolvedAt: new Date("2026-02-05T00:00:00Z"),
-    },
-    update: {
-      status: DriftAlertStatus.RESOLVED,
-    },
-  });
-
-  const interventionLogId = deterministicUuid(`intervention-eko-${ekoAlertId}`);
-  await prisma.interventionLog.upsert({
-    where: { id: interventionLogId },
-    create: {
-      id: interventionLogId,
-      driftAlertId: resolvedAlert.id,
-      teacherId: TEACHER_ID,
-      actionType: InterventionActionType.DUDI_ROTATION,
-      messageSent:
-        "Koordinasi rotasi siswa: Ananda Eko dipindahkan dari Bengkel Auto Prima ke PT Nusantara Tech untuk memenuhi cakupan capaian pembelajaran perangkat lunak.",
-      createdAt: new Date("2026-02-04T10:00:00Z"),
-    },
-    update: {},
-  });
-
-  // Endorsement Eko Saputra (dari PT Nusantara Tech)
-  const ekoEndorsementHash = sealObjectWithHmac(SERVER_CRYPTO_SECRET, {
-    attitudeScore: 89,
-    badgesArray: ["ADAPTABILITY", "HIGH_INITIATIVE"],
-    dudiMentorId: MENTOR_IDS[0],
-    endorsementQuote:
-      "Eko menunjukkan daya adaptasi yang sangat tinggi pasca rotasi penempatan. Tanggap terhadap instruksi dan mampu berkolaborasi positif.",
-    placementId: placement5bId,
-  });
-
-  await prisma.endorsement.upsert({
-    where: { placementId: placement5bId },
-    create: {
-      placementId: placement5bId,
-      dudiMentorId: MENTOR_IDS[0],
-      attitudeScore: 89,
-      badgesArray: ["ADAPTABILITY", "HIGH_INITIATIVE"],
-      endorsementQuote:
-        "Eko menunjukkan daya adaptasi yang sangat tinggi pasca rotasi penempatan. Tanggap terhadap instruksi dan mampu berkolaborasi positif.",
-      signatureHash: ekoEndorsementHash,
-    },
-    update: {
-      attitudeScore: 89,
-    },
-  });
-
-  // Paspor Kompetensi Eko Saputra (TC-009 / TC-010)
-  const ekoMasterSignatureHash = sealObjectWithHmac(SERVER_CRYPTO_SECRET, {
-    signatureHashes: ekoVerifiedLogSignatures,
-    studentId: STUDENT_IDS[4],
-    totalVerifiedJp: 430,
-  });
-
-  await prisma.skillPassport.upsert({
-    where: { studentId: STUDENT_IDS[4] },
-    create: {
-      studentId: STUDENT_IDS[4],
-      passportSlug: "eko-saputra-rpl-2026",
-      summaryBio:
-        "Siswa SMK dengan pengalaman magang lintas dua mitra industri dengan total 430 JP terverifikasi resmi (380 JP di Bengkel Auto Prima + 50 JP di PT Nusantara Tech).",
-      extraActivitiesJson: [
-        {
-          title: "Program Rotasi Akselerasi Kompetensi Industri",
-          year: "2026",
-          description: "Menyelesaikan fase rotasi penugasan kejuruan dengan rekomendasi mentor positif.",
-        },
-      ],
-      visibilityJson: {
-        showPhotos: true,
-        showGrades: true,
-        showContact: true,
-      },
-      totalVerifiedJp: 430,
-      masterSignatureHash: ekoMasterSignatureHash,
-    },
-    update: {
-      totalVerifiedJp: 430,
-      masterSignatureHash: ekoMasterSignatureHash,
-    },
-  });
-
-  // ─── Ringkasan Hasil Eksekusi ───────────────────────────────────────────────
-  console.log("\n" + "─".repeat(60));
-  console.log("✅ Seeder v2 Selesai dengan Sukses!\n");
-  console.log("Data demo komprehensif yang telah dimuat:");
-  console.log("  1. Andi Pratama (NISN: 0078901234):");
-  console.log("     - 288 JP Terverifikasi (Segel HMAC) + 4 Hari Pending (TC-005)");
-  console.log("     - Token Batch Approve Mentor Rizky: " + andiBatchToken);
-  console.log("     - URL Batch Approve: http://localhost:3000/v/" + andiBatchToken);
-  console.log("     - Endorsement Skor Sikap: 95/100, Paspor: /verify/andi-pratama-rpl-2026");
-  console.log("  2. Bintang Ramadhan (NISN: 0078901235):");
-  console.log("     - 🚨 Drift Alert Aktif: NON_COMPETENCY_OVERLOAD (40% non-kompetensi) (TC-008)");
-  console.log("  3. Citra Maharani (NISN: 0078901236):");
-  console.log("     - 🚨 Drift Alert Aktif: SKILL_MONOTONY (85% jam menumpuk di 1 elemen CP)");
-  console.log("  4. Dewi Anggraini (NISN: 0078901237):");
-  console.log("     - 🚨 Drift Alert Aktif: APPROVAL_DORMANCY (7 log pending > 7 hari)");
-  console.log("  5. Eko Saputra (NISN: 0078901238):");
-  console.log("     - 🔄 Rotasi Mitra Sukses: 380 JP (DUDI A) + 50 JP (DUDI B) = 430 JP (TC-009)");
-  console.log("     - 1 Drift Alert RESOLVED dengan InterventionLog Guru Budi Santoso");
-  console.log("     - Paspor: /verify/eko-saputra-rpl-2026 (430 JP terverifikasi)");
-  console.log("  6. Seluruh 6 Mentor DUDI telah diikat dengan PIN demo: 1234");
-  console.log("─".repeat(60));
+  console.log("=================================================================");
+  console.log(`🎉 SEEDING SELESAI DENGAN SUKSES!`);
+  console.log(`🏫 Total Sekolah: ${SCHOOLS_DATA.length}`);
+  console.log(`👨‍🏫 Total Guru: ${globalTeacherCount}`);
+  console.log(`👨‍🎓 Total Siswa: ${globalStudentCount} (100 Siswa / Sekolah)`);
+  console.log(`🏢 Total DUDI: ${DUDI_DATA.length}`);
+  console.log("=================================================================\n");
 }
 
-// Eksekusi jika dipanggil langsung via CLI
-if (process.argv[1]?.includes("seed-v2")) {
-  seedV2()
-    .catch((err) => {
-      console.error("❌ Seeder v2 gagal:", err);
-      process.exit(1);
-    })
-    .finally(async () => {
-      await prisma.$disconnect();
-    });
-}
+seedV2()
+  .catch((e) => {
+    console.error("❌ Seeding gagal:", e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
