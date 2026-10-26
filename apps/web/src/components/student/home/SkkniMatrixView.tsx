@@ -351,7 +351,7 @@ export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
         </div>
       )}
 
-      {/* ─── Mode 1: GRID VIEW (Apple Minimalist Cards) ─── */}
+      {/* ─── Mode 1: GRID VIEW (Notion Minimalist Bento Cards) ─── */}
       {matrixLayout === "GRID" && filteredModules.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4 animate-in fade-in duration-150">
           {filteredModules.map((module) => {
@@ -361,14 +361,14 @@ export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
               <div
                 key={module.id}
                 className={cn(
-                  "bg-white rounded-2xl p-4 sm:p-5 border transition-all duration-200 flex flex-col justify-between group",
+                  "bg-white rounded-2xl p-4 sm:p-5 border transition-all duration-200 flex flex-col justify-between space-y-3.5 relative shadow-2xs group active:scale-[0.99]",
                   isExpanded
-                    ? "border-slate-300 shadow-sm"
-                    : "border-slate-200/70 shadow-xs hover:border-slate-300 hover:shadow-xs"
+                    ? "border-slate-300 shadow-xs"
+                    : "border-slate-200/70 hover:border-slate-300 hover:shadow-xs"
                 )}
               >
                 {/* Header: Icon, Title, SKKNI Code & Level Badge */}
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <div
@@ -381,18 +381,20 @@ export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
                         <Icon className="w-4.5 h-4.5" />
                       </div>
                       <div className="min-w-0">
-                        <h4 className="text-sm font-semibold text-slate-900 tracking-tight leading-snug">
+                        <h4 className="text-[13.5px] sm:text-sm font-semibold text-slate-900 group-hover:text-sky-600 transition-colors tracking-tight leading-snug">
                           {module.title}
                         </h4>
-                        <p className="text-[11px] text-slate-400 font-normal mt-0.5 font-mono">
-                          {module.code}
-                        </p>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="px-1.5 py-0.5 rounded-md bg-slate-100 font-semibold text-[10px] text-slate-700 font-mono">
+                            {module.code}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
                     <span
                       className={cn(
-                        "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold shrink-0 border",
+                        "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-medium shrink-0 border",
                         module.badgeColor.bg,
                         module.badgeColor.border,
                         module.badgeColor.text
@@ -403,6 +405,23 @@ export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
                     </span>
                   </div>
 
+                  {/* Notion Skills Tag Chips */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    {module.skills.slice(0, 4).map((skill) => (
+                      <span
+                        key={skill}
+                        className="px-2 py-0.5 rounded-md bg-slate-50 border border-slate-200/60 text-[10.5px] text-slate-600 font-medium"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                    {module.skills.length > 4 && (
+                      <span className="text-[10px] text-slate-400 font-medium self-center">
+                        +{module.skills.length - 4}
+                      </span>
+                    )}
+                  </div>
+
                   {/* Progress Row */}
                   <div className="space-y-1.5 pt-1">
                     <div className="flex items-center justify-between text-xs">
@@ -410,7 +429,7 @@ export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
                         Progres Capaian
                       </span>
                       <div className="flex items-baseline gap-1 font-sans tabular-nums">
-                        <span className="font-bold text-slate-900 text-xs">
+                        <span className="font-bold text-slate-900 text-xs font-mono">
                           {module.verifiedJp}
                         </span>
                         <span className="text-slate-400 text-[11px] font-normal">
@@ -423,7 +442,7 @@ export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
                     </div>
 
                     {/* Sleek Progress Bar */}
-                    <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                    <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
                       <div
                         className={cn(
                           "h-full rounded-full bg-gradient-to-r transition-all duration-500",
@@ -436,7 +455,7 @@ export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
                 </div>
 
                 {/* Footer: Clean Expandable Syllabus */}
-                <div className="pt-2.5 mt-2.5 border-t border-slate-100/90 space-y-2">
+                <div className="pt-2.5 mt-2.5 border-t border-slate-100 space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-[11px] text-slate-400 font-normal">
                       Standar Kompetensi Kerja (SKKNI)
