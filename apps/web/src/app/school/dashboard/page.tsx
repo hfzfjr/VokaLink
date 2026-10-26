@@ -182,6 +182,16 @@ export default function SchoolDashboardPage() {
           </div>
           <div className="h-48 rounded-3xl bg-slate-200 animate-pulse" />
         </div>
+      ) : error ? (
+        <div className="p-8 text-center bg-white rounded-3xl border border-rose-200 space-y-3">
+          <p className="text-sm font-bold text-rose-700">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition"
+          >
+            Muat Ulang Halaman
+          </button>
+        </div>
       ) : data ? (
         <>
           {/* School Profile Hero Banner */}

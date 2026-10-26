@@ -29,7 +29,7 @@ export default function AuthCallbackPage() {
           email = initialSession.session.user.email ?? null;
         } else {
           // Tunggu listener sampai session tersedia
-          await new Promise<void>((resolve, reject) => {
+          await new Promise<void>((resolve, _reject) => {
             const timeout = setTimeout(() => {
               subscription.unsubscribe();
               resolve();
