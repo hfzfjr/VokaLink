@@ -1,7 +1,22 @@
+"use client";
+
 import Link from "next/link";
 import VokaLogo from "@/components/common/VokaLogo";
 
 export default function LandingFooter() {
+  const scrollTo = (id: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  const scrollToTop = (e: React.MouseEvent) => {
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <footer className="bg-white border-t border-slate-100 pt-16 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -21,11 +36,11 @@ export default function LandingFooter() {
           <div>
             <p className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-4">Fitur Utama</p>
             <ul className="space-y-2 text-xs font-medium text-slate-500">
-              <li><a href="#fitur" className="hover:text-sky-600 transition">Presensi GPS Geofencing</a></li>
-              <li><a href="#fitur" className="hover:text-sky-600 transition">Logbook PWA Offline-First</a></li>
-              <li><a href="#fitur" className="hover:text-sky-600 transition">Stempel Zero-Login Mentor</a></li>
-              <li><a href="#fitur" className="hover:text-sky-600 transition">Live Heatmap & Drift Alert</a></li>
-              <li><a href="#fitur" className="hover:text-sky-600 transition">Ekspor e-Rapor Dapodik</a></li>
+              <li><a href="#fitur" onClick={scrollTo("fitur")} className="hover:text-sky-600 transition cursor-pointer">Presensi GPS Geofencing</a></li>
+              <li><a href="#fitur" onClick={scrollTo("fitur")} className="hover:text-sky-600 transition cursor-pointer">Logbook PWA Offline-First</a></li>
+              <li><a href="#fitur" onClick={scrollTo("fitur")} className="hover:text-sky-600 transition cursor-pointer">Stempel Zero-Login Mentor</a></li>
+              <li><a href="#fitur" onClick={scrollTo("fitur")} className="hover:text-sky-600 transition cursor-pointer">Live Heatmap & Drift Alert</a></li>
+              <li><a href="#fitur" onClick={scrollTo("fitur")} className="hover:text-sky-600 transition cursor-pointer">Ekspor e-Rapor Dapodik</a></li>
             </ul>
           </div>
 
@@ -33,11 +48,11 @@ export default function LandingFooter() {
           <div>
             <p className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-4">Program Keahlian</p>
             <ul className="space-y-2 text-xs font-medium text-slate-500">
-              <li><a href="#simulasi" className="hover:text-sky-600 transition">RPL / PPLG</a></li>
-              <li><a href="#simulasi" className="hover:text-sky-600 transition">TKJ / TJKT</a></li>
-              <li><a href="#simulasi" className="hover:text-sky-600 transition">DKV / Desain Grafis</a></li>
-              <li><a href="#simulasi" className="hover:text-sky-600 transition">TKR / Otomotif Mobil</a></li>
-              <li><a href="#simulasi" className="hover:text-sky-600 transition">Akuntansi & Keuangan</a></li>
+              <li><a href="#simulasi" onClick={scrollTo("simulasi")} className="hover:text-sky-600 transition cursor-pointer">RPL / PPLG</a></li>
+              <li><a href="#simulasi" onClick={scrollTo("simulasi")} className="hover:text-sky-600 transition cursor-pointer">TKJ / TJKT</a></li>
+              <li><a href="#simulasi" onClick={scrollTo("simulasi")} className="hover:text-sky-600 transition cursor-pointer">DKV / Desain Grafis</a></li>
+              <li><a href="#simulasi" onClick={scrollTo("simulasi")} className="hover:text-sky-600 transition cursor-pointer">TKR / Otomotif Mobil</a></li>
+              <li><a href="#simulasi" onClick={scrollTo("simulasi")} className="hover:text-sky-600 transition cursor-pointer">Akuntansi & Keuangan</a></li>
             </ul>
           </div>
 
@@ -62,7 +77,7 @@ export default function LandingFooter() {
               Mode Uji Juri
             </Link>
             <span>&bull;</span>
-            <a href="#" className="hover:text-slate-600 transition">
+            <a href="#" onClick={scrollToTop} className="hover:text-slate-600 transition cursor-pointer">
               Kembali ke Atas &uarr;
             </a>
           </div>
@@ -71,3 +86,4 @@ export default function LandingFooter() {
     </footer>
   );
 }
+

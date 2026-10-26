@@ -5,7 +5,7 @@
 @layer base {
   /* Offset scroll padding agar target section anchor tidak tertutup sticky navbar (h-20 / 80px) */
   html {
-    scroll-padding-top: 5.5rem;
+    scroll-padding-top: 5rem;
   }
 
   /* Smooth scrolling alami dengan pertimbangan aksesibilitas (prefers-reduced-motion) */

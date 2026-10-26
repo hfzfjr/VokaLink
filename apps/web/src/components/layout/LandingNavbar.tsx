@@ -12,6 +12,23 @@ interface LandingNavbarProps {
 export default function LandingNavbar({ onScheduleDemo }: LandingNavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const scrollTo = (id: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  const scrollToMobile = (id: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    setMobileMenuOpen(false);
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-100 transition-all duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
@@ -20,19 +37,39 @@ export default function LandingNavbar({ onScheduleDemo }: LandingNavbarProps) {
 
         {/* Desktop Nav Menu */}
         <nav className="hidden lg:flex items-center gap-1 bg-slate-100/70 p-1.5 rounded-full border border-slate-200/60 text-xs font-semibold text-slate-600">
-          <a href="#fitur" className="px-4 py-2 rounded-full hover:text-sky-600 hover:bg-white transition">
+          <a
+            href="#fitur"
+            onClick={scrollTo("fitur")}
+            className="px-4 py-2 rounded-full hover:text-sky-600 hover:bg-white transition cursor-pointer"
+          >
             Fitur 3 Dimensi
           </a>
-          <a href="#alur" className="px-4 py-2 rounded-full hover:text-sky-600 hover:bg-white transition">
+          <a
+            href="#alur"
+            onClick={scrollTo("alur")}
+            className="px-4 py-2 rounded-full hover:text-sky-600 hover:bg-white transition cursor-pointer"
+          >
             Alur Kerja PKL
           </a>
-          <a href="#simulasi" className="px-4 py-2 rounded-full hover:text-sky-600 hover:bg-white transition">
+          <a
+            href="#simulasi"
+            onClick={scrollTo("simulasi")}
+            className="px-4 py-2 rounded-full hover:text-sky-600 hover:bg-white transition cursor-pointer"
+          >
             Simulasi Jurusan
           </a>
-          <a href="#testimoni" className="px-4 py-2 rounded-full hover:text-sky-600 hover:bg-white transition">
+          <a
+            href="#testimoni"
+            onClick={scrollTo("testimoni")}
+            className="px-4 py-2 rounded-full hover:text-sky-600 hover:bg-white transition cursor-pointer"
+          >
             Testimoni Sekolah
           </a>
-          <a href="#faq" className="px-4 py-2 rounded-full hover:text-sky-600 hover:bg-white transition">
+          <a
+            href="#faq"
+            onClick={scrollTo("faq")}
+            className="px-4 py-2 rounded-full hover:text-sky-600 hover:bg-white transition cursor-pointer"
+          >
             FAQ
           </a>
         </nav>
@@ -71,36 +108,36 @@ export default function LandingNavbar({ onScheduleDemo }: LandingNavbarProps) {
         <div className="lg:hidden bg-white border-b border-slate-200 px-6 py-5 space-y-3">
           <a
             href="#fitur"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-sm font-semibold text-slate-700 hover:text-sky-600 py-1.5"
+            onClick={scrollToMobile("fitur")}
+            className="block text-sm font-semibold text-slate-700 hover:text-sky-600 py-1.5 cursor-pointer"
           >
             Fitur 3 Dimensi
           </a>
           <a
             href="#alur"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-sm font-semibold text-slate-700 hover:text-sky-600 py-1.5"
+            onClick={scrollToMobile("alur")}
+            className="block text-sm font-semibold text-slate-700 hover:text-sky-600 py-1.5 cursor-pointer"
           >
             Alur Kerja PKL
           </a>
           <a
             href="#simulasi"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-sm font-semibold text-slate-700 hover:text-sky-600 py-1.5"
+            onClick={scrollToMobile("simulasi")}
+            className="block text-sm font-semibold text-slate-700 hover:text-sky-600 py-1.5 cursor-pointer"
           >
             Simulasi Jurusan SMK
           </a>
           <a
             href="#testimoni"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-sm font-semibold text-slate-700 hover:text-sky-600 py-1.5"
+            onClick={scrollToMobile("testimoni")}
+            className="block text-sm font-semibold text-slate-700 hover:text-sky-600 py-1.5 cursor-pointer"
           >
             Testimoni DUDI
           </a>
           <a
             href="#faq"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-sm font-semibold text-slate-700 hover:text-sky-600 py-1.5"
+            onClick={scrollToMobile("faq")}
+            className="block text-sm font-semibold text-slate-700 hover:text-sky-600 py-1.5 cursor-pointer"
           >
             FAQ
           </a>
