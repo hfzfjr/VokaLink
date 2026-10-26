@@ -393,7 +393,7 @@ schoolsRouter.get(
         let severity: "warning" | "info" | "success" = "info";
 
         if (activeAlert) {
-          statusText = `Drift: ${activeAlert.type.replace(/_/g, " ")}`;
+          statusText = `Drift: ${activeAlert.alertType.replace(/_/g, " ")}`;
           severity = "warning";
         } else if (verifiedJp >= 700) {
           statusText = "Target JP Tuntas";
