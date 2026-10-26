@@ -7,8 +7,8 @@ export function HomeSkeleton() {
   return (
     <div className="w-full flex flex-col lg:flex-row gap-4 sm:gap-5 items-stretch min-h-[840px] animate-in fade-in-0 duration-200">
       {/* ─── 1. CENTER SECTION CANVAS SKELETON ─── */}
-      <section className="flex-1 min-w-0 bg-transparent rounded-none p-0 border-0 shadow-none flex flex-col justify-between space-y-4 lg:space-y-5">
-        <div className="space-y-3.5 sm:space-y-5">
+      <section className="flex-1 min-w-0 bg-transparent rounded-none p-0 border-0 shadow-none flex flex-col justify-between gap-4 lg:gap-5">
+        <div className="flex flex-col gap-3.5 sm:gap-4">
           {/* Mobile Hero Skeleton (< lg) */}
           <div className="block lg:hidden space-y-3 font-sans">
             <div className="flex items-center justify-between text-xs px-1">

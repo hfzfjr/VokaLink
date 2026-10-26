@@ -388,8 +388,8 @@ export default function StudentHomePage() {
           1. CENTER SECTION: WORKSPACE CANVAS (TIMELINE / MATRIX / EVIDENCE)
           Apple Design System HIG: Seamless Mobile Cards, Refined Desktop Canvas
       ───────────────────────────────────────────────────────────────────────────── */}
-      <section className="flex-1 min-w-0 bg-transparent rounded-none p-0 border-0 shadow-none flex flex-col justify-between space-y-4 lg:space-y-5">
-        <div className="space-y-3.5 sm:space-y-5">
+      <section className="flex-1 min-w-0 bg-transparent rounded-none p-0 border-0 shadow-none flex flex-col justify-between gap-4 lg:gap-5">
+        <div className="flex flex-col gap-3.5 sm:gap-4">
           {/* ─── A.1 TAMPILAN KHUSUS MOBILE: HERO, AKSI HARI INI & PRESENSI PEKAN INI (< lg) ─── */}
           <div className="block lg:hidden space-y-3 font-sans">
             {/* Context Pill Siswa & DUDI */}

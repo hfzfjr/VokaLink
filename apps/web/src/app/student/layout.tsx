@@ -31,7 +31,7 @@ export default function StudentLayout({
 
         {/* 4. Main Content Container */}
         <div className="flex-1 min-w-0 flex flex-col print:block print:w-full print:p-0 print:m-0">
-          <main className="flex-1 w-full max-w-[1520px] mx-auto px-3 sm:px-4 lg:px-6 py-3.5 sm:py-5 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:pb-8 print:p-0 print:m-0 print:max-w-none print:w-full">
+          <main className="flex-1 w-full max-w-[1520px] mx-auto px-3 sm:px-4 lg:px-6 py-3.5 md:py-4 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:pb-8 print:p-0 print:m-0 print:max-w-none print:w-full">
             {children}
           </main>
         </div>
