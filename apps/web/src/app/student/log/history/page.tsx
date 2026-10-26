@@ -900,8 +900,8 @@ export default function LogHistoryPage() {
             })}
           </div>
         ) : (
-          /* ─── TAMPILAN B: SQUIRCLE GRID CARDS (COMPACT & SLEEK) ─── */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
+          /* ─── TAMPILAN B: NOTION MINIMALIST BENTO CARDS ─── */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
             {filteredLogs.map((log) => {
               const isVerified = log.status === "VERIFIED";
               const isSickOrPermit = log.attendanceType === "SICK" || log.attendanceType === "PERMIT";
@@ -910,69 +910,70 @@ export default function LogHistoryPage() {
                 <div
                   key={log.id}
                   onClick={() => setSelectedLogDetail(log)}
-                  className="bg-white rounded-xl p-3 sm:p-3.5 border border-slate-200/80 hover:border-slate-300 hover:shadow-xs transition-all duration-150 cursor-pointer flex flex-col justify-between group active:scale-[0.99] shadow-2xs space-y-2"
+                  className="bg-white rounded-2xl p-4 sm:p-4.5 border border-slate-200/70 hover:border-slate-300 hover:shadow-xs transition-all duration-150 cursor-pointer group active:scale-[0.99] flex flex-col justify-between space-y-3.5 relative shadow-2xs"
                 >
-                  <div className="space-y-1.5">
+                  <div className="space-y-2.5">
                     {/* Header */}
-                    <div className="flex items-center justify-between gap-1.5">
-                      <span className="text-[11px] font-semibold text-slate-800 flex items-center gap-1.5">
-                        <Calendar className="w-3 h-3 text-sky-600 shrink-0" />
-                        <span>{formatDateIndo(log.date)}</span>
-                      </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-xs font-medium text-slate-600 flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span>{formatDateIndo(log.date)}</span>
+                        </span>
+                        <span className="text-slate-300">·</span>
+                        <span className="px-1.5 py-0.5 rounded-md bg-slate-100 font-semibold text-[10px] text-slate-700 font-mono">
+                          {log.durationJp} Jam
+                        </span>
+                      </div>
 
                       <span
                         className={cn(
-                          "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-semibold border",
+                          "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-medium border",
                           isVerified
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
-                            : "bg-amber-50 text-amber-700 border-amber-200/80"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
+                            : "bg-amber-50 text-amber-700 border-amber-200/70"
                         )}
                       >
                         {isVerified ? (
                           <>
-                            <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 stroke-[2.5]" />
-                            <span>Terverifikasi</span>
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
+                            <span>Sah</span>
                           </>
                         ) : (
                           <>
-                            <Clock className="w-2.5 h-2.5 text-amber-600" />
+                            <Clock className="w-3 h-3 text-amber-600" />
                             <span>Menunggu PIN</span>
                           </>
                         )}
                       </span>
                     </div>
 
-                    {/* Judul */}
-                    <h3 className="text-xs sm:text-[13px] font-bold text-slate-900 group-hover:text-sky-600 transition-colors leading-snug line-clamp-1">
-                      {log.title}
-                    </h3>
-
-                    {/* Chips Metadata */}
-                    <div className="flex items-center gap-1 flex-wrap">
+                    {/* Chips Metadata (Notion Tag Style) */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       {isSickOrPermit ? (
-                        <span className="text-[9.5px] font-medium text-rose-700 bg-rose-50 border border-rose-200/70 px-2 py-0.2 rounded-full flex items-center gap-1">
-                          <HeartPulse className="w-2.5 h-2.5" />
+                        <span className="text-[10px] font-medium text-rose-700 bg-rose-50 border border-rose-200/70 px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <HeartPulse className="w-3 h-3" />
                           {log.attendanceType === "SICK" ? "Sakit" : "Izin Resmi"}
                         </span>
                       ) : log.isNonCompetency ? (
-                        <span className="text-[9.5px] font-medium text-amber-800 bg-amber-50 border border-amber-200/70 px-2 py-0.2 rounded-full">
+                        <span className="text-[10px] font-medium text-amber-800 bg-amber-50 border border-amber-200/70 px-2 py-0.5 rounded-md">
                           Non-Kejuruan: {log.nonCompetencyCategory || "Operasional"}
                         </span>
                       ) : (
                         <>
                           <span
                             className={cn(
-                              "text-[9.5px] font-medium px-2 py-0.2 rounded-full border",
+                              "text-[10px] font-medium px-2 py-0.5 rounded-md border",
                               log.autonomy === "Mandiri"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
-                                : "bg-sky-50 text-sky-700 border-sky-200/70"
+                                ? "bg-slate-50 text-slate-700 border-slate-200/70"
+                                : "bg-sky-50/60 text-sky-700 border-sky-200/60"
                             )}
                           >
                             {log.autonomy}
                           </span>
 
                           {log.skkniCode && (
-                            <span className="text-[9.5px] font-medium text-slate-600 bg-slate-50 border border-slate-200/70 px-2 py-0.2 rounded-full font-mono">
+                            <span className="text-[10px] font-medium text-slate-600 bg-slate-50 border border-slate-200/70 px-2 py-0.5 rounded-md font-mono">
                               {log.skkniCode}
                             </span>
                           )}
@@ -980,33 +981,26 @@ export default function LogHistoryPage() {
                       )}
 
                       {log.hasPhoto && (
-                        <span className="text-[9.5px] font-medium text-slate-600 bg-slate-50 px-2 py-0.2 rounded-full flex items-center gap-1 border border-slate-200/60">
-                          <ImageIcon className="w-2.5 h-2.5 text-slate-400" />
+                        <span className="text-[10px] font-medium text-slate-600 bg-slate-50 px-2 py-0.5 rounded-md flex items-center gap-1 border border-slate-200/60">
+                          <ImageIcon className="w-3 h-3 text-slate-400" />
                           <span>Foto WebP</span>
                         </span>
                       )}
                     </div>
 
-                    {/* Catatan */}
-                    {log.notes && (
-                      <p className="text-[11px] text-slate-500 line-clamp-1 leading-normal font-normal">
-                        &quot;{log.notes}&quot;
-                      </p>
-                    )}
+                    {/* Judul */}
+                    <h3 className="text-[13.5px] sm:text-sm font-semibold text-slate-900 group-hover:text-sky-600 transition-colors leading-snug line-clamp-2">
+                      {log.title}
+                    </h3>
                   </div>
 
                   {/* Footer */}
-                  <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md text-[10px] font-mono border border-slate-200/50">
-                        {log.durationJp} Jam Kerja
-                      </span>
-                      <span className="text-slate-500 font-normal text-[10.5px] truncate max-w-[120px] flex items-center gap-1">
-                        <UserCheck className="w-3 h-3 text-slate-400" />
-                        {log.mentor}
-                      </span>
-                    </div>
-                    <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-sky-500 group-hover:translate-x-0.5 transition" />
+                  <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+                    <span className="text-slate-500 font-normal text-[11px] truncate max-w-[160px] flex items-center gap-1.5">
+                      <UserCheck className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{log.mentor}</span>
+                    </span>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-sky-500 group-hover:translate-x-0.5 transition" />
                   </div>
                 </div>
               );

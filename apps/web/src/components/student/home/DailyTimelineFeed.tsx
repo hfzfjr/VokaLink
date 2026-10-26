@@ -366,8 +366,8 @@ export function DailyTimelineFeed({
           })}
         </div>
       ) : (
-        /* ─── TAMPILAN B: VISUAL GRID CARDS (COMPACT & SLEEK) ─── */
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-3 animate-in fade-in duration-150">
+        /* ─── TAMPILAN B: NOTION MINIMALIST BENTO CARDS ─── */
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-4 animate-in fade-in duration-150">
           {filteredTasks.map((task) => {
             const isVerified = task.status === "verified";
             const dotColor = getCategoryDotColor(task.categoryColor);
@@ -376,31 +376,26 @@ export function DailyTimelineFeed({
               <div
                 key={task.id}
                 onClick={() => onSelectTask(task)}
-                className={cn(
-                  "p-3 sm:p-3.5 rounded-xl border transition-all duration-150 cursor-pointer group hover:shadow-xs hover:border-slate-300 active:scale-[0.99] relative bg-white flex flex-col justify-between shadow-2xs space-y-2",
-                  isVerified
-                    ? "border-slate-200/80"
-                    : "border-amber-200/80 bg-amber-50/15 hover:border-amber-300"
-                )}
+                className="bg-white rounded-2xl p-4 sm:p-4.5 border border-slate-200/70 hover:border-slate-300 hover:shadow-xs transition-all duration-150 cursor-pointer group active:scale-[0.99] flex flex-col justify-between space-y-3.5 relative shadow-2xs"
               >
-                <div className="space-y-1.5">
-                  {/* Top Row: Date & Duration vs Status / QR PIN Button */}
-                  <div className="flex items-center justify-between gap-1.5">
+                <div className="space-y-2.5">
+                  {/* Header: Date, Duration, and Status / Action */}
+                  <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-800">
-                        <Calendar className="w-3 h-3 text-sky-600 shrink-0" />
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                        <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         <span>{task.date}</span>
                       </span>
-                      <span className="text-slate-300 text-xs">·</span>
-                      <span className="px-1.5 py-0.5 rounded bg-slate-100 font-semibold text-[9.5px] text-slate-700 font-mono">
+                      <span className="text-slate-300">·</span>
+                      <span className="px-1.5 py-0.5 rounded-md bg-slate-100 font-semibold text-[10px] text-slate-700 font-mono">
                         {task.durationJp} Jam
                       </span>
                     </div>
 
                     <div className="shrink-0">
                       {isVerified ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] font-semibold">
-                          <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 stroke-[2.5]" />
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[10.5px] font-medium">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
                           <span>Sah</span>
                         </span>
                       ) : (
@@ -410,61 +405,55 @@ export function DailyTimelineFeed({
                             e.stopPropagation();
                             onOpenQrModal();
                           }}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-[10px] font-semibold shadow-2xs transition cursor-pointer"
-                          title="Buka QR Verifikasi Mentor"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 hover:border-sky-300 active:scale-95 border border-sky-200/80 text-[10.5px] font-semibold transition cursor-pointer shadow-2xs"
+                          title="Tampilkan QR Verifikasi Mentor"
                         >
-                          <QrCode className="w-2.5 h-2.5" />
+                          <QrCode className="w-3 h-3 text-sky-600" />
                           <span>QR PIN</span>
                         </button>
                       )}
                     </div>
                   </div>
 
-                  {/* Kategori Dot + Label */}
-                  <div className="flex items-center gap-1 text-[10.5px] text-slate-500 font-medium">
-                    <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", dotColor)} />
-                    <span className="truncate">{getCategoryShortLabel(task.category)}</span>
+                  {/* Category Pill Tag */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-50 border border-slate-200/60 text-[10.5px] font-medium text-slate-600">
+                      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", dotColor)} />
+                      <span className="truncate">{getCategoryShortLabel(task.category)}</span>
+                    </span>
                   </div>
 
-                  {/* Task Title */}
-                  <h3 className="text-xs sm:text-[13px] font-bold text-slate-900 group-hover:text-sky-600 transition-colors leading-snug line-clamp-1">
+                  {/* Task Title (Prominent & Clear, without redundant quote paragraph) */}
+                  <h3 className="text-[13.5px] sm:text-sm font-semibold text-slate-900 group-hover:text-sky-600 transition-colors leading-snug line-clamp-2">
                     {task.title}
                   </h3>
-
-                  {/* Short Note if exists */}
-                  {task.shortNote && (
-                    <p className="text-[11px] text-slate-500 font-normal line-clamp-1 leading-normal">
-                      &quot;{task.shortNote}&quot;
-                    </p>
-                  )}
                 </div>
 
-                {/* Footer Meta: Autonomy, Mentor / Sync status */}
-                <div className="pt-2 border-t border-slate-100/90 flex items-center justify-between gap-1.5">
+                {/* Footer: Autonomy Pill & Mentor / Sync Trail */}
+                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
                   <span
                     className={cn(
-                      "text-[9.5px] font-semibold px-2 py-0.5 rounded-full border",
+                      "text-[10px] font-medium px-2 py-0.5 rounded-md border",
                       task.autonomyLabel === "Mandiri"
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
-                        : "bg-sky-50 text-sky-700 border-sky-200/70"
+                        ? "bg-slate-50 text-slate-700 border-slate-200/70"
+                        : "bg-sky-50/60 text-sky-700 border-sky-200/60"
                     )}
                   >
                     {task.autonomyLabel}
                   </span>
 
-                  <div className="flex items-center gap-1 text-[10px] text-slate-400 ml-auto">
+                  <div className="flex items-center gap-1 text-[11px] text-slate-400 ml-auto">
                     {isVerified ? (
                       <span className="flex items-center gap-1 text-slate-600 font-medium">
-                        <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                        <span className="hidden sm:inline">Disahkan</span>
-                        <span className="truncate max-w-[90px]">{task.mentorSignature || "Mentor"}</span>
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="truncate max-w-[100px]">{task.mentorSignature || "Mentor"}</span>
                       </span>
                     ) : (
-                      <span className="text-amber-700 font-medium text-[10px]">
-                        {task.submittedAt || "Tersimpan offline"}
+                      <span className="text-amber-700/90 font-medium text-[10.5px]">
+                        Menunggu Validasi
                       </span>
                     )}
-                    <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-sky-500 group-hover:translate-x-0.5 transition" />
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-sky-500 group-hover:translate-x-0.5 transition" />
                   </div>
                 </div>
               </div>
