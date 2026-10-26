@@ -1147,6 +1147,7 @@ export async function fetchTeacherHeatmap(params?: {
   departmentId?: string;
   dudiId?: string;
   driftOnly?: boolean;
+  token?: string;
 }): Promise<HeatmapResponse> {
   const query = new URLSearchParams();
   if (params?.departmentId) query.set("departmentId", params.departmentId);
@@ -1156,9 +1157,14 @@ export async function fetchTeacherHeatmap(params?: {
   const qs = query.toString();
   const url = `${API_BASE_URL}/teachers/heatmap${qs ? `?${qs}` : ""}`;
 
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (params?.token) {
+    headers["Authorization"] = `Bearer ${params.token}`;
+  }
+
   const res = await fetch(url, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers,
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json.detail || "Gagal memuat matriks heatmap kompetensi");

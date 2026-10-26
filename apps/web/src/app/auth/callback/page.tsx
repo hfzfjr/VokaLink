@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Loader2, AlertCircle } from "lucide-react";
+import { useAuth } from "@/lib/use-auth";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
+  const { setSession } = useAuth();
   const [statusMessage, setStatusMessage] = useState("Menghubungkan akun Google ke VokaLink...");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -78,7 +80,11 @@ export default function AuthCallbackPage() {
         }
 
         const json = await res.json();
-        const role = json?.data?.role;
+        const verifiedUser = json?.data;
+        const role = verifiedUser?.role;
+
+        // Simpan sesi ke AuthContext & cookies
+        setSession(token, verifiedUser);
 
         if (!isMounted) return;
         setStatusMessage("Verifikasi berhasil! Mengalihkan ke ruang kerja...");

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import Navbar, { NavbarButton } from "@/components/layout/Navbar";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/use-auth";
 
 function GoogleIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
@@ -46,6 +47,7 @@ function GoogleIcon({ className = "w-5 h-5" }: { className?: string }) {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { setSession, loginWithIdentifier, isAuthenticated, role: userRole } = useAuth();
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -54,6 +56,19 @@ function LoginForm() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [unlinkedEmail, setUnlinkedEmail] = useState<string | null>(null);
+
+  // Jika sudah login, redirect otomatis ke dashboard yang sesuai
+  useEffect(() => {
+    if (isAuthenticated && userRole) {
+      if (userRole === "SCHOOL_ADMIN") {
+        router.replace("/school/dashboard");
+      } else if (userRole === "TEACHER") {
+        router.replace("/teacher/heatmap");
+      } else if (userRole === "STUDENT") {
+        router.replace("/student/home");
+      }
+    }
+  }, [isAuthenticated, userRole, router]);
 
   useEffect(() => {
     const errorParam = searchParams.get("error");
@@ -148,7 +163,18 @@ function LoginForm() {
         }
 
         const json = await res.json();
-        const role = json?.data?.role;
+        const profileData = json?.data;
+        const role = profileData?.role;
+
+        // Simpan sesi ke AuthContext & cookies
+        setSession(authData.session.access_token, profileData);
+
+        const fromParam = searchParams.get("from");
+        if (fromParam && fromParam.startsWith("/")) {
+          router.push(fromParam);
+          return;
+        }
+
         if (role === "SCHOOL_ADMIN") {
           router.push("/school/dashboard");
         } else if (role === "TEACHER") {
@@ -161,25 +187,20 @@ function LoginForm() {
         return;
       }
 
-      // 2. Jika identifier adalah NISN atau NIP Resmi, validasi ke server VokaLink
-      const res = await fetch(`${apiUrl}/auth/login-identifier`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          identifier: identifier.trim(),
-          password,
-        }),
-      });
+      // 2. Jika identifier adalah NISN atau NIP Resmi, validasi via loginWithIdentifier
+      const result = await loginWithIdentifier(identifier.trim(), password);
 
-      const json = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        throw new Error(json.detail || json.title || "Kredensial tidak valid.");
+      if (!result.success) {
+        throw new Error(result.error || "Kredensial tidak valid.");
       }
 
-      const role = json?.data?.role;
+      const role = result.role;
+      const fromParam = searchParams.get("from");
+      if (fromParam && fromParam.startsWith("/")) {
+        router.push(fromParam);
+        return;
+      }
+
       if (role === "STUDENT") {
         router.push("/student/home");
       } else if (role === "TEACHER") {

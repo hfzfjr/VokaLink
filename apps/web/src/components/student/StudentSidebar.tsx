@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/lib/use-auth";
 import {
   Home,
   PlusCircle,
@@ -76,7 +77,9 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export function StudentSidebar() {
+  const router = useRouter();
   const pathname = usePathname();
+  const { logout } = useAuth();
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [activeTab, setActiveTab] = useState<"profile" | "privacy" | "offline">("profile");
@@ -427,11 +430,16 @@ export function StudentSidebar() {
           </button>
 
           {/* Exit / Back to Portal Home */}
-          <Link
-            href="/"
-            onClick={handleItemClick}
-            title="Keluar ke Portal Utama"
-            aria-label="Keluar ke Portal Utama"
+          {/* Exit / Logout to Login Page */}
+          <button
+            type="button"
+            onClick={async () => {
+              handleItemClick();
+              await logout();
+              router.push("/login");
+            }}
+            title="Keluar dari Akun Siswa"
+            aria-label="Keluar dari Akun Siswa"
             className="w-full h-12 rounded-2xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center overflow-hidden transition-colors duration-150 cursor-pointer group text-left"
           >
             <div className="w-12 h-12 shrink-0 flex items-center justify-center">
@@ -444,13 +452,13 @@ export function StudentSidebar() {
               )}
             >
               <p className="text-xs font-semibold text-rose-600 truncate leading-tight whitespace-nowrap">
-                Keluar Portal
+                Keluar Akun
               </p>
               <p className="text-[10px] text-slate-400 truncate leading-tight mt-0.5 whitespace-nowrap">
-                Kembali ke Beranda
+                Halaman Masuk
               </p>
             </div>
-          </Link>
+          </button>
         </div>
       </aside>
 
