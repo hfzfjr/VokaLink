@@ -492,7 +492,7 @@ async function handleGetHeatmap(req: Request, res: Response, next: NextFunction)
     // Cek koneksi basis data
     let isDbAvailable = false;
     try {
-      if (process.env.DATABASE_URL) {
+      if (process.env.DATABASE_URL && process.env.NODE_ENV !== "test") {
         await prisma.$queryRaw`SELECT 1`;
         isDbAvailable = true;
       }
@@ -760,7 +760,7 @@ teachersRouter.get(
       // Cek apakah database tersedia
       let isDbAvailable = false;
       try {
-        if (process.env.DATABASE_URL) {
+        if (process.env.DATABASE_URL && process.env.NODE_ENV !== "test") {
           await prisma.$queryRaw`SELECT 1`;
           isDbAvailable = true;
         }
@@ -864,7 +864,7 @@ teachersRouter.get(
     try {
       let isDbAvailable = false;
       try {
-        if (process.env.DATABASE_URL) {
+        if (process.env.DATABASE_URL && process.env.NODE_ENV !== "test") {
           await prisma.$queryRaw`SELECT 1`;
           isDbAvailable = true;
         }
@@ -945,7 +945,7 @@ teachersRouter.patch(
 
       let isDbAvailable = false;
       try {
-        if (process.env.DATABASE_URL) {
+        if (process.env.DATABASE_URL && process.env.NODE_ENV !== "test") {
           await prisma.$queryRaw`SELECT 1`;
           isDbAvailable = true;
         }
