@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   ShieldCheck,
   Flame,
-  Layers,
   LogIn,
   KeyRound,
   Sparkles,
@@ -16,12 +15,7 @@ import {
   EyeOff,
   User,
   Loader2,
-  CheckCircle2,
-  TrendingUp,
   FileText,
-  School,
-  Building2,
-  Users,
 } from "lucide-react";
 import Navbar, { NavbarButton } from "@/components/layout/Navbar";
 import { supabase } from "@/lib/supabase";
@@ -204,116 +198,85 @@ function LoginForm() {
   };
 
   return (
-    <main className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-stretch">
-      {/* SECTION KIRI: Banner Ilustrasi Grafis Fitur VokaLink */}
-      <section className="lg:col-span-7 rounded-3xl bg-linear-to-br from-slate-950 via-slate-900 to-indigo-950 text-white p-7 sm:p-10 border border-slate-800/80 shadow-2xl flex flex-col justify-between relative overflow-hidden">
-        {/* Ambient Glow Decorative Elements */}
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-sky-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+    <main className="max-w-md lg:max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12 flex-1 flex flex-col justify-center">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-stretch w-full">
+        {/* SECTION KIRI: Banner Grafis Fitur VokaLink (Hanya tampil di Desktop lg:flex, disembunyikan di Mobile) */}
+        <section className="hidden lg:flex lg:col-span-7 rounded-3xl bg-slate-900 text-white p-8 sm:p-10 border border-slate-800 shadow-xl flex-col justify-between relative overflow-hidden">
+          {/* Ambient Glow */}
+          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-72 h-72 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Top Header Badge & Tagline */}
-        <div className="relative z-10 space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/10 border border-sky-400/20 text-sky-300 text-xs font-semibold tracking-wide backdrop-blur-xs">
-            <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-            <span>Ekosistem PKL Terintegrasi SKKNI</span>
+          {/* Header & Tagline */}
+          <div className="relative z-10 space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-400/20 text-sky-400 text-xs font-semibold">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Ekosistem PKL SMK Berbasis SKKNI</span>
+            </div>
+
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-snug">
+              Otomasi Logbook, Evaluasi Kompetensi & Paspor Digital.
+            </h2>
+
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              Satu ekosistem terpadu untuk menghubungkan siswa vokasi, guru pembimbing, dan mentor industri secara transparan dan tervalidasi.
+            </p>
           </div>
 
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight">
-            Transparansi Nyata, Bukti Kerja Terverifikasi Kriptografi.
-          </h2>
-
-          <p className="text-sm text-slate-300 leading-relaxed max-w-xl">
-            VokaLink menghubungkan Sekolah Vokasi, Siswa Praktik, dan Mitra Industri dalam satu platform cerdas: bebas manipulasi, tanpa login rumit untuk mentor, dan siap menghasilkan portofolio standar industri.
-          </p>
-        </div>
-
-        {/* Middle: Feature Highlights (Interactive Look Cards) */}
-        <div className="relative z-10 my-8 space-y-3.5">
-          {/* Feature 1: Live Heatmap & Drift Detection */}
-          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-start gap-4 transition hover:bg-white/[0.08]">
-            <div className="p-2.5 rounded-xl bg-sky-500/20 text-sky-400 shrink-0 mt-0.5">
-              <Flame className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm text-white">Live Heatmap & Deteksi Drift Otomatis</h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                  Real-Time
-                </span>
+          {/* Feature Highlights (High Contrast Modern Micro-Cards) */}
+          <div className="relative z-10 my-6 space-y-3">
+            {/* Feature 1 */}
+            <div className="p-3.5 rounded-2xl bg-slate-800/70 border border-slate-700/60 flex items-start gap-3.5">
+              <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-400 shrink-0 mt-0.5 border border-emerald-500/20">
+                <Flame className="w-4 h-4" />
               </div>
-              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                Guru pembimbing memantau ketercapaian 792 JP dan mendeteksi deviasi penugasan non-kompetensi (mis. admin umum berlebih) sebelum terlambat.
-              </p>
-            </div>
-          </div>
-
-          {/* Feature 2: Zero-Login Mentor Verification */}
-          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-start gap-4 transition hover:bg-white/[0.08]">
-            <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 shrink-0 mt-0.5">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm text-white">Zero-Login Industry Verification</h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
-                  &lt; 10 Detik
-                </span>
+              <div className="space-y-0.5">
+                <h3 className="font-bold text-xs sm:text-sm text-white">Live Heatmap & Deteksi Drift</h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Guru memantau pencapaian 792 JP dan mendeteksi anomali penugasan non-kompetensi secara instan.
+                </p>
               </div>
-              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                Mentor industri memvalidasi logbook siswa secara aman lewat tautan sekali pakai, device token terikat, dan PIN tanpa perlu membuat akun baru.
-              </p>
             </div>
-          </div>
 
-          {/* Feature 3: Paspor Keterampilan & CV ATS */}
-          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-start gap-4 transition hover:bg-white/[0.08]">
-            <div className="p-2.5 rounded-xl bg-indigo-500/20 text-indigo-400 shrink-0 mt-0.5">
-              <FileText className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm text-white">Paspor Kompetensi & e-Rapor Siap Kerja</h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
-                  HMAC-SHA256
-                </span>
+            {/* Feature 2 */}
+            <div className="p-3.5 rounded-2xl bg-slate-800/70 border border-slate-700/60 flex items-start gap-3.5">
+              <div className="p-2 rounded-xl bg-amber-500/15 text-amber-400 shrink-0 mt-0.5 border border-amber-500/20">
+                <ShieldCheck className="w-4 h-4" />
               </div>
-              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                Logbook tervalidasi otomatis bertransformasi menjadi resume ATS ramah rekruter dan halaman publik ber-QR resmi yang diaudit perusahaan.
-              </p>
+              <div className="space-y-0.5">
+                <h3 className="font-bold text-xs sm:text-sm text-white">Verifikasi Mentor Zero-Login</h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Mentor industri menyetujui logbook dalam &lt;10 detik via tautan terenkripsi, token perangkat, dan PIN.
+                </p>
+              </div>
+            </div>
+
+            {/* Feature 3 */}
+            <div className="p-3.5 rounded-2xl bg-slate-800/70 border border-slate-700/60 flex items-start gap-3.5">
+              <div className="p-2 rounded-xl bg-sky-500/15 text-sky-400 shrink-0 mt-0.5 border border-sky-500/20">
+                <FileText className="w-4 h-4" />
+              </div>
+              <div className="space-y-0.5">
+                <h3 className="font-bold text-xs sm:text-sm text-white">Paspor Kompetensi & CV ATS</h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Rekap kegiatan tervalidasi otomatis bertransformasi menjadi resume standar industri ber-QR resmi.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Bottom Statistics Ribbon */}
-        <div className="relative z-10 pt-5 border-t border-white/10 grid grid-cols-3 gap-4 text-center">
-          <div className="space-y-1">
-            <div className="flex items-center justify-center gap-1.5 text-sky-400">
-              <School className="w-4 h-4" />
-              <span className="text-base sm:text-lg font-black text-white">3 SMK</span>
+          {/* Bottom Security Assurance Note */}
+          <div className="relative z-10 pt-4 border-t border-slate-800 flex items-center gap-3">
+            <div className="w-7 h-7 rounded-full bg-sky-500/10 border border-sky-400/20 flex items-center justify-center text-sky-400 shrink-0">
+              <ShieldCheck className="w-3.5 h-3.5" />
             </div>
-            <p className="text-[11px] text-slate-400">Medan, Bandung, Jakarta</p>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              Integritas data terjamin dengan segel kriptografi HMAC-SHA256 sesuai standar kurikulum vokasi nasional.
+            </p>
           </div>
+        </section>
 
-          <div className="space-y-1 border-x border-white/10">
-            <div className="flex items-center justify-center gap-1.5 text-emerald-400">
-              <Users className="w-4 h-4" />
-              <span className="text-base sm:text-lg font-black text-white">300 Siswa</span>
-            </div>
-            <p className="text-[11px] text-slate-400">100 Siswa per Sekolah</p>
-          </div>
-
-          <div className="space-y-1">
-            <div className="flex items-center justify-center gap-1.5 text-amber-400">
-              <Building2 className="w-4 h-4" />
-              <span className="text-base sm:text-lg font-black text-white">18 DUDI</span>
-            </div>
-            <p className="text-[11px] text-slate-400">Mitra Industri Aktif</p>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION KANAN: Formulir Login Autentikasi Terpadu */}
-      <section className="lg:col-span-5 bg-white p-7 sm:p-9 rounded-3xl border border-slate-200/90 shadow-xl flex flex-col justify-between space-y-6">
+        {/* SECTION KANAN: Formulir Login Autentikasi Terpadu */}
+        <section className="w-full lg:col-span-5 bg-white p-7 sm:p-9 rounded-3xl border border-slate-200/90 shadow-xl flex flex-col justify-between space-y-6">
         <div>
           <span className="text-[11px] font-extrabold uppercase tracking-wider text-sky-600 bg-sky-50 px-3 py-1 rounded-full border border-sky-100 inline-block mb-2.5">
             Autentikasi Terpadu
@@ -472,7 +435,8 @@ function LoginForm() {
           </Link>
         </div>
       </section>
-    </main>
+    </div>
+  </main>
   );
 }
 
