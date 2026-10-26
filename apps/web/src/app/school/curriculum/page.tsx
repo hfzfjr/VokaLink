@@ -28,25 +28,24 @@ import {
   lockCurriculum,
   addJobCard,
   deleteJobCard,
-  fetchDemoSandboxData,
+  fetchCurrentSchool,
   type CurriculumData,
 } from "@/lib/api";
+import { useAuth } from "@/lib/use-auth";
 
-// Fallback seed departments jika offline atau demo
-const DEFAULT_DEPARTMENTS = [
-  { id: "dept-rpl", sectorCode: "RPL", name: "Rekayasa Perangkat Lunak" },
-  { id: "dept-akl", sectorCode: "AKL", name: "Akuntansi dan Keuangan Lembaga" },
-  { id: "dept-dkv", sectorCode: "DKV", name: "Desain Komunikasi Visual" },
-  { id: "dept-kuliner", sectorCode: "KULINER", name: "Kuliner" },
-  { id: "dept-farmasi", sectorCode: "FARMASI", name: "Farmasi Klinis dan Komunitas" },
-  { id: "dept-otomotif", sectorCode: "OTOMOTIF", name: "Teknik Kendaraan Ringan Otomotif" },
-];
+interface SchoolDepartmentSummary {
+  id: string;
+  sectorCode: string;
+  name: string;
+}
 
 export default function SchoolCurriculumPage() {
-  const [departments, setDepartments] = useState(DEFAULT_DEPARTMENTS);
-  const [selectedDeptId, setSelectedDeptId] = useState<string>("dept-rpl");
-  const [schoolId, setSchoolId] = useState<string>("00000000-0000-0000-0000-000000000002");
-  const [token] = useState<string>("mock-token");
+  const { token, user } = useAuth();
+  const [departments, setDepartments] = useState<SchoolDepartmentSummary[]>([]);
+  const [selectedDeptId, setSelectedDeptId] = useState<string>("");
+  const [schoolId, setSchoolId] = useState<string>(
+    user?.school?.id || "00000000-0000-0000-0000-000000000002"
+  );
 
   // State data kurikulum aktif
   const [curriculum, setCurriculum] = useState<CurriculumData | null>(null);
@@ -83,25 +82,42 @@ export default function SchoolCurriculumPage() {
     };
   }, []);
 
-  // Inisialisasi data sekolah & token dari session/demo
+  // Update schoolId jika user profile berubah
   useEffect(() => {
+    if (user?.school?.id) {
+      setSchoolId(user.school.id);
+    }
+  }, [user]);
+
+  // Inisialisasi daftar jurusan sekolah dari database via API
+  useEffect(() => {
+    let isMounted = true;
     async function initSchool() {
+      if (!token) return;
       try {
-        const demo = await fetchDemoSandboxData();
-        if (demo && demo.school && demo.departments?.length > 0) {
-          setSchoolId(demo.school.id);
-          setDepartments(demo.departments);
-          setSelectedDeptId(demo.departments[0]?.id || "dept-rpl");
+        const schoolData = await fetchCurrentSchool(token);
+        if (schoolData && schoolData.departments?.length > 0 && isMounted) {
+          if (schoolData.school?.id) {
+            setSchoolId(schoolData.school.id);
+          }
+          setDepartments(schoolData.departments);
+          setSelectedDeptId((prev) => prev || schoolData.departments[0]?.id || "");
         }
-      } catch {
-        // Fallback default mock
+      } catch (err: any) {
+        if (isMounted) {
+          setErrorMsg(err.message || "Gagal memuat data jurusan sekolah");
+        }
       }
     }
     initSchool();
-  }, []);
+    return () => {
+      isMounted = false;
+    };
+  }, [token]);
 
   // Muat matriks kurikulum untuk jurusan yang dipilih
   const loadCurriculum = async () => {
+    if (!selectedDeptId || !token) return;
     setLoading(true);
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -114,129 +130,20 @@ export default function SchoolCurriculumPage() {
       });
       setEditedJpMap(initialMap);
     } catch (err: any) {
-      console.warn("API call failed, fallback to mock data:", err);
-      // Mock data jika API server lokal belum menyala
-      mockFallbackCurriculum();
+      setCurriculum(null);
+      setErrorMsg(err.message || "Gagal memuat kurikulum dari server");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadCurriculum();
-  }, [selectedDeptId, schoolId]);
+    if (selectedDeptId && token) {
+      loadCurriculum();
+    }
+  }, [selectedDeptId, schoolId, token]);
 
-  // Fallback mock jika offline atau dev mode
-  function mockFallbackCurriculum() {
-    const curDept = departments.find((d) => d.id === selectedDeptId) || departments[0]!;
-    const mockData: CurriculumData = {
-      department: {
-        id: curDept.id,
-        sectorCode: curDept.sectorCode,
-        name: curDept.name,
-        isLocked: false,
-      },
-      activePeriod: {
-        name: "PKL Semester Genap 2025/2026",
-        targetTotalJp: 792,
-      },
-      currentTotalJp: 792,
-      jpDelta: 0,
-      elements: [
-        {
-          id: "el-1",
-          code: `${curDept.sectorCode}-CP-01`,
-          title: "Analisis & Perencanaan Teknis Operasional",
-          targetJp: 216,
-          sortOrder: 1,
-          jobCards: [
-            {
-              id: "jc-1",
-              title: "Identifikasi Kebutuhan Proyek Kerja Industri",
-              skkniUnitCode: "M.701001.001.01",
-              toolsAndSoftware: ["Notion", "Google Docs"],
-              actionVerbTemplate: "Mengidentifikasi",
-              isNonCompetency: false,
-            },
-            {
-              id: "jc-2",
-              title: "Penyusunan Jadwal & Spesifikasi Teknis",
-              skkniUnitCode: "M.701001.002.01",
-              toolsAndSoftware: ["Trello", "Spreadsheet"],
-              actionVerbTemplate: "Menyusun",
-              isNonCompetency: false,
-            },
-          ],
-        },
-        {
-          id: "el-2",
-          code: `${curDept.sectorCode}-CP-02`,
-          title: "Pelaksanaan Teknis & Standard Operating Procedure (SOP)",
-          targetJp: 288,
-          sortOrder: 2,
-          jobCards: [
-            {
-              id: "jc-3",
-              title: "Implementasi Solusi Teknis Lapangan",
-              skkniUnitCode: "M.701001.003.01",
-              toolsAndSoftware: ["Toolkit Standar", "Workstation"],
-              actionVerbTemplate: "Melaksanakan",
-              isNonCompetency: false,
-            },
-            {
-              id: "jc-4",
-              title: "Troubleshooting & Penanganan Masalah Sistem",
-              skkniUnitCode: "M.701001.004.01",
-              toolsAndSoftware: ["Diagnostic Tool"],
-              actionVerbTemplate: "Mendiagnosis",
-              isNonCompetency: false,
-            },
-          ],
-        },
-        {
-          id: "el-3",
-          code: `${curDept.sectorCode}-CP-03`,
-          title: "Pengujian Kualitas, Verifikasi & Dokumentasi",
-          targetJp: 288,
-          sortOrder: 3,
-          jobCards: [
-            {
-              id: "jc-5",
-              title: "Quality Control & Validasi Hasil Kerja",
-              skkniUnitCode: "M.701001.005.01",
-              toolsAndSoftware: ["Checklist QC", "Laporan"],
-              actionVerbTemplate: "Memverifikasi",
-              isNonCompetency: false,
-            },
-            {
-              id: "jc-6",
-              title: "Dokumentasi Manual Operasional & Berita Acara",
-              skkniUnitCode: "M.701001.006.01",
-              toolsAndSoftware: ["PDF Writer", "Scanner"],
-              actionVerbTemplate: "Mendokumentasikan",
-              isNonCompetency: false,
-            },
-          ],
-        },
-      ],
-      nonCompetencyCards: [
-        {
-          id: "jc-non-1",
-          title: "Bantuan Operasional Umum & Logistik Kantor",
-          skkniUnitCode: null,
-          toolsAndSoftware: ["Alat Kantor", "Fasilitas Kerja"],
-          actionVerbTemplate: "Membantu",
-          isNonCompetency: true,
-        },
-      ],
-    };
-    setCurriculum(mockData);
-    const initialMap: Record<string, number> = {};
-    mockData.elements.forEach((el) => {
-      initialMap[el.id] = el.targetJp;
-    });
-    setEditedJpMap(initialMap);
-  }
+
 
   // Hitung total alokasi JP dari input slider saat ini
   const currentCalculatedJp = useMemo(() => {
@@ -275,6 +182,10 @@ export default function SchoolCurriculumPage() {
 
   // Simpan perubahan JP
   const handleSaveJp = async () => {
+    if (!token) {
+      setErrorMsg("Sesi login tidak valid. Silakan login kembali.");
+      return;
+    }
     if (!curriculum) return;
     if (!isJpMatching) {
       setErrorMsg(
@@ -317,6 +228,10 @@ export default function SchoolCurriculumPage() {
 
   // Kunci Matriks Kurikulum
   const handleLockCurriculum = async () => {
+    if (!token) {
+      setErrorMsg("Sesi login tidak valid. Silakan login kembali.");
+      return;
+    }
     if (!curriculum) return;
 
     if (!isJpMatching) {
@@ -363,6 +278,10 @@ export default function SchoolCurriculumPage() {
   // Tambah Job Card baru
   const handleAddJobCardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!token) {
+      setErrorMsg("Sesi login tidak valid. Silakan login kembali.");
+      return;
+    }
     if (!newJcTitle.trim()) return;
 
     if (newJcTitle.length > 60) {
@@ -410,6 +329,10 @@ export default function SchoolCurriculumPage() {
 
   // Hapus Job Card
   const handleDeleteJobCard = async (jcId: string, jcTitle: string) => {
+    if (!token) {
+      setErrorMsg("Sesi login tidak valid. Silakan login kembali.");
+      return;
+    }
     if (curriculum?.department.isLocked) return;
     const confirmDelete = window.confirm(`Hapus Job Card "${jcTitle}"?`);
     if (!confirmDelete) return;
