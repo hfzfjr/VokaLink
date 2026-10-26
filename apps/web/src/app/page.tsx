@@ -160,7 +160,7 @@ export default function Home() {
   const currentMajor: MajorDetail = MAJORS_DATA[activeMajor] ?? DEFAULT_MAJOR;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFD] text-[#0F172A] font-sans selection:bg-sky-500 selection:text-white">
+    <div className="min-h-screen bg-canvas text-content-primary font-sans selection:bg-sky-500 selection:text-white">
       {/* 1. STICKY NAVBAR */}
       <LandingNavbar onScheduleDemo={() => setDemoModalOpen(true)} />
 
@@ -908,7 +908,7 @@ export default function Home() {
 
       {/* 10. CTA BANNER SECTION (Pastel Clean, Welcoming, Zero Dark) */}
       <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-[#EFF6FF]/90 border border-sky-100 rounded-[36px] p-8 sm:p-14 text-slate-800 relative overflow-hidden shadow-[0_12px_40px_-10px_rgba(14,165,233,0.12)]">
+        <div className="bg-sky-50/90 border border-sky-100 rounded-[36px] p-8 sm:p-14 text-slate-800 relative overflow-hidden shadow-soft">
           <div className="relative z-10 max-w-3xl">
             <p className="text-xs font-bold text-sky-700 uppercase tracking-widest mb-3">
               Konsultasi & Simulasi Gratis untuk SMK

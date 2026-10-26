@@ -217,7 +217,7 @@ export function AppShell({
         )}
 
         {/* 4. MAIN WORKSPACE AREA */}
-        <div className="flex-1 flex flex-col min-w-0 bg-[#F8FAFD]">
+        <div className="flex-1 flex flex-col min-w-0 bg-canvas">
           {/* Top Bar Responsif (Mobile Header + Desktop Breadcrumb Bar) */}
           <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
