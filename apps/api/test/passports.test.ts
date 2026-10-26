@@ -140,6 +140,7 @@ const { mockPrisma } = vi.hoisted(() => {
     },
     skillPassport: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       upsert: vi.fn(),
     },
   };

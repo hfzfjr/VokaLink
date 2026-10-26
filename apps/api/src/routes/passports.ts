@@ -375,7 +375,7 @@ passportsRouter.get(
         include: passportLookupInclude.include,
       });
 
-      if (!passport) {
+      if (!passport && typeof (prisma.skillPassport as any)?.findFirst === "function") {
         passport = await prisma.skillPassport.findFirst({
           where: {
             OR: [
