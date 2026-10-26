@@ -129,6 +129,7 @@ passportsRouter.get(
           fullName: student.fullName,
           identityNumber: student.identityNumber,
           whatsappNumber: student.whatsappNumber,
+          email: student.email || undefined,
           departmentName: student.schoolDepartment?.name || "Rekayasa Perangkat Lunak",
           schoolName: student.school.name,
           schoolAddress: `${student.school.city}, ${student.school.province}`,
@@ -369,10 +370,22 @@ passportsRouter.get(
         return;
       }
 
-      const passport: PassportWithDetails | null = await prisma.skillPassport.findUnique({
+      let passport: PassportWithDetails | null = await prisma.skillPassport.findUnique({
         where: { passportSlug: slugParam },
         include: passportLookupInclude.include,
       });
+
+      if (!passport && typeof (prisma.skillPassport as any)?.findFirst === "function") {
+        passport = await prisma.skillPassport.findFirst({
+          where: {
+            OR: [
+              { passportSlug: { startsWith: slugParam } },
+              { passportSlug: { contains: slugParam } },
+            ],
+          },
+          include: passportLookupInclude.include,
+        });
+      }
 
       if (!passport || passport.revokedAt !== null) {
         next(

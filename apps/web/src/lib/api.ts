@@ -787,6 +787,7 @@ export interface StudentCvResponse {
     fullName: string;
     identityNumber: string;
     whatsappNumber?: string;
+    email?: string;
     departmentName: string;
     schoolName: string;
     schoolAddress?: string;

@@ -200,9 +200,9 @@ export default function CareerCvPage() {
           setCustomDepartment(p.departmentName || data.student.departmentName || "Rekayasa Perangkat Lunak (RPL)");
           setCustomSchoolName(p.schoolName || data.student.schoolName || "SMK Demo VokaLink");
           setCustomNisn(p.nisn || data.student.identityNumber || "0078901234");
-          setCustomEmail(p.email || "andi.pratama@smk.sch.id");
+          setCustomEmail(p.email || data.student.email || user?.email || "andipratama@smktelkom1medan.sch.id");
           setCustomPhone(p.phone || data.student.whatsappNumber || "081234567890");
-          setCustomAddress(p.address || data.student.schoolAddress || "Surabaya, Jawa Timur");
+          setCustomAddress(p.address || data.student.schoolAddress || "Medan, Sumatera Utara");
           setCustomPortfolio(p.portfolio || "github.com/andipratama");
           if (p.bioSummary) setBioSummary(p.bioSummary);
           if (Array.isArray(p.experiences) && p.experiences.length > 0) setCustomExperiences(p.experiences);
@@ -228,11 +228,11 @@ export default function CareerCvPage() {
     // Default Fallbacks
     setCustomFullName(data.student.fullName || "Andi Pratama");
     setCustomDepartment(data.student.departmentName || "Rekayasa Perangkat Lunak (RPL)");
-    setCustomSchoolName(data.student.schoolName || "SMK Demo VokaLink");
+    setCustomSchoolName(data.student.schoolName || "SMK Telkom 1 Medan");
     setCustomNisn(data.student.identityNumber || "0078901234");
-    setCustomEmail("andi.pratama@smk.sch.id");
+    setCustomEmail(data.student.email || user?.email || "andipratama@smktelkom1medan.sch.id");
     setCustomPhone(data.student.whatsappNumber || "081234567890");
-    setCustomAddress(data.student.schoolAddress || "Surabaya, Jawa Timur");
+    setCustomAddress(data.student.schoolAddress || "Medan, Sumatera Utara");
     setCustomPortfolio("github.com/andipratama");
     setCustomExperiences(defaultExps);
     setCustomEducations(DEFAULT_EDUCATIONS);
