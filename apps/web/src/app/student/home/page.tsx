@@ -756,25 +756,6 @@ export default function StudentHomePage() {
 
           {viewMode === "evidence" && <EvidenceGalleryView />}
         </div>
-
-        {/* ─── E. FOOTER QUICK ACTION & STATUS BAR ─── */}
-        <div className="pt-4 border-t border-slate-200/70 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 font-normal">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="text-[11px]">Dexie IndexedDB Aktif · Bekerja 100% Offline</span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link
-              href="/verify/andi-pratama-rpl-2026"
-              target="_blank"
-              className="text-slate-600 hover:text-sky-600 font-semibold text-xs flex items-center gap-1 transition"
-            >
-              <span>Paspor Kompetensi</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        </div>
       </section>
 
       {/* ─────────────────────────────────────────────────────────────────────────────

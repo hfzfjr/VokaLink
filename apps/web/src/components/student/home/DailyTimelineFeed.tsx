@@ -15,8 +15,6 @@ import {
   Inbox,
   LayoutList,
   LayoutGrid,
-  History,
-  ArrowUpRight,
   CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -656,25 +654,6 @@ export function DailyTimelineFeed({
           )}
         </div>
       )}
-
-      {/* ─── Shortcut Card ke Arsip Lengkap Riwayat Jurnal ─── */}
-      <div className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
-        <div className="flex items-center gap-2.5 text-slate-600 min-w-0">
-          <div className="w-7 h-7 rounded-lg bg-sky-100/80 text-sky-700 flex items-center justify-center shrink-0">
-            <History className="w-3.5 h-3.5" />
-          </div>
-          <span className="truncate">
-            Mencari rekaman jurnal lengkap masa lalu atau ekspor dokumen nilai e-Rapor?
-          </span>
-        </div>
-        <Link
-          href="/student/log/history"
-          className="inline-flex items-center gap-1 font-semibold text-sky-600 hover:text-sky-700 hover:underline shrink-0 text-xs transition"
-        >
-          <span>Buka Riwayat Lengkap</span>
-          <ArrowUpRight className="w-3.5 h-3.5" />
-        </Link>
-      </div>
     </div>
   );
 }
