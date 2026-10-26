@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   CheckCircle2,
@@ -11,9 +11,13 @@ import {
   ShieldCheck,
   Calendar,
   ChevronRight,
+  ChevronLeft,
   Inbox,
   LayoutList,
   LayoutGrid,
+  History,
+  ArrowUpRight,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { type KanbanTask, getCategoryDotColor, getCategoryShortLabel } from "./types";
@@ -60,10 +64,34 @@ export function DailyTimelineFeed({
   onOpenQrModal,
 }: DailyTimelineFeedProps) {
   const [statusFilter, setStatusFilter] = useState<"ALL" | "IN_REVIEW" | "VERIFIED">("ALL");
+  const [monthFilter, setMonthFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [feedLayout, setFeedLayout] = useState<"GRID" | "LIST">("GRID");
+  const [pageSize, setPageSize] = useState<number>(6);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Filter tasks based on status and search query
+  // Ekstrak daftar bulan yang tersedia dari data jurnal
+  const availableMonths = useMemo(() => {
+    const map = new Map<string, string>();
+    tasks.forEach((t) => {
+      if (t.isoDate && t.isoDate.length >= 7) {
+        const ym = t.isoDate.slice(0, 7);
+        if (!map.has(ym)) {
+          const d = new Date(t.isoDate + "T00:00:00");
+          if (!isNaN(d.getTime())) {
+            const label = d.toLocaleDateString("id-ID", { month: "short", year: "numeric" });
+            map.set(ym, label);
+          }
+        }
+      }
+    });
+    return Array.from(map.entries())
+      .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+      .map(([key, label]) => ({ key, label }));
+  }, [tasks]);
+
+  // Filter tasks berdasarkan status, bulan, dan pencarian kata kunci
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
       // 1. Status Filter
@@ -74,7 +102,14 @@ export function DailyTimelineFeed({
         return false;
       }
 
-      // 2. Search Query
+      // 2. Month Filter
+      if (monthFilter !== "ALL") {
+        if (t.isoDate && !t.isoDate.startsWith(monthFilter)) {
+          return false;
+        }
+      }
+
+      // 3. Search Query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesTitle = t.title.toLowerCase().includes(q);
@@ -89,7 +124,28 @@ export function DailyTimelineFeed({
 
       return true;
     });
-  }, [tasks, statusFilter, searchQuery]);
+  }, [tasks, statusFilter, monthFilter, searchQuery]);
+
+  // Reset ke halaman 1 setiap kali filter atau limit berubah
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, monthFilter, searchQuery, pageSize]);
+
+  const totalItems = filteredTasks.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  // Item yang dipaginasi agar tidak terjadi scroll tak terbatas
+  const paginatedTasks = useMemo(() => {
+    if (pageSize >= 9999) return filteredTasks;
+    const start = (safeCurrentPage - 1) * pageSize;
+    return filteredTasks.slice(start, start + pageSize);
+  }, [filteredTasks, safeCurrentPage, pageSize]);
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    containerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const pendingCount = useMemo(
     () => tasks.filter((t) => t.status === "in_review" || t.status === "in_progress").length,
@@ -101,11 +157,11 @@ export function DailyTimelineFeed({
   );
 
   return (
-    <div className="space-y-4 pt-1 pb-6 animate-in fade-in duration-200">
+    <div ref={containerRef} className="space-y-4 pt-1 pb-6 animate-in fade-in duration-200">
       {/* ─── Control Bar: Status Filter Tabs, Search & List/Grid Switcher ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-1">
         {/* Status Filter Segmented Buttons - Apple Style Rounded Full (Mobile-Tuned) */}
-        <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-full border border-slate-200 text-xs font-medium w-full sm:w-auto overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-full border border-slate-200 text-xs font-medium w-full md:w-auto overflow-x-auto scrollbar-none">
           <button
             type="button"
             onClick={() => setStatusFilter("ALL")}
@@ -167,10 +223,30 @@ export function DailyTimelineFeed({
           </button>
         </div>
 
-        {/* Search Bar + View Mode Switcher (List vs Grid) */}
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        {/* Filter Bulan + Search Bar + View Mode Switcher (List vs Grid) */}
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          {/* Quick Month Filter Selector (If > 1 months exist) */}
+          {availableMonths.length > 1 && (
+            <div className="relative shrink-0">
+              <select
+                aria-label="Pilih Periode Bulan Jurnal"
+                value={monthFilter}
+                onChange={(e) => setMonthFilter(e.target.value)}
+                className="h-8 pl-7 pr-3 rounded-full bg-white border border-slate-200/90 text-[11px] font-medium text-slate-700 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs cursor-pointer appearance-none"
+              >
+                <option value="ALL">Semua Bulan</option>
+                {availableMonths.map((m) => (
+                  <option key={m.key} value={m.key}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+              <CalendarDays className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          )}
+
           {/* Pill Search Input */}
-          <div className="relative flex-1 sm:w-60 md:w-64">
+          <div className="relative flex-1 sm:w-56 md:w-60">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
@@ -237,6 +313,8 @@ export function DailyTimelineFeed({
             <p className="text-xs text-slate-500 mt-0.5 max-w-sm mx-auto font-normal">
               {searchQuery
                 ? `Tidak ditemukan catatan jurnal dengan kata kunci "${searchQuery}".`
+                : monthFilter !== "ALL"
+                ? "Tidak ada catatan jurnal magang pada bulan yang dipilih."
                 : statusFilter === "IN_REVIEW"
                 ? "Bagus sekali! Semua jurnal Anda telah diverifikasi oleh mentor industri."
                 : "Belum ada catatan jurnal pada filter ini."}
@@ -253,7 +331,7 @@ export function DailyTimelineFeed({
       ) : feedLayout === "LIST" ? (
         /* ─── TAMPILAN A: MODERN LIST CARDS (KONSISTEN DENGAN GALERI & MATRIKS) ─── */
         <div className="space-y-3 animate-in fade-in duration-150">
-          {filteredTasks.map((task) => {
+          {paginatedTasks.map((task) => {
             const isVerified = task.status === "verified";
             const dotColor = getCategoryDotColor(task.categoryColor);
             const { day, month, weekday } = parseTaskDateParts(task.date);
@@ -266,7 +344,7 @@ export function DailyTimelineFeed({
               >
                 {/* Bagian Kiri: Date Squircle Badge + Info Utama */}
                 <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                  {/* Modern Calendar Tile Date Badge - Option 1: Vivid Sky Ribbon */}
+                  {/* Modern Calendar Tile Date Badge - Vivid Sky Ribbon */}
                   <div className="w-12 sm:w-13 h-13 sm:h-14 rounded-2xl bg-white border border-slate-200/90 flex flex-col items-center justify-between text-center shrink-0 shadow-2xs group-hover:border-sky-300 group-hover:shadow-xs transition-all overflow-hidden select-none">
                     <div className="w-full bg-sky-600 group-hover:bg-sky-500 py-0.5 border-b border-sky-700/20 transition-colors">
                       <span className="text-[9.5px] font-bold text-white tracking-wider uppercase leading-none block">
@@ -368,7 +446,7 @@ export function DailyTimelineFeed({
       ) : (
         /* ─── TAMPILAN B: NOTION MINIMALIST BENTO CARDS ─── */
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4 animate-in fade-in duration-150">
-          {filteredTasks.map((task) => {
+          {paginatedTasks.map((task) => {
             const isVerified = task.status === "verified";
             const dotColor = getCategoryDotColor(task.categoryColor);
 
@@ -423,7 +501,7 @@ export function DailyTimelineFeed({
                     </span>
                   </div>
 
-                  {/* Task Title (Prominent & Clear, without redundant quote paragraph) */}
+                  {/* Task Title (Prominent & Clear) */}
                   <h3 className="text-[13.5px] sm:text-sm font-semibold text-slate-900 group-hover:text-sky-600 transition-colors leading-snug line-clamp-2">
                     {task.title}
                   </h3>
@@ -461,7 +539,142 @@ export function DailyTimelineFeed({
           })}
         </div>
       )}
+
+      {/* ─── Modern Pagination Controls (Linear / Notion UX) ─── */}
+      {totalItems > 0 && (
+        <div className="pt-3 border-t border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-500 font-normal">
+          {/* Sisi Kiri: Indikator Range Data & Switcher Limit */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span>
+              Menampilkan{" "}
+              <strong className="font-semibold text-slate-800">
+                {totalItems === 0 ? 0 : (safeCurrentPage - 1) * (pageSize >= 9999 ? totalItems : pageSize) + 1}–
+                {Math.min(safeCurrentPage * pageSize, totalItems)}
+              </strong>{" "}
+              dari <strong className="font-semibold text-slate-800">{totalItems}</strong> jurnal
+            </span>
+
+            {/* Pilihan Limit Per Halaman */}
+            {totalItems > 6 && (
+              <div className="flex items-center gap-1 sm:ml-2 sm:pl-2 sm:border-l sm:border-slate-200 text-[11px]">
+                <span className="text-slate-400">Limit:</span>
+                {[6, 12].map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => {
+                      setPageSize(size);
+                      setCurrentPage(1);
+                    }}
+                    className={cn(
+                      "px-2 py-0.5 rounded-md font-semibold transition cursor-pointer",
+                      pageSize === size
+                        ? "bg-slate-900 text-white shadow-2xs"
+                        : "text-slate-600 hover:bg-slate-100"
+                    )}
+                  >
+                    {size}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPageSize(9999);
+                    setCurrentPage(1);
+                  }}
+                  className={cn(
+                    "px-2 py-0.5 rounded-md font-semibold transition cursor-pointer",
+                    pageSize >= 9999
+                      ? "bg-slate-900 text-white shadow-2xs"
+                      : "text-slate-600 hover:bg-slate-100"
+                  )}
+                >
+                  Semua
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Sisi Kanan: Tombol Navigasi Halaman */}
+          {totalPages > 1 && pageSize < 9999 && (
+            <div className="flex items-center gap-1 self-center sm:self-auto">
+              <button
+                type="button"
+                disabled={safeCurrentPage <= 1}
+                onClick={() => handlePageChange(Math.max(1, safeCurrentPage - 1))}
+                className="h-8 px-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-40 disabled:pointer-events-none transition flex items-center gap-1 text-xs font-medium cursor-pointer shadow-2xs"
+                title="Halaman Sebelumnya"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Sebelumnya</span>
+              </button>
+
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((page) => {
+                    if (totalPages <= 5) return true;
+                    return (
+                      page === 1 ||
+                      page === totalPages ||
+                      Math.abs(page - safeCurrentPage) <= 1
+                    );
+                  })
+                  .map((page, idx, arr) => {
+                    const prev = arr[idx - 1];
+                    const showEllipsis = prev && page - prev > 1;
+                    return (
+                      <React.Fragment key={page}>
+                        {showEllipsis && <span className="px-1 text-slate-400">...</span>}
+                        <button
+                          type="button"
+                          onClick={() => handlePageChange(page)}
+                          className={cn(
+                            "w-8 h-8 rounded-xl text-xs font-semibold flex items-center justify-center transition cursor-pointer shadow-2xs",
+                            safeCurrentPage === page
+                              ? "bg-slate-900 text-white font-bold"
+                              : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                          )}
+                        >
+                          {page}
+                        </button>
+                      </React.Fragment>
+                    );
+                  })}
+              </div>
+
+              <button
+                type="button"
+                disabled={safeCurrentPage >= totalPages}
+                onClick={() => handlePageChange(Math.min(totalPages, safeCurrentPage + 1))}
+                className="h-8 px-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-40 disabled:pointer-events-none transition flex items-center gap-1 text-xs font-medium cursor-pointer shadow-2xs"
+                title="Halaman Berikutnya"
+              >
+                <span className="hidden sm:inline">Berikutnya</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Shortcut Card ke Arsip Lengkap Riwayat Jurnal ─── */}
+      <div className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+        <div className="flex items-center gap-2.5 text-slate-600 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-sky-100/80 text-sky-700 flex items-center justify-center shrink-0">
+            <History className="w-3.5 h-3.5" />
+          </div>
+          <span className="truncate">
+            Mencari rekaman jurnal lengkap masa lalu atau ekspor dokumen nilai e-Rapor?
+          </span>
+        </div>
+        <Link
+          href="/student/log/history"
+          className="inline-flex items-center gap-1 font-semibold text-sky-600 hover:text-sky-700 hover:underline shrink-0 text-xs transition"
+        >
+          <span>Buka Riwayat Lengkap</span>
+          <ArrowUpRight className="w-3.5 h-3.5" />
+        </Link>
+      </div>
     </div>
   );
 }
-
