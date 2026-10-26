@@ -22,152 +22,21 @@ import {
   type EraporStudentRecord,
   type EraporSummaryResponse,
 } from "@/lib/api";
+import { useAuth } from "@/lib/use-auth";
 
-// Fallback seed demo jika backend offline
-const MOCK_ERAPOR_DATA: EraporSummaryResponse = {
-  school: { id: "sch-1", name: "SMK Negeri 1 Surabaya" },
-  totalStudents: 3,
-  studentsWithPendingLogsCount: 1,
-  warningMessage:
-    "Terdapat 1 siswa yang masih memiliki jurnal belum divalidasi mentor. Selesaikan validasi terlebih dahulu agar nilai optimal.",
-  records: [
-    {
-      placementId: "p-1",
-      student: {
-        id: "s-1",
-        fullName: "Ahmad Rizky Pratama",
-        identityNumber: "0012345678",
-        department: { id: "dept-1", name: "Rekayasa Perangkat Lunak" },
-      },
-      dudiPartner: {
-        id: "d-1",
-        name: "PT Inovasi Digital Nusantara",
-        city: "Surabaya",
-      },
-      teacher: {
-        id: "t-1",
-        fullName: "Dra. Siti Rahayu, M.Pd",
-      },
-      totalVerifiedJp: 792,
-      pendingLogsCount: 0,
-      elements: [
-        {
-          elementId: "el-1",
-          elementCode: "RPL-CP-01",
-          elementTitle: "Pemrograman Web & Mobile",
-          targetJp: 450,
-          verifiedJp: 450,
-          autonomyScore: 95.2,
-          score: 98.1,
-        },
-        {
-          elementId: "el-2",
-          elementCode: "RPL-CP-02",
-          elementTitle: "Basis Data & Cloud",
-          targetJp: 342,
-          verifiedJp: 342,
-          autonomyScore: 92.0,
-          score: 96.8,
-        },
-      ],
-      officialElements: [
-        {
-          code: "PKL-EL-01",
-          title: "Internalisasi & Penerapan Soft Skills",
-          category: "SOFT_SKILLS",
-          weight: 0.20,
-          score: 97.5,
-          predicate: "Sangat Baik",
-          description: "Kepatuhan K3, integritas, dan komunikasi kerja sama tim sangat baik di PT Inovasi Digital Nusantara.",
-        },
-        {
-          code: "PKL-EL-02",
-          title: "Penerapan Hard Skills",
-          category: "HARD_SKILLS_CORE",
-          weight: 0.40,
-          score: 98.1,
-          predicate: "Sangat Baik",
-          description: "Mampu menyelesaikan pekerjaan pemrograman web & API mandiri sesuai standar SOP.",
-        },
-        {
-          code: "PKL-EL-03",
-          title: "Peningkatan & Pengembangan Hard Skills",
-          category: "HARD_SKILLS_ADVANCED",
-          weight: 0.25,
-          score: 96.8,
-          predicate: "Sangat Baik",
-          description: "Eksplorasi infrastruktur basis data dan cloud storage industri secara mandiri.",
-        },
-        {
-          code: "PKL-EL-04",
-          title: "Penyiapan Kemandirian Berwirausaha",
-          category: "ENTREPRENEURSHIP",
-          weight: 0.15,
-          score: 95.0,
-          predicate: "Sangat Baik",
-          description: "Memahami tata kelola proyek software dan inisiatif pemecahan kendala teknis.",
-        },
-      ],
-      attitudeScore: 95,
-      isAttitudeIncluded: true,
-      finalGrade: 97.0,
-      highestAchievement:
-        "Menunjukkan penguasaan sangat baik dalam Implementasi REST API & Microservices secara mandiri di PT Inovasi Digital Nusantara, serta kompeten dalam Pemrograman Web & Mobile.",
-      needsImprovement:
-        "Mampu mempertahankan konsistensi capaian pembelajaran praktik kerja lapangan dengan baik di seluruh elemen kompetensi.",
-    },
-    {
-      placementId: "p-2",
-      student: {
-        id: "s-2",
-        fullName: "Dewi Sekar Sari",
-        identityNumber: "0012345679",
-        department: { id: "dept-1", name: "Rekayasa Perangkat Lunak" },
-      },
-      dudiPartner: {
-        id: "d-1",
-        name: "PT Inovasi Digital Nusantara",
-        city: "Surabaya",
-      },
-      teacher: {
-        id: "t-1",
-        fullName: "Dra. Siti Rahayu, M.Pd",
-      },
-      totalVerifiedJp: 620,
-      pendingLogsCount: 4,
-      elements: [
-        {
-          elementId: "el-1",
-          elementCode: "RPL-CP-01",
-          elementTitle: "Pemrograman Web & Mobile",
-          targetJp: 450,
-          verifiedJp: 380,
-          autonomyScore: 88.0,
-          score: 85.9,
-        },
-        {
-          elementId: "el-2",
-          elementCode: "RPL-CP-02",
-          elementTitle: "Basis Data & Cloud",
-          targetJp: 342,
-          verifiedJp: 240,
-          autonomyScore: 78.5,
-          score: 73.5,
-        },
-      ],
-      attitudeScore: null,
-      isAttitudeIncluded: false,
-      finalGrade: 79.7,
-      highestAchievement:
-        "Menunjukkan penguasaan sangat baik dalam Slicing UI Responsif secara mandiri di PT Inovasi Digital Nusantara, serta kompeten dalam Pemrograman Web & Mobile.",
-      needsImprovement:
-        "Perlu peningkatan jam praktik dan bimbingan lebih lanjut dalam penguasaan elemen Basis Data & Cloud.",
-    },
-  ],
+const EMPTY_ERAPOR_DATA: EraporSummaryResponse = {
+  school: { id: "", name: "" },
+  totalStudents: 0,
+  studentsWithPendingLogsCount: 0,
+  warningMessage: null,
+  records: [],
 };
 
 export default function EraporPage() {
-  const [data, setData] = useState<EraporSummaryResponse>(MOCK_ERAPOR_DATA);
+  const { user } = useAuth();
+  const schoolId = user?.school?.id || "00000000-0000-0000-0000-000000000002";
+
+  const [data, setData] = useState<EraporSummaryResponse>(EMPTY_ERAPOR_DATA);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -184,8 +53,6 @@ export default function EraporPage() {
   const [overrideHighest, setOverrideHighest] = useState<string>("");
   const [overrideNeeds, setOverrideNeeds] = useState<string>("");
 
-  const schoolId = "00000000-0000-0000-0000-000000000002"; // ID Demo Sandbox
-
   const loadData = async () => {
     setLoading(true);
     setErrorMsg(null);
@@ -196,7 +63,7 @@ export default function EraporPage() {
       );
       setData(res);
     } catch (err: any) {
-      console.warn("API Error, using fallback mock data:", err);
+      setErrorMsg(err.message || "Gagal memuat rekapitulasi e-Rapor dari server.");
     } finally {
       setLoading(false);
     }
@@ -204,7 +71,7 @@ export default function EraporPage() {
 
   useEffect(() => {
     loadData();
-  }, [selectedDeptId]);
+  }, [selectedDeptId, schoolId]);
 
   // Daftar jurusan unik
   const departmentsList = useMemo(() => {
