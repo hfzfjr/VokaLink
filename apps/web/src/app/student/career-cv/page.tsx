@@ -31,6 +31,7 @@ import Link from "next/link";
 import { fetchStudentCv, updateStudentPassport, type StudentCvResponse } from "@/lib/api";
 import { QrCodeView } from "@/components/ui/QrCodeView";
 import { cn } from "@/lib/cn";
+import CareerCvLoading from "./loading";
 
 const DEMO_FALLBACK_CV: StudentCvResponse = {
   student: {
@@ -351,6 +352,7 @@ export default function CareerCvPage() {
   const loadCv = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    const startTime = Date.now();
     try {
       const data = await fetchStudentCv();
       setCvData(data);
@@ -367,7 +369,11 @@ export default function CareerCvPage() {
       setShowPhotos(DEMO_FALLBACK_CV.visibility?.showPhotos ?? true);
       setShowGrades(DEMO_FALLBACK_CV.visibility?.showGrades ?? true);
     } finally {
-      setIsLoading(false);
+      const elapsed = Date.now() - startTime;
+      const delay = Math.max(0, 300 - elapsed);
+      setTimeout(() => {
+        setIsLoading(false);
+      }, delay);
     }
   }, [initManualFields]);
 
@@ -626,19 +632,8 @@ export default function CareerCvPage() {
   };
 
   // ─── 1. State: Loading Skeleton ──────────────────────────────────────────
-  if (isLoading && !cvData) {
-    return (
-      <div className="space-y-6 animate-pulse">
-        <div className="h-20 bg-slate-100 rounded-3xl border border-slate-200" />
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-8 h-[750px] bg-slate-100 rounded-3xl border border-slate-200" />
-          <div className="lg:col-span-4 space-y-4 no-print">
-            <div className="h-32 bg-slate-100 rounded-2xl border border-slate-200" />
-            <div className="h-48 bg-slate-100 rounded-2xl border border-slate-200" />
-          </div>
-        </div>
-      </div>
-    );
+  if (isLoading) {
+    return <CareerCvLoading />;
   }
 
   // ─── 2. State: Error with Recovery ─────────────────────────────────────────

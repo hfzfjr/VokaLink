@@ -82,9 +82,10 @@ export default function StudentHomePage() {
   // 2. Load context from IndexedDB cache or server fallback
   useEffect(() => {
     let isMounted = true;
+    const startTime = Date.now();
     const safetyTimer = setTimeout(() => {
       if (isMounted) setIsLoading(false);
-    }, 600);
+    }, 1200);
 
     async function loadPlacementContext() {
       try {
@@ -134,8 +135,14 @@ export default function StudentHomePage() {
         console.warn("Konteks penempatan offline fallback:", err);
       } finally {
         if (isMounted) {
-          setIsLoading(false);
-          clearTimeout(safetyTimer);
+          const elapsed = Date.now() - startTime;
+          const delay = Math.max(0, 350 - elapsed);
+          setTimeout(() => {
+            if (isMounted) {
+              setIsLoading(false);
+              clearTimeout(safetyTimer);
+            }
+          }, delay);
         }
       }
     }
@@ -371,7 +378,7 @@ export default function StudentHomePage() {
   const weeklyPercent = Math.min(100, Math.round((weeklyVerifiedJp / 40) * 100));
 
   // ─── 5 UI States: 1. Loading Skeleton Condition ───
-  if (isLoading && offlineLogs.length === 0) {
+  if (isLoading) {
     return <HomeSkeleton />;
   }
 

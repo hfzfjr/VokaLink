@@ -37,6 +37,7 @@ import {
 import { MentorQrModal } from "@/components/student/home/MentorQrModal";
 import { useSyncManager } from "@/lib/pwa/hooks/useSyncManager";
 import { cn } from "@/lib/cn";
+import HistoryLoading from "./loading";
 
 interface LogEntry {
   id: string;
@@ -120,9 +121,12 @@ export default function LogHistoryPage() {
 
   const [serverLogs, setServerLogs] = useState<LogEntry[]>([]);
 
+  const [isLoading, setIsLoading] = useState(true);
+
   // Load placement context and live database logs
   useEffect(() => {
     let isMounted = true;
+    const startTime = Date.now();
     async function loadPlacementAndLogs() {
       try {
         let activePlacementId = "3ffec674-ad55-482a-a566-9dff84ab71be";
@@ -200,7 +204,16 @@ export default function LogHistoryPage() {
             console.warn("Koneksi riwayat log server offline fallback:", logErr);
           }
         }
-      } catch {}
+      } catch {
+      } finally {
+        if (isMounted) {
+          const elapsed = Date.now() - startTime;
+          const delay = Math.max(0, 300 - elapsed);
+          setTimeout(() => {
+            if (isMounted) setIsLoading(false);
+          }, delay);
+        }
+      }
     }
     loadPlacementAndLogs();
     return () => {
@@ -427,6 +440,10 @@ export default function LogHistoryPage() {
   const handleOpenVerifyModal = () => {
     setShowQrModal(true);
   };
+
+  if (isLoading) {
+    return <HistoryLoading />;
+  }
 
   return (
     <div className="space-y-5 sm:space-y-6">
