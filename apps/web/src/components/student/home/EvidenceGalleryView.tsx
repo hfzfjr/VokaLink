@@ -188,22 +188,21 @@ export function EvidenceGalleryView() {
     });
   }, [allEvidences, statusFilter, searchQuery]);
 
-  const [pageSize, setPageSize] = useState<number>(6);
+  const PAGE_SIZE = 6;
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, searchQuery, pageSize]);
+  }, [statusFilter, searchQuery]);
 
   const totalItems = filteredEvidences.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
   const safeCurrentPage = Math.min(currentPage, totalPages);
 
   const paginatedEvidences = useMemo(() => {
-    if (pageSize >= 9999) return filteredEvidences;
-    const start = (safeCurrentPage - 1) * pageSize;
-    return filteredEvidences.slice(start, start + pageSize);
-  }, [filteredEvidences, safeCurrentPage, pageSize]);
+    const start = (safeCurrentPage - 1) * PAGE_SIZE;
+    return filteredEvidences.slice(start, start + PAGE_SIZE);
+  }, [filteredEvidences, safeCurrentPage]);
 
   return (
     <div className="space-y-4 pt-1 pb-6 animate-in fade-in duration-200">
@@ -524,117 +523,65 @@ export function EvidenceGalleryView() {
         </div>
       )}
 
-      {/* ─── Modern Pagination Controls for Gallery ─── */}
-      {totalItems > 0 && (
-        <div className="pt-3 border-t border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-500 font-normal">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span>
-              Menampilkan{" "}
-              <strong className="font-semibold text-slate-800">
-                {totalItems === 0 ? 0 : (safeCurrentPage - 1) * (pageSize >= 9999 ? totalItems : pageSize) + 1}–
-                {Math.min(safeCurrentPage * pageSize, totalItems)}
-              </strong>{" "}
-              dari <strong className="font-semibold text-slate-800">{totalItems}</strong> bukti foto
-            </span>
+      {/* ─── Modern Minimalist Centered Pagination for Gallery ─── */}
+      {totalPages > 1 && (
+        <div className="pt-4 border-t border-slate-200/60 flex items-center justify-center">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              disabled={safeCurrentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="h-8.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1 text-xs font-semibold cursor-pointer shadow-2xs"
+              title="Halaman Sebelumnya"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span>Sebelumnya</span>
+            </button>
 
-            {totalItems > 6 && (
-              <div className="flex items-center gap-1 sm:ml-2 sm:pl-2 sm:border-l sm:border-slate-200 text-[11px]">
-                <span className="text-slate-400">Limit:</span>
-                {[6, 12].map((size) => (
-                  <button
-                    key={size}
-                    type="button"
-                    onClick={() => {
-                      setPageSize(size);
-                      setCurrentPage(1);
-                    }}
-                    className={cn(
-                      "px-2 py-0.5 rounded-md font-semibold transition cursor-pointer",
-                      pageSize === size
-                        ? "bg-slate-900 text-white shadow-2xs"
-                        : "text-slate-600 hover:bg-slate-100"
-                    )}
-                  >
-                    {size}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPageSize(9999);
-                    setCurrentPage(1);
-                  }}
-                  className={cn(
-                    "px-2 py-0.5 rounded-md font-semibold transition cursor-pointer",
-                    pageSize >= 9999
-                      ? "bg-slate-900 text-white shadow-2xs"
-                      : "text-slate-600 hover:bg-slate-100"
-                  )}
-                >
-                  Semua
-                </button>
-              </div>
-            )}
-          </div>
-
-          {totalPages > 1 && pageSize < 9999 && (
-            <div className="flex items-center gap-1 self-center sm:self-auto">
-              <button
-                type="button"
-                disabled={safeCurrentPage <= 1}
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                className="h-8 px-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-40 disabled:pointer-events-none transition flex items-center gap-1 text-xs font-medium cursor-pointer shadow-2xs"
-                title="Halaman Sebelumnya"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Sebelumnya</span>
-              </button>
-
-              <div className="flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter((page) => {
-                    if (totalPages <= 5) return true;
-                    return (
-                      page === 1 ||
-                      page === totalPages ||
-                      Math.abs(page - safeCurrentPage) <= 1
-                    );
-                  })
-                  .map((page, idx, arr) => {
-                    const prev = arr[idx - 1];
-                    const showEllipsis = prev && page - prev > 1;
-                    return (
-                      <React.Fragment key={page}>
-                        {showEllipsis && <span className="px-1 text-slate-400">...</span>}
-                        <button
-                          type="button"
-                          onClick={() => setCurrentPage(page)}
-                          className={cn(
-                            "w-8 h-8 rounded-xl text-xs font-semibold flex items-center justify-center transition cursor-pointer shadow-2xs",
-                            safeCurrentPage === page
-                              ? "bg-slate-900 text-white font-bold"
-                              : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-                          )}
-                        >
-                          {page}
-                        </button>
-                      </React.Fragment>
-                    );
-                  })}
-              </div>
-
-              <button
-                type="button"
-                disabled={safeCurrentPage >= totalPages}
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                className="h-8 px-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-40 disabled:pointer-events-none transition flex items-center gap-1 text-xs font-medium cursor-pointer shadow-2xs"
-                title="Halaman Berikutnya"
-              >
-                <span className="hidden sm:inline">Berikutnya</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
+            <div className="flex items-center gap-1 mx-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((page) => {
+                  if (totalPages <= 5) return true;
+                  return (
+                    page === 1 ||
+                    page === totalPages ||
+                    Math.abs(page - safeCurrentPage) <= 1
+                  );
+                })
+                .map((page, idx, arr) => {
+                  const prev = arr[idx - 1];
+                  const showEllipsis = prev && page - prev > 1;
+                  return (
+                    <React.Fragment key={page}>
+                      {showEllipsis && <span className="px-1 text-slate-400 text-xs">...</span>}
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage(page)}
+                        className={cn(
+                          "w-8.5 h-8.5 rounded-xl text-xs font-semibold flex items-center justify-center transition cursor-pointer shadow-2xs",
+                          safeCurrentPage === page
+                            ? "bg-slate-900 text-white font-bold"
+                            : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                        )}
+                      >
+                        {page}
+                      </button>
+                    </React.Fragment>
+                  );
+                })}
             </div>
-          )}
+
+            <button
+              type="button"
+              disabled={safeCurrentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className="h-8.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1 text-xs font-semibold cursor-pointer shadow-2xs"
+              title="Halaman Berikutnya"
+            >
+              <span>Berikutnya</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       )}
 
