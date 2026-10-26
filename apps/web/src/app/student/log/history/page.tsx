@@ -605,42 +605,110 @@ export default function LogHistoryPage() {
           3. APPLE SEGMENTED CONTROL, SEARCH & VIEW SWITCHER (LIST vs GRID)
       ───────────────────────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        {/* Segmented Filter Tabs: Tipografi Konsisten (Mobile-Tuned) */}
+        {/* Segmented Filter Tabs: Persis Sesuai Beranda Siswa (Landing Feed) */}
         <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-full border border-slate-200 text-xs font-medium overflow-x-auto w-full sm:w-auto scrollbar-none">
-          {[
-            { id: "ALL" as const, label: "Semua", mobileLabel: "Semua", count: allLogs.length },
-            { id: "PENDING" as const, label: "Menunggu", mobileLabel: "Pending", count: pendingCountTotal },
-            { id: "VERIFIED" as const, label: "Terverifikasi", mobileLabel: "Sah", count: verifiedCountTotal },
-            { id: "NON_COMPETENCY" as const, label: "Non-Kejuruan", mobileLabel: "Umum", count: nonCompetencyCountTotal },
-          ].map((tab) => {
-            const isActive = filter === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setFilter(tab.id)}
-                className={cn(
-                  "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
-                  isActive
-                    ? "bg-white text-slate-900 font-semibold shadow-xs"
-                    : "text-slate-600 hover:text-slate-900 font-medium"
-                )}
-              >
-                <span className="sm:hidden">{tab.mobileLabel}</span>
-                <span className="hidden sm:inline">{tab.label}</span>
-                <span
-                  className={cn(
-                    "px-1.5 py-0.2 rounded-full text-[10px]",
-                    isActive
-                      ? "bg-slate-100 text-slate-800 font-semibold"
-                      : "bg-slate-300/60 text-slate-600 font-medium"
-                  )}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
+          {/* 1. Semua Jurnal */}
+          <button
+            type="button"
+            onClick={() => setFilter("ALL")}
+            className={cn(
+              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
+              filter === "ALL"
+                ? "bg-white text-slate-900 font-semibold shadow-xs"
+                : "text-slate-600 hover:text-slate-900 font-medium"
+            )}
+          >
+            <span className="sm:hidden">Semua</span>
+            <span className="hidden sm:inline">Semua Jurnal</span>
+            <span
+              className={cn(
+                "px-1.5 py-0.2 rounded-full text-[10px] font-semibold",
+                filter === "ALL"
+                  ? "bg-slate-100 text-slate-800"
+                  : "bg-slate-300/60 text-slate-600"
+              )}
+            >
+              {allLogs.length}
+            </span>
+          </button>
+
+          {/* 2. Sah Terverifikasi */}
+          <button
+            type="button"
+            onClick={() => setFilter("VERIFIED")}
+            className={cn(
+              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
+              filter === "VERIFIED"
+                ? "bg-white text-emerald-800 font-semibold shadow-xs"
+                : "text-slate-600 hover:text-slate-900 font-medium"
+            )}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+            <span className="sm:hidden">Sah</span>
+            <span className="hidden sm:inline">Sah Terverifikasi</span>
+            <span
+              className={cn(
+                "px-1.5 py-0.2 rounded-full text-[10px] font-semibold",
+                filter === "VERIFIED"
+                  ? "bg-emerald-100 text-emerald-800"
+                  : "bg-slate-300/60 text-slate-600"
+              )}
+            >
+              {verifiedCountTotal}
+            </span>
+          </button>
+
+          {/* 3. Menunggu Validasi */}
+          <button
+            type="button"
+            onClick={() => setFilter("PENDING")}
+            className={cn(
+              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
+              filter === "PENDING"
+                ? "bg-white text-amber-800 font-semibold shadow-xs"
+                : "text-slate-600 hover:text-slate-900 font-medium"
+            )}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+            <span className="sm:hidden">Pending</span>
+            <span className="hidden sm:inline">Menunggu Validasi</span>
+            <span
+              className={cn(
+                "px-1.5 py-0.2 rounded-full text-[10px] font-semibold",
+                filter === "PENDING"
+                  ? "bg-amber-100 text-amber-800"
+                  : "bg-slate-300/60 text-slate-600"
+              )}
+            >
+              {pendingCountTotal}
+            </span>
+          </button>
+
+          {/* 4. Non-Kejuruan */}
+          <button
+            type="button"
+            onClick={() => setFilter("NON_COMPETENCY")}
+            className={cn(
+              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
+              filter === "NON_COMPETENCY"
+                ? "bg-white text-indigo-800 font-semibold shadow-xs"
+                : "text-slate-600 hover:text-slate-900 font-medium"
+            )}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+            <span className="sm:hidden">Umum</span>
+            <span className="hidden sm:inline">Non-Kejuruan</span>
+            <span
+              className={cn(
+                "px-1.5 py-0.2 rounded-full text-[10px] font-semibold",
+                filter === "NON_COMPETENCY"
+                  ? "bg-indigo-100 text-indigo-800"
+                  : "bg-slate-300/60 text-slate-600"
+              )}
+            >
+              {nonCompetencyCountTotal}
+            </span>
+          </button>
         </div>
 
         {/* Search Bar + View Switcher (List vs Grid) */}
