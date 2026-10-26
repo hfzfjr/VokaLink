@@ -155,69 +155,39 @@ export function DailyTimelineFeed({
 
   return (
     <div ref={containerRef} className="space-y-4 pt-1 pb-6 animate-in fade-in duration-200">
-      {/* ─── Control Bar: Status Filter Tabs, Search & List/Grid Switcher ─── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-1">
-        {/* Status Filter Segmented Buttons - Apple Style Rounded Full (Mobile-Tuned) */}
-        <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-full border border-slate-200 text-xs font-medium w-full md:w-auto overflow-x-auto scrollbar-none">
-          <button
-            type="button"
-            onClick={() => setStatusFilter("ALL")}
-            className={cn(
-              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95 text-[11px] sm:text-xs",
-              statusFilter === "ALL"
-                ? "bg-white text-slate-900 shadow-xs font-semibold"
-                : "text-slate-600 hover:text-slate-900 font-medium"
-            )}
-          >
-            <span className="sm:hidden">Semua</span>
-            <span className="hidden sm:inline">Semua Jurnal</span>
-            <span
-              className={cn(
-                "px-1.5 py-0.2 rounded-full text-[10px] font-semibold",
-                statusFilter === "ALL"
-                  ? "bg-slate-100 text-slate-800"
-                  : "bg-slate-300/60 text-slate-600"
-              )}
-            >
-              {tasks.length}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStatusFilter("VERIFIED")}
-            className={cn(
-              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95 text-[11px] sm:text-xs",
-              statusFilter === "VERIFIED"
-                ? "bg-white text-emerald-800 shadow-xs font-semibold"
-                : "text-slate-600 hover:text-slate-900 font-medium"
-            )}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-            <span className="sm:hidden">Sah</span>
-            <span className="hidden sm:inline">Sah Terverifikasi</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-semibold">
-              {verifiedCount}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStatusFilter("IN_REVIEW")}
-            className={cn(
-              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95 text-[11px] sm:text-xs",
-              statusFilter === "IN_REVIEW"
-                ? "bg-white text-amber-800 shadow-xs font-semibold"
-                : "text-slate-600 hover:text-slate-900 font-medium"
-            )}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-            <span className="sm:hidden">Pending</span>
-            <span className="hidden sm:inline">Menunggu Validasi</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 text-[10px] font-semibold">
-              {pendingCount}
-            </span>
-          </button>
+      {/* ─── Control Bar: Status chips (sekunder) | Bulan, Cari & List/Grid ─── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+        {/* Status chips ringan — tanpa wadah berat agar tidak bersaing dengan tab utama */}
+        <div className="flex items-center gap-1 w-full md:w-auto overflow-x-auto scrollbar-none">
+          {(
+            [
+              { key: "ALL", label: "Semua", count: tasks.length, dot: null },
+              { key: "VERIFIED", label: "Sah", count: verifiedCount, dot: "bg-emerald-500" },
+              { key: "IN_REVIEW", label: "Menunggu", count: pendingCount, dot: "bg-amber-500" },
+            ] as const
+          ).map((chip) => {
+            const active = statusFilter === chip.key;
+            return (
+              <button
+                key={chip.key}
+                type="button"
+                onClick={() => setStatusFilter(chip.key)}
+                aria-pressed={active}
+                className={cn(
+                  "h-8 px-3 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-colors cursor-pointer",
+                  active
+                    ? "bg-slate-900 text-white"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                )}
+              >
+                {chip.dot && <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", chip.dot)} />}
+                <span>{chip.label}</span>
+                <span className={cn("tabular-nums", active ? "text-white/70" : "text-slate-400")}>
+                  {chip.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Filter Bulan + Search Bar + View Mode Switcher (List vs Grid) */}
@@ -250,7 +220,7 @@ export function DailyTimelineFeed({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari tanggal, tugas..."
-              className="w-full pl-9 pr-8 py-1.5 rounded-full bg-white border border-slate-200/90 text-xs text-slate-900 placeholder:text-slate-400 font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs"
+              className="w-full h-8 pl-9 pr-8 rounded-full bg-white border border-slate-200/90 text-xs text-slate-900 placeholder:text-slate-400 font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
             />
             {searchQuery && (
               <button

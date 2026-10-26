@@ -206,67 +206,38 @@ export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
 
   return (
     <div className="space-y-4 pt-1 pb-6 animate-in fade-in duration-200">
-      {/* ─── Control Bar: Status Filter Tabs, Search & List/Grid Switcher ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-        {/* Status Filter Segmented Buttons (Mobile-Tuned) */}
-        <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-full border border-slate-200 text-xs font-medium w-full sm:w-auto overflow-x-auto scrollbar-none">
-          <button
-            type="button"
-            onClick={() => setLevelFilter("ALL")}
-            className={cn(
-              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95 text-[11px] sm:text-xs",
-              levelFilter === "ALL"
-                ? "bg-white text-slate-900 shadow-xs font-semibold"
-                : "text-slate-600 hover:text-slate-900 font-medium"
-            )}
-          >
-            <span className="sm:hidden">Semua</span>
-            <span className="hidden sm:inline">Semua Unit</span>
-            <span
-              className={cn(
-                "px-1.5 py-0.2 rounded-full text-[10px] font-semibold",
-                levelFilter === "ALL" ? "bg-slate-100 text-slate-800" : "bg-slate-300/60 text-slate-600"
-              )}
-            >
-              {MODULES.length}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setLevelFilter("READY")}
-            className={cn(
-              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95 text-[11px] sm:text-xs",
-              levelFilter === "READY"
-                ? "bg-white text-emerald-800 shadow-xs font-semibold"
-                : "text-slate-600 hover:text-slate-900 font-medium"
-            )}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-            <span className="sm:hidden">Mahir</span>
-            <span className="hidden sm:inline">Mahir (Ready)</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-semibold">
-              {readyCount}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setLevelFilter("PROGRESS")}
-            className={cn(
-              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95 text-[11px] sm:text-xs",
-              levelFilter === "PROGRESS"
-                ? "bg-white text-amber-800 shadow-xs font-semibold"
-                : "text-slate-600 hover:text-slate-900 font-medium"
-            )}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-            <span className="sm:hidden">Progres</span>
-            <span className="hidden sm:inline">Dalam Progres</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 text-[10px] font-semibold">
-              {progressCount}
-            </span>
-          </button>
+      {/* ─── Control Bar: Level chips (sekunder) | Cari & List/Grid ─── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div className="flex items-center gap-1 w-full sm:w-auto overflow-x-auto scrollbar-none">
+          {(
+            [
+              { key: "ALL", label: "Semua", count: MODULES.length, dot: null },
+              { key: "READY", label: "Mahir", count: readyCount, dot: "bg-emerald-500" },
+              { key: "PROGRESS", label: "Progres", count: progressCount, dot: "bg-amber-500" },
+            ] as const
+          ).map((chip) => {
+            const active = levelFilter === chip.key;
+            return (
+              <button
+                key={chip.key}
+                type="button"
+                onClick={() => setLevelFilter(chip.key)}
+                aria-pressed={active}
+                className={cn(
+                  "h-8 px-3 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-colors cursor-pointer",
+                  active
+                    ? "bg-slate-900 text-white"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                )}
+              >
+                {chip.dot && <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", chip.dot)} />}
+                <span>{chip.label}</span>
+                <span className={cn("tabular-nums", active ? "text-white/70" : "text-slate-400")}>
+                  {chip.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Search Bar + View Mode Switcher (List vs Grid) */}
@@ -279,7 +250,7 @@ export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari modul, SKKNI, tools..."
-              className="w-full pl-9 pr-8 py-1.5 rounded-full bg-white border border-slate-200/90 text-xs text-slate-900 placeholder:text-slate-400 font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs"
+              className="w-full h-8 pl-9 pr-8 rounded-full bg-white border border-slate-200/90 text-xs text-slate-900 placeholder:text-slate-400 font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
             />
             {searchQuery && (
               <button

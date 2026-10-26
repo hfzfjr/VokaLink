@@ -600,105 +600,71 @@ export default function StudentHomePage() {
             </div>
           </div>
 
-          {/* ─── A.2 TAMPILAN KHUSUS DESKTOP: SLIM EXECUTIVE HEADER (≥ lg) ─── */}
-          <div className="hidden lg:flex items-center justify-between gap-6 bg-white rounded-2xl px-5 py-3.5 border border-slate-200/70 shadow-2xs">
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="space-y-0.5 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-base font-bold text-slate-900 tracking-tight leading-none">
-                    {todayLog ? (todayLog.jobCardTitle || "Jurnal Hari Ini") : `Halo, ${student.name.split(" ")[0]}!`}
-                  </h2>
-                  <span className="text-slate-300 text-xs">·</span>
-                  <span className="text-xs text-slate-500 font-medium">
-                    {formatLogDate(todayStr)}
+          {/* ─── A.2 TAMPILAN KHUSUS DESKTOP: HEADER SAPAAN + AKSI UTAMA (≥ lg) ─── */}
+          <div className="hidden lg:flex items-center justify-between gap-6 bg-white rounded-2xl px-5 py-4 border border-slate-200/70 shadow-2xs">
+            <div className="min-w-0 space-y-1">
+              <div className="flex items-center gap-2.5">
+                <h2 className="text-base font-bold text-slate-900 tracking-tight leading-none">
+                  Halo, {student.name.split(" ")[0]}!
+                </h2>
+                {todayLog ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[11px] font-medium">
+                    <Check className="w-3 h-3 stroke-[2.5]" />
+                    <span>
+                      Hari ini {todayLog.durationJp} JP · {todayLog.state === "verified" ? "Sah" : "Menunggu PIN"}
+                    </span>
                   </span>
-                  {todayLog ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[10.5px] font-medium">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      <span>{todayLog.durationJp} JP · {todayLog.state === "verified" ? "Sah" : "Menunggu PIN"}</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/60 text-[10.5px] font-medium">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                      <span>Belum Diisi</span>
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-slate-500 font-normal truncate max-w-lg">
-                  {todayLog
-                    ? (todayLog.state === "verified"
-                        ? "Jurnal hari ini telah divalidasi sah oleh mentor industri dengan segel kriptografi HMAC."
-                        : "Jurnal tercatat. Tunjukkan QR atau minta mentor memvalidasi via PIN.")
-                    : "Waktunya mencatat jurnal kegiatan magang hari ini (target 8 JP, batas pengisian H-3)."}
-                </p>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/60 text-[11px] font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                    <span>Jurnal hari ini belum diisi</span>
+                  </span>
+                )}
               </div>
+              <p className="text-xs text-slate-500 truncate max-w-xl">
+                {formatLogDate(todayStr)} ·{" "}
+                {todayLog
+                  ? todayLog.jobCardTitle || "Pencatatan kegiatan praktik industri"
+                  : "Target 8 JP per hari, batas pengisian H-3."}
+              </p>
             </div>
 
-            <div className="flex items-center gap-5 shrink-0">
-              <div className="w-48 space-y-1.5 font-sans">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-[11px] font-medium text-slate-500">Target {TOTAL_TARGET_JP} JP</span>
-                  <span className="text-xs font-bold text-slate-900 tabular-nums">
-                    {student.verifiedJp} <span className="text-slate-400 font-normal">JP</span> <span className="text-sky-600 font-bold ml-0.5">({progressPercentage}%)</span>
-                  </span>
-                </div>
-                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden flex gap-0.5 p-0.5">
-                  <div
-                    style={{ width: `${Math.min(100, (student.verifiedJp / TOTAL_TARGET_JP) * 100)}%` }}
-                    className="bg-emerald-500 h-full rounded-full transition-all duration-500"
-                  />
-                  <div
-                    style={{ width: `${Math.min(100, (student.pendingJp / TOTAL_TARGET_JP) * 100)}%` }}
-                    className="bg-amber-400 h-full rounded-full transition-all duration-500"
-                  />
-                </div>
-              </div>
-
-              {todayLog ? (
+            {todayLog ? (
+              <button
+                type="button"
+                onClick={() => setShowQrModal(true)}
+                className="h-9 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer shrink-0"
+              >
+                <QrCode className="w-3.5 h-3.5 text-sky-300" />
+                <span>Tampilkan QR Mentor</span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowQrModal(true)}
-                  className="h-9 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-2xs transition-all cursor-pointer shrink-0"
+                  className="h-9 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  title="Buka QR Verifikasi Mentor"
                 >
-                  <QrCode className="w-3.5 h-3.5 shrink-0" />
+                  <QrCode className="w-3.5 h-3.5 text-slate-500" />
                   <span>QR Mentor</span>
                 </button>
-              ) : (
-                <div className="flex items-center gap-2 shrink-0">
-                  <Link
-                    href="/student/log/new"
-                    className="h-9 px-4 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer"
-                  >
-                    <PlusCircle className="w-3.5 h-3.5" />
-                    <span>Catat Jurnal</span>
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => setShowQrModal(true)}
-                    className="h-9 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
-                    title="Buka QR Verifikasi Mentor"
-                  >
-                    <QrCode className="w-3.5 h-3.5 text-slate-500" />
-                    <span>QR</span>
-                  </button>
-                </div>
-              )}
-            </div>
+                <Link
+                  href="/student/log/new"
+                  className="h-9 px-4 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>Catat Jurnal</span>
+                </Link>
+              </div>
+            )}
           </div>
 
-          {/* ─── C. VIEW CONTROLLER (Segmented Tab Bar - Apple HIG) ─── */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 pt-2 font-sans">
-            <div>
-              <h2 className="text-sm font-semibold text-slate-900 tracking-tight flex items-center gap-2">
-                <span>Dokumentasi Praktik Industri</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold font-sans">
-                  {allTasks.length} Catatan
-                </span>
-              </h2>
-              <p className="text-[11px] text-slate-500 mt-0.5 font-normal">
-                Penugasan resmi DUDI &amp; verifikasi autentik via PIN pembimbing industri
-              </p>
-            </div>
+          {/* ─── C. VIEW CONTROLLER (Judul + Tab Utama dalam satu baris) ─── */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1">
+            <h2 className="text-sm font-semibold text-slate-900 tracking-tight">
+              Dokumentasi Praktik Industri
+            </h2>
 
             {/* Apple Segmented Control Bar (Mobile-Tuned Labels) */}
             <div className="grid grid-cols-3 sm:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/70 text-xs font-semibold w-full sm:w-auto">

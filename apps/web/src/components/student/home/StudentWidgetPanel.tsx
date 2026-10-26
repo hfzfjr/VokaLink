@@ -82,6 +82,13 @@ export function StudentWidgetPanel({
 
   const weeklyPercent = Math.min(100, Math.round((weeklyVerifiedJp / 40) * 100));
 
+  // Target kelulusan PKL (hanya dari JP terverifikasi, BR-010)
+  const targetJp = student.targetJp || 1;
+  const targetPercent = Math.min(100, Math.round((student.verifiedJp / targetJp) * 100));
+  const verifiedWidth = Math.min(100, (student.verifiedJp / targetJp) * 100);
+  const pendingWidth = Math.min(100 - verifiedWidth, (student.pendingJp / targetJp) * 100);
+  const remainingJp = Math.max(0, student.targetJp - student.verifiedJp);
+
   const initials = (student.name || "Andi Pratama")
     .split(" ")
     .map((w) => w[0])
@@ -123,6 +130,49 @@ export function StudentWidgetPanel({
           <Bell className="w-4 h-4" />
           <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-2 right-2 ring-2 ring-white" />
         </button>
+      </div>
+
+      {/* ─── Target Kelulusan PKL (Desktop only, mobile punya kartu sendiri di beranda) ─── */}
+      <div className="hidden lg:block bg-white rounded-2xl p-4 border border-slate-200/70 shadow-card space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold text-slate-900 tracking-tight uppercase">
+            Target Kelulusan PKL
+          </h3>
+          <span className="text-xs font-bold text-sky-600 tabular-nums">{targetPercent}%</span>
+        </div>
+
+        <div className="flex items-baseline gap-1.5 tabular-nums">
+          <span className="text-2xl font-bold text-slate-900 tracking-tight leading-none">
+            {student.verifiedJp}
+          </span>
+          <span className="text-xs text-slate-400">/ {student.targetJp} JP sah</span>
+        </div>
+
+        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden flex">
+          <div
+            style={{ width: `${verifiedWidth}%` }}
+            className="bg-emerald-500 h-full transition-all duration-500"
+          />
+          <div
+            style={{ width: `${pendingWidth}%` }}
+            className="bg-amber-400 h-full transition-all duration-500"
+          />
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 text-[11px]">
+          <div className="flex items-center gap-1.5 text-slate-600">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+            <span>Sah <strong className="text-slate-900 tabular-nums">{student.verifiedJp}</strong></span>
+          </div>
+          <div className="flex items-center gap-1.5 text-slate-600">
+            <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+            <span>Antre <strong className="text-slate-900 tabular-nums">{student.pendingJp}</strong></span>
+          </div>
+          <div className="flex items-center gap-1.5 text-slate-600 justify-end">
+            <span className="w-2 h-2 rounded-full bg-slate-200 shrink-0" />
+            <span>Sisa <strong className="text-slate-900 tabular-nums">{remainingJp}</strong></span>
+          </div>
+        </div>
       </div>
 
       {/* ─── Presensi & Disiplin Pekan Ini (Desktop only, mobile has it at top of home) ─── */}
@@ -215,28 +265,6 @@ export function StudentWidgetPanel({
             </span>
           </div>
         </div>
-
-        {/* Shortcut Paspor Keterampilan Digital (FR-009) */}
-        <Link
-          href="/verify/andi-pratama-rpl-2026"
-          target="_blank"
-          className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200/80 hover:border-sky-400 hover:bg-sky-50/30 shadow-2xs hover:shadow-card transition-all group cursor-pointer"
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-sky-500 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-all">
-              <Award className="w-4 h-4" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-slate-900 group-hover:text-sky-600 transition truncate">
-                Paspor Digital Siswa
-              </p>
-              <p className="text-[10px] text-slate-500 font-normal truncate">
-                Tervalidasi Digital &amp; Resmi (FR-009)
-              </p>
-            </div>
-          </div>
-          <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-0.5 transition shrink-0 ml-1.5" />
-        </Link>
       </div>
 
       {/* ─── Catatan Bimbingan Mentor Industri Terakhir ─── */}
@@ -271,6 +299,26 @@ export function StudentWidgetPanel({
           </span>
         </div>
       </div>
+
+      {/* ─── Pintasan Paspor Kompetensi Digital (FR-009) ─── */}
+      <Link
+        href="/verify/andi-pratama-rpl-2026"
+        target="_blank"
+        className="hidden lg:flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-200/70 shadow-card hover:border-sky-300 transition-colors group"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
+            <Award className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-slate-900 group-hover:text-sky-600 transition-colors truncate">
+              Paspor Kompetensi Digital
+            </p>
+            <p className="text-[11px] text-slate-500 truncate">Bagikan bukti keterampilan ber-QR</p>
+          </div>
+        </div>
+        <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-sky-600 transition-colors shrink-0" />
+      </Link>
     </aside>
   );
 }
