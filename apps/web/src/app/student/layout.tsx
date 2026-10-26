@@ -25,7 +25,7 @@ export default function StudentLayout({
         </div>
 
         {/* 3. Desktop Left Slim Sidebar Dock (hidden on mobile, sticky on desktop, hidden on print) */}
-        <div className="hidden md:flex pl-3.5 lg:pl-4 py-4 shrink-0 no-print print:hidden">
+        <div className="hidden md:flex pl-3.5 lg:pl-4 py-4 shrink-0 w-[88px] lg:w-[92px] relative z-30 no-print print:hidden">
           <StudentSidebar />
         </div>
 
