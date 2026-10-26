@@ -121,17 +121,31 @@ export function StudentSidebar() {
   const [isOnline, setIsOnline] = useState(true);
   const [syncStatus, setSyncStatus] = useState<string>("Tersinkronisasi penuh (0 antrean)");
 
+  const { user, token } = useAuth();
+
   const [studentProfile, setStudentProfile] = useState<{
     fullName: string;
     identityNumber: string;
     departmentName: string;
     schoolName: string;
   }>({
-    fullName: "Andi Pratama",
-    identityNumber: "0078901234",
-    departmentName: "Rekayasa Perangkat Lunak (RPL)",
-    schoolName: "SMK Demo VokaLink",
+    fullName: user?.fullName || "Siswa VokaLink",
+    identityNumber: user?.identityNumber || "-",
+    departmentName: user?.department?.name || "Kejuruan",
+    schoolName: user?.school?.name || "SMK VokaLink",
   });
+
+  useEffect(() => {
+    if (user) {
+      setStudentProfile({
+        fullName: user.fullName || "Siswa",
+        identityNumber: user.identityNumber || "-",
+        departmentName: user.department?.name || "Kejuruan",
+        schoolName: user.school?.name || "SMK VokaLink",
+      });
+      if (user.whatsappNumber) setPhone(user.whatsappNumber);
+    }
+  }, [user]);
 
   // Load from localStorage & database context
   useEffect(() => {
@@ -144,27 +158,28 @@ export function StudentSidebar() {
 
       const loadProfile = async () => {
         try {
-          const cached = await db.refData.get("student_log_context");
+          const cacheKey = user?.id ? `student_log_context_${user.id}` : "student_log_context";
+          const cached = await db.refData.get(cacheKey);
           if (cached?.data) {
             const data = cached.data as StudentLogContextResponse;
-            if (data.student) {
+            if (data.student && (!user?.id || data.student.id === user.id)) {
               setStudentProfile({
-                fullName: data.student.fullName || "Andi Pratama",
-                identityNumber: data.student.identityNumber || "0078901234",
-                departmentName: data.student.departmentName || "Rekayasa Perangkat Lunak (RPL)",
-                schoolName: data.student.schoolName || "SMK Demo VokaLink",
+                fullName: data.student.fullName || user?.fullName || "Siswa",
+                identityNumber: data.student.identityNumber || user?.identityNumber || "-",
+                departmentName: data.student.departmentName || user?.department?.name || "Kejuruan",
+                schoolName: data.student.schoolName || user?.school?.name || "SMK VokaLink",
               });
               if (data.student.whatsappNumber) setPhone(data.student.whatsappNumber);
             }
           }
           if (navigator.onLine) {
-            const fresh = await fetchStudentLogContext();
+            const fresh = await fetchStudentLogContext(user?.id, token || undefined);
             if (fresh?.student) {
               setStudentProfile({
-                fullName: fresh.student.fullName || "Andi Pratama",
-                identityNumber: fresh.student.identityNumber || "0078901234",
-                departmentName: fresh.student.departmentName || "Rekayasa Perangkat Lunak (RPL)",
-                schoolName: fresh.student.schoolName || "SMK Demo VokaLink",
+                fullName: fresh.student.fullName || user?.fullName || "Siswa",
+                identityNumber: fresh.student.identityNumber || user?.identityNumber || "-",
+                departmentName: fresh.student.departmentName || user?.department?.name || "Kejuruan",
+                schoolName: fresh.student.schoolName || user?.school?.name || "SMK VokaLink",
               });
               if (fresh.student.whatsappNumber) setPhone(fresh.student.whatsappNumber);
             }

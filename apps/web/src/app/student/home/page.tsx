@@ -19,6 +19,7 @@ import {
   type StudentLogContextResponse,
   type StudentDailyLogItem,
 } from "@/lib/api";
+import { useAuth } from "@/lib/use-auth";
 import { cn } from "@/lib/cn";
 
 import {
@@ -37,6 +38,8 @@ import { MentorNotificationModal } from "@/components/student/home/MentorNotific
 import { HomeSkeleton } from "@/components/student/home/HomeSkeleton";
 
 export default function StudentHomePage() {
+  const { user, token } = useAuth();
+
   const [placementInfo, setPlacementInfo] = useState<{
     id?: string;
     dudiName?: string;
@@ -47,10 +50,31 @@ export default function StudentHomePage() {
   const [studentProfile, setStudentProfile] = useState<{
     id?: string;
     fullName?: string;
-    identityNumber?: string;
+    identityNumber?: string | null;
     departmentName?: string;
     schoolName?: string;
-  } | null>(null);
+    email?: string | null;
+  } | null>(() => (user ? {
+    id: user.id,
+    fullName: user.fullName,
+    identityNumber: user.identityNumber,
+    departmentName: user.department?.name,
+    schoolName: user.school?.name,
+    email: user.email,
+  } : null));
+
+  useEffect(() => {
+    if (user) {
+      setStudentProfile({
+        id: user.id,
+        fullName: user.fullName,
+        identityNumber: user.identityNumber,
+        departmentName: user.department?.name,
+        schoolName: user.school?.name,
+        email: user.email,
+      });
+    }
+  }, [user]);
 
   const [serverLogs, setServerLogs] = useState<StudentDailyLogItem[]>([]);
 
@@ -89,22 +113,25 @@ export default function StudentHomePage() {
 
     async function loadPlacementContext() {
       try {
-        const cached = await db.refData.get("student_log_context");
+        const cacheKey = user?.id ? `student_log_context_${user.id}` : "student_log_context";
+        const cached = await db.refData.get(cacheKey);
         if (cached && cached.data && isMounted) {
           const data = cached.data as StudentLogContextResponse;
-          if (data.student) setStudentProfile(data.student);
-          if (data.activePlacement) {
-            setPlacementInfo({
-              id: data.activePlacement.id,
-              dudiName: data.activePlacement.dudiName,
-              dudiCity: data.activePlacement.dudiCity,
-              mentorName: data.activePlacement.mentorName,
-            });
+          if (!user?.id || data.student?.id === user.id) {
+            if (data.student) setStudentProfile(data.student);
+            if (data.activePlacement) {
+              setPlacementInfo({
+                id: data.activePlacement.id,
+                dudiName: data.activePlacement.dudiName,
+                dudiCity: data.activePlacement.dudiCity,
+                mentorName: data.activePlacement.mentorName,
+              });
+            }
           }
         }
 
         if (typeof navigator !== "undefined" && navigator.onLine) {
-          const fresh = await fetchStudentLogContext();
+          const fresh = await fetchStudentLogContext(user?.id, token || undefined);
           if (fresh && isMounted) {
             if (fresh.student) setStudentProfile(fresh.student);
             if (fresh.activePlacement) {
@@ -125,7 +152,7 @@ export default function StudentHomePage() {
               }
             }
             await db.refData.put({
-              key: "student_log_context",
+              key: cacheKey,
               data: fresh,
               cachedAt: Date.now(),
             });
@@ -275,15 +302,24 @@ export default function StudentHomePage() {
 
   const progressPercentage = Math.min(100, Math.round((totalVerifiedJp / TOTAL_TARGET_JP) * 100));
 
+  const currentStudentName = user?.fullName || studentProfile?.fullName || "Siswa VokaLink";
+  const currentStudentEmail = user?.email || studentProfile?.email || `${currentStudentName.toLowerCase().replace(/[^a-z0-9]+/g, "")}@smktelkom1medan.sch.id`;
+  const currentStudentNisn = user?.identityNumber || studentProfile?.identityNumber || "-";
+  const currentSchoolName = user?.school?.name || studentProfile?.schoolName || "SMK VokaLink";
+  const currentMajorName = user?.department?.name || studentProfile?.departmentName || "Kejuruan";
+  const currentDudiName = placementInfo?.dudiName || "PT Telkom Indonesia Witel Sumut";
+  const currentMentorName = placementInfo?.mentorName || "Mentor Industri";
+  const currentCity = placementInfo?.dudiCity || user?.school?.city || "Medan";
+
   const student: StudentInfo = {
-    name: studentProfile?.fullName || "Andi Pratama",
-    email: `${(studentProfile?.fullName || "andi.pratama").toLowerCase().replace(/\s+/g, ".")}@smk.sch.id`,
-    nisn: studentProfile?.identityNumber || "0078901234",
-    school: studentProfile?.schoolName || "SMK Demo VokaLink",
-    major: studentProfile?.departmentName || "Rekayasa Perangkat Lunak (RPL)",
-    dudi: placementInfo?.dudiName || "PT Nusantara Tech",
-    mentor: placementInfo?.mentorName || "Rizky Firmansyah",
-    city: placementInfo?.dudiCity || "Surabaya",
+    name: currentStudentName,
+    email: currentStudentEmail,
+    nisn: currentStudentNisn,
+    school: currentSchoolName,
+    major: currentMajorName,
+    dudi: currentDudiName,
+    mentor: currentMentorName,
+    city: currentCity,
     verifiedJp: totalVerifiedJp,
     pendingJp: totalPendingJp,
     targetJp: TOTAL_TARGET_JP,
