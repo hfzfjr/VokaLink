@@ -225,11 +225,33 @@ passportsRouter.get(
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const studentIdQuery = req.query["studentId"] as string | undefined;
+      let resolvedStudentId = studentIdQuery;
+
+      // Check Bearer token if studentId not provided in query
+      if (!resolvedStudentId && req.headers.authorization) {
+        try {
+          const authHeader = req.headers.authorization;
+          const rawToken = authHeader.startsWith("Bearer ")
+            ? authHeader.slice(7).trim()
+            : authHeader.trim();
+          const jwtSecret = process.env["SUPABASE_JWT_SECRET"];
+          if (jwtSecret) {
+            const { jwtVerify } = await import("jose");
+            const key = new TextEncoder().encode(jwtSecret);
+            const { payload } = await jwtVerify(rawToken, key);
+            if (payload.sub) {
+              resolvedStudentId = payload.sub as string;
+            }
+          }
+        } catch {
+          // Continue to fallback if token invalid
+        }
+      }
 
       let student = null;
-      if (studentIdQuery) {
+      if (resolvedStudentId) {
         student = await prisma.userProfile.findUnique({
-          where: { id: studentIdQuery },
+          where: { id: resolvedStudentId },
           include: {
             school: true,
             schoolDepartment: {
@@ -284,6 +306,7 @@ passportsRouter.get(
           fullName: student.fullName,
           identityNumber: student.identityNumber,
           whatsappNumber: student.whatsappNumber,
+          email: student.email || undefined,
           departmentName: student.schoolDepartment?.name || "Kejuruan",
           schoolName: student.school.name,
         },

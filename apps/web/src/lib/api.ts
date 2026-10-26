@@ -934,6 +934,7 @@ export interface StudentLogContextResponse {
     whatsappNumber?: string;
     departmentName: string;
     schoolName: string;
+    email?: string;
   };
   activePlacement: {
     id: string;
@@ -956,10 +957,13 @@ export interface StudentLogContextResponse {
 
 /** GET /students/me/log-context */
 export async function fetchStudentLogContext(
-  studentId?: string
+  studentId?: string,
+  token?: string
 ): Promise<StudentLogContextResponse> {
   const query = studentId ? `?studentId=${encodeURIComponent(studentId)}` : "";
-  const res = await fetch(`${API_BASE_URL}/students/me/log-context${query}`);
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE_URL}/students/me/log-context${query}`, { headers });
   const json = await res.json();
   if (!res.ok) throw new Error(json.detail || "Gagal memuat konteks penempatan dan job card");
   return json;

@@ -82,7 +82,7 @@ export function StudentWidgetPanel({
 
   const weeklyPercent = Math.min(100, Math.round((weeklyVerifiedJp / 40) * 100));
 
-  const initials = (student.name || "Andi Pratama")
+  const initials = (student.name || "Siswa")
     .split(" ")
     .map((w) => w[0])
     .join("")

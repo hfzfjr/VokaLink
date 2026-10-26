@@ -85,6 +85,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(TOKEN_KEY, newToken);
       localStorage.setItem(USER_KEY, JSON.stringify(newUser));
       setAuthCookies(newUser.role, newToken);
+      // Bersihkan cache refData IndexedDB jika berganti akun
+      import("@/lib/pwa/db").then(({ db }) => {
+        db.refData.clear().catch(() => {});
+      }).catch(() => {});
     } catch {
       // Ignored for restricted environments
     }
@@ -98,6 +102,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
       setAuthCookies(null, null);
+      try {
+        const { db } = await import("@/lib/pwa/db");
+        await db.refData.clear();
+      } catch {}
       await supabase.auth.signOut();
     } catch {
       // Ignored
