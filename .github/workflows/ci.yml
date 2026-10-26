@@ -13,9 +13,10 @@ jobs:
   check:
     runs-on: ubuntu-latest
     env:
-      # Nilai dummy, hanya agar `prisma validate` bisa membaca schema.
+      # Nilai dummy, hanya agar `prisma validate` dan test otentikasi bisa berjalan di CI.
       DATABASE_URL: postgresql://user:pass@localhost:5432/db
       DIRECT_URL: postgresql://user:pass@localhost:5432/db
+      SUPABASE_JWT_SECRET: test-secret-key-for-vitest-and-ci-testing-minimum-32-chars-long
 
     steps:
       - uses: actions/checkout@v4

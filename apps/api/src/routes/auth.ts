@@ -2,6 +2,7 @@ import { Router, type Request, type Response, type NextFunction } from "express"
 import { SignJWT } from "jose";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth } from "../middlewares/auth.js";
+import { AppError } from "../middlewares/error-handler.js";
 
 export const authRouter = Router();
 
@@ -14,9 +15,10 @@ async function generateSessionToken(payload: {
   schoolId: string;
   email?: string;
 }): Promise<string> {
-  const jwtSecret =
-    process.env["SUPABASE_JWT_SECRET"] ||
-    "UJsz4xEKudTZFxJYNb67h+Xx/cqnkkmCj4IZDlrXEh/eK8Y7+vFeZ530uoFbIyGWB3iHjJ+335qHv1ks5wc5dw==";
+  const jwtSecret = process.env["SUPABASE_JWT_SECRET"];
+  if (!jwtSecret) {
+    throw new AppError("Server JWT configuration is missing", 500, "CONFIG_ERROR");
+  }
   const key = new TextEncoder().encode(jwtSecret);
 
   return new SignJWT({

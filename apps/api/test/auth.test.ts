@@ -20,7 +20,7 @@ describe("Auth & Session Verification Routes (FR-001 & Multi-Tenant Google OAuth
   const app = createApp();
   const jwtSecret =
     process.env["SUPABASE_JWT_SECRET"] ||
-    "UJsz4xEKudTZFxJYNb67h+Xx/cqnkkmCj4IZDlrXEh/eK8Y7+vFeZ530uoFbIyGWB3iHjJ+335qHv1ks5wc5dw==";
+    "test-secret-key-for-vitest-and-ci-testing-minimum-32-chars-long";
 
   beforeEach(() => {
     process.env["SUPABASE_JWT_SECRET"] = jwtSecret;

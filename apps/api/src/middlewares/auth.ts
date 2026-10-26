@@ -39,9 +39,6 @@ export async function requireAuth(
     return;
   }
 
-  const DEFAULT_JWT_SECRET =
-    "UJsz4xEKudTZFxJYNb67h+Xx/cqnkkmCj4IZDlrXEh/eK8Y7+vFeZ530uoFbIyGWB3iHjJ+335qHv1ks5wc5dw==";
-
   // In test environment, allow mock tokens (e.g. "Bearer mock-token") used by test fixtures
   if (process.env["NODE_ENV"] === "test" && (token === "mock-token" || !token.includes("."))) {
     req.user = {
@@ -54,9 +51,7 @@ export async function requireAuth(
     return;
   }
 
-  const jwtSecret =
-    process.env["SUPABASE_JWT_SECRET"] ||
-    (process.env["NODE_ENV"] === "test" ? DEFAULT_JWT_SECRET : undefined);
+  const jwtSecret = process.env["SUPABASE_JWT_SECRET"];
 
   if (!jwtSecret) {
     next(new AppError("Server JWT configuration is missing", 500, "CONFIG_ERROR"));
