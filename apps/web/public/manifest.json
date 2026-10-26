@@ -4,8 +4,8 @@
   "description": "Platform PWA offline-first untuk pencatatan logbook PKL SMK zero-typing, bukti WebP terkompresi, verifikasi tanpa akun, dan portofolio CV ATS resmi.",
   "start_url": "/student/home",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#1d4ed8",
+  "background_color": "#f8fafd",
+  "theme_color": "#0ea5e9",
   "orientation": "portrait",
   "categories": ["education", "productivity"],
   "icons": [

@@ -28,13 +28,14 @@ interface DailyTimelineFeedProps {
  * Parser tanggal aman untuk kartu & list squircle badge
  */
 function parseTaskDateParts(dateStr: string) {
-  if (!dateStr) return { day: "--", month: "" };
+  if (!dateStr) return { day: "--", month: "", weekday: "" };
   const trimmed = dateStr.trim();
   const tokens = trimmed.split(/\s+/);
   if (tokens.length >= 2 && tokens[0] && tokens[1] && !isNaN(Number(tokens[0]))) {
     return {
-      day: tokens[0],
+      day: tokens[0].padStart(2, "0"),
       month: tokens[1].slice(0, 3).toUpperCase(),
+      weekday: "",
     };
   }
   if (trimmed.includes("-")) {
@@ -43,13 +44,14 @@ function parseTaskDateParts(dateStr: string) {
       const d = new Date(trimmed + "T00:00:00");
       if (!isNaN(d.getTime())) {
         return {
-          day: String(d.getDate()),
-          month: d.toLocaleDateString("id-ID", { month: "short" }).toUpperCase(),
+          day: String(d.getDate()).padStart(2, "0"),
+          month: d.toLocaleDateString("id-ID", { month: "short" }).replace(".", "").toUpperCase(),
+          weekday: d.toLocaleDateString("id-ID", { weekday: "short" }).replace(".", ""),
         };
       }
     }
   }
-  return { day: trimmed.slice(0, 5), month: "" };
+  return { day: trimmed.slice(0, 5), month: "", weekday: "" };
 }
 
 export function DailyTimelineFeed({
@@ -59,7 +61,7 @@ export function DailyTimelineFeed({
 }: DailyTimelineFeedProps) {
   const [statusFilter, setStatusFilter] = useState<"ALL" | "IN_REVIEW" | "VERIFIED">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
-  const [feedLayout, setFeedLayout] = useState<"LIST" | "GRID">("LIST");
+  const [feedLayout, setFeedLayout] = useState<"GRID" | "LIST">("GRID");
 
   // Filter tasks based on status and search query
   const filteredTasks = useMemo(() => {
@@ -78,8 +80,9 @@ export function DailyTimelineFeed({
         const matchesTitle = t.title.toLowerCase().includes(q);
         const matchesCategory = t.category.toLowerCase().includes(q);
         const matchesDate = t.date.toLowerCase().includes(q);
-        const matchesTools = t.tools.some((tool) => tool.toLowerCase().includes(q));
-        if (!matchesTitle && !matchesCategory && !matchesDate && !matchesTools) {
+        const matchesTools = t.tools ? t.tools.some((tool) => tool.toLowerCase().includes(q)) : false;
+        const matchesNote = t.shortNote ? t.shortNote.toLowerCase().includes(q) : false;
+        if (!matchesTitle && !matchesCategory && !matchesDate && !matchesTools && !matchesNote) {
           return false;
         }
       }
@@ -98,23 +101,23 @@ export function DailyTimelineFeed({
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pt-1 pb-6 animate-in fade-in duration-200">
       {/* ─── Control Bar: Status Filter Tabs, Search & List/Grid Switcher ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-        {/* Status Filter Segmented Buttons - Apple Style Rounded Full */}
+        {/* Status Filter Segmented Buttons - Apple Style Rounded Full (Mobile-Tuned) */}
         <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-full border border-slate-200 text-xs font-medium w-full sm:w-auto overflow-x-auto scrollbar-none">
           <button
             type="button"
             onClick={() => setStatusFilter("ALL")}
             className={cn(
-              "flex-1 sm:flex-initial px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5 active:scale-95",
+              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95 text-[11px] sm:text-xs",
               statusFilter === "ALL"
                 ? "bg-white text-slate-900 shadow-xs font-semibold"
                 : "text-slate-600 hover:text-slate-900 font-medium"
             )}
           >
-            <span className="hidden sm:inline">Semua Jurnal</span>
             <span className="sm:hidden">Semua</span>
+            <span className="hidden sm:inline">Semua Jurnal</span>
             <span
               className={cn(
                 "px-1.5 py-0.2 rounded-full text-[10px] font-semibold",
@@ -129,39 +132,37 @@ export function DailyTimelineFeed({
 
           <button
             type="button"
-            onClick={() => setStatusFilter("IN_REVIEW")}
-            className={cn(
-              "flex-1 sm:flex-initial px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5 active:scale-95",
-              statusFilter === "IN_REVIEW"
-                ? "bg-white text-amber-800 shadow-xs font-semibold"
-                : "text-slate-600 hover:text-slate-900 font-medium"
-            )}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-            <span className="hidden sm:inline">Menunggu Validasi</span>
-            <span className="sm:hidden">Antrean</span>
-            {pendingCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 text-[10px] font-semibold">
-                {pendingCount}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
             onClick={() => setStatusFilter("VERIFIED")}
             className={cn(
-              "flex-1 sm:flex-initial px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5 active:scale-95",
+              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95 text-[11px] sm:text-xs",
               statusFilter === "VERIFIED"
                 ? "bg-white text-emerald-800 shadow-xs font-semibold"
                 : "text-slate-600 hover:text-slate-900 font-medium"
             )}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-            <span className="hidden sm:inline">Sah Terverifikasi</span>
             <span className="sm:hidden">Sah</span>
+            <span className="hidden sm:inline">Sah Terverifikasi</span>
             <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-semibold">
               {verifiedCount}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter("IN_REVIEW")}
+            className={cn(
+              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95 text-[11px] sm:text-xs",
+              statusFilter === "IN_REVIEW"
+                ? "bg-white text-amber-800 shadow-xs font-semibold"
+                : "text-slate-600 hover:text-slate-900 font-medium"
+            )}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+            <span className="sm:hidden">Pending</span>
+            <span className="hidden sm:inline">Menunggu Validasi</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 text-[10px] font-semibold">
+              {pendingCount}
             </span>
           </button>
         </div>
@@ -175,7 +176,7 @@ export function DailyTimelineFeed({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari tanggal, tugas, tools..."
+              placeholder="Cari tanggal, tugas..."
               className="w-full pl-9 pr-8 py-1.5 rounded-full bg-white border border-slate-200/90 text-xs text-slate-900 placeholder:text-slate-400 font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs"
             />
             {searchQuery && (
@@ -250,31 +251,36 @@ export function DailyTimelineFeed({
           </Link>
         </div>
       ) : feedLayout === "LIST" ? (
-        /* ─── TAMPILAN A: INSET GROUPED LIST (SUPER CLEAN SEPERTI DI RIWAYAT LOGBOOK) ─── */
-        <div className="bg-white rounded-3xl border border-slate-200/80 divide-y divide-slate-100 shadow-xs overflow-hidden">
+        /* ─── TAMPILAN A: MODERN LIST CARDS (KONSISTEN DENGAN GALERI & MATRIKS) ─── */
+        <div className="space-y-3 animate-in fade-in duration-150">
           {filteredTasks.map((task) => {
             const isVerified = task.status === "verified";
             const dotColor = getCategoryDotColor(task.categoryColor);
-            const { day, month } = parseTaskDateParts(task.date);
+            const { day, month, weekday } = parseTaskDateParts(task.date);
 
             return (
               <div
                 key={task.id}
                 onClick={() => onSelectTask(task)}
-                className="group flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:p-4 hover:bg-slate-50/80 transition-colors duration-150 cursor-pointer select-none gap-3"
+                className="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 group cursor-pointer"
               >
                 {/* Bagian Kiri: Date Squircle Badge + Info Utama */}
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  {/* Squircle Date Badge */}
-                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-slate-50 border border-slate-200/70 flex flex-col items-center justify-center text-center shrink-0 shadow-2xs group-hover:border-sky-300 transition-colors">
-                    <span className="text-sm sm:text-base font-bold text-slate-900 leading-tight">
+                <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                  {/* Modern Calendar Tile Date Badge - Option 1: Vivid Sky Ribbon */}
+                  <div className="w-12 sm:w-13 h-13 sm:h-14 rounded-2xl bg-white border border-slate-200/90 flex flex-col items-center justify-between text-center shrink-0 shadow-2xs group-hover:border-sky-300 group-hover:shadow-xs transition-all overflow-hidden select-none">
+                    <div className="w-full bg-sky-600 group-hover:bg-sky-500 py-0.5 border-b border-sky-700/20 transition-colors">
+                      <span className="text-[9.5px] font-bold text-white tracking-wider uppercase leading-none block">
+                        {month || "LOG"}
+                      </span>
+                    </div>
+                    <span className="text-base sm:text-lg font-black text-slate-900 leading-none py-0.5 tracking-tight font-sans">
                       {day}
                     </span>
-                    {month && (
-                      <span className="text-[9px] sm:text-[10px] font-semibold text-slate-500 uppercase leading-none mt-0.5">
-                        {month}
+                    <div className="w-full pb-1">
+                      <span className="text-[9.5px] font-medium text-slate-400 capitalize leading-none block">
+                        {weekday || "Hari"}
                       </span>
-                    )}
+                    </div>
                   </div>
 
                   {/* Judul & Detail */}
@@ -304,28 +310,21 @@ export function DailyTimelineFeed({
                         {task.autonomyLabel}
                       </span>
 
-                      {/* Tools Digunakan */}
-                      {task.tools.slice(0, 2).map((tool) => (
-                        <span
-                          key={tool}
-                          className="hidden md:inline text-[9.5px] font-medium text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200/50"
-                        >
-                          {tool}
-                        </span>
-                      ))}
-
                       {/* Short Note Preview */}
                       {task.shortNote && (
-                        <span className="text-slate-400 truncate max-w-[200px] hidden lg:inline font-normal text-[11px]">
-                          &quot;{task.shortNote}&quot;
-                        </span>
+                        <>
+                          <span className="text-slate-300 hidden lg:inline">·</span>
+                          <span className="text-slate-400 truncate max-w-[200px] hidden lg:inline font-normal text-[11px]">
+                            &quot;{task.shortNote}&quot;
+                          </span>
+                        </>
                       )}
                     </div>
                   </div>
                 </div>
 
                 {/* Bagian Kanan: Jam, Status / QR Button & Chevron */}
-                <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                <div className="flex items-center justify-between sm:justify-end gap-3.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
                   <div className="text-left sm:text-right">
                     <span className="font-semibold text-xs sm:text-sm text-slate-900 block leading-tight">
                       {task.durationJp} Jam Kerja
@@ -367,8 +366,8 @@ export function DailyTimelineFeed({
           })}
         </div>
       ) : (
-        /* ─── TAMPILAN B: VISUAL GRID CARDS (2 KOLOM MODERN) ─── */
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+        /* ─── TAMPILAN B: VISUAL GRID CARDS (2 KOLOM KONSISTEN DENGAN MATRIKS SKKNI) ─── */
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 animate-in fade-in duration-150">
           {filteredTasks.map((task) => {
             const isVerified = task.status === "verified";
             const dotColor = getCategoryDotColor(task.categoryColor);
@@ -378,29 +377,29 @@ export function DailyTimelineFeed({
                 key={task.id}
                 onClick={() => onSelectTask(task)}
                 className={cn(
-                  "p-4 rounded-3xl border transition-all duration-150 cursor-pointer group hover:shadow-card active:scale-[0.99] relative bg-white flex flex-col justify-between shadow-2xs",
+                  "p-4 sm:p-6 rounded-2xl sm:rounded-3xl border transition-all duration-200 cursor-pointer group hover:shadow-md hover:border-slate-300 active:scale-[0.99] relative bg-white flex flex-col justify-between shadow-xs space-y-3 sm:space-y-4",
                   isVerified
-                    ? "border-slate-200/80 hover:border-slate-300"
+                    ? "border-slate-200/80"
                     : "border-amber-200/80 bg-amber-50/15 hover:border-amber-300"
                 )}
               >
-                <div>
+                <div className="space-y-3">
                   {/* Top Row: Date & Duration vs Status / QR PIN Button */}
-                  <div className="flex items-center justify-between gap-2 mb-2.5">
+                  <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                       <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-800">
                         <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
                         <span>{task.date}</span>
                       </span>
                       <span className="text-slate-300">·</span>
-                      <span className="px-1.5 py-0.5 rounded-md bg-slate-100 font-semibold text-[10px] text-slate-700">
+                      <span className="px-2 py-0.5 rounded-md bg-slate-100 font-semibold text-[10px] text-slate-700 font-mono">
                         {task.durationJp} Jam
                       </span>
                     </div>
 
                     <div className="shrink-0">
                       {isVerified ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] font-semibold">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10.5px] font-semibold">
                           <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
                           <span>Sah</span>
                         </span>
@@ -422,51 +421,36 @@ export function DailyTimelineFeed({
                   </div>
 
                   {/* Kategori Dot + Label */}
-                  <div className="flex items-center gap-1 text-[11px] text-slate-500 font-medium mb-1.5">
+                  <div className="flex items-center gap-1 text-[11px] text-slate-500 font-medium">
                     <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", dotColor)} />
                     <span>{getCategoryShortLabel(task.category)}</span>
                   </div>
 
                   {/* Task Title */}
-                  <h3 className="text-sm font-semibold text-slate-900 group-hover:text-sky-600 transition-colors leading-snug line-clamp-2">
+                  <h3 className="text-sm font-bold text-slate-900 group-hover:text-sky-600 transition-colors leading-snug line-clamp-2">
                     {task.title}
                   </h3>
 
                   {/* Short Note if exists */}
                   {task.shortNote && (
-                    <p className="text-xs text-slate-500 font-normal mt-1.5 line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-slate-500 font-normal line-clamp-2 leading-relaxed">
                       &quot;{task.shortNote}&quot;
                     </p>
                   )}
                 </div>
 
-                {/* Footer Meta: Autonomy, Tools, Mentor / Sync status */}
-                <div className="mt-3.5 pt-2.5 border-t border-slate-100/90 flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span
-                      className={cn(
-                        "text-[10px] font-semibold px-2 py-0.5 rounded-full border",
-                        task.autonomyLabel === "Mandiri"
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
-                          : "bg-sky-50 text-sky-700 border-sky-200/70"
-                      )}
-                    >
-                      {task.autonomyLabel}
-                    </span>
-                    {task.tools.slice(0, 2).map((tool) => (
-                      <span
-                        key={tool}
-                        className="text-[9.5px] font-medium text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200/50"
-                      >
-                        {tool}
-                      </span>
-                    ))}
-                    {task.tools.length > 2 && (
-                      <span className="text-[9.5px] text-slate-400 font-medium">
-                        +{task.tools.length - 2}
-                      </span>
+                {/* Footer Meta: Autonomy, Mentor / Sync status */}
+                <div className="pt-3 border-t border-slate-100/90 flex items-center justify-between gap-2">
+                  <span
+                    className={cn(
+                      "text-[10px] font-semibold px-2 py-0.5 rounded-full border",
+                      task.autonomyLabel === "Mandiri"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
+                        : "bg-sky-50 text-sky-700 border-sky-200/70"
                     )}
-                  </div>
+                  >
+                    {task.autonomyLabel}
+                  </span>
 
                   <div className="flex items-center gap-1 text-[11px] text-slate-400 ml-auto">
                     {isVerified ? (

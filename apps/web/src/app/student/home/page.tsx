@@ -5,21 +5,26 @@ import Link from "next/link";
 import {
   PlusCircle,
   QrCode,
-  Calendar,
   ChevronRight,
-  CheckCircle2,
+  Calendar,
+  Check,
+  Building2,
 } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { TOTAL_TARGET_JP } from "@vokalink/shared";
 import { db } from "@/lib/pwa/db";
-import { fetchStudentLogContext, type StudentLogContextResponse } from "@/lib/api";
+import {
+  fetchStudentLogContext,
+  fetchStudentLogs,
+  type StudentLogContextResponse,
+  type StudentDailyLogItem,
+} from "@/lib/api";
 import { cn } from "@/lib/cn";
 
 import {
   type CategoryColor,
   type KanbanTask,
   type StudentInfo,
-  DEFAULT_KANBAN_TASKS,
   formatLogDate,
 } from "@/components/student/home/types";
 import { DailyTimelineFeed } from "@/components/student/home/DailyTimelineFeed";
@@ -33,10 +38,21 @@ import { HomeSkeleton } from "@/components/student/home/HomeSkeleton";
 
 export default function StudentHomePage() {
   const [placementInfo, setPlacementInfo] = useState<{
+    id?: string;
     dudiName?: string;
     dudiCity?: string;
     mentorName?: string;
   } | null>(null);
+
+  const [studentProfile, setStudentProfile] = useState<{
+    id?: string;
+    fullName?: string;
+    identityNumber?: string;
+    departmentName?: string;
+    schoolName?: string;
+  } | null>(null);
+
+  const [serverLogs, setServerLogs] = useState<StudentDailyLogItem[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
 
@@ -66,13 +82,19 @@ export default function StudentHomePage() {
   // 2. Load context from IndexedDB cache or server fallback
   useEffect(() => {
     let isMounted = true;
+    const safetyTimer = setTimeout(() => {
+      if (isMounted) setIsLoading(false);
+    }, 600);
+
     async function loadPlacementContext() {
       try {
         const cached = await db.refData.get("student_log_context");
         if (cached && cached.data && isMounted) {
           const data = cached.data as StudentLogContextResponse;
+          if (data.student) setStudentProfile(data.student);
           if (data.activePlacement) {
             setPlacementInfo({
+              id: data.activePlacement.id,
               dudiName: data.activePlacement.dudiName,
               dudiCity: data.activePlacement.dudiCity,
               mentorName: data.activePlacement.mentorName,
@@ -82,12 +104,25 @@ export default function StudentHomePage() {
 
         if (typeof navigator !== "undefined" && navigator.onLine) {
           const fresh = await fetchStudentLogContext();
-          if (fresh && fresh.activePlacement && isMounted) {
-            setPlacementInfo({
-              dudiName: fresh.activePlacement.dudiName,
-              dudiCity: fresh.activePlacement.dudiCity,
-              mentorName: fresh.activePlacement.mentorName,
-            });
+          if (fresh && isMounted) {
+            if (fresh.student) setStudentProfile(fresh.student);
+            if (fresh.activePlacement) {
+              setPlacementInfo({
+                id: fresh.activePlacement.id,
+                dudiName: fresh.activePlacement.dudiName,
+                dudiCity: fresh.activePlacement.dudiCity,
+                mentorName: fresh.activePlacement.mentorName,
+              });
+
+              try {
+                const dbLogs = await fetchStudentLogs(fresh.activePlacement.id);
+                if (isMounted && Array.isArray(dbLogs)) {
+                  setServerLogs(dbLogs);
+                }
+              } catch (logErr) {
+                console.warn("Gagal menarik logs server:", logErr);
+              }
+            }
             await db.refData.put({
               key: "student_log_context",
               data: fresh,
@@ -100,45 +135,18 @@ export default function StudentHomePage() {
       } finally {
         if (isMounted) {
           setIsLoading(false);
+          clearTimeout(safetyTimer);
         }
       }
     }
     loadPlacementContext();
     return () => {
       isMounted = false;
+      clearTimeout(safetyTimer);
     };
   }, []);
 
-  // 3. Dynamically calculate JP from seed base + Dexie logs
-  const baseVerifiedJp = 288;
-  const dexieVerifiedJp = offlineLogs
-    .filter((l) => l.state === "verified")
-    .reduce((acc, curr) => acc + curr.durationJp, 0);
-
-  const totalVerifiedJp = baseVerifiedJp + dexieVerifiedJp;
-
-  const totalPendingJp = offlineLogs
-    .filter((l) => l.state === "queued" || l.state === "meta_synced" || l.state === "synced")
-    .reduce((acc, curr) => acc + curr.durationJp, 0);
-
-  const displayPendingJp = totalPendingJp > 0 ? totalPendingJp : 16;
-  const progressPercentage = Math.min(100, Math.round((totalVerifiedJp / TOTAL_TARGET_JP) * 100));
-
-  const student: StudentInfo = {
-    name: "Andi Pratama",
-    email: "andi.pratama@smk.sch.id",
-    nisn: "0078901234",
-    school: "SMK Demo VokaLink",
-    major: "Rekayasa Perangkat Lunak (RPL)",
-    dudi: placementInfo?.dudiName || "PT Nusantara Tech",
-    mentor: placementInfo?.mentorName || "Rizky Firmansyah (Engineering Lead)",
-    city: placementInfo?.dudiCity || "Bandung, Jawa Barat",
-    verifiedJp: totalVerifiedJp,
-    pendingJp: displayPendingJp,
-    targetJp: TOTAL_TARGET_JP,
-  };
-
-  // 4. Transform Dexie offline logs reactively into KanbanTask objects
+  // 3. Transform Dexie offline logs reactively into KanbanTask objects
   const dexieTasks: KanbanTask[] = useMemo(() => {
     return offlineLogs.map((log) => {
       const isVerified = log.state === "verified";
@@ -177,6 +185,7 @@ export default function StudentHomePage() {
         autonomyLabel,
         skkniUnitCode: log.isNonCompetency ? "NON-KOMPETENSI" : "J.620100.009.01",
         status: isVerified ? "verified" : isInReview ? "in_review" : "in_progress",
+        isoDate: log.logDate,
         tools: log.isNonCompetency ? ["SOP Industri"] : ["Logbook PKL", "Dexie IndexedDB"],
         submittedAt: syncStatusText,
         mentorSignature: isVerified
@@ -190,225 +199,574 @@ export default function StudentHomePage() {
     });
   }, [offlineLogs, placementInfo]);
 
-  // Combine Dexie logs (recent first) with sample base tasks
+  // Transform Server database logs into KanbanTask objects (Murni dari Database PostgreSQL)
+  const serverTasks: KanbanTask[] = useMemo(() => {
+    return serverLogs.map((sl) => {
+      const firstItem = sl.items?.[0];
+      const durationJp = sl.items?.reduce((acc, it) => acc + it.durationJp, 0) || 8;
+      const autonomyLevel = firstItem?.autonomyLevel || 3;
+      const isVerified = sl.status === "VERIFIED";
+      const isInReview = sl.status === "PENDING_VERIFICATION";
+      const autonomyLabel =
+        autonomyLevel === 3 ? "Mandiri" : autonomyLevel === 2 ? "Terbimbing" : "Observasi";
+      const isNonCompetency = Boolean(
+        firstItem?.jobCard?.isNonCompetency || firstItem?.nonCompetencyCategory
+      );
+      const category = isNonCompetency
+        ? firstItem?.nonCompetencyCategory || "Tugas Umum Non-Kompetensi"
+        : "Pemrograman Web & Mobile";
+      const categoryColor: CategoryColor = isNonCompetency ? "rose" : "sky";
+
+      return {
+        id: sl.clientLogUuid,
+        title:
+          firstItem?.jobCard?.title ||
+          sl.shortNote ||
+          "Pencatatan Jurnal Praktik",
+        category,
+        categoryColor,
+        date: formatLogDate(sl.logDate),
+        durationJp,
+        progressPercent: isVerified ? 100 : isInReview ? 85 : 40,
+        autonomyLabel,
+        skkniUnitCode: isNonCompetency
+          ? "NON-KOMPETENSI"
+          : firstItem?.jobCard?.skkniUnitCode || "J.620100.009.01",
+        status: isVerified ? "verified" : isInReview ? "in_review" : "in_progress",
+        isoDate: sl.logDate,
+        tools: isNonCompetency ? ["SOP Industri"] : ["Logbook PKL", "Database PostgreSQL"],
+        submittedAt: isVerified ? "Sah Terverifikasi" : "Tersinkron (Menunggu PIN)",
+        mentorSignature: isVerified ? placementInfo?.mentorName || "Mentor Industri" : undefined,
+        hmacVerified: isVerified,
+        syncState: isVerified ? "verified" : "synced",
+        isLocalDexie: false,
+        shortNote: sl.shortNote || undefined,
+        samplePhotoUrl: sl.evidenceWebpUrl || undefined,
+      };
+    });
+  }, [serverLogs, placementInfo]);
+
+  // Combine Dexie logs (recent first) with real server database logs (NO DUMMY TASKS)
   const allTasks = useMemo(() => {
-    return [...dexieTasks, ...DEFAULT_KANBAN_TASKS];
-  }, [dexieTasks]);
+    const offlineIdSet = new Set(dexieTasks.map((t) => t.id));
+    const nonDuplicatedServer = serverTasks.filter((st) => !offlineIdSet.has(st.id));
+    return [...dexieTasks, ...nonDuplicatedServer];
+  }, [dexieTasks, serverTasks]);
+
+  // Dynamically calculate JP purely from combined real database logs
+  const totalVerifiedJp = useMemo(() => {
+    return allTasks
+      .filter((t) => t.status === "verified")
+      .reduce((acc, curr) => acc + curr.durationJp, 0);
+  }, [allTasks]);
+
+  const totalPendingJp = useMemo(() => {
+    return allTasks
+      .filter((t) => t.status === "in_review" || t.syncState === "queued" || t.syncState === "synced")
+      .reduce((acc, curr) => acc + curr.durationJp, 0);
+  }, [allTasks]);
+
+  const progressPercentage = Math.min(100, Math.round((totalVerifiedJp / TOTAL_TARGET_JP) * 100));
+
+  const student: StudentInfo = {
+    name: studentProfile?.fullName || "Andi Pratama",
+    email: `${(studentProfile?.fullName || "andi.pratama").toLowerCase().replace(/\s+/g, ".")}@smk.sch.id`,
+    nisn: studentProfile?.identityNumber || "0078901234",
+    school: studentProfile?.schoolName || "SMK Demo VokaLink",
+    major: studentProfile?.departmentName || "Rekayasa Perangkat Lunak (RPL)",
+    dudi: placementInfo?.dudiName || "PT Nusantara Tech",
+    mentor: placementInfo?.mentorName || "Rizky Firmansyah",
+    city: placementInfo?.dudiCity || "Surabaya",
+    verifiedJp: totalVerifiedJp,
+    pendingJp: totalPendingJp,
+    targetJp: TOTAL_TARGET_JP,
+  };
+
+  // 5. Hitung dinamika 5 hari kerja pekan berjalan (Senin s/d Jumat) murni dari database
+  const workDays = useMemo(() => {
+    const now = new Date();
+    const currentDay = now.getDay();
+    const diffToMon = now.getDate() - currentDay + (currentDay === 0 ? -6 : 1);
+    const currMon = new Date(now);
+    currMon.setDate(diffToMon);
+    currMon.setHours(0, 0, 0, 0);
+
+    const sortedIsoDates = allTasks
+      .map((t) => t.isoDate)
+      .filter((d): d is string => Boolean(d))
+      .sort((a, b) => (a < b ? 1 : -1));
+
+    let mondayDate = currMon;
+    if (sortedIsoDates.length > 0) {
+      const latestTaskDate = new Date(sortedIsoDates[0] + "T00:00:00");
+      if (!isNaN(latestTaskDate.getTime())) {
+        const lDay = latestTaskDate.getDay();
+        const lDiff = latestTaskDate.getDate() - lDay + (lDay === 0 ? -6 : 1);
+        const lMon = new Date(latestTaskDate);
+        lMon.setDate(lDiff);
+        lMon.setHours(0, 0, 0, 0);
+
+        const hasLogsInCurrentWeek = allTasks.some((t) => {
+          if (!t.isoDate) return false;
+          const td = new Date(t.isoDate + "T00:00:00");
+          return td >= currMon && td <= new Date(currMon.getTime() + 5 * 24 * 60 * 60 * 1000);
+        });
+
+        if (!hasLogsInCurrentWeek) {
+          mondayDate = lMon;
+        }
+      }
+    }
+
+    const dayNames = ["Sen", "Sel", "Rab", "Kam", "Jum"];
+    return dayNames.map((name, i) => {
+      const d = new Date(mondayDate);
+      d.setDate(mondayDate.getDate() + i);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const isoStr = `${year}-${month}-${day}`;
+
+      const matchedTask = allTasks.find((t) => t.isoDate === isoStr);
+      const isToday = isoStr === todayStr;
+
+      if (matchedTask) {
+        const isVer = matchedTask.status === "verified";
+        return {
+          day: name,
+          jp: matchedTask.durationJp,
+          status: isVer ? ("verified" as const) : ("in_review" as const),
+          label: isVer ? "Sah" : "Pending",
+        };
+      }
+
+      if (isToday) {
+        return {
+          day: name,
+          jp: todayLog?.durationJp || 0,
+          status: todayLog
+            ? todayLog.state === "verified"
+              ? ("verified" as const)
+              : ("in_review" as const)
+            : ("today" as const),
+          label: todayLog ? (todayLog.state === "verified" ? "Sah" : "Pending") : "Hari Ini",
+        };
+      }
+
+      return {
+        day: name,
+        jp: 0,
+        status: "empty" as const,
+        label: "Kosong",
+      };
+    });
+  }, [allTasks, todayLog, todayStr]);
+
+  const weeklyVerifiedJp = useMemo(() => {
+    return workDays
+      .filter((d) => d.status === "verified")
+      .reduce((acc, curr) => acc + curr.jp, 0);
+  }, [workDays]);
+
+  const weeklyPercent = Math.min(100, Math.round((weeklyVerifiedJp / 40) * 100));
 
   // ─── 5 UI States: 1. Loading Skeleton Condition ───
   if (isLoading && offlineLogs.length === 0) {
     return <HomeSkeleton />;
   }
 
-  // SVG Progress Ring circumference calculation: 2 * Math.PI * 40 ≈ 251.32
-  const strokeDashoffset = 251.32 - (251.32 * progressPercentage) / 100;
-
   return (
     <div className="w-full flex flex-col lg:flex-row gap-4 sm:gap-5 items-stretch min-h-0 lg:min-h-[840px]">
       {/* ─────────────────────────────────────────────────────────────────────────────
           1. CENTER SECTION: WORKSPACE CANVAS (TIMELINE / MATRIX / EVIDENCE)
-          Apple Design System HIG (Calm White Surface, Hairline Border, Zero Clutter)
+          Apple Design System HIG: Seamless Mobile Cards, Refined Desktop Canvas
       ───────────────────────────────────────────────────────────────────────────── */}
-      <section className="flex-1 min-w-0 bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between overflow-hidden space-y-5 sm:space-y-6">
-        <div className="space-y-4 sm:space-y-5">
-          {/* ─── A. CONTEXT-AWARE HERO ACTION CARD (Glance Test: 3 Detik Siswa Langsung Paham) ─── */}
-          <div
-            className={cn(
-              "p-4 sm:p-5 rounded-2xl border transition-all relative overflow-hidden",
-              todayLog
-                ? "bg-gradient-to-r from-emerald-50/90 via-teal-50/70 to-sky-50/50 border-emerald-200/80 shadow-2xs"
-                : "bg-gradient-to-r from-sky-50/90 via-indigo-50/60 to-slate-50 border-sky-200/80 shadow-xs"
-            )}
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 sm:gap-4">
-              <div className="space-y-1.5 max-w-xl">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[10.5px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-                    <span>Jurnal Hari Ini · {formatLogDate(todayStr)}</span>
-                  </span>
-                  {todayLog ? (
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-semibold">
-                      Sudah Dicatat
+      <section className="flex-1 min-w-0 bg-transparent lg:bg-white rounded-none lg:rounded-3xl p-0 lg:p-6 border-0 lg:border border-slate-200/80 shadow-none lg:shadow-xs flex flex-col justify-between overflow-hidden space-y-4 lg:space-y-6">
+        <div className="space-y-3.5 sm:space-y-5">
+          {/* ─── A.1 TAMPILAN KHUSUS MOBILE: HERO, AKSI HARI INI & PRESENSI PEKAN INI (< lg) ─── */}
+          <div className="block lg:hidden space-y-3 font-sans">
+            {/* Context Pill Siswa & DUDI */}
+            <div className="flex items-center justify-between text-xs px-1">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Building2 className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                <span className="font-semibold text-slate-800 truncate">{student.dudi}</span>
+                <span className="text-slate-300">·</span>
+                <span className="text-slate-500 truncate">{student.city.split(",")[0]}</span>
+              </div>
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60 shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Aktif</span>
+              </span>
+            </div>
+
+            {/* Card Aksi Utama Hari Ini */}
+            {todayLog ? (
+              <div className="bg-white rounded-2xl p-4 border border-emerald-200/90 shadow-2xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="text-xs font-bold text-emerald-800">
+                      Jurnal Hari Ini Tercatat ({todayLog.durationJp} JP)
                     </span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 text-[10px] font-semibold animate-pulse">
-                      Belum Diisi
-                    </span>
-                  )}
+                  </div>
+                  <span className="text-[11px] text-slate-400 font-medium">{formatLogDate(todayStr)}</span>
                 </div>
 
-                {todayLog ? (
-                  <div>
-                    <h2 className="text-base sm:text-lg font-semibold text-slate-900 leading-snug">
-                      {todayLog.jobCardTitle || "Jurnal Kegiatan Harian"}
-                    </h2>
-                    <p className="text-xs text-slate-600 font-normal mt-0.5 flex flex-wrap items-center gap-1.5">
-                      <span>Alokasi: <strong>{todayLog.durationJp} Jam Kerja</strong></span>
-                      <span className="text-slate-300">·</span>
-                      <span>
-                        Status:{" "}
-                        {todayLog.state === "verified" ? (
-                          <strong className="text-emerald-700">Sah Terverifikasi (HMAC)</strong>
-                        ) : (
-                          <strong className="text-amber-700">Menunggu Validasi PIN Mentor</strong>
-                        )}
-                      </span>
-                    </p>
-                  </div>
-                ) : (
-                  <div>
-                    <h2 className="text-base sm:text-lg font-semibold text-slate-900 leading-snug">
-                      Halo, Andi! Catat Kegiatan Magangmu Hari Ini
-                    </h2>
-                    <p className="text-xs text-slate-600 font-normal mt-0.5">
-                      Batas waktu pencatatan maksimal 3 hari kerja (H-3 / 72 jam) sesuai aturan BR-003. Laporkan apa adanya secara jujur.
-                    </p>
-                  </div>
-                )}
-              </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-slate-900 leading-snug">
+                    {todayLog.jobCardTitle || "Pencatatan Kegiatan Praktik Industri"}
+                  </h3>
+                  <p className="text-xs text-slate-500 leading-relaxed font-normal">
+                    {todayLog.state === "verified"
+                      ? "Jurnal hari ini telah diverifikasi sah oleh mentor industri."
+                      : "Jurnal tersimpan. Tunjukkan QR kepada mentor atau minta verifikasi PIN."}
+                  </p>
+                </div>
 
-              {/* Action Buttons: Full-width on mobile with generous touch target */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 w-full sm:w-auto pt-1 sm:pt-0">
-                {todayLog ? (
+                <div className="pt-1 flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setShowQrModal(true)}
-                    className="w-full sm:w-auto h-11 sm:h-10 px-4 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
+                    className="flex-1 h-11 bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
                   >
-                    <QrCode className="w-4 h-4" />
+                    <QrCode className="w-4 h-4 text-sky-400" />
                     <span>Tampilkan QR ke Mentor</span>
                   </button>
-                ) : (
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                    <Link
-                      href="/student/log/new"
-                      className="w-full sm:w-auto h-11 sm:h-10 px-4 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition text-center"
+                  <Link
+                    href="/student/log/history"
+                    className="h-11 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 transition"
+                  >
+                    <span>Riwayat</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gradient-to-br from-sky-500 via-sky-600 to-sky-700 rounded-2xl p-4 sm:p-5 text-white shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white text-[11px] font-semibold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse" />
+                    <span>Belum Ada Jurnal Hari Ini</span>
+                  </span>
+                  <span className="text-xs text-sky-100 font-medium">{formatLogDate(todayStr)}</span>
+                </div>
+
+                <div className="space-y-0.5">
+                  <h3 className="text-base font-bold text-white tracking-tight">
+                    Waktunya mengisi jurnal magang!
+                  </h3>
+                  <p className="text-xs text-sky-100/90 leading-relaxed font-normal">
+                    Catat penugasan industri hari ini (target 8 JP). Batas pengisian H-3.
+                  </p>
+                </div>
+
+                <div className="pt-1 flex items-center gap-2">
+                  <Link
+                    href="/student/log/new"
+                    className="flex-1 h-11 bg-white hover:bg-sky-50 active:scale-[0.98] text-sky-700 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition"
+                  >
+                    <PlusCircle className="w-4 h-4 stroke-[2.5]" />
+                    <span>+ Catat Jurnal Sekarang</span>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setShowQrModal(true)}
+                    className="h-11 px-3.5 bg-sky-700/80 hover:bg-sky-700 active:scale-[0.98] text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 border border-sky-400/40 cursor-pointer"
+                    title="QR Validasi Mentor"
+                  >
+                    <QrCode className="w-4 h-4" />
+                    <span>QR</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Presensi 5 Hari Kerja Pekan Ini (Sen - Jum) di Mobile */}
+            <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-2xs space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-sky-600" />
+                  <span className="text-xs font-bold text-slate-900">Presensi Pekan Ini</span>
+                </div>
+                <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                  {weeklyVerifiedJp} / 40 JP ({weeklyPercent}%)
+                </span>
+              </div>
+
+              {/* 5 Workday Pills */}
+              <div className="grid grid-cols-5 gap-1.5">
+                {workDays.map((d) => {
+                  const isToday = d.status === "today";
+                  return (
+                    <div
+                      key={d.day}
+                      className={`flex flex-col items-center justify-between py-1.5 px-0.5 rounded-xl border text-center transition ${
+                        isToday
+                          ? "bg-sky-50/80 border-sky-400 ring-2 ring-sky-500/15"
+                          : "bg-slate-50/70 border-slate-200/80"
+                      }`}
                     >
-                      <PlusCircle className="w-4 h-4" />
-                      <span>Catat Jurnal Hari Ini</span>
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => setShowQrModal(true)}
-                      className="w-full sm:w-auto h-10 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-95 shadow-2xs"
-                      title="Minta mentor memindai QR untuk validasi batch"
-                    >
-                      <QrCode className="w-3.5 h-3.5 text-slate-500" />
-                      <span>Minta Validasi PIN (QR)</span>
-                    </button>
-                  </div>
-                )}
+                      <span className={`text-[9.5px] font-bold uppercase ${isToday ? "text-sky-700" : "text-slate-400"}`}>
+                        {d.day}
+                      </span>
+                      <span className={`text-[11px] font-bold my-0.5 ${isToday ? "text-sky-600" : "text-slate-900"}`}>
+                        {d.jp} <span className="text-[9px] font-normal text-slate-400">JP</span>
+                      </span>
+                      {isToday ? (
+                        <span className="px-1 py-0.2 rounded-full bg-sky-500 text-white text-[8px] font-bold leading-none">
+                          Hari Ini
+                        </span>
+                      ) : d.status === "verified" ? (
+                        <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[8px] font-bold leading-none">
+                          <Check className="w-2 h-2 stroke-[2.5]" />
+                          <span>Sah</span>
+                        </span>
+                      ) : d.status === "in_review" ? (
+                        <span className="px-1 py-0.2 rounded-full bg-amber-50 text-amber-700 border border-amber-200/80 text-[8px] font-bold leading-none">
+                          Pending
+                        </span>
+                      ) : (
+                        <span className="px-1 py-0.2 rounded-full bg-slate-100 text-slate-400 text-[8px] font-medium leading-none">
+                          -
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Target Kelulusan PKL 792 JP Mobile Card */}
+            <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-2xs space-y-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-500 text-[10.5px] uppercase tracking-wider">
+                  Target Kelulusan PKL
+                </span>
+                <div className="flex items-baseline gap-1 font-sans tabular-nums">
+                  <span className="text-sm font-bold text-slate-900">{student.verifiedJp}</span>
+                  <span className="text-slate-400 font-normal">/ {TOTAL_TARGET_JP} JP</span>
+                  <span className="text-xs font-bold text-sky-600 ml-1">({progressPercentage}%)</span>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden flex gap-0.5 p-0.5">
+                <div
+                  style={{ width: `${Math.min(100, (student.verifiedJp / TOTAL_TARGET_JP) * 100)}%` }}
+                  className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                />
+                <div
+                  style={{ width: `${Math.min(100, (student.pendingJp / TOTAL_TARGET_JP) * 100)}%` }}
+                  className="bg-amber-400 h-full rounded-full transition-all duration-500"
+                />
+              </div>
+
+              {/* 3 Metric Pills */}
+              <div className="grid grid-cols-3 gap-1.5 pt-0.5">
+                <div className="p-2 rounded-xl bg-slate-50/80 border border-slate-100 text-center">
+                  <span className="text-[9.5px] font-semibold text-slate-400 uppercase tracking-wider block">Jam Sah</span>
+                  <span className="text-sm font-bold text-slate-900 mt-0.5 block">{student.verifiedJp} <span className="text-[10px] font-normal text-slate-400">JP</span></span>
+                  <span className="text-[9.5px] font-semibold text-emerald-700 flex items-center justify-center gap-1 mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    Sah
+                  </span>
+                </div>
+
+                <div
+                  onClick={() => setShowQrModal(true)}
+                  className="p-2 rounded-xl bg-slate-50/80 hover:bg-amber-50/60 border border-slate-100 hover:border-amber-200 text-center cursor-pointer transition active:scale-95"
+                >
+                  <span className="text-[9.5px] font-semibold text-slate-400 uppercase tracking-wider block">Antrean</span>
+                  <span className="text-sm font-bold text-slate-900 mt-0.5 block">{student.pendingJp} <span className="text-[10px] font-normal text-slate-400">JP</span></span>
+                  <span className="text-[9.5px] font-semibold text-amber-700 flex items-center justify-center gap-0.5 mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    Validasi ›
+                  </span>
+                </div>
+
+                <div className="p-2 rounded-xl bg-slate-50/80 border border-slate-100 text-center">
+                  <span className="text-[9.5px] font-semibold text-slate-400 uppercase tracking-wider block">Sisa Target</span>
+                  <span className="text-sm font-bold text-slate-700 mt-0.5 block">{Math.max(0, TOTAL_TARGET_JP - student.verifiedJp)} <span className="text-[10px] font-normal text-slate-400">JP</span></span>
+                  <span className="text-[9.5px] font-normal text-slate-400 mt-0.5 block">/ 792 JP</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* ─── B. VISUAL ACHIEVEMENT & PROGRESS RINGS (Gamified Dual-Ring Hub) ─── */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border border-slate-200/80 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-5">
-            {/* Left: Apple Fitness Style SVG Progress Ring */}
-            <div className="flex items-center gap-3.5 sm:gap-4.5 w-full md:w-auto">
-              <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                  {/* Background Track */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    stroke="currentColor"
-                    strokeWidth="8"
-                    className="text-slate-100"
-                    fill="transparent"
-                  />
-                  {/* Progress Arc */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    stroke="currentColor"
-                    strokeWidth="8"
-                    className="text-sky-500 transition-all duration-700 ease-out"
-                    fill="transparent"
-                    strokeDasharray={251.32}
-                    strokeDashoffset={strokeDashoffset}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 font-mono leading-none">
-                    {progressPercentage}%
-                  </span>
-                  <span className="text-[9px] sm:text-[9.5px] font-medium text-slate-400 mt-0.5 sm:mt-1 uppercase tracking-wider">
-                    Capaian
-                  </span>
+          {/* ─── A.2 TAMPILAN KHUSUS DESKTOP: EXECUTIVE DASHBOARD HEADER (≥ lg) ─── */}
+          <div className="hidden lg:block bg-white rounded-2xl p-5 border border-slate-200/70 shadow-xs transition-all">
+            <div className="grid grid-cols-12 gap-8 items-center">
+              {/* Left Column (Cols 1-6): Today's Activity & Action */}
+              <div className="col-span-6 space-y-3 font-sans">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-lg font-bold text-slate-900 tracking-tight leading-none">
+                      {todayLog ? (todayLog.jobCardTitle || "Jurnal Hari Ini") : `Halo, ${student.name.split(" ")[0]}!`}
+                    </h2>
+                    <span className="text-slate-300 text-xs">·</span>
+                    <span className="text-xs text-slate-400 font-medium">
+                      {formatLogDate(todayStr)}
+                    </span>
+                    {todayLog ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 text-[11px] font-semibold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span>{todayLog.durationJp} JP · {todayLog.state === "verified" ? "Terverifikasi" : "Menunggu PIN"}</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 text-[11px] font-semibold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        <span>Belum Diisi</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-slate-500 leading-relaxed font-normal">
+                    {todayLog
+                      ? (todayLog.state === "verified"
+                          ? "Jurnal hari ini telah divalidasi sah oleh mentor industri dengan segel kriptografi HMAC."
+                          : "Jurnal tercatat. Tunjukkan kode QR atau minta mentor memvalidasi via PIN.")
+                      : "Waktunya mencatat jurnal kegiatan magang hari ini (Batas waktu H-3)."}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2.5 pt-0.5">
+                  {todayLog ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowQrModal(true)}
+                      className="h-9 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+                    >
+                      <QrCode className="w-3.5 h-3.5 shrink-0" />
+                      <span>Tampilkan QR Mentor</span>
+                    </button>
+                  ) : (
+                    <>
+                      <Link
+                        href="/student/log/new"
+                        className="group h-9 px-4 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+                      >
+                        <PlusCircle className="w-3.5 h-3.5 stroke-[2.2] group-hover:rotate-90 transition-transform duration-200 shrink-0" />
+                        <span>Catat Jurnal</span>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => setShowQrModal(true)}
+                        className="h-9 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200/70 active:scale-[0.98] text-slate-700 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer border border-slate-200/60"
+                        title="Minta mentor memindai QR untuk validasi batch"
+                      >
+                        <QrCode className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span>QR PIN</span>
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
-              <div className="min-w-0 flex-1">
-                <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider block truncate">
-                  Target Kelulusan PKL
-                </span>
-                <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight mt-0.5 font-mono truncate">
-                  {student.verifiedJp} <span className="text-xs text-slate-400 font-normal">/ {TOTAL_TARGET_JP} JP</span>
-                </h3>
-                <div className="flex items-center gap-1.5 mt-1 sm:mt-1.5">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] sm:text-[10.5px] font-semibold truncate">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5] shrink-0" />
-                    <span className="truncate">Fase F Kurikulum Merdeka</span>
+              {/* Right Column (Cols 7-12): Desktop Metrics & Progress */}
+              <div className="col-span-6 border-l border-slate-100 pl-8 space-y-3 font-sans">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-slate-500 uppercase tracking-wider text-[11px]">
+                    Target Kelulusan PKL
                   </span>
+                  <div className="flex items-baseline gap-1 font-sans tabular-nums">
+                    <span className="text-sm font-bold text-slate-900">{student.verifiedJp}</span>
+                    <span className="text-slate-400 font-normal">/ {TOTAL_TARGET_JP} JP</span>
+                    <span className="text-xs font-bold text-sky-600 ml-1">({progressPercentage}%)</span>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Right: 3 Non-Redundant Essential Metrics */}
-            <div className="grid grid-cols-3 gap-1.5 sm:gap-3 w-full md:w-auto border-t md:border-t-0 md:border-l border-slate-100 pt-3 md:pt-0 md:pl-5">
-              <div className="p-2 sm:p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/60 text-center">
-                <span className="text-[9px] sm:text-[9.5px] font-semibold text-slate-400 uppercase tracking-wider block truncate">Jam Sah</span>
-                <p className="text-sm sm:text-base md:text-lg font-bold text-slate-900 font-mono mt-0.5">{student.verifiedJp}</p>
-                <span className="text-[9px] sm:text-[9.5px] text-emerald-600 font-medium block truncate">● HMAC</span>
-              </div>
+                <div
+                  className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden flex gap-0.5 p-0.5"
+                  title={`Jam Sah: ${student.verifiedJp} JP, Antrean: ${student.pendingJp} JP, Sisa: ${Math.max(0, TOTAL_TARGET_JP - student.verifiedJp)} JP`}
+                >
+                  <div
+                    style={{ width: `${Math.min(100, (student.verifiedJp / TOTAL_TARGET_JP) * 100)}%` }}
+                    className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                  />
+                  <div
+                    style={{ width: `${Math.min(100, (student.pendingJp / TOTAL_TARGET_JP) * 100)}%` }}
+                    className="bg-amber-400 h-full rounded-full transition-all duration-500"
+                  />
+                </div>
 
-              <div
-                onClick={() => setShowQrModal(true)}
-                className="p-2 sm:p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/70 text-center cursor-pointer hover:bg-amber-100/60 transition active:scale-95"
-                title="Klik untuk membuka QR Verifikasi"
-              >
-                <span className="text-[9px] sm:text-[9.5px] font-semibold text-amber-700 uppercase tracking-wider block truncate">Antrean</span>
-                <p className="text-sm sm:text-base md:text-lg font-bold text-amber-900 font-mono mt-0.5">{student.pendingJp}</p>
-                <span className="text-[9px] sm:text-[9.5px] text-amber-700 font-semibold flex items-center justify-center gap-0.5 truncate">
-                  <span>Minta PIN</span>
-                  <ChevronRight className="w-2.5 h-2.5 shrink-0" />
-                </span>
-              </div>
+                <div className="grid grid-cols-3 gap-2.5 pt-0.5">
+                  <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100/90 flex flex-col justify-between">
+                    <span className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider block truncate">
+                      Jam Sah
+                    </span>
+                    <div className="mt-1 flex items-baseline gap-1 font-sans tabular-nums">
+                      <span className="text-lg font-bold text-slate-900 tracking-tight leading-none">
+                        {student.verifiedJp}
+                      </span>
+                      <span className="text-xs text-slate-400 font-normal">JP</span>
+                    </div>
+                    <span className="mt-1.5 text-[10px] font-semibold text-emerald-700 flex items-center gap-1.5 truncate">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                      Terverifikasi
+                    </span>
+                  </div>
 
-              <div className="p-2 sm:p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/60 text-center">
-                <span className="text-[9px] sm:text-[9.5px] font-semibold text-slate-400 uppercase tracking-wider block truncate">Sisa Target</span>
-                <p className="text-sm sm:text-base md:text-lg font-bold text-slate-700 font-mono mt-0.5">{Math.max(0, TOTAL_TARGET_JP - student.verifiedJp)}</p>
-                <span className="text-[9px] sm:text-[9.5px] text-slate-400 font-medium block truncate">Jam</span>
+                  <div
+                    onClick={() => setShowQrModal(true)}
+                    className="p-3 rounded-xl bg-slate-50/70 hover:bg-amber-50/50 border border-slate-100/90 hover:border-amber-200/80 cursor-pointer transition flex flex-col justify-between group active:scale-[0.98]"
+                    title="Klik untuk membuka QR Verifikasi Mentor"
+                  >
+                    <span className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider block truncate">
+                      Antrean
+                    </span>
+                    <div className="mt-1 flex items-baseline gap-1 font-sans tabular-nums">
+                      <span className="text-lg font-bold text-slate-900 tracking-tight leading-none">
+                        {student.pendingJp}
+                      </span>
+                      <span className="text-xs text-slate-400 font-normal">JP</span>
+                    </div>
+                    <span className="mt-1.5 text-[10px] font-semibold text-amber-700 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform truncate">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                      <span>Minta PIN</span>
+                      <ChevronRight className="w-2.5 h-2.5 shrink-0" />
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100/90 flex flex-col justify-between">
+                    <span className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider block truncate">
+                      Sisa Target
+                    </span>
+                    <div className="mt-1 flex items-baseline gap-1 font-sans tabular-nums">
+                      <span className="text-lg font-bold text-slate-700 tracking-tight leading-none">
+                        {Math.max(0, TOTAL_TARGET_JP - student.verifiedJp)}
+                      </span>
+                      <span className="text-xs text-slate-400 font-normal">JP</span>
+                    </div>
+                    <span className="mt-1.5 text-[10px] font-normal text-slate-400 truncate">
+                      menuju 792 JP
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
           {/* ─── C. VIEW CONTROLLER (Segmented Tab Bar - Apple HIG) ─── */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 pt-2 font-sans">
             <div>
               <h2 className="text-sm font-semibold text-slate-900 tracking-tight flex items-center gap-2">
                 <span>Dokumentasi Praktik Industri</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium font-mono">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold font-sans">
                   {allTasks.length} Catatan
                 </span>
               </h2>
               <p className="text-[11px] text-slate-500 mt-0.5 font-normal">
-                Verifikasi zero-login oleh mentor DUDI tanpa akun melalui PIN
+                Penugasan resmi DUDI &amp; verifikasi autentik via PIN pembimbing industri
               </p>
             </div>
 
-            {/* Apple Segmented Control Bar */}
+            {/* Apple Segmented Control Bar (Mobile-Tuned Labels) */}
             <div className="grid grid-cols-3 sm:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/70 text-xs font-semibold w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => setViewMode("timeline")}
                 className={cn(
-                  "px-2.5 sm:px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-[11px] sm:text-xs flex items-center justify-center gap-1",
+                  "px-2 sm:px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-[11px] sm:text-xs flex items-center justify-center gap-1",
                   viewMode === "timeline"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
@@ -420,25 +778,27 @@ export default function StudentHomePage() {
                 type="button"
                 onClick={() => setViewMode("matrix")}
                 className={cn(
-                  "px-2.5 sm:px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-[11px] sm:text-xs flex items-center justify-center gap-1",
+                  "px-2 sm:px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-[11px] sm:text-xs flex items-center justify-center gap-1",
                   viewMode === "matrix"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
                 )}
               >
-                <span>Matriks</span>
+                <span className="sm:hidden">SKKNI</span>
+                <span className="hidden sm:inline">Matriks SKKNI</span>
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode("evidence")}
                 className={cn(
-                  "px-2.5 sm:px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-[11px] sm:text-xs flex items-center justify-center gap-1",
+                  "px-2 sm:px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-[11px] sm:text-xs flex items-center justify-center gap-1",
                   viewMode === "evidence"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
                 )}
               >
-                <span>Galeri</span>
+                <span className="sm:hidden">Galeri</span>
+                <span className="hidden sm:inline">Galeri Bukti</span>
               </button>
             </div>
           </div>
@@ -452,7 +812,7 @@ export default function StudentHomePage() {
             />
           )}
 
-          {viewMode === "matrix" && <SkkniMatrixView />}
+          {viewMode === "matrix" && <SkkniMatrixView tasks={allTasks} />}
 
           {viewMode === "evidence" && <EvidenceGalleryView />}
         </div>
@@ -482,6 +842,9 @@ export default function StudentHomePage() {
       ───────────────────────────────────────────────────────────────────────────── */}
       <StudentWidgetPanel
         student={student}
+        tasks={allTasks}
+        todayLog={todayLog}
+        workDays={workDays}
         onOpenNotifications={() => setShowNotifications(true)}
         onOpenQrModal={() => setShowQrModal(true)}
       />

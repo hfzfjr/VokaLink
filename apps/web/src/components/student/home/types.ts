@@ -13,13 +13,15 @@ export interface KanbanTask {
   autonomyLabel: string;
   skkniUnitCode: string;
   status: "in_progress" | "in_review" | "verified";
-  tools: string[];
+  isoDate?: string;
+  tools?: string[];
   submittedAt?: string;
   mentorSignature?: string;
   hmacVerified?: boolean;
   syncState?: LogSyncState | string;
   isLocalDexie?: boolean;
   shortNote?: string;
+  samplePhotoUrl?: string;
 }
 
 export interface StudentInfo {
@@ -110,91 +112,5 @@ export function getCategoryShortLabel(category: string): string {
   }
 }
 
-export const DEFAULT_KANBAN_TASKS: KanbanTask[] = [
-  {
-    id: "task-1",
-    title: "Implementasi REST API & Router Express",
-    category: "Pemrograman Web & Mobile",
-    categoryColor: "sky",
-    date: "10 Okt 2026",
-    durationJp: 8,
-    progressPercent: 73,
-    autonomyLabel: "Mandiri",
-    skkniUnitCode: "J.620100.009.01",
-    status: "in_progress",
-    tools: ["Express", "TypeScript", "Node.js"],
-  },
-  {
-    id: "task-2",
-    title: "Perancangan Skema PostgreSQL & Trigger",
-    category: "Basis Data Relasional",
-    categoryColor: "teal",
-    date: "9 Okt 2026",
-    durationJp: 8,
-    progressPercent: 84,
-    autonomyLabel: "Terbimbing",
-    skkniUnitCode: "J.620100.010.01",
-    status: "in_review",
-    tools: ["PostgreSQL", "Prisma", "Supabase"],
-    submittedAt: "16 jam yang lalu",
-  },
-  {
-    id: "task-3",
-    title: "Tugas Umum Operasional DUDI",
-    category: "Tugas Umum Non-Kompetensi",
-    categoryColor: "rose",
-    date: "9 Okt 2026",
-    durationJp: 4,
-    progressPercent: 65,
-    autonomyLabel: "Administrasi Sistem",
-    skkniUnitCode: "NON_COMP_ADMIN",
-    status: "in_review",
-    tools: ["SOP Industri", "Manajemen File"],
-    submittedAt: "1 hari yang lalu",
-  },
-  {
-    id: "task-4",
-    title: "Pengujian Unit & QA Penjaminan Mutu",
-    category: "Testing & QA",
-    categoryColor: "amber",
-    date: "8 Okt 2026",
-    durationJp: 8,
-    progressPercent: 100,
-    autonomyLabel: "Mandiri",
-    skkniUnitCode: "J.620100.015.01",
-    status: "verified",
-    tools: ["Vitest", "Supertest"],
-    mentorSignature: "Rizky Firmansyah",
-    hmacVerified: true,
-  },
-  {
-    id: "task-5",
-    title: "Penerapan Arsitektur Cloud & CI/CD Pipeline",
-    category: "Cloud & DevOps",
-    categoryColor: "indigo",
-    date: "7 Okt 2026",
-    durationJp: 6,
-    progressPercent: 100,
-    autonomyLabel: "Mandiri",
-    skkniUnitCode: "J.620100.020.01",
-    status: "verified",
-    tools: ["Docker", "Cloudflare", "Coolify"],
-    mentorSignature: "Rizky Firmansyah",
-    hmacVerified: true,
-  },
-  {
-    id: "task-6",
-    title: "Perancangan UI Komponen & Design System",
-    category: "Pemrograman Web & Mobile",
-    categoryColor: "sky",
-    date: "6 Okt 2026",
-    durationJp: 8,
-    progressPercent: 100,
-    autonomyLabel: "Mandiri",
-    skkniUnitCode: "J.620100.005.01",
-    status: "verified",
-    tools: ["Next.js", "Tailwind CSS"],
-    mentorSignature: "Rizky Firmansyah",
-    hmacVerified: true,
-  },
-];
+export const DEFAULT_KANBAN_TASKS: KanbanTask[] = [];
+

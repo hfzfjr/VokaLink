@@ -5,6 +5,7 @@ import { RefreshCw, ShieldCheck } from "lucide-react";
 import { Banner } from "@/components/ui/Banner";
 import { useSyncManager } from "@/lib/pwa/hooks/useSyncManager";
 import { requestStoragePersistence } from "@/lib/pwa/persistence";
+import { OfflineQueueModal } from "@/components/student/OfflineQueueModal";
 
 export type SyncState = "idle" | "syncing" | "synced";
 
@@ -32,6 +33,7 @@ export function ConnectivityBanner({
 
   const [showSyncedNotification, setShowSyncedNotification] = useState(false);
   const [wasOffline, setWasOffline] = useState(false);
+  const [showQueueModal, setShowQueueModal] = useState(false);
 
   // Inisialisasi persistent storage saat PWA dimuat (RSK-03 & DESIGN.md §7.3)
   useEffect(() => {
@@ -68,8 +70,10 @@ export function ConnectivityBanner({
   }, [syncState]);
 
   // 1. HIGH BACKLOG WARNING (> 3 log belum tersinkron - DESIGN.md §7.3 butir 8)
+  let bannerContent: React.ReactNode = null;
+
   if (isHighBacklog && isOnline) {
-    return (
+    bannerContent = (
       <aside className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-3">
         <Banner
           variant="danger"
@@ -82,26 +86,28 @@ export function ConnectivityBanner({
             <div className="flex items-center gap-2">
               <button
                 type="button"
+                onClick={() => setShowQueueModal(true)}
+                className="px-2.5 py-1 rounded-full bg-white hover:bg-rose-50 text-rose-800 border border-rose-300 font-bold text-xs transition active:scale-95 cursor-pointer shadow-xs"
+              >
+                Lihat Antrean
+              </button>
+              <button
+                type="button"
                 onClick={() => syncNow(true)}
                 disabled={activeIsSyncing}
                 className="px-3 py-1 rounded-full bg-rose-700 text-white font-bold text-xs hover:bg-rose-800 transition active:scale-95 disabled:opacity-70 flex items-center gap-1.5 cursor-pointer shadow-xs"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${activeIsSyncing ? "animate-spin" : ""}`} />
-                <span>{activeIsSyncing ? "Menyinkronkan..." : "Sinkronkan Sekarang"}</span>
+                <span>{activeIsSyncing ? "Menyinkronkan..." : "Sinkronkan"}</span>
               </button>
-              <span className="px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold uppercase tracking-wider hidden sm:inline-block">
-                Antrean Tinggi
-              </span>
             </div>
           }
         />
       </aside>
     );
-  }
-
-  // 2. OFFLINE STATE (Kuning/Amber) - Sesuai PRD §8.2 & DESIGN §7.3
-  if (!isOnline) {
-    return (
+  } else if (!isOnline) {
+    // 2. OFFLINE STATE (Kuning/Amber) - Sesuai PRD §8.2 & DESIGN §7.3
+    bannerContent = (
       <aside className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-3">
         <Banner
           variant="warn"
@@ -111,20 +117,22 @@ export function ConnectivityBanner({
             </span>
           }
           action={
-            activePendingCount > 0 ? (
-              <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold whitespace-nowrap">
-                {activePendingCount} antrean tersimpan
-              </span>
-            ) : undefined
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setShowQueueModal(true)}
+                className="px-2.5 py-1 rounded-full bg-amber-200/90 hover:bg-amber-300 text-amber-950 border border-amber-300 text-xs font-bold whitespace-nowrap active:scale-95 transition cursor-pointer"
+              >
+                {activePendingCount > 0 ? `${activePendingCount} Antrean (Lihat)` : "Inspektor Storage"}
+              </button>
+            </div>
           }
         />
       </aside>
     );
-  }
-
-  // 3. SYNCING STATE (Biru/Info - Hanya saat proses sinkronisasi aktif berlangsung)
-  if (activeIsSyncing) {
-    return (
+  } else if (activeIsSyncing) {
+    // 3. SYNCING STATE (Biru/Info - Hanya saat proses sinkronisasi aktif berlangsung)
+    bannerContent = (
       <aside className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-3">
         <Banner
           variant="info"
@@ -140,28 +148,24 @@ export function ConnectivityBanner({
           }
           action={
             <div className="flex items-center gap-2">
-              {!activeIsSyncing && (
-                <button
-                  type="button"
-                  onClick={() => syncNow()}
-                  className="px-3 py-1 rounded-full bg-sky-500 text-white text-xs font-bold hover:bg-sky-600 transition cursor-pointer shadow-xs"
-                >
-                  Sinkronkan
-                </button>
-              )}
-              <span className="px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[11px] font-bold">
-                {activeIsSyncing ? "Syncing..." : "Auto-Sync"}
+              <button
+                type="button"
+                onClick={() => setShowQueueModal(true)}
+                className="px-2.5 py-1 rounded-full bg-sky-100 hover:bg-sky-200 text-sky-800 text-[11px] font-bold cursor-pointer transition active:scale-95"
+              >
+                Lihat Rincian
+              </button>
+              <span className="px-2.5 py-0.5 rounded-full bg-sky-500 text-white text-[11px] font-bold">
+                Auto-Sync
               </span>
             </div>
           }
         />
       </aside>
     );
-  }
-
-  // 4. SYNCED SUCCESS (Hijau/Ok)
-  if (showSyncedNotification) {
-    return (
+  } else if (showSyncedNotification) {
+    // 4. SYNCED SUCCESS (Hijau/Ok)
+    bannerContent = (
       <aside className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-3">
         <Banner
           variant="ok"
@@ -178,5 +182,13 @@ export function ConnectivityBanner({
     );
   }
 
-  return null;
+  return (
+    <>
+      {bannerContent}
+      <OfflineQueueModal
+        isOpen={showQueueModal}
+        onClose={() => setShowQueueModal(false)}
+      />
+    </>
+  );
 }

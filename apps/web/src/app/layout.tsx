@@ -12,13 +12,23 @@ export const metadata: Metadata = {
   title: "VokaLink — Ekosistem PKL SMK Terintegrasi",
   description:
     "Platform PKL SMK multi-tenant offline-first: logbook kartu tugas bebas-ketik, verifikasi penyelia zero-login, heatmap drift, e-Rapor, dan paspor kompetensi publik ber-QR.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "VokaLink",
+  },
+  icons: {
+    icon: "/icons/icon.svg",
+    apple: "/icons/icon.svg",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#0F2A43",
+  themeColor: "#0ea5e9",
 };
 
 export default function RootLayout({

@@ -17,13 +17,15 @@ import {
   Save,
   Loader2,
   ChevronRight,
-  Image as ImageIcon,
-  Clock,
   Edit3,
   Plus,
   Trash2,
   Eye,
   RotateCcw,
+  GraduationCap,
+  Briefcase,
+  FolderGit2,
+  Wrench,
 } from "lucide-react";
 import Link from "next/link";
 import { fetchStudentCv, updateStudentPassport, type StudentCvResponse } from "@/lib/api";
@@ -41,24 +43,24 @@ const DEMO_FALLBACK_CV: StudentCvResponse = {
     whatsappNumber: "081234567890",
   },
   summaryBio:
-    "Siswa SMK konsentrasi Rekayasa Perangkat Lunak dengan pengalaman magang industri 184 JP terverifikasi resmi (184 jam kerja industri riil) di PT Nusantara Tech. Menguasai arsitektur Express.js, TypeScript, Next.js, dan optimasi basis data relasional PostgreSQL dengan standar SKKNI.",
-  totalVerifiedJp: 184,
-  totalRealHours: 184,
-  technicalJp: 168,
-  nonCompetencyJp: 16,
-  completedTasksCount: 21,
+    "Siswa SMK konsentrasi Rekayasa Perangkat Lunak dengan pengalaman magang industri 280 JP terverifikasi resmi (280 jam kerja industri riil) di PT Nusantara Tech. Menguasai arsitektur Express.js, TypeScript, Next.js, dan optimasi basis data relasional PostgreSQL dengan standar SKKNI.",
+  totalVerifiedJp: 280,
+  totalRealHours: 280,
+  technicalJp: 280,
+  nonCompetencyJp: 0,
+  completedTasksCount: 35,
   experiences: [
     {
-      placementId: "00000000-0000-0000-0000-000000000051",
+      placementId: "3ffec674-ad55-482a-a566-9dff84ab71be",
       dudiName: "PT Nusantara Tech",
       dudiCity: "Surabaya",
       mentorName: "Rizky Firmansyah (Engineering Lead)",
       roleTitle: "Junior Software Engineer Intern",
       periodLabel: "Jan 2026 – Sekarang",
-      totalVerifiedJp: 184,
-      totalRealHours: 184,
-      technicalJp: 168,
-      nonCompetencyJp: 16,
+      totalVerifiedJp: 280,
+      totalRealHours: 280,
+      technicalJp: 280,
+      nonCompetencyJp: 0,
       bulletPoints: [
         {
           jobCardId: "00000000-0000-0000-0000-000000000031",
@@ -103,24 +105,26 @@ const DEMO_FALLBACK_CV: StudentCvResponse = {
     },
   ],
   technicalSkills: [
-    { name: "Express.js & TypeScript", totalJp: 64, totalRealHours: 64 },
-    { name: "Next.js & React 19", totalJp: 56, totalRealHours: 56 },
-    { name: "PostgreSQL & Prisma", totalJp: 48, totalRealHours: 48 },
-    { name: "Tailwind CSS Mobile-First", totalJp: 40, totalRealHours: 40 },
+    { name: "TypeScript", totalJp: 120 },
+    { name: "Express.js", totalJp: 64 },
+    { name: "Next.js", totalJp: 56 },
+    { name: "PostgreSQL", totalJp: 48 },
+    { name: "Prisma ORM", totalJp: 48 },
+    { name: "Tailwind CSS", totalJp: 56 },
   ],
   endorsement: {
-    attitudeScore: 95,
-    badges: ["INISIATIF_TINGGI", "KOLABORATIF", "KEDISIPLINAN_WAKTU"],
-    quote:
-      "Andi menunjukkan inisiatif teknis yang luar biasa selama PKL, cepat beradaptasi dengan stack modern tim kami.",
     mentorName: "Rizky Firmansyah",
     dudiName: "PT Nusantara Tech",
+    attitudeScore: 96,
+    quote:
+      "Andi memiliki etos kerja luar biasa, mampu menyelesaikan rancangan REST API backend secara mandiri, dan berdisiplin tinggi dalam mengikuti SOP industri.",
+    badges: ["INISIATIF_TINGGI", "PROBLEM_SOLVER", "DISIPLIN_PRESENSI"],
   },
-  extraActivities: [],
   visibility: {
     showPhotos: true,
     showGrades: true,
   },
+  extraActivities: [],
   passportSlug: "andi-pratama",
   verificationUrl: "/verify/andi-pratama",
   masterSignatureHash: "a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0",
@@ -138,6 +142,74 @@ export interface EditableExperience {
   nonCompetencyJp: number;
   bulletPoints: string[];
 }
+
+export interface EditableEducation {
+  id: string;
+  schoolName: string;
+  department: string;
+  periodLabel: string;
+  achievement?: string;
+}
+
+export interface EditableProject {
+  id: string;
+  title: string;
+  techStack: string;
+  periodLabel: string;
+  description: string;
+}
+
+export interface EditableEndorsement {
+  mentorName: string;
+  mentorRole: string;
+  dudiName: string;
+  attitudeScore: number;
+  quote: string;
+  badges: string[];
+}
+
+const DEFAULT_EDUCATIONS: EditableEducation[] = [
+  {
+    id: "edu-1",
+    schoolName: "SMK Demo VokaLink",
+    department: "Konsentrasi Rekayasa Perangkat Lunak (Fase F SMK Kurikulum Merdeka)",
+    periodLabel: "2024 – 2027",
+    achievement: "Rata-rata Nilai Kejuruan: 92/100 · Siswa Berprestasi Bidang RPL",
+  },
+];
+
+const DEFAULT_PROJECTS: EditableProject[] = [
+  {
+    id: "proj-1",
+    title: "Sistem Logbook PWA & Verifikasi Kriptografis VokaLink",
+    techStack: "Next.js 15, TypeScript, PostgreSQL, Tailwind CSS, Dexie.js",
+    periodLabel: "2026",
+    description:
+      "Membangun platform PWA offline-first untuk pencatatan logbook magang dengan verifikasi tanpa akun oleh mentor DUDI, audit paspor kompetensi publik ber-QR, dan segel kriptografi HMAC-SHA256.",
+  },
+  {
+    id: "proj-2",
+    title: "RESTful API Microservices Express & Database PostgreSQL",
+    techStack: "Express.js, TypeScript, PostgreSQL, Prisma ORM, Jose",
+    periodLabel: "2026",
+    description:
+      "Mengembangkan 12 modul endpoint backend dengan otentikasi JWT, rate limiting, validasi Zod, dan proteksi tenant guard multi-sekolah mandiri.",
+  },
+];
+
+const DEFAULT_SOFT_SKILLS = [
+  "Komunikasi Kolaboratif",
+  "Problem Solving Mandiri",
+  "Disiplin Presensi & K3",
+  "Adaptabilitas Cepat",
+  "Manajemen Waktu",
+];
+
+const DEFAULT_COMPLIANCE =
+  "SKKNI Bidang Rekayasa Perangkat Lunak / Kejuruan Vokasi, Standar SOP Mandiri & K3 Industri.";
+
+const DEFAULT_VALIDITY =
+  "100% tervalidasi mentor industri melalui tanda tangan digital & PIN resmi (BR-010).";
 
 export default function CareerCvPage() {
   const [cvData, setCvData] = useState<StudentCvResponse | null>(null);
@@ -158,14 +230,46 @@ export default function CareerCvPage() {
   // Share link state
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // Manual Editing state
+  // ─── Complete Manual Editing State (Semua Field Dapat Diedit) ───
   const [isEditMode, setIsEditMode] = useState(false);
-  const [customPhone, setCustomPhone] = useState("");
-  const [customAddress, setCustomAddress] = useState("");
-  const [customExperiences, setCustomExperiences] = useState<EditableExperience[]>([]);
-  const [customSkills, setCustomSkills] = useState<string[]>([]);
   const [isSavingManual, setIsSavingManual] = useState(false);
   const [manualSaveSuccess, setManualSaveSuccess] = useState(false);
+
+  // 1. Identitas Personal
+  const [customFullName, setCustomFullName] = useState("");
+  const [customDepartment, setCustomDepartment] = useState("");
+  const [customSchoolName, setCustomSchoolName] = useState("");
+  const [customNisn, setCustomNisn] = useState("");
+  const [customEmail, setCustomEmail] = useState("");
+  const [customPhone, setCustomPhone] = useState("");
+  const [customAddress, setCustomAddress] = useState("");
+  const [customPortfolio, setCustomPortfolio] = useState("");
+
+  // 2. Pengalaman PKL
+  const [customExperiences, setCustomExperiences] = useState<EditableExperience[]>([]);
+
+  // 3. Pendidikan Formal
+  const [customEducations, setCustomEducations] = useState<EditableEducation[]>([]);
+
+  // 4. Proyek Portofolio
+  const [customProjects, setCustomProjects] = useState<EditableProject[]>([]);
+
+  // 5. Keahlian & Kepatuhan
+  const [customSkills, setCustomSkills] = useState<string[]>([]);
+  const [customSoftSkills, setCustomSoftSkills] = useState<string[]>([]);
+  const [customCompliance, setCustomCompliance] = useState("");
+  const [customValidityNote, setCustomValidityNote] = useState("");
+
+  // 6. Endorsement & Catatan Mentor
+  const [customEndorsement, setCustomEndorsement] = useState<EditableEndorsement>({
+    mentorName: "Rizky Firmansyah",
+    mentorRole: "Engineering Lead",
+    dudiName: "PT Nusantara Tech",
+    attitudeScore: 96,
+    quote:
+      "Andi memiliki etos kerja luar biasa, mampu menyelesaikan rancangan REST API backend secara mandiri, dan berdisiplin tinggi dalam mengikuti SOP industri.",
+    badges: ["INISIATIF_TINGGI", "PROBLEM_SOLVER", "DISIPLIN_PRESENSI"],
+  });
 
   const initManualFields = useCallback((data: StudentCvResponse) => {
     const defaultExps: EditableExperience[] = (data.experiences || []).map((exp, idx) => ({
@@ -173,7 +277,7 @@ export default function CareerCvPage() {
       roleTitle: exp.roleTitle || "Junior Software Engineer Intern",
       dudiName: exp.dudiName || "PT Industri Mitra",
       dudiCity: exp.dudiCity || "Surabaya",
-      mentorName: exp.mentorName || "",
+      mentorName: exp.mentorName || "Rizky Firmansyah (Engineering Lead)",
       periodLabel: exp.periodLabel || "Jan 2026 – Sekarang",
       totalVerifiedJp: exp.totalVerifiedJp || 0,
       technicalJp: exp.technicalJp || 0,
@@ -181,58 +285,67 @@ export default function CareerCvPage() {
       bulletPoints: exp.bulletPoints ? exp.bulletPoints.map((b) => b.bulletText) : [],
     }));
 
-    const fallbackFirstExp: EditableExperience = defaultExps[0] || {
-      id: "exp-0",
-      roleTitle: "Junior Software Engineer Intern",
-      dudiName: "PT Industri Mitra",
-      dudiCity: "Surabaya",
-      mentorName: "",
-      periodLabel: "Jan 2026 – Sekarang",
-      totalVerifiedJp: 184,
-      technicalJp: 168,
-      nonCompetencyJp: 16,
-      bulletPoints: [],
-    };
-
+    // Cek cache kustomisasi lokal jika pernah disimpan
     try {
       if (typeof window !== "undefined") {
         const saved = localStorage.getItem("vokalink_cv_customizations");
         if (saved) {
-          const parsed = JSON.parse(saved);
-          setCustomPhone(parsed.phone ?? data.student.whatsappNumber ?? "");
-          setCustomAddress(parsed.address ?? data.student.schoolAddress ?? "");
-          if (Array.isArray(parsed.experiences) && parsed.experiences.length > 0) {
-            setCustomExperiences(parsed.experiences);
-          } else if (parsed.roleTitle || parsed.bullets) {
-            setCustomExperiences([
-              {
-                ...fallbackFirstExp,
-                roleTitle: parsed.roleTitle || fallbackFirstExp.roleTitle,
-                bulletPoints:
-                  Array.isArray(parsed.bullets) && parsed.bullets.length > 0
-                    ? parsed.bullets
-                    : fallbackFirstExp.bulletPoints,
-              },
-            ]);
-          } else {
-            setCustomExperiences(defaultExps);
-          }
-          setCustomSkills(
-            Array.isArray(parsed.skills) && parsed.skills.length > 0
-              ? parsed.skills
-              : data.technicalSkills.map((s) => s.name) ?? []
-          );
+          const p = JSON.parse(saved);
+          setCustomFullName(p.fullName || data.student.fullName || "Andi Pratama");
+          setCustomDepartment(p.departmentName || data.student.departmentName || "Rekayasa Perangkat Lunak (RPL)");
+          setCustomSchoolName(p.schoolName || data.student.schoolName || "SMK Demo VokaLink");
+          setCustomNisn(p.nisn || data.student.identityNumber || "0078901234");
+          setCustomEmail(p.email || "andi.pratama@smk.sch.id");
+          setCustomPhone(p.phone || data.student.whatsappNumber || "081234567890");
+          setCustomAddress(p.address || data.student.schoolAddress || "Surabaya, Jawa Timur");
+          setCustomPortfolio(p.portfolio || "github.com/andipratama");
+          if (p.bioSummary) setBioSummary(p.bioSummary);
+          if (Array.isArray(p.experiences) && p.experiences.length > 0) setCustomExperiences(p.experiences);
+          else setCustomExperiences(defaultExps);
+          if (Array.isArray(p.educations) && p.educations.length > 0) setCustomEducations(p.educations);
+          else setCustomEducations(DEFAULT_EDUCATIONS);
+          if (Array.isArray(p.projects) && p.projects.length > 0) setCustomProjects(p.projects);
+          else setCustomProjects(DEFAULT_PROJECTS);
+          if (Array.isArray(p.skills) && p.skills.length > 0) setCustomSkills(p.skills);
+          else setCustomSkills(data.technicalSkills.map((s) => s.name) || []);
+          if (Array.isArray(p.softSkills) && p.softSkills.length > 0) setCustomSoftSkills(p.softSkills);
+          else setCustomSoftSkills(DEFAULT_SOFT_SKILLS);
+          setCustomCompliance(p.compliance || DEFAULT_COMPLIANCE);
+          setCustomValidityNote(p.validityNote || DEFAULT_VALIDITY);
+          if (p.endorsement) setCustomEndorsement(p.endorsement);
           return;
         }
       }
     } catch {
-      // ignore
+      // ignore JSON parse error
     }
 
+    // Default Fallbacks
+    setCustomFullName(data.student.fullName || "Andi Pratama");
+    setCustomDepartment(data.student.departmentName || "Rekayasa Perangkat Lunak (RPL)");
+    setCustomSchoolName(data.student.schoolName || "SMK Demo VokaLink");
+    setCustomNisn(data.student.identityNumber || "0078901234");
+    setCustomEmail("andi.pratama@smk.sch.id");
     setCustomPhone(data.student.whatsappNumber || "081234567890");
-    setCustomAddress(data.student.schoolAddress || "Jl. Pendidikan Vokasi No. 1, Surabaya");
+    setCustomAddress(data.student.schoolAddress || "Surabaya, Jawa Timur");
+    setCustomPortfolio("github.com/andipratama");
     setCustomExperiences(defaultExps);
+    setCustomEducations(DEFAULT_EDUCATIONS);
+    setCustomProjects(DEFAULT_PROJECTS);
     setCustomSkills(data.technicalSkills.map((s) => s.name) || []);
+    setCustomSoftSkills(DEFAULT_SOFT_SKILLS);
+    setCustomCompliance(DEFAULT_COMPLIANCE);
+    setCustomValidityNote(DEFAULT_VALIDITY);
+    if (data.endorsement) {
+      setCustomEndorsement({
+        mentorName: data.endorsement.mentorName || "Rizky Firmansyah",
+        mentorRole: "Engineering Lead",
+        dudiName: data.endorsement.dudiName || "PT Nusantara Tech",
+        attitudeScore: data.endorsement.attitudeScore || 96,
+        quote: data.endorsement.quote || "",
+        badges: data.endorsement.badges || ["INISIATIF_TINGGI", "PROBLEM_SOLVER"],
+      });
+    }
   }, []);
 
   const loadCv = useCallback(async () => {
@@ -248,7 +361,6 @@ export default function CareerCvPage() {
         setShowGrades(data.visibility.showGrades ?? true);
       }
     } catch {
-      // Fallback ke data terverifikasi demo agar tampilan offline tetap interaktif
       setCvData(DEMO_FALLBACK_CV);
       setBioSummary(DEMO_FALLBACK_CV.summaryBio);
       initManualFields(DEMO_FALLBACK_CV);
@@ -294,10 +406,23 @@ export default function CareerCvPage() {
         localStorage.setItem(
           "vokalink_cv_customizations",
           JSON.stringify({
+            fullName: customFullName,
+            departmentName: customDepartment,
+            schoolName: customSchoolName,
+            nisn: customNisn,
+            email: customEmail,
             phone: customPhone,
             address: customAddress,
+            portfolio: customPortfolio,
+            bioSummary,
             experiences: customExperiences,
+            educations: customEducations,
+            projects: customProjects,
             skills: customSkills,
+            softSkills: customSoftSkills,
+            compliance: customCompliance,
+            validityNote: customValidityNote,
+            endorsement: customEndorsement,
           })
         );
       }
@@ -319,32 +444,17 @@ export default function CareerCvPage() {
         if (typeof window !== "undefined") {
           localStorage.removeItem("vokalink_cv_customizations");
         }
-      } catch { }
+      } catch {}
+      initManualFields(data);
       setBioSummary(data.summaryBio || DEMO_FALLBACK_CV.summaryBio);
-      setCustomPhone(data.student.whatsappNumber || "081234567890");
-      setCustomAddress(data.student.schoolAddress || "Jl. Pendidikan Vokasi No. 1, Surabaya");
-      const defaultExps = (data.experiences || []).map((exp, idx) => ({
-        id: exp.placementId || `exp-${idx}`,
-        roleTitle: exp.roleTitle || "Junior Software Engineer Intern",
-        dudiName: exp.dudiName || "PT Industri Mitra",
-        dudiCity: exp.dudiCity || "Surabaya",
-        mentorName: exp.mentorName || "",
-        periodLabel: exp.periodLabel || "Jan 2026 – Sekarang",
-        totalVerifiedJp: exp.totalVerifiedJp || 0,
-        technicalJp: exp.technicalJp || 0,
-        nonCompetencyJp: exp.nonCompetencyJp || 0,
-        bulletPoints: exp.bulletPoints ? exp.bulletPoints.map((b) => b.bulletText) : [],
-      }));
-      setCustomExperiences(defaultExps);
-      setCustomSkills(data.technicalSkills.map((s) => s.name) || []);
       setIsEditMode(false);
     }
   };
 
-  // Handler: Tambah Pengalaman Praktik Kerja Lapangan (PKL) Baru
+  // Handlers untuk Pengalaman PKL
   const handleAddExperience = () => {
     setIsEditMode(true);
-    const newExp = {
+    const newExp: EditableExperience = {
       id: `exp-${Date.now()}`,
       roleTitle: "Posisi / Peran Magang Baru",
       dudiName: "PT Nama Perusahaan Mitra",
@@ -361,7 +471,6 @@ export default function CareerCvPage() {
     setCustomExperiences((prev) => [...prev, newExp]);
   };
 
-  // Handler: Hapus Pengalaman PKL
   const handleRemoveExperience = (id: string) => {
     if (customExperiences.length <= 1) {
       alert("Minimal harus ada satu riwayat pengalaman PKL.");
@@ -372,7 +481,6 @@ export default function CareerCvPage() {
     }
   };
 
-  // Handler: Perbarui Field Pengalaman PKL
   const handleUpdateExperienceField = (
     id: string,
     field: "roleTitle" | "dudiName" | "dudiCity" | "periodLabel" | "mentorName" | "totalVerifiedJp",
@@ -383,52 +491,107 @@ export default function CareerCvPage() {
     );
   };
 
-  // Handler: Tambah Poin Capaian ke Pengalaman Tertentu
   const handleAddBulletToExp = (expId: string) => {
     setCustomExperiences((prev) =>
       prev.map((e) =>
         e.id === expId
           ? {
-            ...e,
-            bulletPoints: [
-              ...e.bulletPoints,
-              "Mengembangkan tugas dan solusi teknis sesuai arahan mentor dan standar industri.",
-            ],
-          }
+              ...e,
+              bulletPoints: [
+                ...e.bulletPoints,
+                "Mengembangkan tugas dan solusi teknis sesuai arahan mentor dan standar industri.",
+              ],
+            }
           : e
       )
     );
   };
 
-  // Handler: Hapus Poin Capaian dari Pengalaman Tertentu
   const handleRemoveBulletFromExp = (expId: string, bulletIdx: number) => {
     setCustomExperiences((prev) =>
       prev.map((e) =>
         e.id === expId
           ? {
-            ...e,
-            bulletPoints: e.bulletPoints.filter((_, i) => i !== bulletIdx),
-          }
+              ...e,
+              bulletPoints: e.bulletPoints.filter((_, i) => i !== bulletIdx),
+            }
           : e
       )
     );
   };
 
-  // Handler: Edit Teks Poin Capaian
-  const handleBulletChangeExp = (
-    expId: string,
-    bulletIdx: number,
-    text: string
-  ) => {
+  const handleBulletChangeExp = (expId: string, bulletIdx: number, text: string) => {
     setCustomExperiences((prev) =>
       prev.map((e) =>
         e.id === expId
           ? {
-            ...e,
-            bulletPoints: e.bulletPoints.map((b, i) => (i === bulletIdx ? text : b)),
-          }
+              ...e,
+              bulletPoints: e.bulletPoints.map((b, i) => (i === bulletIdx ? text : b)),
+            }
           : e
       )
+    );
+  };
+
+  // Handlers untuk Pendidikan Formal
+  const handleAddEducation = () => {
+    setIsEditMode(true);
+    const newEdu: EditableEducation = {
+      id: `edu-${Date.now()}`,
+      schoolName: "Nama Sekolah / Lembaga Baru",
+      department: "Konsentrasi Keahlian / Bidang Studi",
+      periodLabel: "2021 – 2024",
+      achievement: "Prestasi Akademik / Nilai Akhir",
+    };
+    setCustomEducations((prev) => [...prev, newEdu]);
+  };
+
+  const handleRemoveEducation = (id: string) => {
+    if (customEducations.length <= 1) {
+      alert("Minimal harus ada satu riwayat pendidikan formal.");
+      return;
+    }
+    if (confirm("Hapus riwayat pendidikan ini?")) {
+      setCustomEducations((prev) => prev.filter((e) => e.id !== id));
+    }
+  };
+
+  const handleUpdateEducationField = (
+    id: string,
+    field: keyof EditableEducation,
+    value: string
+  ) => {
+    setCustomEducations((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, [field]: value } : e))
+    );
+  };
+
+  // Handlers untuk Proyek Portofolio
+  const handleAddProject = () => {
+    setIsEditMode(true);
+    const newProj: EditableProject = {
+      id: `proj-${Date.now()}`,
+      title: "Judul Proyek / Aplikasi Unggulan Baru",
+      techStack: "Teknologi, Framework, Database",
+      periodLabel: "2026",
+      description: "Deskripsi solusi teknis, dampak proyek, dan kontribusi mandiri Anda.",
+    };
+    setCustomProjects((prev) => [...prev, newProj]);
+  };
+
+  const handleRemoveProject = (id: string) => {
+    if (confirm("Hapus proyek ini dari lembar CV?")) {
+      setCustomProjects((prev) => prev.filter((p) => p.id !== id));
+    }
+  };
+
+  const handleUpdateProjectField = (
+    id: string,
+    field: keyof EditableProject,
+    value: string
+  ) => {
+    setCustomProjects((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, [field]: value } : p))
     );
   };
 
@@ -447,56 +610,28 @@ export default function CareerCvPage() {
           showGrades: nextGrades,
         },
       });
-    } catch {
-      console.info("Visibilitas privasi paspor diperbarui di sesi aktif");
-    } finally {
-      setCvData((prev) =>
-        prev
-          ? {
-            ...prev,
-            visibility: { showPhotos: nextPhotos, showGrades: nextGrades },
-          }
-          : null
-      );
-      setIsUpdatingPrivacy(false);
       setPrivacySaved(true);
-      setTimeout(() => setPrivacySaved(false), 2500);
+      setTimeout(() => setPrivacySaved(false), 2000);
+    } catch {
+      console.info("Perubahan privasi disimpan secara lokal");
+    } finally {
+      setIsUpdatingPrivacy(false);
     }
   };
 
   const handlePrintPdf = () => {
-    if (isEditMode) {
-      if (typeof window !== "undefined") {
-        localStorage.setItem(
-          "vokalink_cv_customizations",
-          JSON.stringify({
-            phone: customPhone,
-            address: customAddress,
-            experiences: customExperiences,
-            skills: customSkills,
-          })
-        );
-      }
-      setIsEditMode(false);
-      setTimeout(() => {
-        window.print();
-      }, 100);
-    } else {
+    if (typeof window !== "undefined") {
       window.print();
     }
   };
 
-  // ─── 1. State: Loading Skeleton ────────────────────────────────────────────
-  if (isLoading) {
+  // ─── 1. State: Loading Skeleton ──────────────────────────────────────────
+  if (isLoading && !cvData) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="h-10 bg-slate-200 rounded-xl w-1/3 no-print" />
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          <div className="lg:col-span-8 bg-white rounded-2xl p-8 border border-slate-200 space-y-6">
-            <div className="h-20 bg-slate-100 rounded-xl" />
-            <div className="h-28 bg-slate-100 rounded-xl" />
-            <div className="h-40 bg-slate-100 rounded-xl" />
-          </div>
+        <div className="h-20 bg-slate-100 rounded-3xl border border-slate-200" />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-8 h-[750px] bg-slate-100 rounded-3xl border border-slate-200" />
           <div className="lg:col-span-4 space-y-4 no-print">
             <div className="h-32 bg-slate-100 rounded-2xl border border-slate-200" />
             <div className="h-48 bg-slate-100 rounded-2xl border border-slate-200" />
@@ -551,7 +686,7 @@ export default function CareerCvPage() {
     );
   }
 
-  const { student, experiences, technicalSkills, endorsement, verificationUrl, masterSignatureHash } = cvData;
+  const { experiences, verificationUrl, masterSignatureHash } = cvData;
 
   const autonomousTasksCount = experiences.reduce(
     (sum, exp) =>
@@ -562,28 +697,22 @@ export default function CareerCvPage() {
     0
   );
 
-  const totalTasksCount = experiences.reduce(
-    (sum, exp) =>
-      sum + exp.bulletPoints.reduce((bSum, b) => bSum + b.taskCount, 0),
-    0
-  );
-
   return (
-    <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-200 print:space-y-0 print:m-0 print:p-0 print:w-full print:block">
+    <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-200 font-sans print:space-y-0 print:m-0 print:p-0 print:w-full print:block">
       {/* ─────────────────────────────────────────────────────────────────────────────
           1. STUDIO PAGE HEADER & FLOATING ACTIONS (no-print)
       ───────────────────────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pb-3 border-b border-slate-200/80 no-print print:hidden">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             CV ATS &amp; Paspor Kompetensi
           </h1>
           <p className="text-xs text-slate-500 mt-1 font-normal">
-            Portofolio digital berbasis jam kerja riil terverifikasi mentor industri
+            Portofolio digital berbasis jam kerja riil terverifikasi mentor industri (Mode Edit Penuh Aktif)
           </p>
         </div>
 
-        {/* Action Buttons: 2x2 symmetrical grid on mobile, horizontal pill row on desktop */}
+        {/* Action Buttons: 2x2 symmetrical grid on mobile, horizontal row on desktop */}
         <div className="grid grid-cols-2 sm:flex sm:flex-row items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
           {/* Tombol Mode Edit Manual */}
           <button
@@ -604,7 +733,7 @@ export default function CareerCvPage() {
             ) : (
               <>
                 <Edit3 className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-                <span>Edit Manual</span>
+                <span>Edit Semua Bagian</span>
               </>
             )}
           </button>
@@ -649,8 +778,6 @@ export default function CareerCvPage() {
 
       {/* ─────────────────────────────────────────────────────────────────────────────
           2. WORKSPACE CANVAS: TWO-COLUMN STUDIO (Desktop Side-by-Side)
-             Left: Full-width CV ATS Document (lg:col-span-8) - No wasted margins
-             Right: Studio Control Sidebar (lg:col-span-4) - Sticky controls
       ───────────────────────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start print:block print:w-full print:m-0 print:p-0">
         {/* LEFT COLUMN: CV ATS Sheet (occupies full width of the left column) */}
@@ -661,9 +788,9 @@ export default function CareerCvPage() {
               <div className="flex items-center gap-2.5">
                 <Edit3 className="w-4 h-4 text-amber-700 shrink-0" />
                 <div>
-                  <p className="text-xs font-semibold text-amber-900">Mode Edit Manual Aktif</p>
-                  <p className="text-[11px] text-amber-700">
-                    Sesuaikan kontak, ringkasan diri, butir capaian, dan keahlian langsung pada lembar dokumen.
+                  <p className="text-xs font-bold text-amber-900">Mode Edit Lengkap Aktif</p>
+                  <p className="text-[11px] text-amber-700 font-normal">
+                    Seluruh identitas, riwayat pendidikan, pengalaman PKL, proyek portofolio, dan keahlian dapat disesuaikan langsung pada lembar dokumen.
                   </p>
                 </div>
               </div>
@@ -703,57 +830,151 @@ export default function CareerCvPage() {
             </div>
           )}
 
-          {/* ─── FULL-WIDTH A4 DOCUMENT SHEET: STRICT SINGLE-COLUMN ATS ─── */}
+          {/* ─── FULL-WIDTH A4 DOCUMENT SHEET: STRICT SINGLE-COLUMN ATS (Harvard Standard) ─── */}
           <div className="cv-print-sheet w-full bg-white rounded-2xl p-4 sm:p-8 lg:p-11 border border-slate-200/90 shadow-[0_4px_24px_-4px_rgba(15,23,42,0.06)] space-y-4.5 sm:space-y-5 text-slate-900 font-sans text-xs print:p-0 print:border-none print:shadow-none print:rounded-none print:space-y-3.5 print:w-full print:max-w-full">
-            {/* CV Header: Student Identity & Official Verification QR (Harvard & ADACareer Style) */}
+            
+            {/* ─── Header: Student Identity & Official Verification QR ─── */}
             <div className="border-b-2 border-slate-900 pb-3 flex justify-between items-start gap-3 sm:gap-4">
               <div className="space-y-1 min-w-0 flex-1">
-                <h2 className="text-2xl sm:text-[26px] font-bold tracking-tight uppercase text-slate-900 leading-tight">
-                  {student.fullName}
-                </h2>
-                <p className="font-semibold text-slate-800 text-xs sm:text-sm">
-                  {student.departmentName} — {student.schoolName}
-                </p>
-
-                {/* Contact line: Inline editable in Edit Mode */}
                 {isEditMode ? (
-                  <div className="text-[11px] text-slate-600 pt-1 font-normal flex flex-wrap items-center gap-2 no-print">
-                    <span>NISN: <strong className="font-semibold text-slate-900">{student.identityNumber}</strong></span>
-                    <span>·</span>
-                    <div className="flex items-center gap-1">
-                      <span className="text-slate-500 font-medium">WA:</span>
-                      <input
-                        type="text"
-                        value={customPhone}
-                        onChange={(e) => setCustomPhone(e.target.value)}
-                        className="px-2 py-0.5 bg-slate-50 border border-slate-300 rounded text-slate-900 text-xs w-32 focus:outline-none focus:border-sky-500 font-normal"
-                        placeholder="081234567890"
-                      />
+                  <div className="space-y-2 no-print">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                          Nama Lengkap
+                        </label>
+                        <input
+                          type="text"
+                          value={customFullName}
+                          onChange={(e) => setCustomFullName(e.target.value)}
+                          className="w-full font-bold text-base bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-900 focus:outline-none focus:border-sky-500"
+                          placeholder="Nama Lengkap Siswa"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                          Jurusan / Konsentrasi
+                        </label>
+                        <input
+                          type="text"
+                          value={customDepartment}
+                          onChange={(e) => setCustomDepartment(e.target.value)}
+                          className="w-full text-xs font-semibold bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800 focus:outline-none focus:border-sky-500"
+                          placeholder="e.g. Rekayasa Perangkat Lunak (RPL)"
+                        />
+                      </div>
                     </div>
-                    <span>·</span>
-                    <div className="flex items-center gap-1">
-                      <span className="text-slate-500 font-medium">Domisili:</span>
-                      <input
-                        type="text"
-                        value={customAddress}
-                        onChange={(e) => setCustomAddress(e.target.value)}
-                        className="px-2 py-0.5 bg-slate-50 border border-slate-300 rounded text-slate-900 text-xs w-48 focus:outline-none focus:border-sky-500 font-normal"
-                        placeholder="Surabaya, Jawa Timur"
-                      />
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                          Asal Sekolah
+                        </label>
+                        <input
+                          type="text"
+                          value={customSchoolName}
+                          onChange={(e) => setCustomSchoolName(e.target.value)}
+                          className="w-full text-xs bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800 focus:outline-none focus:border-sky-500"
+                          placeholder="e.g. SMK Negeri 1 Surabaya"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                          NISN Siswa
+                        </label>
+                        <input
+                          type="text"
+                          value={customNisn}
+                          onChange={(e) => setCustomNisn(e.target.value)}
+                          className="w-full text-xs font-mono bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800 focus:outline-none focus:border-sky-500"
+                          placeholder="0078901234"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-0.5">
+                      <div>
+                        <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                          Email
+                        </label>
+                        <input
+                          type="email"
+                          value={customEmail}
+                          onChange={(e) => setCustomEmail(e.target.value)}
+                          className="w-full text-xs bg-slate-50 border border-slate-300 rounded px-2 py-0.5 text-slate-800 focus:outline-none focus:border-sky-500"
+                          placeholder="andi@smk.sch.id"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                          No. WhatsApp
+                        </label>
+                        <input
+                          type="text"
+                          value={customPhone}
+                          onChange={(e) => setCustomPhone(e.target.value)}
+                          className="w-full text-xs bg-slate-50 border border-slate-300 rounded px-2 py-0.5 text-slate-800 focus:outline-none focus:border-sky-500"
+                          placeholder="081234567890"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                          Domisili / Kota
+                        </label>
+                        <input
+                          type="text"
+                          value={customAddress}
+                          onChange={(e) => setCustomAddress(e.target.value)}
+                          className="w-full text-xs bg-slate-50 border border-slate-300 rounded px-2 py-0.5 text-slate-800 focus:outline-none focus:border-sky-500"
+                          placeholder="Surabaya, Jawa Timur"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                          Portfolio / GitHub
+                        </label>
+                        <input
+                          type="text"
+                          value={customPortfolio}
+                          onChange={(e) => setCustomPortfolio(e.target.value)}
+                          className="w-full text-xs bg-slate-50 border border-slate-300 rounded px-2 py-0.5 text-slate-800 focus:outline-none focus:border-sky-500"
+                          placeholder="github.com/andi"
+                        />
+                      </div>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-[11px] text-slate-600 pt-0.5 font-normal leading-relaxed flex flex-wrap items-center gap-x-2">
-                    <span>NISN: <strong className="font-semibold text-slate-900">{student.identityNumber}</strong></span>
-                    <span>·</span>
-                    {(customPhone || student.whatsappNumber) && (
-                      <>
-                        <span>WhatsApp: <strong className="font-semibold text-slate-900">{customPhone || student.whatsappNumber}</strong></span>
-                        <span>·</span>
-                      </>
-                    )}
-                    <span>{customAddress || student.schoolAddress || "Surabaya, Jawa Timur"}</span>
-                  </p>
+                  <>
+                    <h2 className="text-2xl sm:text-[26px] font-bold tracking-tight uppercase text-slate-900 leading-tight">
+                      {customFullName}
+                    </h2>
+                    <p className="font-semibold text-slate-800 text-xs sm:text-sm">
+                      {customDepartment} — {customSchoolName}
+                    </p>
+                    <p className="text-[11px] text-slate-600 pt-0.5 font-normal leading-relaxed flex flex-wrap items-center gap-x-2">
+                      <span>NISN: <strong className="font-semibold text-slate-900">{customNisn}</strong></span>
+                      <span>·</span>
+                      {customEmail && (
+                        <>
+                          <span>Email: <strong className="font-semibold text-slate-900">{customEmail}</strong></span>
+                          <span>·</span>
+                        </>
+                      )}
+                      {customPhone && (
+                        <>
+                          <span>WhatsApp: <strong className="font-semibold text-slate-900">{customPhone}</strong></span>
+                          <span>·</span>
+                        </>
+                      )}
+                      <span>{customAddress}</span>
+                      {customPortfolio && (
+                        <>
+                          <span>·</span>
+                          <span className="font-semibold text-slate-800">{customPortfolio}</span>
+                        </>
+                      )}
+                    </p>
+                  </>
                 )}
 
                 <p className="text-[10px] text-slate-500 font-mono pt-0.5 break-all">
@@ -780,7 +1001,7 @@ export default function CareerCvPage() {
               </div>
             </div>
 
-            {/* Section 1: Ringkasan Profesional */}
+            {/* ─── Section 1: Ringkasan Profesional ─── */}
             <div className="space-y-1">
               <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 border-b-2 border-slate-900 pb-0.5 mb-1.5 flex items-center justify-between">
                 <span>Ringkasan Profesional</span>
@@ -801,33 +1022,30 @@ export default function CareerCvPage() {
               )}
             </div>
 
-            {/* Section 2: Pengalaman Praktik Kerja Lapangan (PKL) */}
+            {/* ─── Section 2: Pengalaman Praktik Kerja Lapangan (PKL) ─── */}
             <div className="space-y-3">
               <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1 mb-2">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900">
-                    Pengalaman Praktik Kerja Lapangan (PKL)
+                  <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                    <Briefcase className="w-3.5 h-3.5 text-slate-700 inline" />
+                    <span>Pengalaman Praktik Kerja Lapangan (PKL)</span>
                   </h3>
-                  {isEditMode && customExperiences.length > 0 && (
+                  {isEditMode && (
                     <span className="text-[10px] font-normal text-amber-700 italic no-print">
                       ({customExperiences.length} Posisi)
                     </span>
                   )}
                 </div>
 
-                {/* Tombol Tambah Pengalaman: Hanya muncul saat Mode Edit aktif seperti elemen edit lainnya */}
                 {isEditMode && (
-                  <div className="flex items-center gap-2 no-print">
-                    <button
-                      type="button"
-                      onClick={handleAddExperience}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sky-50 text-sky-700 hover:bg-sky-100 hover:text-sky-900 border border-sky-300 transition cursor-pointer active:scale-95 shadow-2xs"
-                      title="Tambah pengalaman praktik kerja lapangan baru"
-                    >
-                      <Plus className="w-3.5 h-3.5 text-sky-600" />
-                      <span>Tambah Pengalaman</span>
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddExperience}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-300 transition cursor-pointer active:scale-95 shadow-2xs no-print"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-sky-600" />
+                    <span>Tambah Pengalaman</span>
+                  </button>
                 )}
               </div>
 
@@ -841,7 +1059,7 @@ export default function CareerCvPage() {
                       isEditMode && "p-3 bg-slate-50/70 border border-slate-200/90 rounded-xl"
                     )}
                   >
-                    {/* Role Title & Right-Aligned Date Anchor */}
+                    {/* Role Title & Period */}
                     <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between text-xs sm:text-sm gap-1">
                       {isEditMode ? (
                         <div className="flex-1 max-w-md">
@@ -892,9 +1110,9 @@ export default function CareerCvPage() {
                       </div>
                     </div>
 
-                    {/* Company, City & Verified Real Hours */}
+                    {/* Company, City, Mentor & Real Hours */}
                     {isEditMode ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-0.5 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-0.5 text-xs">
                         <input
                           type="text"
                           value={exp.dudiName}
@@ -912,6 +1130,15 @@ export default function CareerCvPage() {
                           }
                           className="bg-white border border-slate-300 rounded px-2 py-1 text-slate-800 text-xs focus:outline-none focus:border-sky-500"
                           placeholder="Kota Penempatan (e.g. Surabaya)"
+                        />
+                        <input
+                          type="text"
+                          value={exp.mentorName || ""}
+                          onChange={(e) =>
+                            handleUpdateExperienceField(exp.id, "mentorName", e.target.value)
+                          }
+                          className="bg-white border border-slate-300 rounded px-2 py-1 text-slate-800 text-xs focus:outline-none focus:border-sky-500"
+                          placeholder="Nama Pembimbing / Mentor"
                         />
                         <div className="flex items-center gap-1.5 bg-white border border-slate-300 rounded px-2 py-0.5">
                           <input
@@ -943,7 +1170,7 @@ export default function CareerCvPage() {
                       </div>
                     )}
 
-                    {/* Action-Oriented Bullet Points */}
+                    {/* Bullet Points */}
                     {isEditMode ? (
                       <div className="space-y-2 pt-1">
                         <div className="flex items-center justify-between">
@@ -991,97 +1218,399 @@ export default function CareerCvPage() {
                   </div>
                 ))}
               </div>
+            </div>
 
-              {/* Tombol Tambah Pengalaman di Bawah saat Mode Edit */}
-              {isEditMode && (
-                <div className="pt-2 no-print">
+            {/* ─── Section 3: Pendidikan Formal (Dapat Diedit Lengkap) ─── */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between border-b-2 border-slate-900 pb-0.5 mb-1.5">
+                <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                  <GraduationCap className="w-3.5 h-3.5 text-slate-700 inline" />
+                  <span>Pendidikan Formal</span>
+                </h3>
+                {isEditMode && (
                   <button
                     type="button"
-                    onClick={handleAddExperience}
-                    className="w-full py-2.5 px-3 border border-dashed border-sky-300 hover:border-sky-500 rounded-xl bg-sky-50/50 hover:bg-sky-50 text-sky-700 text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer active:scale-[0.99]"
+                    onClick={handleAddEducation}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-700 hover:text-sky-900 transition cursor-pointer no-print"
                   >
-                    <Plus className="w-4 h-4 text-sky-600" />
-                    <span>Tambah Pengalaman PKL Baru</span>
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Tambah Pendidikan</span>
                   </button>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            {/* Section 3: Pendidikan Formal */}
-            <div className="space-y-1">
-              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 border-b-2 border-slate-900 pb-0.5 mb-1.5">
-                Pendidikan Formal
-              </h3>
-              <div className="flex justify-between items-baseline text-xs gap-2">
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-slate-900">{student.schoolName}</p>
-                  <p className="text-slate-700 font-normal">Konsentrasi {student.departmentName} (Fase F SMK Kurikulum Merdeka)</p>
-                </div>
-                <span className="text-slate-800 font-semibold whitespace-nowrap shrink-0">2024 – 2027</span>
+              <div className="space-y-3">
+                {customEducations.map((edu, eIdx) => (
+                  <div
+                    key={edu.id || eIdx}
+                    className={cn(
+                      "space-y-1",
+                      isEditMode && "p-2.5 bg-slate-50/70 border border-slate-200/90 rounded-xl"
+                    )}
+                  >
+                    {isEditMode ? (
+                      <div className="space-y-2 text-xs">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <input
+                            type="text"
+                            value={edu.schoolName}
+                            onChange={(e) =>
+                              handleUpdateEducationField(edu.id, "schoolName", e.target.value)
+                            }
+                            className="font-bold text-slate-900 bg-white border border-slate-300 rounded px-2 py-0.5 focus:outline-none focus:border-sky-500"
+                            placeholder="Nama Sekolah"
+                          />
+                          <input
+                            type="text"
+                            value={edu.department}
+                            onChange={(e) =>
+                              handleUpdateEducationField(edu.id, "department", e.target.value)
+                            }
+                            className="text-slate-800 bg-white border border-slate-300 rounded px-2 py-0.5 focus:outline-none focus:border-sky-500"
+                            placeholder="Konsentrasi Keahlian"
+                          />
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={edu.periodLabel}
+                              onChange={(e) =>
+                                handleUpdateEducationField(edu.id, "periodLabel", e.target.value)
+                              }
+                              className="w-full text-slate-800 font-semibold bg-white border border-slate-300 rounded px-2 py-0.5 focus:outline-none focus:border-sky-500 text-right"
+                              placeholder="2024 – 2027"
+                            />
+                            {customEducations.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveEducation(edu.id)}
+                                className="p-1 text-slate-400 hover:text-rose-600 rounded"
+                                title="Hapus pendidikan"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <input
+                          type="text"
+                          value={edu.achievement || ""}
+                          onChange={(e) =>
+                            handleUpdateEducationField(edu.id, "achievement", e.target.value)
+                          }
+                          className="w-full text-xs text-slate-600 bg-white border border-slate-300 rounded px-2 py-0.5 focus:outline-none focus:border-sky-500"
+                          placeholder="Keterangan Nilai / Prestasi / Capaian"
+                        />
+                      </div>
+                    ) : (
+                      <div className="text-xs">
+                        <div className="flex justify-between items-baseline gap-2">
+                          <p className="font-bold text-slate-900">{edu.schoolName}</p>
+                          <span className="text-slate-800 font-semibold whitespace-nowrap shrink-0">
+                            {edu.periodLabel}
+                          </span>
+                        </div>
+                        <p className="text-slate-700 font-normal">{edu.department}</p>
+                        {edu.achievement && (
+                          <p className="text-slate-500 text-[11px] font-normal">{edu.achievement}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
 
-            {/* Section 4: Keahlian & Instrumen Kerja Terverifikasi */}
+            {/* ─── Section 4: Proyek Unggulan / Portofolio Industri (Dapat Diedit Lengkap) ─── */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between border-b-2 border-slate-900 pb-0.5 mb-1.5">
+                <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                  <FolderGit2 className="w-3.5 h-3.5 text-slate-700 inline" />
+                  <span>Proyek Unggulan &amp; Portofolio Industri</span>
+                </h3>
+                {isEditMode && (
+                  <button
+                    type="button"
+                    onClick={handleAddProject}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-700 hover:text-sky-900 transition cursor-pointer no-print"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Tambah Proyek</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                {customProjects.map((proj, pIdx) => (
+                  <div
+                    key={proj.id || pIdx}
+                    className={cn(
+                      "space-y-1",
+                      isEditMode && "p-2.5 bg-slate-50/70 border border-slate-200/90 rounded-xl"
+                    )}
+                  >
+                    {isEditMode ? (
+                      <div className="space-y-2 text-xs">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <input
+                            type="text"
+                            value={proj.title}
+                            onChange={(e) =>
+                              handleUpdateProjectField(proj.id, "title", e.target.value)
+                            }
+                            className="font-bold text-slate-900 bg-white border border-slate-300 rounded px-2 py-0.5 focus:outline-none focus:border-sky-500"
+                            placeholder="Judul Proyek"
+                          />
+                          <input
+                            type="text"
+                            value={proj.techStack}
+                            onChange={(e) =>
+                              handleUpdateProjectField(proj.id, "techStack", e.target.value)
+                            }
+                            className="text-slate-800 bg-white border border-slate-300 rounded px-2 py-0.5 focus:outline-none focus:border-sky-500"
+                            placeholder="Teknologi yang digunakan"
+                          />
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={proj.periodLabel}
+                              onChange={(e) =>
+                                handleUpdateProjectField(proj.id, "periodLabel", e.target.value)
+                              }
+                              className="w-full text-slate-800 font-semibold bg-white border border-slate-300 rounded px-2 py-0.5 focus:outline-none focus:border-sky-500 text-right"
+                              placeholder="Tahun / Periode"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveProject(proj.id)}
+                              className="p-1 text-slate-400 hover:text-rose-600 rounded"
+                              title="Hapus proyek"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                        <textarea
+                          rows={2}
+                          value={proj.description}
+                          onChange={(e) =>
+                            handleUpdateProjectField(proj.id, "description", e.target.value)
+                          }
+                          className="w-full text-xs p-2 rounded bg-white border border-slate-300 text-slate-900 focus:outline-none focus:border-sky-500"
+                          placeholder="Deskripsi pencapaian dan implementasi teknis..."
+                        />
+                      </div>
+                    ) : (
+                      <div className="text-xs">
+                        <div className="flex justify-between items-baseline gap-2">
+                          <p className="font-bold text-slate-900">
+                            {proj.title}{" "}
+                            <span className="text-slate-500 font-normal italic">
+                              · {proj.techStack}
+                            </span>
+                          </p>
+                          <span className="text-slate-800 font-semibold whitespace-nowrap shrink-0">
+                            {proj.periodLabel}
+                          </span>
+                        </div>
+                        <p className="text-slate-700 leading-relaxed font-normal mt-0.5">
+                          {proj.description}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ─── Section 5: Keahlian & Instrumen Kerja Terverifikasi (Dapat Diedit Lengkap) ─── */}
             <div className="space-y-1">
               <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 border-b-2 border-slate-900 pb-0.5 mb-1.5 flex items-center justify-between">
-                <span>Keahlian &amp; Instrumen Kerja Terverifikasi</span>
-                {isEditMode && <span className="text-[10px] font-normal text-amber-700 italic">Dapat diedit (pisahkan dengan koma)</span>}
+                <span className="flex items-center gap-1.5">
+                  <Wrench className="w-3.5 h-3.5 text-slate-700 inline" />
+                  <span>Keahlian &amp; Instrumen Kerja Terverifikasi</span>
+                </span>
+                {isEditMode && <span className="text-[10px] font-normal text-amber-700 italic">Dapat diedit</span>}
               </h3>
-              <div className="text-xs text-slate-800 leading-relaxed font-normal space-y-1">
+              <div className="text-xs text-slate-800 leading-relaxed font-normal space-y-2">
                 {isEditMode ? (
-                  <div className="pt-0.5">
-                    <input
-                      type="text"
-                      value={customSkills.join(", ")}
-                      onChange={(e) =>
-                        setCustomSkills(
-                          e.target.value.split(",").map((s) => s.trim()).filter(Boolean)
-                        )
-                      }
-                      className="w-full text-xs p-2 rounded-lg bg-slate-50 border border-slate-300 text-slate-900 focus:outline-none focus:border-sky-500 font-normal"
-                      placeholder="TypeScript, Node.js, Express.js, PostgreSQL, Next.js, Git"
-                    />
+                  <div className="space-y-2 pt-0.5 no-print">
+                    <div>
+                      <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                        Teknologi &amp; Alat Industri (pisahkan dengan koma)
+                      </label>
+                      <input
+                        type="text"
+                        value={customSkills.join(", ")}
+                        onChange={(e) =>
+                          setCustomSkills(
+                            e.target.value.split(",").map((s) => s.trim()).filter(Boolean)
+                          )
+                        }
+                        className="w-full text-xs p-2 rounded-lg bg-slate-50 border border-slate-300 text-slate-900 focus:outline-none focus:border-sky-500 font-normal"
+                        placeholder="TypeScript, Node.js, Express.js, PostgreSQL, Next.js, Git"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                        Keahlian Interpersonal &amp; Etos Kerja (pisahkan dengan koma)
+                      </label>
+                      <input
+                        type="text"
+                        value={customSoftSkills.join(", ")}
+                        onChange={(e) =>
+                          setCustomSoftSkills(
+                            e.target.value.split(",").map((s) => s.trim()).filter(Boolean)
+                          )
+                        }
+                        className="w-full text-xs p-2 rounded-lg bg-slate-50 border border-slate-300 text-slate-900 focus:outline-none focus:border-sky-500 font-normal"
+                        placeholder="Komunikasi Kolaboratif, Problem Solving, Disiplin Presensi"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                        Standar Kepatuhan Industri
+                      </label>
+                      <input
+                        type="text"
+                        value={customCompliance}
+                        onChange={(e) => setCustomCompliance(e.target.value)}
+                        className="w-full text-xs p-2 rounded-lg bg-slate-50 border border-slate-300 text-slate-900 focus:outline-none focus:border-sky-500 font-normal"
+                      />
+                    </div>
                   </div>
                 ) : (
-                  <p className="break-words">
-                    <strong className="text-slate-900 font-semibold">Teknologi &amp; Alat Industri: </strong>
-                    {customSkills.length > 0
-                      ? customSkills.join(", ")
-                      : technicalSkills.map((s) => `${s.name} (${s.totalJp} Jam)`).join(", ")}
-                  </p>
+                  <>
+                    <p className="break-words">
+                      <strong className="text-slate-900 font-semibold">Teknologi &amp; Alat Industri: </strong>
+                      {customSkills.length > 0
+                        ? customSkills.join(", ")
+                        : "TypeScript, Node.js, Express.js, PostgreSQL, Next.js, Git, Tailwind CSS"}
+                    </p>
+                    <p className="break-words">
+                      <strong className="text-slate-900 font-semibold">Keahlian Interpersonal &amp; Etos: </strong>
+                      {customSoftSkills.join(", ")}
+                    </p>
+                    <p>
+                      <strong className="text-slate-900 font-semibold">Standar Kepatuhan: </strong>
+                      {customCompliance}
+                    </p>
+                    <p>
+                      <strong className="text-slate-900 font-semibold">Validitas Jam Kerja: </strong>
+                      {customValidityNote}
+                    </p>
+                  </>
                 )}
-                <p>
-                  <strong className="text-slate-900 font-semibold">Standar Kepatuhan: </strong>
-                  SKKNI Bidang Rekayasa Perangkat Lunak / Kejuruan Vokasi, Standar SOP Mandiri &amp; K3 Industri.
-                </p>
-                <p>
-                  <strong className="text-slate-900 font-semibold">Validitas Jam Kerja: </strong>
-                  100% tervalidasi mentor industri melalui tanda tangan digital &amp; PIN resmi (BR-010).
-                </p>
               </div>
             </div>
 
-            {/* Section 5: Evaluasi & Endorsement Mentor Industri */}
-            {endorsement && (
-              <div className="space-y-1">
-                <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 border-b-2 border-slate-900 pb-0.5 mb-1.5">
-                  Evaluasi &amp; Endorsement Mentor Industri
-                </h3>
+            {/* ─── Section 6: Evaluasi & Endorsement Mentor Industri (Dapat Diedit Lengkap) ─── */}
+            <div className="space-y-1">
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 border-b-2 border-slate-900 pb-0.5 mb-1.5 flex items-center justify-between">
+                <span>Evaluasi &amp; Endorsement Mentor Industri</span>
+                {isEditMode && <span className="text-[10px] font-normal text-amber-700 italic">Dapat diedit</span>}
+              </h3>
+              
+              {isEditMode ? (
+                <div className="space-y-2 bg-slate-50/70 p-3 rounded-xl border border-slate-200/90 text-xs no-print">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div>
+                      <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                        Nama Pembimbing / Mentor
+                      </label>
+                      <input
+                        type="text"
+                        value={customEndorsement.mentorName}
+                        onChange={(e) =>
+                          setCustomEndorsement((prev) => ({ ...prev, mentorName: e.target.value }))
+                        }
+                        className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-slate-900 focus:outline-none focus:border-sky-500"
+                        placeholder="Rizky Firmansyah"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                        Perusahaan / DUDI
+                      </label>
+                      <input
+                        type="text"
+                        value={customEndorsement.dudiName}
+                        onChange={(e) =>
+                          setCustomEndorsement((prev) => ({ ...prev, dudiName: e.target.value }))
+                        }
+                        className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-slate-900 focus:outline-none focus:border-sky-500"
+                        placeholder="PT Nusantara Tech"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                        Skor Etos Kerja (0-100)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={customEndorsement.attitudeScore}
+                        onChange={(e) =>
+                          setCustomEndorsement((prev) => ({
+                            ...prev,
+                            attitudeScore: Number(e.target.value) || 0,
+                          }))
+                        }
+                        className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-slate-900 focus:outline-none focus:border-sky-500"
+                        placeholder="96"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                      Catatan / Quote Evaluasi Mentor
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={customEndorsement.quote}
+                      onChange={(e) =>
+                        setCustomEndorsement((prev) => ({ ...prev, quote: e.target.value }))
+                      }
+                      className="w-full bg-white border border-slate-300 rounded p-2 text-slate-900 focus:outline-none focus:border-sky-500"
+                      placeholder="Catatan dari mentor industri..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                      Lencana Etos Kerja (pisahkan dengan koma)
+                    </label>
+                    <input
+                      type="text"
+                      value={customEndorsement.badges.join(", ")}
+                      onChange={(e) =>
+                        setCustomEndorsement((prev) => ({
+                          ...prev,
+                          badges: e.target.value.split(",").map((b) => b.trim()).filter(Boolean),
+                        }))
+                      }
+                      className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-slate-900 focus:outline-none focus:border-sky-500"
+                      placeholder="INISIATIF_TINGGI, PROBLEM_SOLVER, DISIPLIN_PRESENSI"
+                    />
+                  </div>
+                </div>
+              ) : (
                 <div className="text-xs text-slate-800 bg-slate-50/70 p-3 rounded-xl border border-slate-200/80 space-y-1 print:bg-transparent print:border-none print:p-0">
                   <div className="flex items-center gap-2 text-slate-900 font-semibold">
                     <Award className="w-4 h-4 text-amber-600 shrink-0" />
                     <span>
-                      Skor Etos Kerja: <strong className="text-emerald-700 font-bold">{endorsement.attitudeScore}/100</strong> · Mentor: {endorsement.mentorName} ({endorsement.dudiName})
+                      Skor Etos Kerja: <strong className="text-emerald-700 font-bold">{customEndorsement.attitudeScore}/100</strong> · Mentor: {customEndorsement.mentorName} ({customEndorsement.dudiName})
                     </span>
                   </div>
-                  {endorsement.quote && (
+                  {customEndorsement.quote && (
                     <p className="italic text-slate-700 text-[11px] leading-relaxed font-normal break-words">
-                      &quot;{endorsement.quote}&quot;
+                      &quot;{customEndorsement.quote}&quot;
                     </p>
                   )}
-                  {endorsement.badges.length > 0 && (
+                  {customEndorsement.badges.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 pt-0.5">
-                      {endorsement.badges.map((b) => (
+                      {customEndorsement.badges.map((b) => (
                         <span
                           key={b}
                           className="px-2.5 py-0.5 bg-white text-slate-800 border border-slate-300 rounded text-[10px] font-medium"
@@ -1092,10 +1621,10 @@ export default function CareerCvPage() {
                     </div>
                   )}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
-            {/* Section 6: Segel Digital Kriptografis & Legalitas Anti-Fraud */}
+            {/* ─── Section 7: Segel Digital Kriptografis & Legalitas Anti-Fraud ─── */}
             <div className="pt-3 border-t border-slate-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[10px] text-slate-500 font-mono flex-wrap">
               <div className="flex items-center gap-1.5 text-emerald-800 font-semibold min-w-0">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />

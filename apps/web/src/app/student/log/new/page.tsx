@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
-  Calendar,
   Layers,
   Sparkles,
   Camera,
@@ -27,10 +26,6 @@ import {
   TrendingUp,
   Paintbrush,
   EyeOff,
-  Minus,
-  Plus,
-  ChevronDown,
-  SlidersHorizontal,
   RotateCcw,
   Package,
   Truck,
@@ -47,7 +42,7 @@ import {
 } from "@vokalink/shared";
 import { db } from "@/lib/pwa/db";
 import { compressEvidencePhoto, type CompressedPhotoResult } from "@/lib/pwa/photo";
-import { fetchStudentLogContext, type StudentLogContextResponse } from "@/lib/api";
+import { fetchStudentLogContext, fetchStudentLogs, type StudentLogContextResponse } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { MentorQrModal } from "@/components/student/home/MentorQrModal";
 import { PhotoPrivacyStudioModal } from "@/components/student/log/PhotoPrivacyStudioModal";
@@ -64,41 +59,48 @@ interface JobCardItem {
 
 const DEFAULT_JOB_CARDS: JobCardItem[] = [
   {
-    id: "00000000-0000-0000-0000-000000000031",
-    title: "Implementasi REST API & Router Express",
-    tools: ["Express", "TypeScript"],
-    skkni: "J.620100.009.01",
+    id: "cadfbcc3-541b-405d-9e9d-b66fd5d88d85",
+    title: "Membuat komponen UI dengan HTML dan CSS",
+    tools: ["VS Code", "Chrome DevTools", "Figma"],
+    skkni: "J.620100.020.02",
+    category: "Frontend Web",
+  },
+  {
+    id: "32af8c23-7354-427e-b977-fb150ab89837",
+    title: "Mengimplementasikan logika JavaScript atau TypeScript",
+    tools: ["VS Code", "Node.js", "Chrome DevTools"],
+    skkni: "J.620100.021.02",
+    category: "Frontend Web",
+  },
+  {
+    id: "a17985fc-8c12-49b0-b045-a691f7d0c83b",
+    title: "Membuat endpoint API RESTful",
+    tools: ["Node.js", "Express", "Postman"],
+    skkni: "J.620100.026.02",
     category: "Backend Development",
   },
   {
-    id: "00000000-0000-0000-0000-000000000032",
-    title: "Slicing UI Responsif Tailwind CSS",
-    tools: ["Next.js", "Tailwind CSS"],
-    skkni: "J.620100.012.01",
-    category: "Frontend UI/UX",
-  },
-  {
-    id: "00000000-0000-0000-0000-000000000033",
-    title: "Desain Skema Database & Migrasi Prisma",
-    tools: ["PostgreSQL", "Prisma ORM"],
-    skkni: "J.620100.010.01",
+    id: "4c9d195e-9d98-48f2-8fe5-9a46c9681185",
+    title: "Merancang dan membuat tabel database relasional",
+    tools: ["PostgreSQL", "MySQL", "DBeaver"],
+    skkni: "J.620100.025.02",
     category: "Database & Storage",
   },
   {
-    id: "00000000-0000-0000-0000-000000000035",
-    title: "Pengujian Unit Testing & Integrasi API",
-    tools: ["Vitest", "Supertest"],
-    skkni: "J.620100.015.01",
+    id: "13c8dd8c-04c3-452a-95a2-a2dc44fee604",
+    title: "Menulis unit test dan integration test",
+    tools: ["Jest", "Vitest", "Supertest"],
+    skkni: "J.620100.030.02",
     category: "Quality Assurance",
   },
 ];
 
 const DEFAULT_NON_COMPETENCY_JC = {
-  id: "00000000-0000-0000-0000-000000000037",
-  title: "Bantuan Operasional Umum",
+  id: "85544774-bbd3-43d8-bcdc-ee38c800ef98",
+  title: "Bantuan administrasi dan operasional kantor IT",
 };
 
-const DEFAULT_PLACEMENT_ID = "00000000-0000-0000-0000-000000000051";
+const DEFAULT_PLACEMENT_ID = "3ffec674-ad55-482a-a566-9dff84ab71be";
 
 // ─── RUBRIK PENGUASAAN SOP (PEDAGOGI POSITIF KURIKULUM MERDEKA) ───
 // Nilai angka (75, 88, 100) disembunyikan dari siswa dan hanya dihitung di backend guru (e-Rapor)
@@ -141,6 +143,7 @@ export default function NewLogPage() {
   const [isNonCompetency, setIsNonCompetency] = useState(false);
   const [nonCompetencyCategory, setNonCompetencyCategory] = useState("ADMIN_UMUM");
   const [durationJp, setDurationJp] = useState(8);
+  const [overtimeReason, setOvertimeReason] = useState("Rilis / Deployment Sistem");
   const [autonomyLevel, setAutonomyLevel] = useState<1 | 2 | 3>(3);
   const [cardAutonomyMap, setCardAutonomyMap] = useState<Record<string, 1 | 2 | 3>>({});
   const [shortNote, setShortNote] = useState("");
@@ -199,9 +202,9 @@ export default function NewLogPage() {
     (l) => l.attendanceType === "SICK" || l.attendanceType === "PERMIT"
   );
 
-  // 2. Kalkulasi Dampak Progres Terhadap Target 792 JP
-  const baseVerifiedJp = 288;
-  const currentTotalJp = baseVerifiedJp + offlineLogs.reduce((acc, curr) => acc + curr.durationJp, 0);
+  // 2. Kalkulasi Dampak Progres Terhadap Target 792 JP murni dari Database
+  const [serverVerifiedJp, setServerVerifiedJp] = useState(280);
+  const currentTotalJp = serverVerifiedJp + offlineLogs.filter((l) => l.state === "verified").reduce((acc, curr) => acc + curr.durationJp, 0);
   const projectedTotalJp = currentTotalJp + (attendanceType === "PRESENT" ? durationJp : 0);
   const projectedPercentage = Math.min(100, Math.round((projectedTotalJp / TOTAL_TARGET_JP) * 100));
 
@@ -250,9 +253,6 @@ export default function NewLogPage() {
   // Track apakah siswa pernah mengubah durasi jam secara manual
   const hasUserManuallyChangedDuration = useRef(false);
 
-  // State ekspander untuk pengaturan jam kustom (1–12)
-  const [showCustomHours, setShowCustomHours] = useState(false);
-
   const isSaturday = useMemo(() => {
     const d = new Date(selectedDate);
     return !isNaN(d.getTime()) && d.getDay() === 6;
@@ -262,27 +262,6 @@ export default function NewLogPage() {
     const d = new Date(selectedDate);
     return !isNaN(d.getTime()) && d.getDay() >= 1 && d.getDay() <= 5;
   }, [selectedDate]);
-
-  const currentShiftSummary = useMemo(() => {
-    switch (durationJp) {
-      case 8:
-        return "Full Day (5 Hari Kerja)";
-      case 7:
-        return "Full Day (6 Hari Kerja)";
-      case 6:
-        return "Shift Pagi / Sore";
-      case 5:
-        return "Shift Sabtu";
-      case 4:
-        return "Setengah Hari";
-      case 9:
-        return "Jam Tambahan (9 Jam)";
-      case 10:
-        return "Jam Tambahan (10 Jam)";
-      default:
-        return `${durationJp} Jam Kerja Industri`;
-    }
-  }, [durationJp]);
 
   // Draft auto-save and recovery
   const [hasDraft, setHasDraft] = useState(false);
@@ -411,7 +390,18 @@ export default function NewLogPage() {
         if (typeof navigator !== "undefined" && navigator.onLine) {
           const fresh = await fetchStudentLogContext();
           if (fresh && isMounted) {
-            if (fresh.activePlacement) setActivePlacement(fresh.activePlacement);
+            if (fresh.activePlacement) {
+              setActivePlacement(fresh.activePlacement);
+              try {
+                const dbLogs = await fetchStudentLogs(fresh.activePlacement.id);
+                if (Array.isArray(dbLogs) && isMounted) {
+                  const verifiedJp = dbLogs
+                    .filter((l) => l.status === "VERIFIED")
+                    .reduce((sum, l) => sum + (l.items?.reduce((s, it) => s + it.durationJp, 0) || 8), 0);
+                  setServerVerifiedJp(verifiedJp);
+                }
+              } catch {}
+            }
             if (fresh.jobCards && fresh.jobCards.length > 0) setJobCards(fresh.jobCards);
             if (fresh.nonCompetencyJobCard) setNonCompetencyJobCard(fresh.nonCompetencyJobCard);
             await db.refData.put({
@@ -593,7 +583,7 @@ export default function NewLogPage() {
           // Privacy note
           ctx.fillStyle = "#94a3b8";
           ctx.font = "10.5px sans-serif";
-          ctx.fillText("LAMPIRAN DOKUMEN MEDIS SISWA · TERENKRIPSI SHA-256 (UU PDP NO. 27/2022)", 50, 480);
+          ctx.fillText("LAMPIRAN DOKUMEN MEDIS SISWA · TERENKRIPSI AMAN (UU PDP NO. 27/2022)", 50, 480);
         } else if (attendanceType === "PERMIT") {
           demoFilename = "surat-dispensasi-izin-demo.png";
           // Latar belakang surat dispensasi
@@ -815,6 +805,13 @@ export default function NewLogPage() {
       const primaryCardId = targetJobCardIds[0];
       const primaryAutonomy = (primaryCardId ? cardAutonomyMap[primaryCardId] : undefined) ?? autonomyLevel;
 
+      let finalShortNote = shortNote.trim();
+      if (!isSickOrPermit && durationJp >= 9 && overtimeReason && !finalShortNote.includes(overtimeReason)) {
+        finalShortNote = finalShortNote
+          ? `[Lembur Proyek: ${overtimeReason}] ${finalShortNote}`
+          : `[Lembur Proyek: ${overtimeReason}] Selesai sesuai target operasional DUDI.`;
+      }
+
       // 1. Simpan Log ke IndexedDB
       await db.logs.add({
         clientLogUuid,
@@ -827,7 +824,7 @@ export default function NewLogPage() {
         jobCardTitle: targetJobCardTitle,
         isNonCompetency: isSickOrPermit ? false : isNonCompetency,
         nonCompetencyCategory: isSickOrPermit ? undefined : isNonCompetency ? nonCompetencyCategory : undefined,
-        shortNote: shortNote.trim() || undefined,
+        shortNote: finalShortNote || undefined,
         clientCreatedAt,
         state: "queued",
         retryCount: 0,
@@ -901,6 +898,33 @@ export default function NewLogPage() {
                 <Clock className="w-3.5 h-3.5 text-sky-600" />
                 <span>Presensi: {durationJp} Jam Kerja</span>
               </div>
+            </div>
+          </div>
+
+          {/* ─── DUDI Placement & Assignment Origin Banner (Real-World Provenance) ─── */}
+          <div className="mt-3.5 p-3.5 sm:p-4 rounded-2xl bg-slate-50/70 border border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-start sm:items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0 shadow-2xs">
+                <Building2 className="w-4.5 h-4.5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-slate-900 text-xs sm:text-[13px]">
+                    {activePlacement?.dudiName || "PT Nusantara Tech"}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[10px] font-semibold">
+                    Mitra Industri Terdaftar
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5 font-normal">
+                  Pembimbing Lapangan: <span className="font-semibold text-slate-700">{activePlacement?.mentorName || "Rizky Firmansyah (Engineering Lead)"}</span> · Kurikulum SMK Demo
+                </p>
+              </div>
+            </div>
+
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200/70 text-slate-600 text-[11px] font-medium shrink-0 self-start sm:self-auto shadow-2xs">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Verifikasi via PIN Mentor</span>
             </div>
           </div>
 
@@ -1055,6 +1079,8 @@ export default function NewLogPage() {
                   hasUserManuallyChangedDuration.current = true;
                   setDurationJp(newVal);
                 }}
+                overtimeReason={overtimeReason}
+                onChangeOvertimeReason={setOvertimeReason}
                 minJp={!isNonCompetency ? Math.max(MIN_DAILY_JP, selectedJobCardIds.length) : MIN_DAILY_JP}
                 maxJp={MAX_DAILY_JP}
                 isSaturday={isSaturday}
@@ -1073,12 +1099,12 @@ export default function NewLogPage() {
                   <div>
                     <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                       <Layers className="w-3.5 h-3.5 text-sky-600" />
-                      <span>{isNonCompetency ? "Laporan Tugas Operasional Umum" : "Pilih Kartu Pekerjaan"}</span>
+                      <span>{isNonCompetency ? "Laporan Tugas Operasional Umum" : "Kartu Pekerjaan Ditugaskan DUDI"}</span>
                     </span>
                     <p className="text-xs text-slate-500 font-normal mt-0.5">
                       {isNonCompetency
-                        ? "Penugasan pendukung industri dilaporkan transparan. Jam PKL tetap diakui penuh."
-                        : "Pilih 1 sampai 3 kartu tugas yang diselesaikan hari ini"}
+                        ? "Penugasan pendukung industri dilaporkan transparan. Jam PKL tetap diakui penuh (8 Jam)."
+                        : "Pilih 1 sampai 3 kartu tugas yang diarahkan pembimbing industri hari ini (Bank unit SKKNI resmi)"}
                     </p>
                   </div>
 
@@ -1261,7 +1287,7 @@ export default function NewLogPage() {
                           type="text"
                           value={jobCardSearch}
                           onChange={(e) => setJobCardSearch(e.target.value)}
-                          placeholder="Cari tugas / tools..."
+                          placeholder="Cari tugas pekerjaan..."
                           className="w-full pl-8 pr-3 py-1 rounded-lg bg-white border border-slate-200/80 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-sky-500"
                         />
                       </div>
@@ -1505,8 +1531,8 @@ export default function NewLogPage() {
                       <Check className="w-3 h-3 stroke-[2.5]" />
                       <span>{compressedPhoto.savingsText}</span>
                     </span>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      SHA-256: {compressedPhoto.sha256.substring(0, 10)}...
+                    <span className="text-[10px] text-slate-500 font-medium">
+                      WebP Optimal &bull; Terverifikasi
                     </span>
                   </div>
                 </div>

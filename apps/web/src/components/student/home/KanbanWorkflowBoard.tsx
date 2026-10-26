@@ -189,17 +189,7 @@ export function KanbanWorkflowBoard({
                     </div>
                   </div>
 
-                  {/* Tools Chips */}
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {task.tools.map((t) => (
-                      <span
-                        key={t}
-                        className="px-2 py-0.5 rounded-md bg-slate-100/70 text-slate-600 border border-slate-200/40 text-[9.5px] font-medium font-mono"
-                      >
-                        {t}
-                      </span>
-                    ))}
-                  </div>
+
                 </div>
               ))
             )}

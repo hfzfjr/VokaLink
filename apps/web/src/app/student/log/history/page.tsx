@@ -12,13 +12,9 @@ import {
   Search,
   PlusCircle,
   X,
-  ExternalLink,
-  Copy,
-  Check,
   ChevronRight,
   ShieldCheck,
   Image as ImageIcon,
-  Share2,
   Trash2,
   RefreshCw,
   HeartPulse,
@@ -28,15 +24,17 @@ import {
   LayoutList,
   LayoutGrid,
   Sparkles,
-  TrendingUp,
   Maximize2,
-  Download,
 } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { convertRealHoursToJp, TOTAL_TARGET_JP } from "@vokalink/shared";
 import { db } from "@/lib/pwa/db";
-import { generateVerificationLink, fetchStudentLogContext, type StudentLogContextResponse } from "@/lib/api";
-import { QrCodeView } from "@/components/ui/QrCodeView";
+import {
+  fetchStudentLogContext,
+  fetchStudentLogs,
+  type StudentLogContextResponse,
+} from "@/lib/api";
+import { MentorQrModal } from "@/components/student/home/MentorQrModal";
 import { useSyncManager } from "@/lib/pwa/hooks/useSyncManager";
 import { cn } from "@/lib/cn";
 
@@ -61,73 +59,6 @@ interface LogEntry {
   isLocalOnly?: boolean;
 }
 
-const SAMPLE_LOGS: LogEntry[] = [
-  {
-    id: "log-1",
-    date: "2026-10-20",
-    title: "Implementasi REST API & Router Express",
-    durationJp: 8,
-    autonomy: "Mandiri",
-    autonomyScore: 100,
-    skkniCode: "J.620100.009.01",
-    status: "VERIFIED",
-    attendanceType: "PRESENT",
-    verifiedAt: "20 Okt 2026, 17:30 WIB",
-    mentor: "Rizky Firmansyah",
-    hasPhoto: true,
-    samplePhotoUrl: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1000&q=80",
-    notes: "Menyelesaikan 4 router Express v5 dan validasi skema Zod untuk modul daily logs.",
-  },
-  {
-    id: "log-2",
-    date: "2026-10-19",
-    title: "Refactoring Skema Database & Migration",
-    durationJp: 8,
-    autonomy: "Terbimbing",
-    autonomyScore: 88,
-    skkniCode: "J.620100.010.01",
-    status: "PENDING_VERIFICATION",
-    attendanceType: "PRESENT",
-    verifiedAt: null,
-    mentor: "Rizky Firmansyah",
-    hasPhoto: true,
-    samplePhotoUrl: "https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=1000&q=80",
-    notes: "Menambahkan trigger PostgreSQL proteksi integritas logbook pada skema database.",
-  },
-  {
-    id: "log-3",
-    date: "2026-10-18",
-    title: "Bantuan Operasional Umum (Administrasi)",
-    durationJp: 4,
-    autonomy: "Mandiri",
-    autonomyScore: 100,
-    status: "VERIFIED",
-    attendanceType: "PRESENT",
-    verifiedAt: "18 Okt 2026, 18:00 WIB",
-    mentor: "Rizky Firmansyah",
-    hasPhoto: false,
-    isNonCompetency: true,
-    nonCompetencyCategory: "Administrasi Dokumen Kantor",
-    notes: "Membantu arsip faktur pengiriman barang mitra DUDI. Jam dihitung penuh dalam evaluasi PKL.",
-  },
-  {
-    id: "log-4",
-    date: "2026-10-17",
-    title: "Desain Komponen UI Mobile-First PWA",
-    durationJp: 8,
-    autonomy: "Mandiri",
-    autonomyScore: 100,
-    skkniCode: "J.620100.012.01",
-    status: "VERIFIED",
-    attendanceType: "PRESENT",
-    verifiedAt: "17 Okt 2026, 17:15 WIB",
-    mentor: "Rizky Firmansyah",
-    hasPhoto: true,
-    samplePhotoUrl: "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=1000&q=80",
-    notes: "Implementasi responsive header, bottom navigation bar, dan status sinkronisasi offline.",
-  },
-];
-
 function formatDateIndo(dateStr: string): string {
   try {
     const d = new Date(dateStr + "T00:00:00");
@@ -147,9 +78,9 @@ function parseDateParts(dateStr: string) {
   try {
     const d = new Date(dateStr + "T00:00:00");
     if (isNaN(d.getTime())) return { day: "--", month: "---", weekday: "---" };
-    const day = String(d.getDate());
-    const month = d.toLocaleDateString("id-ID", { month: "short" });
-    const weekday = d.toLocaleDateString("id-ID", { weekday: "short" });
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = d.toLocaleDateString("id-ID", { month: "short" }).replace(".", "");
+    const weekday = d.toLocaleDateString("id-ID", { weekday: "short" }).replace(".", "");
     return { day, month, weekday };
   } catch {
     return { day: "--", month: "---", weekday: "---" };
@@ -161,7 +92,6 @@ export default function LogHistoryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"LIST" | "GRID">("LIST");
   const [showQrModal, setShowQrModal] = useState(false);
-  const [copiedLink, setCopiedLink] = useState(false);
   const [selectedLogDetail, setSelectedLogDetail] = useState<LogEntry | null>(null);
 
   // Photo viewer state for modal & fullscreen lightbox
@@ -181,32 +111,26 @@ export default function LogHistoryPage() {
     mentorName: string;
   }>({
     dudiName: "PT Nusantara Tech",
-    dudiCity: "Kota Bandung",
+    dudiCity: "Surabaya",
     mentorName: "Rizky Firmansyah",
   });
 
   // Sync Manager
   const { isOnline, pendingCount, isSyncing, syncNow } = useSyncManager();
 
-  // Dynamic verification link state (FR-007)
-  const [activeLinkData, setActiveLinkData] = useState<{
-    token: string;
-    verificationUrl: string;
-    fullUrl: string;
-    waShareUrl: string | null;
-    expiresAt: string;
-  } | null>(null);
-  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [serverLogs, setServerLogs] = useState<LogEntry[]>([]);
 
-  // Load placement context
+  // Load placement context and live database logs
   useEffect(() => {
     let isMounted = true;
-    async function loadPlacement() {
+    async function loadPlacementAndLogs() {
       try {
+        let activePlacementId = "3ffec674-ad55-482a-a566-9dff84ab71be";
         const cached = await db.refData.get("student_log_context");
         if (cached && cached.data && isMounted) {
           const data = cached.data as StudentLogContextResponse;
           if (data.activePlacement) {
+            activePlacementId = data.activePlacement.id;
             setPlacementInfo({
               dudiName: data.activePlacement.dudiName,
               dudiCity: data.activePlacement.dudiCity,
@@ -217,16 +141,68 @@ export default function LogHistoryPage() {
         if (typeof navigator !== "undefined" && navigator.onLine) {
           const fresh = await fetchStudentLogContext();
           if (fresh && fresh.activePlacement && isMounted) {
+            activePlacementId = fresh.activePlacement.id;
             setPlacementInfo({
               dudiName: fresh.activePlacement.dudiName,
               dudiCity: fresh.activePlacement.dudiCity,
               mentorName: fresh.activePlacement.mentorName,
             });
           }
+
+          // Tarik riwayat resmi dari database PostgreSQL
+          try {
+            const dbLogs = await fetchStudentLogs(activePlacementId);
+            if (isMounted && Array.isArray(dbLogs)) {
+              const mapped: LogEntry[] = dbLogs.map((sl) => {
+                const firstItem = sl.items?.[0];
+                const durationJp = sl.items?.reduce((acc, it) => acc + it.durationJp, 0) || 8;
+                const autonomyLevel = firstItem?.autonomyLevel || 3;
+                const isNonCompetency = Boolean(
+                  firstItem?.jobCard?.isNonCompetency || firstItem?.nonCompetencyCategory
+                );
+                return {
+                  id: sl.clientLogUuid,
+                  date: sl.logDate,
+                  title:
+                    firstItem?.jobCard?.title ||
+                    sl.shortNote ||
+                    "Pencatatan Jurnal Praktik",
+                  durationJp,
+                  autonomy:
+                    autonomyLevel === 3
+                      ? "Mandiri"
+                      : autonomyLevel === 2
+                      ? "Terbimbing"
+                      : "Observasi",
+                  autonomyScore:
+                    autonomyLevel === 3 ? 100 : autonomyLevel === 2 ? 88 : 75,
+                  skkniCode: isNonCompetency
+                    ? undefined
+                    : firstItem?.jobCard?.skkniUnitCode || "J.620100.020.02",
+                  status: sl.status === "VERIFIED" ? "VERIFIED" : "PENDING_VERIFICATION",
+                  attendanceType: sl.attendanceType || "PRESENT",
+                  verifiedAt: sl.verifiedAt
+                    ? formatDateIndo(sl.verifiedAt.slice(0, 10))
+                    : null,
+                  mentor: "Rizky Firmansyah",
+                  hasPhoto: Boolean(sl.evidenceWebpUrl),
+                  samplePhotoUrl: sl.evidenceWebpUrl || undefined,
+                  isNonCompetency,
+                  nonCompetencyCategory: firstItem?.nonCompetencyCategory || undefined,
+                  notes: sl.shortNote || undefined,
+                  syncState: sl.status === "VERIFIED" ? "verified" : "synced",
+                  isLocalOnly: false,
+                };
+              });
+              setServerLogs(mapped);
+            }
+          } catch (logErr) {
+            console.warn("Koneksi riwayat log server offline fallback:", logErr);
+          }
         }
       } catch {}
     }
-    loadPlacement();
+    loadPlacementAndLogs();
     return () => {
       isMounted = false;
     };
@@ -249,12 +225,12 @@ export default function LogHistoryPage() {
         (ol.isNonCompetency
           ? `Bantuan Operasional (${ol.nonCompetencyCategory || "Non-Jurusan"})`
           : ol.jobCardIds[0] === "00000000-0000-0000-0000-000000000033" || ol.jobCardIds[0] === "jc-2"
-          ? "Desain Skema Database & Migrasi Prisma"
+          ? "Perancangan Skema Basis Data Relasional & Audit Log"
           : ol.jobCardIds[0] === "00000000-0000-0000-0000-000000000032" || ol.jobCardIds[0] === "jc-3"
-          ? "Slicing UI Responsif Tailwind CSS"
+          ? "Slicing Antarmuka Responsif Mobile-First Web"
           : ol.jobCardIds[0] === "00000000-0000-0000-0000-000000000035" || ol.jobCardIds[0] === "jc-4"
-          ? "Pengujian Unit Testing & Integrasi API"
-          : "Implementasi REST API & Router Express"),
+          ? "Pengujian Mutu Perangkat Lunak & Alur Logbook"
+          : "Implementasi Alur Autentikasi Pengguna & Keamanan Sistem"),
       durationJp: ol.durationJp,
       autonomy: ol.autonomyLevel === 3 ? "Mandiri" : ol.autonomyLevel === 2 ? "Terbimbing" : "Observasi",
       autonomyScore: ol.autonomyLevel === 3 ? 100 : ol.autonomyLevel === 2 ? 88 : 75,
@@ -272,11 +248,14 @@ export default function LogHistoryPage() {
     }));
   }, [offlineLogs, photoUuidSet, placementInfo.mentorName]);
 
-  // Gabungkan entri offline lokal dengan sampel riwayat (urutkan kronologis terbaru di atas)
+  // Gabungkan entri offline lokal dengan data resmi database (atau sampel demo jika belum termuat)
   const allLogs = useMemo(() => {
-    const combined = [...convertedOfflineLogs, ...SAMPLE_LOGS];
+    const offlineIdSet = new Set(convertedOfflineLogs.map((l) => l.id));
+    const nonDuplicatedServerLogs = serverLogs.filter((sl) => !offlineIdSet.has(sl.id));
+
+    const combined = [...convertedOfflineLogs, ...nonDuplicatedServerLogs];
     return combined.sort((a, b) => (a.date < b.date ? 1 : -1));
-  }, [convertedOfflineLogs]);
+  }, [convertedOfflineLogs, serverLogs]);
 
   // Statistik Real-Time Sesuai Standar 792 JP Intrakurikuler PKL
   const totalVerifiedJp = useMemo(
@@ -340,6 +319,20 @@ export default function LogHistoryPage() {
       return true;
     });
   }, [allLogs, filter, searchQuery]);
+
+  // Auto-buka rincian log jika ada query parameter ?logId=... dari Dashboard
+  useEffect(() => {
+    if (typeof window !== "undefined" && allLogs.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const targetId = params.get("logId");
+      if (targetId) {
+        const found = allLogs.find((l) => l.id === targetId);
+        if (found) {
+          setSelectedLogDetail(found);
+        }
+      }
+    }
+  }, [allLogs]);
 
   // Memuat foto dari IndexedDB saat modal detail dibuka
   useEffect(() => {
@@ -431,41 +424,8 @@ export default function LogHistoryPage() {
   };
 
   // Handler Membuka Modal QR Verifikasi
-  const handleOpenVerifyModal = async () => {
+  const handleOpenVerifyModal = () => {
     setShowQrModal(true);
-    setIsGeneratingLink(true);
-    try {
-      const cachedContext = await db.refData.get("student_log_context");
-      const placementId =
-        (cachedContext?.data as any)?.activePlacement?.id ||
-        "00000000-0000-0000-0000-000000000051";
-
-      const res = await generateVerificationLink({
-        placementId,
-        mode: "WA_BATCH",
-      });
-      setActiveLinkData(res);
-    } catch {
-      setActiveLinkData({
-        token: "mock-demo-token-123",
-        verificationUrl: "/v/mock-demo-token-123",
-        fullUrl: "http://localhost:3000/v/mock-demo-token-123",
-        waShareUrl: null,
-        expiresAt: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
-      });
-    } finally {
-      setIsGeneratingLink(false);
-    }
-  };
-
-  const handleCopyLink = () => {
-    const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
-    const fullUrl = activeLinkData
-      ? activeLinkData.fullUrl || `${origin}${activeLinkData.verificationUrl}`
-      : `${origin}/v/mock-demo-token-123`;
-    navigator.clipboard?.writeText(fullUrl);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
   };
 
   return (
@@ -508,11 +468,11 @@ export default function LogHistoryPage() {
           <button
             type="button"
             onClick={handleOpenVerifyModal}
-            disabled={isGeneratingLink}
             className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 h-10 px-3.5 sm:px-4 rounded-full bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white text-xs font-semibold shadow-xs transition cursor-pointer whitespace-nowrap"
           >
             <QrCode className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-            <span>Minta Validasi (QR)</span>
+            <span className="sm:hidden">Validasi</span>
+            <span className="hidden sm:inline">Minta Validasi (QR)</span>
             {pendingCountTotal > 0 && (
               <span className="px-1.5 py-0.2 rounded-full bg-sky-500 text-white text-[10px] font-bold">
                 {pendingCountTotal}
@@ -645,13 +605,13 @@ export default function LogHistoryPage() {
           3. APPLE SEGMENTED CONTROL, SEARCH & VIEW SWITCHER (LIST vs GRID)
       ───────────────────────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        {/* Segmented Filter Tabs: Tipografi Konsisten */}
+        {/* Segmented Filter Tabs: Tipografi Konsisten (Mobile-Tuned) */}
         <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-full border border-slate-200 text-xs font-medium overflow-x-auto w-full sm:w-auto scrollbar-none">
           {[
-            { id: "ALL" as const, label: "Semua", count: allLogs.length },
-            { id: "PENDING" as const, label: "Menunggu", count: pendingCountTotal },
-            { id: "VERIFIED" as const, label: "Terverifikasi", count: verifiedCountTotal },
-            { id: "NON_COMPETENCY" as const, label: "Non-Kejuruan", count: nonCompetencyCountTotal },
+            { id: "ALL" as const, label: "Semua", mobileLabel: "Semua", count: allLogs.length },
+            { id: "PENDING" as const, label: "Menunggu", mobileLabel: "Pending", count: pendingCountTotal },
+            { id: "VERIFIED" as const, label: "Terverifikasi", mobileLabel: "Sah", count: verifiedCountTotal },
+            { id: "NON_COMPETENCY" as const, label: "Non-Kejuruan", mobileLabel: "Umum", count: nonCompetencyCountTotal },
           ].map((tab) => {
             const isActive = filter === tab.id;
             return (
@@ -660,13 +620,14 @@ export default function LogHistoryPage() {
                 type="button"
                 onClick={() => setFilter(tab.id)}
                 className={cn(
-                  "flex-1 sm:flex-initial px-3.5 py-1.5 rounded-full whitespace-nowrap text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95",
+                  "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
                   isActive
                     ? "bg-white text-slate-900 font-semibold shadow-xs"
                     : "text-slate-600 hover:text-slate-900 font-medium"
                 )}
               >
-                <span>{tab.label}</span>
+                <span className="sm:hidden">{tab.mobileLabel}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
                 <span
                   className={cn(
                     "px-1.5 py-0.2 rounded-full text-[10px]",
@@ -759,14 +720,21 @@ export default function LogHistoryPage() {
                 >
                   {/* Bagian Kiri: Date Badge + Info Utama */}
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    {/* Squircle Date Badge */}
-                    <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200/70 flex flex-col items-center justify-center text-center shrink-0 shadow-2xs group-hover:border-sky-300 transition-colors">
-                      <span className="text-base font-bold text-slate-900 leading-tight">
+                    {/* Modern Calendar Tile Date Badge - Option 1: Vivid Sky Ribbon */}
+                    <div className="w-12 sm:w-13 h-13 sm:h-14 rounded-2xl bg-white border border-slate-200/90 flex flex-col items-center justify-between text-center shrink-0 shadow-2xs group-hover:border-sky-300 group-hover:shadow-xs transition-all overflow-hidden select-none">
+                      <div className="w-full bg-sky-600 group-hover:bg-sky-500 py-0.5 border-b border-sky-700/20 transition-colors">
+                        <span className="text-[9.5px] font-bold text-white tracking-wider uppercase leading-none block">
+                          {month}
+                        </span>
+                      </div>
+                      <span className="text-base sm:text-lg font-black text-slate-900 leading-none py-0.5 tracking-tight font-sans">
                         {day}
                       </span>
-                      <span className="text-[10px] font-medium text-slate-500 uppercase leading-none">
-                        {month} · {weekday}
-                      </span>
+                      <div className="w-full pb-1">
+                        <span className="text-[9.5px] font-medium text-slate-400 capitalize leading-none block">
+                          {weekday}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Judul & Detail */}
@@ -874,7 +842,7 @@ export default function LogHistoryPage() {
                 <div
                   key={log.id}
                   onClick={() => setSelectedLogDetail(log)}
-                  className="bg-white rounded-3xl p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-card transition-all duration-150 cursor-pointer flex flex-col justify-between group active:scale-[0.99] shadow-xs"
+                  className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-card transition-all duration-150 cursor-pointer flex flex-col justify-between group active:scale-[0.99] shadow-xs"
                 >
                   <div className="space-y-3">
                     {/* Header */}
@@ -1014,100 +982,10 @@ export default function LogHistoryPage() {
       )}
 
       {/* ─────────────────────────────────────────────────────────────────────────────
-          5. MODAL MINTA VALIDASI QR (ZERO-LOGIN MENTOR HAND-OFF)
+          5. MODAL MINTA VALIDASI QR (KONSISTEN DENGAN PORTAL SISWA)
       ───────────────────────────────────────────────────────────────────────────── */}
-      {isMountedState && showQrModal && typeof document !== "undefined" && createPortal(
-        <div
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setShowQrModal(false)}
-          className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in-0 duration-150"
-          style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-3xl max-w-sm w-full p-6 sm:p-7 shadow-modal border border-slate-200/80 space-y-4 animate-in zoom-in-95 duration-150 text-center"
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 text-left">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-xs">
-                  <QrCode className="w-4 h-4 text-sky-400" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-900">Validasi Jurnal PKL</h3>
-                  <p className="text-xs text-slate-500 font-normal">Pindai QR atau kirim via WhatsApp</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowQrModal(false)}
-                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition cursor-pointer active:scale-95"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* QR View Box */}
-            <div className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl flex flex-col items-center justify-center space-y-2.5 text-center">
-              <div className="w-44 h-44 bg-white border border-slate-200/80 rounded-2xl p-2 flex flex-col items-center justify-center shadow-xs">
-                <QrCodeView
-                  value={
-                    activeLinkData?.fullUrl ||
-                    (typeof window !== "undefined"
-                      ? `${window.location.origin}${activeLinkData?.verificationUrl || "/v/mock-demo-token-123"}`
-                      : `http://localhost:3000${activeLinkData?.verificationUrl || "/v/mock-demo-token-123"}`)
-                  }
-                  size={160}
-                  errorCorrectionLevel="M"
-                />
-              </div>
-              <div className="space-y-0.5">
-                <span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/70 text-[10px] font-medium">
-                  <Clock className="w-3 h-3 text-amber-600" /> Berlaku 24 Jam
-                </span>
-                <p className="text-xs text-slate-500 font-normal">
-                  Arahkan kamera smartphone mentor industri ke kode QR di atas.
-                </p>
-              </div>
-            </div>
-
-            {/* Action Buttons: Solid Pill Buttons */}
-            <div className="space-y-2 pt-1">
-              <a
-                href={`https://wa.me/?text=${encodeURIComponent(
-                  `Halo Bapak/Ibu ${placementInfo.mentorName || "Mentor"}, saya telah mengisi logbook PKL VokaLink. Mohon kesediaannya untuk memvalidasi jurnal saya melalui tautan berikut: ${
-                    activeLinkData?.fullUrl || "https://vokalink.id/v/andi-pratama-rpl-2026"
-                  }`
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-2.5 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-                <span>Kirim ke WhatsApp Mentor</span>
-              </a>
-
-              <button
-                type="button"
-                onClick={handleCopyLink}
-                className="w-full py-2.5 px-4 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer border border-slate-200/80"
-              >
-                {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedLink ? "Tautan Berhasil Disalin!" : "Salin Tautan Validasi"}</span>
-              </button>
-
-              <Link
-                href={activeLinkData?.verificationUrl || "/v/mock-demo-token-123"}
-                target="_blank"
-                className="w-full py-2 px-3 rounded-full hover:bg-slate-50 text-slate-500 font-medium text-xs flex items-center justify-center gap-1.5 transition"
-              >
-                <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
-                <span>Buka Antarmuka Mentor (/v/[token])</span>
-              </Link>
-            </div>
-          </div>
-        </div>,
-        document.body
+      {isMountedState && showQrModal && (
+        <MentorQrModal onClose={() => setShowQrModal(false)} />
       )}
 
       {/* ─────────────────────────────────────────────────────────────────────────────
@@ -1196,7 +1074,7 @@ export default function LogHistoryPage() {
                   {/* Floating badge */}
                   <div className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full bg-slate-900/85 backdrop-blur-xs text-[10px] font-semibold text-white flex items-center gap-1.5 shadow-xs">
                     <CheckCircle2 className="w-3 h-3 text-emerald-400 stroke-[2.5]" />
-                    <span>WebP &bull; SHA-256 Valid</span>
+                    <span>WebP &bull; Terverifikasi Valid</span>
                   </div>
 
                   {/* Hover overlay hint with Zoom icon */}

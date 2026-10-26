@@ -281,6 +281,8 @@ passportsRouter.get(
         student: {
           id: student.id,
           fullName: student.fullName,
+          identityNumber: student.identityNumber,
+          whatsappNumber: student.whatsappNumber,
           departmentName: student.schoolDepartment?.name || "Kejuruan",
           schoolName: student.school.name,
         },
