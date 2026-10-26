@@ -11,6 +11,8 @@ import {
   Maximize2,
   Inbox,
   FileText,
+  Calendar,
+  CheckCircle2,
 } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/pwa/db";
@@ -331,18 +333,18 @@ export function EvidenceGalleryView() {
         </div>
       )}
 
-      {/* ─── Mode 1: GRID VIEW (Ultra Clean Photo Showcase) ─── */}
+      {/* ─── Mode 1: GRID VIEW (Notion Minimalist Bento Photo Showcase) ─── */}
       {galleryLayout === "GRID" && filteredEvidences.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 lg:gap-5 pt-1 animate-in fade-in duration-150">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-4 pt-1 animate-in fade-in duration-150">
           {filteredEvidences.map((ev) => (
             <div
               key={ev.id}
               onClick={() => setSelectedItem(ev)}
-              className="group bg-white rounded-2xl border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col justify-between cursor-pointer"
+              className="group bg-white rounded-2xl border border-slate-200/70 hover:border-slate-300 hover:shadow-xs transition-all duration-200 overflow-hidden flex flex-col justify-between cursor-pointer active:scale-[0.99] shadow-2xs"
             >
               <div>
-                {/* Full-Bleed Photo Hero (Clean, Pure & Seamless) */}
-                <div className="w-full h-44 sm:h-48 relative overflow-hidden bg-slate-900">
+                {/* Full-Bleed Photo Hero */}
+                <div className="w-full h-40 sm:h-44 relative overflow-hidden bg-slate-900">
                   <img
                     src={ev.photoUrl}
                     alt={ev.title}
@@ -352,7 +354,7 @@ export function EvidenceGalleryView() {
 
                   {/* Left Pill (Only if Non-Kompetensi) */}
                   {ev.isNonCompetency && (
-                    <div className="absolute top-3 left-3 px-2.5 py-0.5 rounded-full bg-amber-600/90 backdrop-blur-md text-[10px] font-semibold text-white shadow-xs border border-white/20">
+                    <div className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-amber-600/90 backdrop-blur-md text-[10px] font-semibold text-white shadow-xs border border-white/20">
                       Non-Kompetensi
                     </div>
                   )}
@@ -366,39 +368,63 @@ export function EvidenceGalleryView() {
                   </div>
                 </div>
 
-                {/* Card Header & Title */}
-                <div className="p-4 space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
-                      <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0" />
-                      <span>{ev.category}</span>
-                    </span>
-                    <span className="text-slate-400 font-normal">{ev.date}</span>
+                {/* Card Header & Content */}
+                <div className="p-4 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-800">
+                        <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        <span>{ev.date}</span>
+                      </span>
+                      <span className="text-slate-300">·</span>
+                      <span className="px-1.5 py-0.5 rounded-md bg-slate-100 font-semibold text-[10px] text-slate-700 font-mono">
+                        {ev.jp} Jam
+                      </span>
+                    </div>
+
+                    {ev.status === "verified" ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[10.5px] font-medium">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
+                        <span>Sah</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/70 text-[10.5px] font-medium">
+                        <Clock className="w-3 h-3 text-amber-600" />
+                        <span>Menunggu PIN</span>
+                      </span>
+                    )}
                   </div>
 
-                  <h3 className="text-xs sm:text-sm font-semibold text-slate-900 group-hover:text-sky-600 transition-colors leading-snug line-clamp-2">
+                  {/* Category Pill Tag */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-50 border border-slate-200/60 text-[10.5px] font-medium text-slate-600">
+                      <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0" />
+                      <span className="truncate">{ev.category}</span>
+                    </span>
+                    {ev.isNonCompetency && (
+                      <span className="px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200/70 text-[10.5px] font-medium text-amber-800">
+                        Non-Kompetensi
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Title */}
+                  <h3 className="text-[13.5px] sm:text-sm font-semibold text-slate-900 group-hover:text-sky-600 transition-colors leading-snug line-clamp-2">
                     {ev.title}
                   </h3>
                 </div>
               </div>
 
-              {/* Card Footer: JP Praktik + Verification Pill */}
-              <div className="px-4 pb-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                <span className="text-xs font-semibold text-slate-700">
-                  {ev.jp} JP Praktik
+              {/* Card Footer: Mentor + WebP Size */}
+              <div className="px-4 pb-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                <span className="text-slate-500 font-normal text-[11px] truncate max-w-[150px] flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>{ev.mentor || "Mentor DUDI"}</span>
                 </span>
 
-                {ev.status === "verified" ? (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10.5px] font-semibold">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Terverifikasi</span>
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/80 text-[10.5px] font-semibold">
-                    <Clock className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Menunggu PIN</span>
-                  </span>
-                )}
+                <span className="text-[10px] text-slate-400 font-mono">
+                  {ev.size}
+                </span>
               </div>
             </div>
           ))}
@@ -412,7 +438,7 @@ export function EvidenceGalleryView() {
             <div
               key={ev.id}
               onClick={() => setSelectedItem(ev)}
-              className="bg-white rounded-2xl p-3 sm:p-3.5 border border-slate-200/80 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 cursor-pointer group"
+              className="bg-white rounded-2xl p-3 sm:p-3.5 border border-slate-200/70 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 cursor-pointer group"
             >
               {/* Left: Real Photo Thumbnail + Title + Metadata */}
               <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
@@ -434,13 +460,16 @@ export function EvidenceGalleryView() {
                   <h3 className="text-xs sm:text-sm font-semibold text-slate-900 tracking-tight group-hover:text-sky-600 transition-colors line-clamp-1">
                     {ev.title}
                   </h3>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 font-normal">
+                  <div className="flex items-center gap-2 text-xs text-slate-500 font-normal flex-wrap">
                     <span className="inline-flex items-center gap-1 font-medium text-slate-600">
                       <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0" />
                       <span>{ev.category}</span>
                     </span>
                     <span>·</span>
-                    <span>{ev.date}</span>
+                    <span className="inline-flex items-center gap-1 text-slate-800 font-semibold">
+                      <Calendar className="w-3 h-3 text-sky-600 shrink-0" />
+                      <span>{ev.date}</span>
+                    </span>
                     {ev.isNonCompetency && (
                       <>
                         <span>·</span>
@@ -456,13 +485,13 @@ export function EvidenceGalleryView() {
                 <span className="font-semibold text-slate-900 text-xs">{ev.jp} JP Praktik</span>
 
                 {ev.status === "verified" ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10.5px] font-semibold">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Terverifikasi</span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[10.5px] font-medium">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
+                    <span>Sah</span>
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/80 text-[10.5px] font-semibold">
-                    <Clock className="w-3.5 h-3.5 text-amber-600" />
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/70 text-[10.5px] font-medium">
+                    <Clock className="w-3 h-3 text-amber-600" />
                     <span>Menunggu PIN</span>
                   </span>
                 )}

@@ -82,9 +82,10 @@ export default function StudentHomePage() {
   // 2. Load context from IndexedDB cache or server fallback
   useEffect(() => {
     let isMounted = true;
+    const startTime = Date.now();
     const safetyTimer = setTimeout(() => {
       if (isMounted) setIsLoading(false);
-    }, 600);
+    }, 1200);
 
     async function loadPlacementContext() {
       try {
@@ -134,8 +135,14 @@ export default function StudentHomePage() {
         console.warn("Konteks penempatan offline fallback:", err);
       } finally {
         if (isMounted) {
-          setIsLoading(false);
-          clearTimeout(safetyTimer);
+          const elapsed = Date.now() - startTime;
+          const delay = Math.max(0, 350 - elapsed);
+          setTimeout(() => {
+            if (isMounted) {
+              setIsLoading(false);
+              clearTimeout(safetyTimer);
+            }
+          }, delay);
         }
       }
     }
@@ -371,7 +378,7 @@ export default function StudentHomePage() {
   const weeklyPercent = Math.min(100, Math.round((weeklyVerifiedJp / 40) * 100));
 
   // ─── 5 UI States: 1. Loading Skeleton Condition ───
-  if (isLoading && offlineLogs.length === 0) {
+  if (isLoading) {
     return <HomeSkeleton />;
   }
 
@@ -381,7 +388,7 @@ export default function StudentHomePage() {
           1. CENTER SECTION: WORKSPACE CANVAS (TIMELINE / MATRIX / EVIDENCE)
           Apple Design System HIG: Seamless Mobile Cards, Refined Desktop Canvas
       ───────────────────────────────────────────────────────────────────────────── */}
-      <section className="flex-1 min-w-0 bg-transparent lg:bg-white rounded-none lg:rounded-3xl p-0 lg:p-6 border-0 lg:border border-slate-200/80 shadow-none lg:shadow-xs flex flex-col justify-between overflow-hidden space-y-4 lg:space-y-6">
+      <section className="flex-1 min-w-0 bg-transparent rounded-none p-0 border-0 shadow-none flex flex-col justify-between space-y-4 lg:space-y-5">
         <div className="space-y-3.5 sm:space-y-5">
           {/* ─── A.1 TAMPILAN KHUSUS MOBILE: HERO, AKSI HARI INI & PRESENSI PEKAN INI (< lg) ─── */}
           <div className="block lg:hidden space-y-3 font-sans">
@@ -442,7 +449,7 @@ export default function StudentHomePage() {
                 </div>
               </div>
             ) : (
-              <div className="bg-gradient-to-br from-sky-500 via-sky-600 to-sky-700 rounded-2xl p-4 sm:p-5 text-white shadow-sm space-y-3">
+              <div className="bg-sky-600 rounded-2xl p-4 sm:p-5 text-white shadow-sm space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white text-[11px] font-semibold">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse" />
@@ -593,92 +600,49 @@ export default function StudentHomePage() {
             </div>
           </div>
 
-          {/* ─── A.2 TAMPILAN KHUSUS DESKTOP: EXECUTIVE DASHBOARD HEADER (≥ lg) ─── */}
-          <div className="hidden lg:block bg-white rounded-2xl p-5 border border-slate-200/70 shadow-xs transition-all">
-            <div className="grid grid-cols-12 gap-8 items-center">
-              {/* Left Column (Cols 1-6): Today's Activity & Action */}
-              <div className="col-span-6 space-y-3 font-sans">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-lg font-bold text-slate-900 tracking-tight leading-none">
-                      {todayLog ? (todayLog.jobCardTitle || "Jurnal Hari Ini") : `Halo, ${student.name.split(" ")[0]}!`}
-                    </h2>
-                    <span className="text-slate-300 text-xs">·</span>
-                    <span className="text-xs text-slate-400 font-medium">
-                      {formatLogDate(todayStr)}
-                    </span>
-                    {todayLog ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 text-[11px] font-semibold">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        <span>{todayLog.durationJp} JP · {todayLog.state === "verified" ? "Terverifikasi" : "Menunggu PIN"}</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 text-[11px] font-semibold">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                        <span>Belum Diisi</span>
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-xs text-slate-500 leading-relaxed font-normal">
-                    {todayLog
-                      ? (todayLog.state === "verified"
-                          ? "Jurnal hari ini telah divalidasi sah oleh mentor industri dengan segel kriptografi HMAC."
-                          : "Jurnal tercatat. Tunjukkan kode QR atau minta mentor memvalidasi via PIN.")
-                      : "Waktunya mencatat jurnal kegiatan magang hari ini (Batas waktu H-3)."}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2.5 pt-0.5">
+          {/* ─── A.2 TAMPILAN KHUSUS DESKTOP: SLIM EXECUTIVE HEADER (≥ lg) ─── */}
+          <div className="hidden lg:flex items-center justify-between gap-6 bg-white rounded-2xl px-5 py-3.5 border border-slate-200/70 shadow-2xs">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="space-y-0.5 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-base font-bold text-slate-900 tracking-tight leading-none">
+                    {todayLog ? (todayLog.jobCardTitle || "Jurnal Hari Ini") : `Halo, ${student.name.split(" ")[0]}!`}
+                  </h2>
+                  <span className="text-slate-300 text-xs">·</span>
+                  <span className="text-xs text-slate-500 font-medium">
+                    {formatLogDate(todayStr)}
+                  </span>
                   {todayLog ? (
-                    <button
-                      type="button"
-                      onClick={() => setShowQrModal(true)}
-                      className="h-9 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
-                    >
-                      <QrCode className="w-3.5 h-3.5 shrink-0" />
-                      <span>Tampilkan QR Mentor</span>
-                    </button>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[10.5px] font-medium">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      <span>{todayLog.durationJp} JP · {todayLog.state === "verified" ? "Sah" : "Menunggu PIN"}</span>
+                    </span>
                   ) : (
-                    <>
-                      <Link
-                        href="/student/log/new"
-                        className="group h-9 px-4 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
-                      >
-                        <PlusCircle className="w-3.5 h-3.5 stroke-[2.2] group-hover:rotate-90 transition-transform duration-200 shrink-0" />
-                        <span>Catat Jurnal</span>
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => setShowQrModal(true)}
-                        className="h-9 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200/70 active:scale-[0.98] text-slate-700 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer border border-slate-200/60"
-                        title="Minta mentor memindai QR untuk validasi batch"
-                      >
-                        <QrCode className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                        <span>QR PIN</span>
-                      </button>
-                    </>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/60 text-[10.5px] font-medium">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                      <span>Belum Diisi</span>
+                    </span>
                   )}
                 </div>
+                <p className="text-xs text-slate-500 font-normal truncate max-w-lg">
+                  {todayLog
+                    ? (todayLog.state === "verified"
+                        ? "Jurnal hari ini telah divalidasi sah oleh mentor industri dengan segel kriptografi HMAC."
+                        : "Jurnal tercatat. Tunjukkan QR atau minta mentor memvalidasi via PIN.")
+                    : "Waktunya mencatat jurnal kegiatan magang hari ini (target 8 JP, batas pengisian H-3)."}
+                </p>
               </div>
+            </div>
 
-              {/* Right Column (Cols 7-12): Desktop Metrics & Progress */}
-              <div className="col-span-6 border-l border-slate-100 pl-8 space-y-3 font-sans">
+            <div className="flex items-center gap-5 shrink-0">
+              <div className="w-48 space-y-1.5 font-sans">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-500 uppercase tracking-wider text-[11px]">
-                    Target Kelulusan PKL
+                  <span className="text-[11px] font-medium text-slate-500">Target {TOTAL_TARGET_JP} JP</span>
+                  <span className="text-xs font-bold text-slate-900 tabular-nums">
+                    {student.verifiedJp} <span className="text-slate-400 font-normal">JP</span> <span className="text-sky-600 font-bold ml-0.5">({progressPercentage}%)</span>
                   </span>
-                  <div className="flex items-baseline gap-1 font-sans tabular-nums">
-                    <span className="text-sm font-bold text-slate-900">{student.verifiedJp}</span>
-                    <span className="text-slate-400 font-normal">/ {TOTAL_TARGET_JP} JP</span>
-                    <span className="text-xs font-bold text-sky-600 ml-1">({progressPercentage}%)</span>
-                  </div>
                 </div>
-
-                <div
-                  className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden flex gap-0.5 p-0.5"
-                  title={`Jam Sah: ${student.verifiedJp} JP, Antrean: ${student.pendingJp} JP, Sisa: ${Math.max(0, TOTAL_TARGET_JP - student.verifiedJp)} JP`}
-                >
+                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden flex gap-0.5 p-0.5">
                   <div
                     style={{ width: `${Math.min(100, (student.verifiedJp / TOTAL_TARGET_JP) * 100)}%` }}
                     className="bg-emerald-500 h-full rounded-full transition-all duration-500"
@@ -688,61 +652,37 @@ export default function StudentHomePage() {
                     className="bg-amber-400 h-full rounded-full transition-all duration-500"
                   />
                 </div>
-
-                <div className="grid grid-cols-3 gap-2.5 pt-0.5">
-                  <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100/90 flex flex-col justify-between">
-                    <span className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider block truncate">
-                      Jam Sah
-                    </span>
-                    <div className="mt-1 flex items-baseline gap-1 font-sans tabular-nums">
-                      <span className="text-lg font-bold text-slate-900 tracking-tight leading-none">
-                        {student.verifiedJp}
-                      </span>
-                      <span className="text-xs text-slate-400 font-normal">JP</span>
-                    </div>
-                    <span className="mt-1.5 text-[10px] font-semibold text-emerald-700 flex items-center gap-1.5 truncate">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                      Terverifikasi
-                    </span>
-                  </div>
-
-                  <div
-                    onClick={() => setShowQrModal(true)}
-                    className="p-3 rounded-xl bg-slate-50/70 hover:bg-amber-50/50 border border-slate-100/90 hover:border-amber-200/80 cursor-pointer transition flex flex-col justify-between group active:scale-[0.98]"
-                    title="Klik untuk membuka QR Verifikasi Mentor"
-                  >
-                    <span className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider block truncate">
-                      Antrean
-                    </span>
-                    <div className="mt-1 flex items-baseline gap-1 font-sans tabular-nums">
-                      <span className="text-lg font-bold text-slate-900 tracking-tight leading-none">
-                        {student.pendingJp}
-                      </span>
-                      <span className="text-xs text-slate-400 font-normal">JP</span>
-                    </div>
-                    <span className="mt-1.5 text-[10px] font-semibold text-amber-700 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform truncate">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                      <span>Minta PIN</span>
-                      <ChevronRight className="w-2.5 h-2.5 shrink-0" />
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100/90 flex flex-col justify-between">
-                    <span className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider block truncate">
-                      Sisa Target
-                    </span>
-                    <div className="mt-1 flex items-baseline gap-1 font-sans tabular-nums">
-                      <span className="text-lg font-bold text-slate-700 tracking-tight leading-none">
-                        {Math.max(0, TOTAL_TARGET_JP - student.verifiedJp)}
-                      </span>
-                      <span className="text-xs text-slate-400 font-normal">JP</span>
-                    </div>
-                    <span className="mt-1.5 text-[10px] font-normal text-slate-400 truncate">
-                      menuju 792 JP
-                    </span>
-                  </div>
-                </div>
               </div>
+
+              {todayLog ? (
+                <button
+                  type="button"
+                  onClick={() => setShowQrModal(true)}
+                  className="h-9 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-2xs transition-all cursor-pointer shrink-0"
+                >
+                  <QrCode className="w-3.5 h-3.5 shrink-0" />
+                  <span>QR Mentor</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 shrink-0">
+                  <Link
+                    href="/student/log/new"
+                    className="h-9 px-4 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>Catat Jurnal</span>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setShowQrModal(true)}
+                    className="h-9 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    title="Buka QR Verifikasi Mentor"
+                  >
+                    <QrCode className="w-3.5 h-3.5 text-slate-500" />
+                    <span>QR</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 

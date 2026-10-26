@@ -82,6 +82,33 @@ export function StudentSidebar() {
   const [activeTab, setActiveTab] = useState<"profile" | "privacy" | "offline">("profile");
   const { isInstallable, isInstalled, promptInstall } = usePwaInstall();
 
+  // Smooth hover expansion & auto-collapse upon tab switch ("kembali ke bentuk awal")
+  const [isHovered, setIsHovered] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+
+  useEffect(() => {
+    setIsHovered(false);
+    setIsLocked(false);
+  }, [pathname]);
+
+  const handleMouseEnter = () => {
+    if (!isLocked) {
+      setIsHovered(true);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    setIsLocked(false);
+  };
+
+  const handleItemClick = () => {
+    setIsHovered(false);
+    setIsLocked(true);
+  };
+
+  const isExpanded = isHovered && !isLocked;
+
   // Form states for settings
   const [phone, setPhone] = useState("081234567890");
   const [address, setAddress] = useState("Jl. Pendidikan Vokasi No. 1, Surabaya");
@@ -228,25 +255,42 @@ export function StudentSidebar() {
     <>
       <aside
         aria-label="Navigasi Samping Siswa"
-        className="hidden md:flex flex-col items-center w-[72px] shrink-0 sticky top-4 h-[calc(100vh-2rem)] py-4 px-2 bg-white/90 backdrop-blur-xl rounded-[28px] border border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.05)] z-30 select-none transition-all"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={cn(
+          "hidden md:flex flex-col shrink-0 sticky top-4 h-[calc(100vh-2rem)] py-3 px-3 bg-white/95 backdrop-blur-xl rounded-[28px] border border-slate-200/80 z-40 select-none overflow-hidden transition-[width,box-shadow] duration-250 ease-out",
+          isExpanded
+            ? "w-[240px] shadow-[0_16px_40px_rgba(15,23,42,0.12),0_0_0_1px_rgba(226,232,240,0.8)]"
+            : "w-[72px] shadow-[0_8px_30px_rgba(15,23,42,0.05)]"
+        )}
       >
-        {/* Top: Brand Logo 'V' */}
-        <div className="flex flex-col items-center w-full">
+        {/* Top: Brand Logo 'V' + Title (Fixed Icon Position) */}
+        <div className="flex flex-col w-full">
           <Link
             href="/student/home"
+            onClick={handleItemClick}
             title="VokaLink Siswa — Beranda"
-            className="w-12 h-12 rounded-2xl bg-white border border-slate-200/80 shadow-xs p-2.5 flex items-center justify-center hover:scale-105 hover:border-sky-300 transition-all active:scale-95 group"
+            className="w-full h-12 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center overflow-hidden hover:border-sky-300 transition-colors duration-150"
           >
-            <VokaIcon className="w-full h-full object-contain" />
+            <div className="w-12 h-12 shrink-0 flex items-center justify-center p-2.5">
+              <VokaIcon className="w-full h-full object-contain" />
+            </div>
+            <div
+              className={cn(
+                "min-w-0 transition-opacity duration-200 overflow-hidden pl-1 pr-2",
+                isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
+              )}
+            >
+              <span className="font-bold text-slate-900 text-sm tracking-tight leading-none block whitespace-nowrap">
+                VokaLink
+              </span>
+            </div>
           </Link>
-          <div className="w-8 h-px bg-slate-200/80 my-3" />
+          <div className="w-full h-px bg-slate-200/80 my-2.5" />
         </div>
 
-        {/* Center: Main Navigation Stack (Grouped smoothly below logo) */}
-        <nav
-          aria-label="Menu Utama"
-          className="flex flex-col items-center gap-2 w-full"
-        >
+        {/* Center: Main Navigation Stack (Fixed Icon Positions) */}
+        <nav aria-label="Menu Utama" className="flex flex-col gap-1.5 w-full">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -255,40 +299,55 @@ export function StudentSidebar() {
                 (item.href !== "/student/home" && pathname!.startsWith(item.href)));
 
             return (
-              <div key={item.id} className="relative group flex items-center justify-center">
-                {/* Active Indicator Bar on left edge */}
+              <div key={item.id} className="relative flex items-center w-full">
+                {/* Active Indicator Bar on left edge - completely fixed position */}
                 {isActive && (
-                  <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-6 rounded-full bg-sky-500 shadow-sm shadow-sky-500/50 animate-in fade-in-0 duration-200" />
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full bg-sky-500 z-10" />
                 )}
 
                 <Link
                   href={item.href}
+                  onClick={handleItemClick}
                   className={cn(
-                    "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 active:scale-95",
+                    "w-full h-12 rounded-2xl flex items-center overflow-hidden transition-colors duration-150 group",
                     isActive
                       ? "bg-sky-50 text-sky-600 border border-sky-200/80 shadow-2xs font-semibold"
                       : "text-slate-400 hover:text-slate-700 hover:bg-slate-100/80"
                   )}
                   aria-label={item.label}
                 >
-                  <Icon
-                    className={cn(
-                      "w-5 h-5 transition-transform duration-200",
-                      isActive
-                        ? "text-sky-600 stroke-[2.3]"
-                        : "text-slate-400 group-hover:text-slate-700 group-hover:scale-105"
-                    )}
-                  />
-                </Link>
+                  <div className="w-12 h-12 shrink-0 flex items-center justify-center">
+                    <Icon
+                      className={cn(
+                        "w-5 h-5",
+                        isActive
+                          ? "text-sky-600 stroke-[2.3]"
+                          : "text-slate-500 group-hover:text-slate-800"
+                      )}
+                    />
+                  </div>
 
-                {/* Floating Tooltip on Hover */}
-                <div className="absolute left-[calc(100%+14px)] top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col z-50 pointer-events-none whitespace-nowrap bg-slate-900/95 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-xl shadow-xl border border-slate-700/60 animate-in fade-in-0 zoom-in-95 duration-150">
-                  <span className="font-semibold">{item.label}</span>
-                  <span className="text-[10px] text-slate-400 font-normal">
-                    {item.sublabel}
-                  </span>
-                  <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-900 rotate-45 border-l border-b border-slate-800" />
-                </div>
+                  <div
+                    className={cn(
+                      "min-w-0 transition-opacity duration-200 overflow-hidden text-left pr-2",
+                      isExpanded
+                        ? "opacity-100"
+                        : "opacity-0 pointer-events-none"
+                    )}
+                  >
+                    <p
+                      className={cn(
+                        "text-xs font-semibold truncate leading-tight whitespace-nowrap",
+                        isActive ? "text-sky-600 font-bold" : "text-slate-800"
+                      )}
+                    >
+                      {item.label}
+                    </p>
+                    <p className="text-[10px] text-slate-400 truncate leading-tight mt-0.5 whitespace-nowrap">
+                      {item.sublabel}
+                    </p>
+                  </div>
+                </Link>
               </div>
             );
           })}
@@ -297,76 +356,101 @@ export function StudentSidebar() {
         {/* Natural Elastic Spacer */}
         <div className="flex-1 min-h-[20px]" />
 
-        {/* Bottom: Settings, Help & Exit (Grouped cleanly with safe clearance) */}
-        <div className="flex flex-col items-center gap-2 w-full">
-          <div className="w-8 h-px bg-slate-200/80 mb-1" />
+        {/* Bottom: Settings, Help & Exit (Fixed Icon Positions) */}
+        <div className="flex flex-col gap-1.5 w-full">
+          <div className="w-full h-px bg-slate-200/80 my-1" />
 
-          {/* Settings Trigger: Profil, Privasi Paspor, Offline PWA */}
-          <div className="relative group">
-            <button
-              type="button"
-              onClick={() => setShowSettingsModal(true)}
-              aria-label="Pengaturan & Profil Siswa"
+          {/* Settings Trigger */}
+          <button
+            type="button"
+            onClick={() => {
+              handleItemClick();
+              setShowSettingsModal(true);
+            }}
+            aria-label="Pengaturan & Profil Siswa"
+            className={cn(
+              "w-full h-12 rounded-2xl flex items-center overflow-hidden transition-colors duration-150 cursor-pointer group text-left",
+              showSettingsModal
+                ? "bg-sky-50 text-sky-600 border border-sky-200/80 shadow-2xs"
+                : "text-slate-400 hover:text-slate-700 hover:bg-slate-100/80"
+            )}
+          >
+            <div className="w-12 h-12 shrink-0 flex items-center justify-center">
+              <Settings className="w-5 h-5 text-slate-500 group-hover:text-slate-800" />
+            </div>
+            <div
               className={cn(
-                "w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer",
-                showSettingsModal
-                  ? "bg-sky-50 text-sky-600 border border-sky-200/80 shadow-2xs"
-                  : "text-slate-400 hover:text-slate-700 hover:bg-slate-100/80"
+                "min-w-0 transition-opacity duration-200 overflow-hidden text-left pr-2",
+                isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
               )}
             >
-              <Settings className="w-5 h-5 transition-transform group-hover:rotate-45 duration-300" />
-            </button>
-            <div className="absolute left-[calc(100%+14px)] top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col z-50 pointer-events-none whitespace-nowrap bg-slate-900/95 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-xl shadow-xl border border-slate-700/60">
-              <span className="font-semibold text-white">Pengaturan &amp; Akun</span>
-              <span className="text-[10px] text-slate-400">
-                Profil, privasi paspor &amp; offline
-              </span>
-              <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-900 rotate-45 border-l border-b border-slate-800" />
+              <p className="text-xs font-semibold text-slate-800 truncate leading-tight whitespace-nowrap">
+                Pengaturan &amp; Akun
+              </p>
+              <p className="text-[10px] text-slate-400 truncate leading-tight mt-0.5 whitespace-nowrap">
+                Profil &amp; Privasi
+              </p>
             </div>
-          </div>
+          </button>
 
           {/* Help Modal Trigger */}
-          <div className="relative group">
-            <button
-              type="button"
-              onClick={() => setShowHelpModal(true)}
-              aria-label="Panduan Penggunaan"
+          <button
+            type="button"
+            onClick={() => {
+              handleItemClick();
+              setShowHelpModal(true);
+            }}
+            aria-label="Panduan Penggunaan"
+            className={cn(
+              "w-full h-12 rounded-2xl flex items-center overflow-hidden transition-colors duration-150 cursor-pointer group text-left",
+              showHelpModal
+                ? "bg-sky-50 text-sky-600 border border-sky-200/80 shadow-2xs"
+                : "text-slate-400 hover:text-slate-700 hover:bg-slate-100/80"
+            )}
+          >
+            <div className="w-12 h-12 shrink-0 flex items-center justify-center">
+              <HelpCircle className="w-5 h-5 text-slate-500 group-hover:text-slate-800" />
+            </div>
+            <div
               className={cn(
-                "w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer",
-                showHelpModal
-                  ? "bg-sky-50 text-sky-600 border border-sky-200/80 shadow-2xs"
-                  : "text-slate-400 hover:text-slate-700 hover:bg-slate-100/80"
+                "min-w-0 transition-opacity duration-200 overflow-hidden text-left pr-2",
+                isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
               )}
             >
-              <HelpCircle className="w-5 h-5 transition-transform group-hover:scale-105 duration-200" />
-            </button>
-            <div className="absolute left-[calc(100%+14px)] top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col z-50 pointer-events-none whitespace-nowrap bg-slate-900/95 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-xl shadow-xl border border-slate-700/60">
-              <span className="font-semibold">Bantuan &amp; Panduan</span>
-              <span className="text-[10px] text-slate-400">
-                Alur logbook &amp; verifikasi mentor
-              </span>
-              <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-900 rotate-45 border-l border-b border-slate-800" />
+              <p className="text-xs font-semibold text-slate-800 truncate leading-tight whitespace-nowrap">
+                Bantuan &amp; Panduan
+              </p>
+              <p className="text-[10px] text-slate-400 truncate leading-tight mt-0.5 whitespace-nowrap">
+                Alur Logbook PKL
+              </p>
             </div>
-          </div>
+          </button>
 
           {/* Exit / Back to Portal Home */}
-          <div className="relative group">
-            <Link
-              href="/"
-              title="Keluar ke Portal Utama"
-              aria-label="Keluar ke Portal Utama"
-              className="w-11 h-11 rounded-2xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer"
-            >
-              <ArrowLeft className="w-5 h-5 transition-transform group-hover:-translate-x-0.5 duration-200" />
-            </Link>
-            <div className="absolute left-[calc(100%+14px)] top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col z-50 pointer-events-none whitespace-nowrap bg-slate-900/95 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-xl shadow-xl border border-slate-700/60">
-              <span className="font-semibold text-rose-400">Keluar Portal</span>
-              <span className="text-[10px] text-slate-400">
-                Kembali ke Beranda Utama
-              </span>
-              <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-900 rotate-45 border-l border-b border-slate-800" />
+          <Link
+            href="/"
+            onClick={handleItemClick}
+            title="Keluar ke Portal Utama"
+            aria-label="Keluar ke Portal Utama"
+            className="w-full h-12 rounded-2xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center overflow-hidden transition-colors duration-150 cursor-pointer group text-left"
+          >
+            <div className="w-12 h-12 shrink-0 flex items-center justify-center">
+              <ArrowLeft className="w-5 h-5 text-slate-500 group-hover:text-rose-600" />
             </div>
-          </div>
+            <div
+              className={cn(
+                "min-w-0 transition-opacity duration-200 overflow-hidden text-left pr-2",
+                isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
+              )}
+            >
+              <p className="text-xs font-semibold text-rose-600 truncate leading-tight whitespace-nowrap">
+                Keluar Portal
+              </p>
+              <p className="text-[10px] text-slate-400 truncate leading-tight mt-0.5 whitespace-nowrap">
+                Kembali ke Beranda
+              </p>
+            </div>
+          </Link>
         </div>
       </aside>
 
@@ -599,7 +683,7 @@ export function StudentSidebar() {
                 </div>
 
                 {isInstallable && !isInstalled && (
-                  <div className="p-3 rounded-2xl bg-gradient-to-r from-sky-50 to-indigo-50 border border-sky-200/80 flex items-center justify-between gap-3">
+                  <div className="p-3 rounded-2xl bg-sky-50 border border-sky-200/80 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-semibold text-xs text-slate-900 truncate">Pasang Aplikasi VokaLink</p>
                       <p className="text-[10.5px] text-slate-500 font-normal truncate">Akses instan di layar desktop atau HP</p>

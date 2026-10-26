@@ -37,6 +37,7 @@ import {
 import { MentorQrModal } from "@/components/student/home/MentorQrModal";
 import { useSyncManager } from "@/lib/pwa/hooks/useSyncManager";
 import { cn } from "@/lib/cn";
+import HistoryLoading from "./loading";
 
 interface LogEntry {
   id: string;
@@ -120,9 +121,12 @@ export default function LogHistoryPage() {
 
   const [serverLogs, setServerLogs] = useState<LogEntry[]>([]);
 
+  const [isLoading, setIsLoading] = useState(true);
+
   // Load placement context and live database logs
   useEffect(() => {
     let isMounted = true;
+    const startTime = Date.now();
     async function loadPlacementAndLogs() {
       try {
         let activePlacementId = "3ffec674-ad55-482a-a566-9dff84ab71be";
@@ -200,7 +204,16 @@ export default function LogHistoryPage() {
             console.warn("Koneksi riwayat log server offline fallback:", logErr);
           }
         }
-      } catch {}
+      } catch {
+      } finally {
+        if (isMounted) {
+          const elapsed = Date.now() - startTime;
+          const delay = Math.max(0, 300 - elapsed);
+          setTimeout(() => {
+            if (isMounted) setIsLoading(false);
+          }, delay);
+        }
+      }
     }
     loadPlacementAndLogs();
     return () => {
@@ -428,6 +441,10 @@ export default function LogHistoryPage() {
     setShowQrModal(true);
   };
 
+  if (isLoading) {
+    return <HistoryLoading />;
+  }
+
   return (
     <div className="space-y-5 sm:space-y-6">
       {/* ─────────────────────────────────────────────────────────────────────────────
@@ -519,7 +536,7 @@ export default function LogHistoryPage() {
 
           <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden relative">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-sky-500 via-sky-400 to-emerald-400 transition-all duration-500"
+              className="h-full rounded-full bg-emerald-500 transition-all duration-500"
               style={{ width: `${Math.max(4, targetProgressPercent)}%` }}
             />
           </div>
@@ -605,42 +622,110 @@ export default function LogHistoryPage() {
           3. APPLE SEGMENTED CONTROL, SEARCH & VIEW SWITCHER (LIST vs GRID)
       ───────────────────────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        {/* Segmented Filter Tabs: Tipografi Konsisten (Mobile-Tuned) */}
+        {/* Segmented Filter Tabs: Persis Sesuai Beranda Siswa (Landing Feed) */}
         <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-full border border-slate-200 text-xs font-medium overflow-x-auto w-full sm:w-auto scrollbar-none">
-          {[
-            { id: "ALL" as const, label: "Semua", mobileLabel: "Semua", count: allLogs.length },
-            { id: "PENDING" as const, label: "Menunggu", mobileLabel: "Pending", count: pendingCountTotal },
-            { id: "VERIFIED" as const, label: "Terverifikasi", mobileLabel: "Sah", count: verifiedCountTotal },
-            { id: "NON_COMPETENCY" as const, label: "Non-Kejuruan", mobileLabel: "Umum", count: nonCompetencyCountTotal },
-          ].map((tab) => {
-            const isActive = filter === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setFilter(tab.id)}
-                className={cn(
-                  "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
-                  isActive
-                    ? "bg-white text-slate-900 font-semibold shadow-xs"
-                    : "text-slate-600 hover:text-slate-900 font-medium"
-                )}
-              >
-                <span className="sm:hidden">{tab.mobileLabel}</span>
-                <span className="hidden sm:inline">{tab.label}</span>
-                <span
-                  className={cn(
-                    "px-1.5 py-0.2 rounded-full text-[10px]",
-                    isActive
-                      ? "bg-slate-100 text-slate-800 font-semibold"
-                      : "bg-slate-300/60 text-slate-600 font-medium"
-                  )}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
+          {/* 1. Semua Jurnal */}
+          <button
+            type="button"
+            onClick={() => setFilter("ALL")}
+            className={cn(
+              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
+              filter === "ALL"
+                ? "bg-white text-slate-900 font-semibold shadow-xs"
+                : "text-slate-600 hover:text-slate-900 font-medium"
+            )}
+          >
+            <span className="sm:hidden">Semua</span>
+            <span className="hidden sm:inline">Semua Jurnal</span>
+            <span
+              className={cn(
+                "px-1.5 py-0.2 rounded-full text-[10px] font-semibold",
+                filter === "ALL"
+                  ? "bg-slate-100 text-slate-800"
+                  : "bg-slate-300/60 text-slate-600"
+              )}
+            >
+              {allLogs.length}
+            </span>
+          </button>
+
+          {/* 2. Sah Terverifikasi */}
+          <button
+            type="button"
+            onClick={() => setFilter("VERIFIED")}
+            className={cn(
+              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
+              filter === "VERIFIED"
+                ? "bg-white text-emerald-800 font-semibold shadow-xs"
+                : "text-slate-600 hover:text-slate-900 font-medium"
+            )}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+            <span className="sm:hidden">Sah</span>
+            <span className="hidden sm:inline">Sah Terverifikasi</span>
+            <span
+              className={cn(
+                "px-1.5 py-0.2 rounded-full text-[10px] font-semibold",
+                filter === "VERIFIED"
+                  ? "bg-emerald-100 text-emerald-800"
+                  : "bg-slate-300/60 text-slate-600"
+              )}
+            >
+              {verifiedCountTotal}
+            </span>
+          </button>
+
+          {/* 3. Menunggu Validasi */}
+          <button
+            type="button"
+            onClick={() => setFilter("PENDING")}
+            className={cn(
+              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
+              filter === "PENDING"
+                ? "bg-white text-amber-800 font-semibold shadow-xs"
+                : "text-slate-600 hover:text-slate-900 font-medium"
+            )}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+            <span className="sm:hidden">Pending</span>
+            <span className="hidden sm:inline">Menunggu Validasi</span>
+            <span
+              className={cn(
+                "px-1.5 py-0.2 rounded-full text-[10px] font-semibold",
+                filter === "PENDING"
+                  ? "bg-amber-100 text-amber-800"
+                  : "bg-slate-300/60 text-slate-600"
+              )}
+            >
+              {pendingCountTotal}
+            </span>
+          </button>
+
+          {/* 4. Non-Kejuruan */}
+          <button
+            type="button"
+            onClick={() => setFilter("NON_COMPETENCY")}
+            className={cn(
+              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
+              filter === "NON_COMPETENCY"
+                ? "bg-white text-indigo-800 font-semibold shadow-xs"
+                : "text-slate-600 hover:text-slate-900 font-medium"
+            )}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+            <span className="sm:hidden">Umum</span>
+            <span className="hidden sm:inline">Non-Kejuruan</span>
+            <span
+              className={cn(
+                "px-1.5 py-0.2 rounded-full text-[10px] font-semibold",
+                filter === "NON_COMPETENCY"
+                  ? "bg-indigo-100 text-indigo-800"
+                  : "bg-slate-300/60 text-slate-600"
+              )}
+            >
+              {nonCompetencyCountTotal}
+            </span>
+          </button>
         </div>
 
         {/* Search Bar + View Switcher (List vs Grid) */}
@@ -832,8 +917,8 @@ export default function LogHistoryPage() {
             })}
           </div>
         ) : (
-          /* ─── TAMPILAN B: SQUIRCLE GRID CARDS ─── */
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          /* ─── TAMPILAN B: NOTION MINIMALIST BENTO CARDS ─── */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
             {filteredLogs.map((log) => {
               const isVerified = log.status === "VERIFIED";
               const isSickOrPermit = log.attendanceType === "SICK" || log.attendanceType === "PERMIT";
@@ -842,28 +927,34 @@ export default function LogHistoryPage() {
                 <div
                   key={log.id}
                   onClick={() => setSelectedLogDetail(log)}
-                  className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-card transition-all duration-150 cursor-pointer flex flex-col justify-between group active:scale-[0.99] shadow-xs"
+                  className="bg-white rounded-2xl p-4 sm:p-4.5 border border-slate-200/70 hover:border-slate-300 hover:shadow-xs transition-all duration-150 cursor-pointer group active:scale-[0.99] flex flex-col justify-between space-y-3.5 relative shadow-2xs"
                 >
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     {/* Header */}
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-                        <span>{formatDateIndo(log.date)}</span>
-                      </span>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                          <span>{formatDateIndo(log.date)}</span>
+                        </span>
+                        <span className="text-slate-300">·</span>
+                        <span className="px-1.5 py-0.5 rounded-md bg-slate-100 font-semibold text-[10px] text-slate-700 font-mono">
+                          {log.durationJp} Jam
+                        </span>
+                      </div>
 
                       <span
                         className={cn(
-                          "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium border",
+                          "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-medium border",
                           isVerified
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
-                            : "bg-amber-50 text-amber-700 border-amber-200/80"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
+                            : "bg-amber-50 text-amber-700 border-amber-200/70"
                         )}
                       >
                         {isVerified ? (
                           <>
                             <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
-                            <span>Terverifikasi</span>
+                            <span>Sah</span>
                           </>
                         ) : (
                           <>
@@ -874,37 +965,32 @@ export default function LogHistoryPage() {
                       </span>
                     </div>
 
-                    {/* Judul */}
-                    <h3 className="font-semibold text-sm sm:text-base text-slate-900 group-hover:text-sky-600 transition-colors leading-snug line-clamp-2">
-                      {log.title}
-                    </h3>
-
-                    {/* Chips Metadata */}
+                    {/* Chips Metadata (Notion Tag Style) */}
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {isSickOrPermit ? (
-                        <span className="text-[10px] font-medium text-rose-700 bg-rose-50 border border-rose-200/70 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <span className="text-[10px] font-medium text-rose-700 bg-rose-50 border border-rose-200/70 px-2 py-0.5 rounded-md flex items-center gap-1">
                           <HeartPulse className="w-3 h-3" />
                           {log.attendanceType === "SICK" ? "Sakit" : "Izin Resmi"}
                         </span>
                       ) : log.isNonCompetency ? (
-                        <span className="text-[10px] font-medium text-amber-800 bg-amber-50 border border-amber-200/70 px-2.5 py-0.5 rounded-full">
+                        <span className="text-[10px] font-medium text-amber-800 bg-amber-50 border border-amber-200/70 px-2 py-0.5 rounded-md">
                           Non-Kejuruan: {log.nonCompetencyCategory || "Operasional"}
                         </span>
                       ) : (
                         <>
                           <span
                             className={cn(
-                              "text-[10px] font-medium px-2.5 py-0.5 rounded-full border",
+                              "text-[10px] font-medium px-2 py-0.5 rounded-md border",
                               log.autonomy === "Mandiri"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
-                                : "bg-sky-50 text-sky-700 border-sky-200/70"
+                                ? "bg-slate-50 text-slate-700 border-slate-200/70"
+                                : "bg-sky-50/60 text-sky-700 border-sky-200/60"
                             )}
                           >
                             {log.autonomy}
                           </span>
 
                           {log.skkniCode && (
-                            <span className="text-[10px] font-medium text-slate-600 bg-slate-50 border border-slate-200/70 px-2.5 py-0.5 rounded-full font-mono">
+                            <span className="text-[10px] font-medium text-slate-600 bg-slate-50 border border-slate-200/70 px-2 py-0.5 rounded-md font-mono">
                               {log.skkniCode}
                             </span>
                           )}
@@ -912,33 +998,26 @@ export default function LogHistoryPage() {
                       )}
 
                       {log.hasPhoto && (
-                        <span className="text-[10px] font-medium text-slate-600 bg-slate-50 px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-slate-200/60">
+                        <span className="text-[10px] font-medium text-slate-600 bg-slate-50 px-2 py-0.5 rounded-md flex items-center gap-1 border border-slate-200/60">
                           <ImageIcon className="w-3 h-3 text-slate-400" />
                           <span>Foto WebP</span>
                         </span>
                       )}
                     </div>
 
-                    {/* Catatan */}
-                    {log.notes && (
-                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed font-normal">
-                        &quot;{log.notes}&quot;
-                      </p>
-                    )}
+                    {/* Judul */}
+                    <h3 className="text-[13.5px] sm:text-sm font-semibold text-slate-900 group-hover:text-sky-600 transition-colors leading-snug line-clamp-2">
+                      {log.title}
+                    </h3>
                   </div>
 
                   {/* Footer */}
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-slate-900 bg-slate-100 px-3 py-0.5 rounded-full text-xs border border-slate-200/50">
-                        {log.durationJp} Jam Kerja
-                      </span>
-                      <span className="text-slate-500 font-normal text-xs truncate max-w-[140px] flex items-center gap-1">
-                        <UserCheck className="w-3 h-3 text-slate-400" />
-                        {log.mentor}
-                      </span>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-sky-500 group-hover:translate-x-0.5 transition" />
+                  <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+                    <span className="text-slate-500 font-normal text-[11px] truncate max-w-[160px] flex items-center gap-1.5">
+                      <UserCheck className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{log.mentor}</span>
+                    </span>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-sky-500 group-hover:translate-x-0.5 transition" />
                   </div>
                 </div>
               );

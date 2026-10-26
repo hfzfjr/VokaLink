@@ -78,7 +78,7 @@ export function BottomNav() {
                     "w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 transform active:scale-90",
                     isActive
                       ? "bg-sky-600 text-white shadow-sky-500/40 ring-4 ring-sky-100"
-                      : "bg-gradient-to-tr from-sky-600 to-sky-400 text-white shadow-sky-500/30 group-hover:scale-105 border-2 border-white"
+                      : "bg-sky-500 hover:bg-sky-600 text-white shadow-sky-500/30 group-hover:scale-105 border-2 border-white"
                   )}
                 >
                   <Icon className="w-6 h-6 stroke-[2.5]" />
