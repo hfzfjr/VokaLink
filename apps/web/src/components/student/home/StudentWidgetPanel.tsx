@@ -225,7 +225,7 @@ export function StudentWidgetPanel({
           className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200/80 hover:border-sky-400 hover:bg-sky-50/30 shadow-2xs hover:shadow-card transition-all group cursor-pointer"
         >
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-500 to-sky-600 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-all">
+            <div className="w-8 h-8 rounded-xl bg-sky-500 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-all">
               <Award className="w-4 h-4" />
             </div>
             <div className="min-w-0">

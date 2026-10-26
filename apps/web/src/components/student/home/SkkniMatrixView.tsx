@@ -29,7 +29,7 @@ interface SkkniModule {
   icon: React.ComponentType<{ className?: string }>;
   iconBg: string;
   iconText: string;
-  progressGradient: string;
+  progressBarColor: string;
   description: string;
   verifiedJp: number;
   targetJp: number;
@@ -52,7 +52,7 @@ const MODULES: SkkniModule[] = [
     icon: Code2,
     iconBg: "bg-sky-50 border-sky-100 group-hover:bg-sky-500 group-hover:text-white",
     iconText: "text-sky-600",
-    progressGradient: "from-sky-400 to-sky-500",
+    progressBarColor: "bg-sky-500",
     description:
       "Perancangan arsitektur REST API modular, router Express, middleware autentikasi, serta integrasi frontend React/Next.js.",
     verifiedJp: 128,
@@ -74,7 +74,7 @@ const MODULES: SkkniModule[] = [
     icon: Database,
     iconBg: "bg-teal-50 border-teal-100 group-hover:bg-teal-600 group-hover:text-white",
     iconText: "text-teal-700",
-    progressGradient: "from-teal-400 to-teal-600",
+    progressBarColor: "bg-teal-500",
     description:
       "Pemodelan data relasional 3NF, pembuatan skema PostgreSQL, penulisan trigger database, audit immutability, dan ORM Prisma.",
     verifiedJp: 80,
@@ -96,7 +96,7 @@ const MODULES: SkkniModule[] = [
     icon: CheckCircle,
     iconBg: "bg-amber-50 border-amber-100 group-hover:bg-amber-500 group-hover:text-white",
     iconText: "text-amber-600",
-    progressGradient: "from-amber-400 to-amber-500",
+    progressBarColor: "bg-amber-500",
     description:
       "Pengujian unit deterministik, automated endpoint testing dengan Supertest, verifikasi format RFC 7807, dan validasi Zod.",
     verifiedJp: 48,
@@ -118,7 +118,7 @@ const MODULES: SkkniModule[] = [
     icon: Cloud,
     iconBg: "bg-indigo-50 border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white",
     iconText: "text-indigo-600",
-    progressGradient: "from-indigo-400 to-indigo-500",
+    progressBarColor: "bg-indigo-500",
     description:
       "Kontainerisasi microservice Docker, deployment mandiri via Coolify di Home Server, routing terowongan Cloudflare Tunnel, dan zero-cost monitoring.",
     verifiedJp: 32,
@@ -441,12 +441,12 @@ export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
                       </div>
                     </div>
 
-                    {/* Sleek Progress Bar */}
+                    {/* Sleek Progress Bar (Solid, Flat & Modern) */}
                     <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
                       <div
                         className={cn(
-                          "h-full rounded-full bg-gradient-to-r transition-all duration-500",
-                          module.progressGradient
+                          "h-full rounded-full transition-all duration-500",
+                          module.progressBarColor
                         )}
                         style={{ width: `${module.percentage}%` }}
                       />
@@ -557,8 +557,8 @@ export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
                       <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
                         <div
                           className={cn(
-                            "h-full rounded-full bg-gradient-to-r transition-all duration-300",
-                            module.progressGradient
+                            "h-full rounded-full transition-all duration-300",
+                            module.progressBarColor
                           )}
                           style={{ width: `${module.percentage}%` }}
                         />

@@ -442,7 +442,7 @@ export default function StudentHomePage() {
                 </div>
               </div>
             ) : (
-              <div className="bg-gradient-to-br from-sky-500 via-sky-600 to-sky-700 rounded-2xl p-4 sm:p-5 text-white shadow-sm space-y-3">
+              <div className="bg-sky-600 rounded-2xl p-4 sm:p-5 text-white shadow-sm space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white text-[11px] font-semibold">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse" />

@@ -71,7 +71,7 @@ export function PwaInstallPrompt({ className, forceShowForDemo = false }: PwaIns
 
           {/* Baris Atas: Logo App + Judul & Subjudul */}
           <div className="flex items-start gap-3 pr-6">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-sky-600 to-sky-400 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-sky-500/30 shrink-0 border border-white/50">
+            <div className="w-11 h-11 rounded-2xl bg-sky-500 text-white flex items-center justify-center font-bold text-sm shadow-xs shrink-0 border border-sky-400/40">
               VL
             </div>
             <div className="min-w-0">

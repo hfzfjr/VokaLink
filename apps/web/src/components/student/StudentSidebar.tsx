@@ -599,7 +599,7 @@ export function StudentSidebar() {
                 </div>
 
                 {isInstallable && !isInstalled && (
-                  <div className="p-3 rounded-2xl bg-gradient-to-r from-sky-50 to-indigo-50 border border-sky-200/80 flex items-center justify-between gap-3">
+                  <div className="p-3 rounded-2xl bg-sky-50 border border-sky-200/80 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-semibold text-xs text-slate-900 truncate">Pasang Aplikasi VokaLink</p>
                       <p className="text-[10.5px] text-slate-500 font-normal truncate">Akses instan di layar desktop atau HP</p>

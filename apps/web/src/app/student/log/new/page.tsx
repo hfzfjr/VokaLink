@@ -1139,7 +1139,7 @@ export default function NewLogPage() {
 
                 {isNonCompetency ? (
                   /* Bantuan Operasional Non-RPL (100% Transparan & Melindungi Hak Belajar Siswa) */
-                  <div className="bg-gradient-to-b from-amber-50/40 via-white to-white p-5 rounded-3xl border border-amber-200/70 space-y-4 animate-in fade-in duration-200 shadow-xs">
+                  <div className="bg-white p-5 rounded-3xl border border-amber-200/70 space-y-4 animate-in fade-in duration-200 shadow-xs">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 border border-amber-200/70 flex items-center justify-center shrink-0 shadow-2xs">
                         <Sparkles className="w-5 h-5 text-amber-600" />
@@ -1581,7 +1581,7 @@ export default function NewLogPage() {
                     type="button"
                     onClick={handleUseDemoPhoto}
                     disabled={isCompressingPhoto}
-                    className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-sky-50 via-indigo-50 to-blue-50 hover:from-sky-100 hover:via-indigo-100 hover:to-blue-100 border border-sky-200/80 text-sky-900 text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer shadow-2xs active:scale-[0.99]"
+                    className="w-full py-2.5 px-3 rounded-xl bg-sky-50 hover:bg-sky-100 border border-sky-200/80 text-sky-800 text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer shadow-2xs active:scale-[0.99]"
                   >
                     <Sparkles className="w-4 h-4 text-sky-600" />
                     <span>

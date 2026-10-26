@@ -519,7 +519,7 @@ export default function LogHistoryPage() {
 
           <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden relative">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-sky-500 via-sky-400 to-emerald-400 transition-all duration-500"
+              className="h-full rounded-full bg-emerald-500 transition-all duration-500"
               style={{ width: `${Math.max(4, targetProgressPercent)}%` }}
             />
           </div>
