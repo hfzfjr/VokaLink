@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import VokaIcon from "@/components/common/VokaIcon";
 import {
   LayoutDashboard,
   BookOpen,
@@ -11,7 +12,6 @@ import {
   FileSpreadsheet,
   Menu,
   X,
-  Lightbulb,
   ExternalLink,
   ChevronRight,
 } from "lucide-react";
@@ -73,8 +73,8 @@ export function AppShell({
             {/* Logo Brand Header */}
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <Link href="/school/dashboard" className="flex items-center gap-2.5 group">
-                <div className="w-9 h-9 rounded-xl bg-sky-500 flex items-center justify-center text-white shadow-md shadow-sky-500/25 group-hover:scale-105 transition duration-150">
-                  <Lightbulb className="size-5 text-white" />
+                <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/80 shadow-xs p-1.5 flex items-center justify-center group-hover:scale-105 group-hover:border-sky-300 transition duration-150">
+                  <VokaIcon className="w-full h-full object-contain" />
                 </div>
                 <div>
                   <span className="text-base font-extrabold tracking-tight text-slate-900 block leading-none">
@@ -158,8 +158,8 @@ export function AppShell({
               <div>
                 <div className="p-5 border-b border-slate-100 flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-sky-500 flex items-center justify-center text-white">
-                      <Lightbulb className="size-4 text-white" />
+                    <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 shadow-xs p-1 flex items-center justify-center">
+                      <VokaIcon className="w-full h-full object-contain" />
                     </div>
                     <span className="text-sm font-extrabold text-slate-900">
                       VokaLink <span className="text-sky-500">SMK</span>

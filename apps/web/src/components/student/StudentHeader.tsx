@@ -3,13 +3,14 @@
 import React from "react";
 import Link from "next/link";
 import { ArrowLeft, Sparkles } from "lucide-react";
+import VokaIcon from "@/components/common/VokaIcon";
 
 export function StudentHeader() {
   return (
     <header className="md:hidden sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/70">
       <div className="px-4 py-2.5 flex items-center justify-between gap-3">
         {/* Brand & Left section */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <Link
             href="/"
             title="Kembali ke Beranda Utama"
@@ -18,6 +19,10 @@ export function StudentHeader() {
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
+
+          <div className="w-7 h-7 rounded-lg bg-white border border-slate-200/80 p-1 flex items-center justify-center shrink-0">
+            <VokaIcon className="w-full h-full object-contain" />
+          </div>
 
           <div>
             <div className="flex items-center gap-1.5">

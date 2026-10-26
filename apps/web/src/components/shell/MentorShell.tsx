@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { ShieldCheck, Building } from "lucide-react";
+import VokaIcon from "@/components/common/VokaIcon";
 import { DemoBar } from "./DemoBar";
 
 interface MentorShellProps {
@@ -27,8 +28,8 @@ export function MentorShell({
       <header className="w-full bg-white border-b border-slate-200/80 px-4 py-3 sticky top-0 z-30 shadow-2xs">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-sky-500 text-white flex items-center justify-center font-black shadow-xs shadow-sky-500/20">
-              <Building className="size-4" />
+            <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 shadow-xs p-1 flex items-center justify-center">
+              <VokaIcon className="w-full h-full object-contain" />
             </div>
             <div>
               <span className="text-sm font-extrabold text-slate-900 tracking-tight block leading-tight">

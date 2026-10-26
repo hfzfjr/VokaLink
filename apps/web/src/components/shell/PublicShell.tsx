@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { ShieldCheck, Printer, QrCode } from "lucide-react";
+import VokaIcon from "@/components/common/VokaIcon";
 import { DemoBar } from "./DemoBar";
 
 interface PublicShellProps {
@@ -35,8 +36,8 @@ export function PublicShell({
       <header className="w-full bg-white border-b border-slate-200/80 px-4 py-3 sticky top-0 z-30 shadow-2xs print:hidden">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-xl bg-sky-500 text-white flex items-center justify-center font-black shadow-xs shadow-sky-500/20 group-hover:scale-105 transition">
-              <QrCode className="size-4" />
+            <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 shadow-xs p-1 flex items-center justify-center group-hover:scale-105 group-hover:border-sky-300 transition">
+              <VokaIcon className="w-full h-full object-contain" />
             </div>
             <div>
               <span className="text-sm font-extrabold text-slate-900 tracking-tight block leading-tight">

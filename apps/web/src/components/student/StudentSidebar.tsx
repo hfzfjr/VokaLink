@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import VokaIcon from "@/components/common/VokaIcon";
 
 interface NavItem {
   id: string;
@@ -69,9 +70,9 @@ export function StudentSidebar() {
           <Link
             href="/student/home"
             title="VokaLink Siswa — Beranda"
-            className="w-12 h-12 rounded-2xl bg-sky-500 text-white font-bold text-lg flex items-center justify-center shadow-xs hover:bg-sky-600 active:scale-95 transition-all"
+            className="w-12 h-12 rounded-2xl bg-white border border-slate-200/80 shadow-xs p-2.5 flex items-center justify-center hover:scale-105 hover:border-sky-300 transition-all active:scale-95 group"
           >
-            V
+            <VokaIcon className="w-full h-full object-contain" />
           </Link>
 
           <div className="w-8 h-px bg-slate-200/70" />
