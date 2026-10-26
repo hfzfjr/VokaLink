@@ -23,6 +23,8 @@ import { TOTAL_TARGET_JP } from "@vokalink/shared";
 import { Stat } from "@/components/ui/Stat";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import DemoBadge from "@/components/common/DemoBadge";
+import { useAuth } from "@/lib/use-auth";
+import { fetchCurrentSchool } from "@/lib/api";
 
 interface Department {
   id: string;
@@ -71,131 +73,40 @@ interface SchoolData {
 }
 
 export default function SchoolDashboardPage() {
+  const { token } = useAuth();
   const [data, setData] = useState<SchoolData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setData({
-        school: {
-          id: "demo-school-id",
-          npsn: "99000001",
-          name: "SMK Demo VokaLink (Sandbox)",
-          province: "Jawa Timur",
-          city: "Surabaya",
-          isDemoSandbox: true,
-        },
-        activePeriod: {
-          name: "PKL Semester Genap 2025/2026",
-          targetTotalJp: TOTAL_TARGET_JP,
-          startDate: "06 Jan 2026",
-          endDate: "27 Jun 2026",
-        },
-        stats: {
-          totalStudents: 5,
-          totalTeachers: 1,
-          totalDepartments: 6,
-          totalPlacements: 5,
-          totalDudis: 6,
-        },
-        priorityStudents: [
-          {
-            id: "s-1",
-            name: "Ahmad Rizki",
-            department: "RPL",
-            dudiName: "PT Inovasi Digital Nusantara",
-            jpProgress: 412,
-            pendingLogs: 3,
-            statusText: "3 log menunggu verifikasi mentor",
-            severity: "warning",
-          },
-          {
-            id: "s-2",
-            name: "Budi Santoso",
-            department: "AKL",
-            dudiName: "KAP Bambang & Rekan",
-            jpProgress: 240,
-            pendingLogs: 0,
-            statusText: "Progres JP di bawah target mingguan (240/792 JP)",
-            severity: "warning",
-          },
-          {
-            id: "s-3",
-            name: "Citra Dewi",
-            department: "DKV",
-            dudiName: "Studio Visual Kreatif",
-            jpProgress: 480,
-            pendingLogs: 1,
-            statusText: "Distribusi kompetensi mendekati target elemen CP",
-            severity: "info",
-          },
-          {
-            id: "s-4",
-            name: "Dinda Permata",
-            department: "Kuliner",
-            dudiName: "Hotel Grand Surabaya",
-            jpProgress: 520,
-            pendingLogs: 0,
-            statusText: "Progres konsisten dan tingkat kemandirian mandiri",
-            severity: "success",
-          },
-        ],
-        departments: [
-          {
-            id: "d-1",
-            sectorCode: "RPL",
-            name: "Rekayasa Perangkat Lunak",
-            cpElementsCount: 4,
-            jobCardsCount: 15,
-            isLocked: true,
-          },
-          {
-            id: "d-2",
-            sectorCode: "AKL",
-            name: "Akuntansi dan Keuangan Lembaga",
-            cpElementsCount: 5,
-            jobCardsCount: 18,
-            isLocked: true,
-          },
-          {
-            id: "d-3",
-            sectorCode: "DKV",
-            name: "Desain Komunikasi Visual",
-            cpElementsCount: 4,
-            jobCardsCount: 14,
-            isLocked: false,
-          },
-          {
-            id: "d-4",
-            sectorCode: "KULINER",
-            name: "Kuliner",
-            cpElementsCount: 4,
-            jobCardsCount: 14,
-            isLocked: false,
-          },
-          {
-            id: "d-5",
-            sectorCode: "FARMASI",
-            name: "Farmasi Klinis dan Komunitas",
-            cpElementsCount: 4,
-            jobCardsCount: 14,
-            isLocked: false,
-          },
-          {
-            id: "d-6",
-            sectorCode: "OTOMOTIF",
-            name: "Teknik Kendaraan Ringan Otomotif",
-            cpElementsCount: 4,
-            jobCardsCount: 14,
-            isLocked: false,
-          },
-        ],
-      });
-      setLoading(false);
-    }, 300);
+    let isMounted = true;
 
-    return () => clearTimeout(timer);
-  }, []);
+    async function loadSchoolData() {
+      if (!token) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await fetchCurrentSchool(token);
+        if (isMounted) {
+          setData(result);
+        }
+      } catch (err: any) {
+        if (isMounted) {
+          setError(err.message || "Gagal memuat data dasbor sekolah");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadSchoolData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token]);
 
   const departmentColumns: Column<Department>[] = [
     {
@@ -301,12 +212,12 @@ export default function SchoolDashboardPage() {
               <div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-bold text-slate-800">
-                    {data.activePeriod.name}
+                    {data.activePeriod?.name || "Periode Aktif 2026/2027"}
                   </span>
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 </div>
                 <p className="text-[11px] text-slate-500">
-                  Target: <span className="font-bold text-sky-600">{data.activePeriod.targetTotalJp} JP</span> · {data.activePeriod.startDate} – {data.activePeriod.endDate}
+                  Target: <span className="font-bold text-sky-600">{data.activePeriod?.targetTotalJp ?? 792} JP</span> · {data.activePeriod?.startDate ? new Date(data.activePeriod.startDate).toLocaleDateString("id-ID") : "2026"} – {data.activePeriod?.endDate ? new Date(data.activePeriod.endDate).toLocaleDateString("id-ID") : "2026"}
                 </p>
               </div>
             </div>
