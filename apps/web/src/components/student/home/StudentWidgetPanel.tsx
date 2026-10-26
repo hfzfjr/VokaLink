@@ -99,23 +99,23 @@ export function StudentWidgetPanel({
   return (
     <aside className="w-full lg:w-[320px] xl:w-[340px] 2xl:w-[360px] flex flex-col gap-4 flex-shrink-0">
       {/* ─── Profile Card Header (Desktop only) ─── */}
-      <div className="hidden lg:flex bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/70 shadow-card items-center justify-between">
+      <div className="hidden lg:flex lg:h-[86px] bg-white rounded-2xl px-4 sm:px-5 border border-slate-200/70 shadow-2xs items-center justify-between shrink-0">
         <div className="flex items-center gap-3.5 min-w-0">
           <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-semibold text-xs shadow-xs shrink-0">
             {initials}
           </div>
-          <div className="truncate">
+          <div className="truncate min-w-0">
             <h2 className="text-sm font-semibold text-slate-900 tracking-tight truncate">
               {student.name}
             </h2>
-            <p className="text-xs text-slate-500 font-normal truncate">
+            <p className="text-xs text-slate-500 font-normal truncate mt-0.5">
               {student.email}
             </p>
             <div className="mt-1 flex items-center gap-1.5">
-              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[10px] tracking-wide">
+              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[10px] tracking-wide leading-none">
                 NISN: {student.nisn}
               </span>
-              <span className="text-[11px] text-slate-400 font-normal truncate">· {student.dudi}</span>
+              <span className="text-[11px] text-slate-400 font-normal truncate leading-none">· {student.dudi}</span>
             </div>
           </div>
         </div>
@@ -125,7 +125,7 @@ export function StudentWidgetPanel({
           type="button"
           onClick={onOpenNotifications}
           title="Pemberitahuan Mentor"
-          className="w-9 h-9 rounded-xl bg-slate-100/80 hover:bg-slate-200/60 border border-slate-200/70 flex items-center justify-center text-slate-600 transition relative cursor-pointer"
+          className="w-9 h-9 rounded-xl bg-slate-100/80 hover:bg-slate-200/60 border border-slate-200/70 flex items-center justify-center text-slate-600 transition relative cursor-pointer shrink-0 ml-2"
         >
           <Bell className="w-4 h-4" />
           <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-2 right-2 ring-2 ring-white" />

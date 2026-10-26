@@ -601,27 +601,27 @@ export default function StudentHomePage() {
           </div>
 
           {/* ─── A.2 TAMPILAN KHUSUS DESKTOP: HEADER SAPAAN + AKSI UTAMA (≥ lg) ─── */}
-          <div className="hidden lg:flex items-center justify-between gap-6 bg-white rounded-2xl px-5 py-4 border border-slate-200/70 shadow-2xs">
+          <div className="hidden lg:flex lg:h-[86px] items-center justify-between gap-6 bg-white rounded-2xl px-5 border border-slate-200/70 shadow-2xs shrink-0">
             <div className="min-w-0 space-y-1">
               <div className="flex items-center gap-2.5">
                 <h2 className="text-base font-bold text-slate-900 tracking-tight leading-none">
                   Halo, {student.name.split(" ")[0]}!
                 </h2>
                 {todayLog ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[11px] font-medium">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[11px] font-medium leading-none">
                     <Check className="w-3 h-3 stroke-[2.5]" />
                     <span>
                       Hari ini {todayLog.durationJp} JP · {todayLog.state === "verified" ? "Sah" : "Menunggu PIN"}
                     </span>
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/60 text-[11px] font-medium">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200/60 text-[11px] font-medium leading-none">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                     <span>Jurnal hari ini belum diisi</span>
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 truncate max-w-xl">
+              <p className="text-xs text-slate-500 truncate max-w-xl leading-normal">
                 {formatLogDate(todayStr)} ·{" "}
                 {todayLog
                   ? todayLog.jobCardTitle || "Pencatatan kegiatan praktik industri"
@@ -633,7 +633,7 @@ export default function StudentHomePage() {
               <button
                 type="button"
                 onClick={() => setShowQrModal(true)}
-                className="h-9 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer shrink-0"
+                className="h-10 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer shrink-0"
               >
                 <QrCode className="w-3.5 h-3.5 text-sky-300" />
                 <span>Tampilkan QR Mentor</span>
@@ -643,7 +643,7 @@ export default function StudentHomePage() {
                 <button
                   type="button"
                   onClick={() => setShowQrModal(true)}
-                  className="h-9 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  className="h-10 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
                   title="Buka QR Verifikasi Mentor"
                 >
                   <QrCode className="w-3.5 h-3.5 text-slate-500" />
@@ -651,9 +651,9 @@ export default function StudentHomePage() {
                 </button>
                 <Link
                   href="/student/log/new"
-                  className="h-9 px-4 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                  className="h-10 px-4 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition shadow-xs"
                 >
-                  <PlusCircle className="w-3.5 h-3.5" />
+                  <PlusCircle className="w-3.5 h-3.5 stroke-[2.5]" />
                   <span>Catat Jurnal</span>
                 </Link>
               </div>
