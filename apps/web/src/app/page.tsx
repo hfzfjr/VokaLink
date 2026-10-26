@@ -172,7 +172,7 @@ export default function Home() {
             <div className="text-center max-w-4xl mx-auto">
               <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 leading-[1.12]">
                 Monitoring PKL SMK{" "}
-                <span className="text-sky-600">Lebih Terukur</span>{" "}
+                <span className="text-sky-500">Lebih Terukur</span>{" "}
                 & Bebas Dokumen Kertas
               </h1>
               <p className="mt-6 text-base sm:text-lg lg:text-xl text-slate-600 font-normal leading-relaxed max-w-2xl mx-auto">
@@ -186,7 +186,7 @@ export default function Home() {
               <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
                 <Link
                   href="/login"
-                  className="px-8 py-4 rounded-full bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-sm sm:text-base shadow-lg shadow-sky-600/25 hover:scale-105 transition duration-150 flex items-center gap-2"
+                  className="px-8 py-4 rounded-full bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-sm sm:text-base shadow-lg shadow-sky-500/25 hover:scale-105 transition duration-150 flex items-center gap-2"
                 >
                   <span>Buka Live Dashboard PKL</span>
                   <ArrowRight className="size-4" />
@@ -196,7 +196,7 @@ export default function Home() {
                   onClick={() => setDemoModalOpen(true)}
                   className="px-8 py-4 rounded-full bg-white hover:bg-slate-50 text-slate-700 font-bold text-sm sm:text-base border border-slate-200/80 shadow-xs hover:shadow transition flex items-center gap-2"
                 >
-                  <Play className="size-4 text-sky-600 fill-sky-600" />
+                  <Play className="size-4 text-sky-500 fill-sky-500" />
                   <span>Simulasi Peran Juri & Guru</span>
                 </button>
               </div>
