@@ -827,24 +827,27 @@ function HeatmapContent() {
           <div className="space-y-4">
             <div className="bg-white rounded-2xl border border-slate-200/70 shadow-2xs overflow-hidden">
               {/* Header Bar dengan Legend Capaian */}
-              <div className="px-4 py-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50/40">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-800">
+              <div className="px-5 py-3.5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight">
                     Ketercapaian per Elemen Capaian Pembelajaran (CP)
                   </span>
-                  <span className="text-[11px] text-slate-400">
-                    &bull; {filteredStudents.length} Siswa Terdaftar
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-medium border border-slate-200/60 shadow-2xs">
+                    {filteredStudents.length} Siswa Terdaftar
                   </span>
                 </div>
-                <div className="flex items-center gap-3 text-[10.5px]">
-                  <span className="flex items-center gap-1.5 text-slate-400 font-medium">
-                    <span className="w-2 h-2 rounded-full bg-slate-300 inline-block" /> 0% Belum
+                <div className="flex items-center gap-2 text-[10.5px]">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white border border-slate-200/70 text-slate-500 font-medium shadow-2xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                    0% Belum
                   </span>
-                  <span className="flex items-center gap-1.5 text-amber-700 font-medium">
-                    <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> 1–74% Berjalan
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50/80 border border-amber-200/70 text-amber-800 font-medium shadow-2xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    1–74% Berjalan
                   </span>
-                  <span className="flex items-center gap-1.5 text-emerald-700 font-medium">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> &ge;75% Tuntas
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50/80 border border-emerald-200/70 text-emerald-800 font-medium shadow-2xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    &ge;75% Tuntas
                   </span>
                 </div>
               </div>
@@ -853,28 +856,32 @@ function HeatmapContent() {
               <div className="hidden lg:block overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="bg-slate-50/70 border-b border-slate-200/70 text-slate-500">
-                      <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[10.5px] w-72 sticky left-0 bg-slate-50 z-10 border-r border-slate-200/70">
+                    <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500">
+                      <th className="py-3.5 px-4 font-semibold uppercase tracking-wider text-[10.5px] w-72 sticky left-0 bg-slate-50 z-10 border-r border-slate-200/70 shadow-[1px_0_0_0_rgba(226,232,240,0.8)]">
                         Siswa &amp; Mitra DUDI ({filteredStudents.length})
                       </th>
                       {cpElements.map((cp) => (
                         <th
                           key={cp.id}
-                          className="py-3 px-3 text-center min-w-[125px] border-r border-slate-100"
+                          className="py-3.5 px-3 text-center min-w-[130px] border-r border-slate-100"
                         >
-                          <span className="font-mono text-[10px] text-sky-700 font-semibold bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200/60">
-                            {cp.code}
-                          </span>
-                          <p
-                            className="text-[11px] text-slate-700 line-clamp-1 font-semibold mt-1"
-                            title={cp.title}
-                          >
-                            {cp.title}
-                          </p>
-                          <p className="text-[10px] text-slate-400 font-normal">{cp.targetJp} JP</p>
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="font-mono text-[10px] text-sky-700 font-bold bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200/70 shadow-2xs">
+                              {cp.code}
+                            </span>
+                            <span
+                              className="text-[11px] text-slate-800 font-semibold line-clamp-1 max-w-[125px] hover:text-sky-600 transition-colors"
+                              title={cp.title}
+                            >
+                              {cp.title}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium font-mono">
+                              Target {cp.targetJp} JP
+                            </span>
+                          </div>
                         </th>
                       ))}
-                      <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[10.5px] text-center w-36">
+                      <th className="py-3.5 px-4 font-semibold uppercase tracking-wider text-[10.5px] text-center w-36">
                         Total Progres
                       </th>
                     </tr>
@@ -902,33 +909,33 @@ function HeatmapContent() {
                           <tr
                             key={student.studentId}
                             onClick={() => setSelectedStudent(student)}
-                            className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                            className="hover:bg-slate-50/70 transition-colors cursor-pointer group"
                           >
-                            <td className="py-3 px-4 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200/70">
-                              <div className="flex items-center gap-2.5">
+                            <td className="py-3 px-4 sticky left-0 bg-white group-hover:bg-slate-50/90 z-10 border-r border-slate-200/70 shadow-[1px_0_0_0_rgba(226,232,240,0.8)]">
+                              <div className="flex items-center gap-3">
                                 <div
                                   className={cn(
-                                    "w-8 h-8 rounded-xl font-bold text-[11px] flex items-center justify-center shrink-0",
+                                    "w-9 h-9 rounded-xl font-bold text-xs flex items-center justify-center shrink-0 border transition-transform duration-150 group-hover:scale-105",
                                     student.hasDriftWarning
-                                      ? "bg-rose-50 text-rose-700 border border-rose-200"
-                                      : "bg-slate-100 text-slate-700"
+                                      ? "bg-rose-50 text-rose-700 border-rose-200 shadow-2xs"
+                                      : "bg-slate-100 text-slate-700 border-slate-200/60 shadow-2xs group-hover:bg-sky-50 group-hover:text-sky-700 group-hover:border-sky-200"
                                   )}
                                 >
                                   {initials}
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-1.5">
-                                    <p className="font-semibold text-slate-900 group-hover:text-sky-600 transition-colors truncate">
+                                    <p className="font-semibold text-slate-900 text-xs group-hover:text-sky-600 transition-colors truncate">
                                       {student.fullName}
                                     </p>
                                     {student.hasDriftWarning && (
                                       <span
-                                        className="w-2 h-2 rounded-full bg-rose-500 shrink-0"
+                                        className="w-2 h-2 rounded-full bg-rose-500 shrink-0 animate-pulse"
                                         title="Terdeteksi Anomali Drift"
                                       />
                                     )}
                                   </div>
-                                  <p className="text-[11px] text-slate-400 truncate">
+                                  <p className="text-[11px] text-slate-400 truncate mt-0.5 group-hover:text-slate-500 transition-colors">
                                     {student.placement.dudiName}
                                   </p>
                                 </div>
@@ -938,69 +945,99 @@ function HeatmapContent() {
                             {student.cpProgress.map((cp) => {
                               const isAchieved = cp.status === "ACHIEVED";
                               const isInProgress = cp.status === "IN_PROGRESS";
+                              const isZero = cp.percentage === 0;
 
                               return (
                                 <td
                                   key={cp.cpElementId}
-                                  className="py-2.5 px-2 text-center border-r border-slate-100"
+                                  title={`${cp.verifiedJp} dari ${cp.targetJp} JP terverifikasi (${cp.percentage}%)`}
+                                  className="py-3 px-2 text-center border-r border-slate-100"
                                 >
-                                  <div className="inline-flex flex-col items-center w-full max-w-[84px] space-y-1">
-                                    <div className="flex items-center justify-center gap-1">
-                                      {isAchieved ? (
-                                        <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
-                                      ) : isInProgress ? (
-                                        <Clock className="w-3 h-3 text-amber-500 shrink-0" />
-                                      ) : (
-                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0" />
-                                      )}
-                                      <span
-                                        className={cn(
-                                          "text-xs font-bold",
-                                          isAchieved
-                                            ? "text-emerald-700"
-                                            : isInProgress
-                                              ? "text-amber-700"
-                                              : "text-slate-400"
-                                        )}
-                                      >
-                                        {cp.percentage}%
-                                      </span>
-                                    </div>
-                                    <div className="w-full h-1 rounded-full bg-slate-100 overflow-hidden">
-                                      <div
-                                        className={cn(
-                                          "h-full rounded-full transition-all duration-300",
-                                          isAchieved
-                                            ? "bg-emerald-500"
-                                            : isInProgress
-                                              ? "bg-amber-400"
-                                              : "bg-transparent"
-                                        )}
-                                        style={{
-                                          width: `${Math.min(100, cp.percentage)}%`,
-                                          minWidth: cp.percentage > 0 ? "4px" : "0px",
-                                        }}
-                                      />
-                                    </div>
-                                    <span className="text-[9.5px] text-slate-400 font-mono leading-none">
-                                      {cp.verifiedJp}/{cp.targetJp} JP
-                                    </span>
+                                  <div className="inline-flex flex-col items-center w-full max-w-[88px] space-y-1">
+                                    {isZero ? (
+                                      <div className="flex flex-col items-center justify-center py-0.5 space-y-0.5">
+                                        <span className="text-xs font-mono font-medium text-slate-300 group-hover:text-slate-400 transition-colors">
+                                          0%
+                                        </span>
+                                        <span className="text-[9.5px] font-mono text-slate-300 group-hover:text-slate-400 transition-colors">
+                                          0/{cp.targetJp} JP
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <div className="flex items-center justify-center gap-1">
+                                          {isAchieved ? (
+                                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                          ) : (
+                                            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                          )}
+                                          <span
+                                            className={cn(
+                                              "text-xs font-bold font-mono",
+                                              isAchieved ? "text-emerald-700" : "text-amber-700"
+                                            )}
+                                          >
+                                            {cp.percentage}%
+                                          </span>
+                                        </div>
+                                        <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                          <div
+                                            className={cn(
+                                              "h-full rounded-full transition-all duration-300",
+                                              isAchieved ? "bg-emerald-500" : "bg-amber-500"
+                                            )}
+                                            style={{
+                                              width: `${Math.min(100, cp.percentage)}%`,
+                                              minWidth: "6px",
+                                            }}
+                                          />
+                                        </div>
+                                        <span
+                                          className={cn(
+                                            "text-[9.5px] font-mono leading-none",
+                                            isAchieved
+                                              ? "text-emerald-700/80 font-medium"
+                                              : "text-amber-700/80 font-medium"
+                                          )}
+                                        >
+                                          {cp.verifiedJp}/{cp.targetJp} JP
+                                        </span>
+                                      </>
+                                    )}
                                   </div>
                                 </td>
                               );
                             })}
 
                             <td className="py-3 px-4 text-center">
-                              <div className="space-y-1">
-                                <div className="flex items-center justify-between text-[11px]">
-                                  <span className="font-bold text-slate-900">
+                              <div className="max-w-[96px] mx-auto space-y-1.5">
+                                <div className="flex items-baseline justify-between">
+                                  <span
+                                    className={cn(
+                                      "text-xs font-bold font-mono",
+                                      student.hasDriftWarning
+                                        ? "text-rose-600"
+                                        : student.overallPercentage >= 75
+                                          ? "text-emerald-700"
+                                          : student.overallPercentage > 0
+                                            ? "text-slate-900"
+                                            : "text-slate-300 group-hover:text-slate-400 transition-colors"
+                                    )}
+                                  >
                                     {student.overallPercentage}%
                                   </span>
-                                  <span className="text-slate-400 font-mono text-[10px]">
+                                  <span
+                                    className={cn(
+                                      "text-[10px] font-mono",
+                                      student.overallPercentage > 0
+                                        ? "text-slate-500 font-medium"
+                                        : "text-slate-300 group-hover:text-slate-400 transition-colors"
+                                    )}
+                                  >
                                     {student.totalVerifiedJp} JP
                                   </span>
                                 </div>
-                                <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden">
+                                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                                   <div
                                     className={cn(
                                       "h-full rounded-full transition-all duration-500",
@@ -1008,11 +1045,13 @@ function HeatmapContent() {
                                         ? "bg-rose-500"
                                         : student.overallPercentage >= 75
                                           ? "bg-emerald-500"
-                                          : "bg-sky-500"
+                                          : student.overallPercentage > 0
+                                            ? "bg-sky-500"
+                                            : "bg-transparent"
                                     )}
                                     style={{
                                       width: `${Math.min(100, student.overallPercentage)}%`,
-                                      minWidth: student.overallPercentage > 0 ? "4px" : "0px",
+                                      minWidth: student.overallPercentage > 0 ? "6px" : "0px",
                                     }}
                                   />
                                 </div>
