@@ -826,28 +826,14 @@ function HeatmapContent() {
         {viewMode === "matrix" && (
           <div className="space-y-4">
             <div className="bg-white rounded-2xl border border-slate-200/70 shadow-2xs overflow-hidden">
-              {/* Header Bar dengan Legend Capaian */}
-              <div className="px-5 py-3.5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50">
+              {/* Header Bar Tabel Capaian */}
+              <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50">
                 <div className="flex items-center gap-2.5">
                   <span className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight">
                     Ketercapaian per Elemen Capaian Pembelajaran (CP)
                   </span>
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-white text-slate-700 text-xs font-semibold border border-slate-200 shadow-2xs">
                     {filteredStudents.length} Siswa Terdaftar
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white border border-slate-200 text-slate-700 font-medium shadow-2xs">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                    0% Belum
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-800 font-medium shadow-2xs">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                    1–74% Berjalan
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 font-medium shadow-2xs">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    &ge;75% Tuntas
                   </span>
                 </div>
               </div>
