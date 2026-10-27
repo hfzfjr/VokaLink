@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Flame, LayoutDashboard, ShieldAlert, Users, ShieldCheck } from "lucide-react";
+import { Flame, Home, ShieldAlert, Users, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 interface NavItem {
@@ -17,9 +17,9 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   {
     id: "dashboard",
-    label: "Dashboard",
+    label: "Beranda",
     href: "/teacher/dashboard",
-    icon: LayoutDashboard,
+    icon: Home,
   },
   {
     id: "drift",

@@ -7,7 +7,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/use-auth";
 import {
   Flame,
-  LayoutDashboard,
+  Home,
   Users,
   ShieldAlert,
   ShieldCheck,
@@ -36,10 +36,10 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   {
     id: "dashboard",
-    label: "Dashboard Guru",
+    label: "Beranda",
     sublabel: "Monitoring & Progres Siswa",
     href: "/teacher/dashboard",
-    icon: LayoutDashboard,
+    icon: Home,
   },
   {
     id: "drift",

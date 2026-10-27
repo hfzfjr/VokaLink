@@ -8,7 +8,7 @@ import { TeacherBottomNav } from "@/components/teacher/TeacherBottomNav";
 export const metadata: Metadata = {
   title: "Portal Guru Pembimbing — VokaLink",
   description:
-    "Dasbor monitoring ketercapaian kompetensi, deteksi anomali drift kurikulum, dan intervensi pembimbingan PKL siswa.",
+    "Beranda monitoring ketercapaian kompetensi, deteksi anomali drift kurikulum, dan intervensi pembimbingan PKL siswa.",
 };
 
 export default function TeacherLayout({

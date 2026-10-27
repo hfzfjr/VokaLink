@@ -429,7 +429,7 @@ function HeatmapContent() {
           <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center mx-auto">
             <AlertOctagon className="w-6 h-6" />
           </div>
-          <h2 className="text-base font-bold text-slate-900">Gagal Memuat Dasbor Guru</h2>
+          <h2 className="text-base font-bold text-slate-900">Gagal Memuat Beranda Guru</h2>
           <p className="text-xs text-slate-500 leading-relaxed">{errorMessage}</p>
           <button
             type="button"
