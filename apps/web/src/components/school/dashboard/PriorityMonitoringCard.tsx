@@ -49,14 +49,18 @@ export function PriorityMonitoringCard({ students }: PriorityMonitoringCardProps
             className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 flex flex-col justify-between gap-3 hover:border-slate-300 transition"
           >
             <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-sm text-slate-900">{student.name}</span>
-                  <span className="px-1.5 py-0.5 rounded-md bg-sky-50 text-sky-600 font-extrabold text-[10px] border border-sky-100">
+              <div className="min-w-0">
+                <span className="font-bold text-sm text-slate-900 block truncate">
+                  {student.name}
+                </span>
+                <p className="text-xs text-slate-500 truncate mt-0.5">
+                  {student.dudiName}
+                </p>
+                <div className="mt-1">
+                  <span className="inline-block px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 font-bold text-[10px] border border-sky-100 truncate max-w-full">
                     {student.department}
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 mt-0.5">{student.dudiName}</p>
               </div>
 
               {student.severity === "warning" ? (

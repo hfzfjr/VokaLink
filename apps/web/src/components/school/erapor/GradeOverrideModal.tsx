@@ -26,7 +26,7 @@ export function GradeOverrideModal({
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
               <GraduationCap className="w-4 h-4" />
             </div>
             <div>
@@ -70,7 +70,7 @@ export function GradeOverrideModal({
           {/* Breakdown Capaian per Elemen CP */}
           <div className="space-y-2">
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              Capaian Otonomi per Elemen CP (FR-011)
+              Capaian Otonomi per Elemen CP
             </p>
             <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200/80 overflow-hidden">
               {record.elements.map((el) => (

@@ -33,11 +33,10 @@ export function SchoolWidgetPanel({
   totalStudents = 148,
   totalPlacements = 142,
   totalDudis: _totalDudis = 24,
-  departmentsCount = 6,
-  lockedDepartmentsCount = 6,
+  departmentsCount: _departmentsCount = 6,
+  lockedDepartmentsCount: _lockedDepartmentsCount = 6,
 }: SchoolWidgetPanelProps) {
   const placementRate = totalStudents > 0 ? Math.round((totalPlacements / totalStudents) * 100) : 0;
-  const curriculumReady = lockedDepartmentsCount === departmentsCount;
 
   return (
     <aside className="w-full lg:w-[320px] xl:w-[340px] 2xl:w-[360px] flex flex-col gap-4 shrink-0">
@@ -80,45 +79,20 @@ export function SchoolWidgetPanel({
         </div>
       </div>
 
-      {/* 2. Ringkasan Kesiapan Kurikulum & Penempatan */}
-      <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-2xs space-y-4">
+      {/* 2. Ringkasan Penempatan Siswa */}
+      <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-2xs space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-sky-500" />
-            Kesiapan Operasional
+            Progres Penempatan
           </h3>
           <span className="text-[11px] font-bold text-slate-500">
             Target {TOTAL_TARGET_JP} JP
           </span>
         </div>
 
-        {/* Progress Kurikulum Terkunci */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-slate-700">Kurikulum Jurusan</span>
-            <span className="font-black text-slate-900 tabular-nums">
-              {lockedDepartmentsCount} / {departmentsCount} Jurusan
-            </span>
-          </div>
-          <div className="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-500 ${
-                curriculumReady ? "bg-emerald-500" : "bg-amber-500"
-              }`}
-              style={{
-                width: `${departmentsCount > 0 ? (lockedDepartmentsCount / departmentsCount) * 100 : 0}%`,
-              }}
-            />
-          </div>
-          <p className="text-[10px] text-slate-400">
-            {curriculumReady
-              ? "Semua konsentrasi keahlian telah dikunci (792 JP)"
-              : "Ada jurusan yang masih dalam status Draf"}
-          </p>
-        </div>
-
         {/* Progress Penempatan Siswa */}
-        <div className="space-y-1.5 pt-2 border-t border-slate-100">
+        <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
             <span className="font-semibold text-slate-700">Rasio Penempatan</span>
             <span className="font-black text-slate-900 tabular-nums">
@@ -133,7 +107,7 @@ export function SchoolWidgetPanel({
           </div>
           <p className="text-[10px] text-slate-400">
             {totalStudents - totalPlacements > 0
-              ? `${totalStudents - totalPlacements} siswa siap dialokasikan lewat Smart Placement`
+              ? `${totalStudents - totalPlacements} siswa menunggu alokasi mitra DUDI`
               : "Seluruh siswa telah terhubung dengan mitra DUDI"}
           </p>
         </div>
@@ -156,9 +130,9 @@ export function SchoolWidgetPanel({
               </div>
               <div className="truncate min-w-0">
                 <p className="text-xs font-bold text-slate-900 group-hover:text-sky-600 transition">
-                  Jalankan Smart Placement
+                  Kelola Penempatan Siswa
                 </p>
-                <p className="text-[10px] text-slate-500">Pencocokan 70% CP + 30% Jarak</p>
+                <p className="text-[10px] text-slate-500">Alokasi DUDI & Guru Pembimbing</p>
               </div>
             </div>
             <ArrowRight className="w-4 h-4 text-sky-500 group-hover:translate-x-0.5 transition-transform shrink-0" />

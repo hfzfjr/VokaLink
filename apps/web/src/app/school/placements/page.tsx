@@ -6,21 +6,16 @@ import {
   fetchPlacementCandidates,
   fetchPlacements,
   createPlacement,
-  batchCreatePlacements,
-  updateStudentCoordinates,
   fetchCurrentSchool,
   type PlacementCandidateData,
   type PlacementCandidateStudent,
   type PlacementRecordItem,
 } from "@/lib/api";
-import { matchPlacementsGreedy } from "@vokalink/core";
 import { PlacementStatsHeader } from "@/components/school/placements/PlacementStatsHeader";
 import { PlacementFilterBar } from "@/components/school/placements/PlacementFilterBar";
 import { PlacementCandidatesTable } from "@/components/school/placements/PlacementCandidatesTable";
 import { ActivePlacementsTable } from "@/components/school/placements/ActivePlacementsTable";
 import { SingleAssignModal } from "@/components/school/placements/SingleAssignModal";
-import { StudentCoordinatesModal } from "@/components/school/placements/StudentCoordinatesModal";
-import { BatchGreedyModal } from "@/components/school/placements/BatchGreedyModal";
 import { AlertCircle, CheckCircle2, WifiOff } from "lucide-react";
 
 const EMPTY_PLACEMENT_DATA: PlacementCandidateData = {
@@ -51,9 +46,6 @@ export default function SmartPlacementPage() {
 
   // Modals state
   const [assignStudent, setAssignStudent] = useState<PlacementCandidateStudent | null>(null);
-  const [coordStudent, setCoordStudent] = useState<PlacementCandidateStudent | null>(null);
-  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
-  const [submittingBatch, setSubmittingBatch] = useState(false);
 
   // Offline detection
   useEffect(() => {
@@ -131,36 +123,6 @@ export default function SmartPlacementPage() {
     await loadData();
   };
 
-  // Handle coordinate update
-  const handleUpdateCoordinates = async (
-    studentId: string,
-    payload: { homeLatitude: number; homeLongitude: number }
-  ) => {
-    if (!token || !schoolId) return;
-    await updateStudentCoordinates(schoolId, studentId, payload, token);
-    setSuccessMsg("Titik koordinat tempat tinggal siswa berhasil diperbarui!");
-    await loadData();
-  };
-
-  // Handle batch auto-greedy placement
-  const handleConfirmBatch = async (
-    placements: Array<{ studentId: string; dudiId: string; teacherId: string }>
-  ) => {
-    if (!token || !schoolId) return;
-    setSubmittingBatch(true);
-    setErrorMsg(null);
-    try {
-      await batchCreatePlacements(schoolId, { placements }, token);
-      setIsBatchModalOpen(false);
-      setSuccessMsg(`Berhasil menempatkan ${placements.length} siswa secara massal!`);
-      await loadData();
-    } catch (err: any) {
-      setErrorMsg(err.message || "Gagal menyimpan penempatan massal.");
-    } finally {
-      setSubmittingBatch(false);
-    }
-  };
-
   // Filter candidates by search query
   const filteredStudents = useMemo(() => {
     return data.students.filter((s) => {
@@ -186,45 +148,6 @@ export default function SmartPlacementPage() {
       );
     });
   }, [activePlacements, searchQuery]);
-
-  // Batch Greedy match items computation
-  const batchMatches = useMemo(() => {
-    const unplacedStudents = data.students.map((s) => ({
-      studentId: s.studentId,
-      name: s.fullName,
-      homeLatitude: s.homeLatitude,
-      homeLongitude: s.homeLongitude,
-    }));
-
-    const availableDudis = data.dudis.map((d) => ({
-      dudiId: d.id,
-      name: d.name,
-      latitude: d.latitude,
-      longitude: d.longitude,
-      remainingQuota: d.remainingQuota,
-      supportedCpJp: 550, // default JP alignment
-    }));
-
-    try {
-      const { assigned } = matchPlacementsGreedy(unplacedStudents, availableDudis);
-
-      return assigned.map((m) => {
-        const studentObj = data.students.find((s) => s.studentId === m.studentId);
-
-        return {
-          studentId: m.studentId,
-          studentName: m.studentName,
-          departmentName: studentObj?.department?.name || "Jurusan",
-          dudiId: m.dudiId,
-          dudiName: m.dudiName,
-          totalScore: m.score.totalScore,
-          distanceKm: m.score.distanceKm,
-        };
-      });
-    } catch {
-      return [];
-    }
-  }, [data.students, data.dudis]);
 
   const totalRemainingQuota = data.dudis.reduce((sum, d) => sum + d.remainingQuota, 0);
 
@@ -278,7 +201,6 @@ export default function SmartPlacementPage() {
         unassignedCount={data.students.length}
         totalActivePlacements={activePlacements.length}
         remainingQuotaTotal={totalRemainingQuota}
-        onOpenBatchModal={() => setIsBatchModalOpen(true)}
       />
 
       {/* Filter and Tab Navigation */}
@@ -304,11 +226,24 @@ export default function SmartPlacementPage() {
       ) : activeTab === "RECOMMENDATIONS" ? (
         <PlacementCandidatesTable
           students={filteredStudents}
+          searchQuery={searchQuery}
+          hasFilter={Boolean(searchQuery.trim() || selectedDeptId !== "ALL")}
           onOpenAssignModal={(s) => setAssignStudent(s)}
-          onOpenCoordModal={(s) => setCoordStudent(s)}
+          onResetFilter={() => {
+            setSearchQuery("");
+            setSelectedDeptId("ALL");
+          }}
         />
       ) : (
-        <ActivePlacementsTable placements={filteredActivePlacements} />
+        <ActivePlacementsTable
+          placements={filteredActivePlacements}
+          searchQuery={searchQuery}
+          hasFilter={Boolean(searchQuery.trim() || selectedDeptId !== "ALL")}
+          onResetFilter={() => {
+            setSearchQuery("");
+            setSelectedDeptId("ALL");
+          }}
+        />
       )}
 
       {/* Modals */}
@@ -319,23 +254,6 @@ export default function SmartPlacementPage() {
         dudis={data.dudis}
         teachers={data.teachers}
         onSubmit={handleSingleAssign}
-      />
-
-      <StudentCoordinatesModal
-        isOpen={!!coordStudent}
-        onClose={() => setCoordStudent(null)}
-        student={coordStudent}
-        onSubmit={handleUpdateCoordinates}
-      />
-
-      <BatchGreedyModal
-        isOpen={isBatchModalOpen}
-        onClose={() => setIsBatchModalOpen(false)}
-        matches={batchMatches}
-        defaultTeacherId={data.teachers[0]?.id || ""}
-        teachers={data.teachers}
-        onConfirmBatch={handleConfirmBatch}
-        submitting={submittingBatch}
       />
     </div>
   );

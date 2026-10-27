@@ -23,7 +23,7 @@ export function AddMentorModal({
   onSubmit,
 }: AddMentorModalProps) {
   const [fullName, setFullName] = useState("");
-  const [jobTitle, setJobTitle] = useState("Pembimbing Industri / Senior Staff");
+  const [jobTitle, setJobTitle] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +45,9 @@ export function AddMentorModal({
         jobTitle: jobTitle.trim() || "Pembimbing Industri",
         whatsappNumber: whatsappNumber.trim(),
       });
+      setFullName("");
+      setJobTitle("");
+      setWhatsappNumber("");
       onClose();
     } catch (err: any) {
       setError(err.message || "Gagal menambahkan mentor.");
@@ -106,9 +109,10 @@ export function AddMentorModal({
             </label>
             <input
               type="text"
+              placeholder="Contoh: Pembimbing Industri / Senior Staff"
               value={jobTitle}
               onChange={(e) => setJobTitle(e.target.value)}
-              className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
+              className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
             />
           </div>
 

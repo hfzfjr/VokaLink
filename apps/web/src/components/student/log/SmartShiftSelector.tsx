@@ -51,15 +51,15 @@ interface ShiftOption {
 export function SmartShiftSelector({
   durationJp,
   onChangeDuration,
-  overtimeReason = "",
-  onChangeOvertimeReason,
+  overtimeReason: _overtimeReason = "",
+  onChangeOvertimeReason: _onChangeOvertimeReason,
   minJp = 1,
   maxJp = 12,
   isSaturday = false,
   isWeekday: _isWeekday = true,
   existingDailyJp = 0,
   remainingDailyQuota = 12,
-  stepNumber = 3,
+  stepNumber: _stepNumber = 3,
   onResetTodayLogs,
   className,
 }: SmartShiftSelectorProps) {
@@ -401,50 +401,11 @@ export function SmartShiftSelector({
         </div>
       )}
 
-      {/* ─── JUSTIFIKASI LEMBUR / PROYEK KHUSUS (DOKUMENTASI K3 & GURU PEMBIMBING) ─── */}
-      {isOvertime ? (
-        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2 animate-in fade-in motion-reduce:animate-none">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-              <AlertTriangle className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-              <span>Justifikasi Proyek Lembur ({durationJp} Jam):</span>
-            </span>
-            <span className="text-xs text-slate-500 font-medium">Wajib Sesuai SOP</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-            {OVERTIME_JUSTIFICATIONS.map((just) => {
-              const isSelected = overtimeReason === just.id;
-              return (
-                <button
-                  key={just.id}
-                  type="button"
-                  onClick={() => onChangeOvertimeReason?.(just.id)}
-                  className={cn(
-                    "p-2.5 rounded-lg text-left transition-all border text-xs cursor-pointer active:scale-95 flex items-center justify-between gap-1.5 min-h-[40px]",
-                    isSelected
-                      ? "bg-slate-900 text-white font-medium border-slate-900 shadow-2xs"
-                      : "bg-white text-slate-700 hover:bg-slate-50 border-slate-200"
-                  )}
-                  title={just.desc}
-                >
-                  <span className="truncate text-xs leading-tight">{just.label}</span>
-                  {isSelected && <Check className="w-3.5 h-3.5 text-white shrink-0 stroke-[2.5]" />}
-                </button>
-              );
-            })}
-          </div>
-
-          <p className="text-xs text-slate-500 font-normal leading-tight">
-            Dicatat transparan agar guru pembimbing mengetahui bahwa jam lembur adalah penugasan resmi proyek industri, bukan eksploitasi kerja.
-          </p>
-        </div>
-      ) : (
-        <p className="text-xs text-slate-600 flex items-center gap-1.5 font-normal leading-snug">
-          <Info className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-          <span>Standar alokasi harian 8 jam riil setara 10.7 JP untuk pemenuhan beban 792 JP.</span>
-        </p>
-      )}
+      {/* ─── INFO STANDAR ALOKASI HARIAN ─── */}
+      <p className="text-xs text-slate-600 flex items-center gap-1.5 font-normal leading-snug">
+        <Info className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+        <span>Standar alokasi harian 8 jam riil setara 10.7 JP untuk pemenuhan target 792 JP.</span>
+      </p>
 
       {/* ─── WARNING ALERT JIKA SUDAH ADA LOG PADA TANGGAL TERPILIH ─── */}
       {existingDailyJp > 0 && (

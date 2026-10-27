@@ -94,6 +94,28 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
 
 ## 8. Log Harian
 
+### Hari 7 — Sel 27 Okt 2026
+- Selesai:
+  - **Refactor Penyederhanaan Scope & De-cluttering UI (D-012 — `docs/SCOPE_REFACTOR_PLAN.md`):**
+    - **Tahap 1 (Dokumentasi & README):** Sinkronisasi `README.md`, `docs/BUGS.md` (D-012), dan `docs/SCHOOL_MODULE_PLAN.md` agar fokus pada **Core Loop 5 Peran** tanpa fitur sekunder berlebihan.
+    - **Tahap 2 (Landing Page `/`):** Menghapus klaim *Presensi Geofence Anti-Kecurangan / Aktivasi GPS Radius* dan menggantinya dengan proposisi nilai faktual (*Zero-Typing Job Cards*, *Tombol Jujur*, *Stempel Digital Mentor Zero-Login*, dan *Otomasi e-Rapor + CV ATS + Paspor QR*). Menghilangkan jargon teknis mentah pada tab switcher peran dan kartu alur kerja.
+    - **Tahap 3 (Auth `/login` & `/register-school`):** Menghapus duplikasi strip demo juri pada `/register-school`, menyederhanakan copywriting Step 2 bahwa Kurikulum 792 JP & Job Cards otomatis aktif dari standar BSKAP, serta merapikan copywriting panel kiri `/login`.
+    - **Tahap 4 (Modul Admin Sekolah `/school/*`):**
+      - Menghapus rute & komponen `/school/curriculum` (Kurikulum 792 JP & 89 Job Cards berjalan 100% otomatis).
+      - Menyederhanakan navigasi `SchoolSidebar` dan `SchoolBottomNav` menjadi **4 Menu Inti**: Dasbor Utama, Direktori DUDI, Penempatan Siswa, dan Rekap e-Rapor.
+      - Menghapus tab sekunder *Audit Indeks Mutu Kemitraan DUDI* (`DudiQualityIndexView.tsx`), modal *Auto-Greedy Batch* (`BatchGreedyModal.tsx`), dan modal *Koordinat GPS Siswa* (`StudentCoordinatesModal.tsx`).
+      - Membersihkan kode spesifikasi internal (`FR-011`, `BR-010`) pada `/school/erapor`.
+    - **Tahap 5 (Modul Siswa `/student/*`):**
+      - Menghapus *Studio Privasi & Blur Foto* (`PhotoPrivacyStudioModal.tsx`) dan kalkulasi/form alasan *K3 Overwork* pada `/student/log/new` (fokus murni pada pilihan shift 4/8/10 jam & kompresi WebP otomatis `< 60 KB`).
+      - Mengganti tag teknis internal (`"Dexie IndexedDB"`, `"Database PostgreSQL"`) pada `/student/home` menjadi `"SOP Industri"`, serta menghapus kartu *Privasi Paspor Publik (FR-012)* dan kode `(BR-010)` pada `/student/career-cv`.
+    - **Tahap 6 (Modul Guru Pembimbing `/teacher/*`):**
+      - Menghapus badge `FR-008`, `FR-009`, `TC-006`, `TC-009`, dan `BR-010` dari `TeacherSidebar.tsx` dan `/teacher/heatmap`.
+      - Menyederhanakan modal intervensi di `/teacher/heatmap` menjadi fokus 1-klik **Hubungi Mentor Industri via WhatsApp** (menghapus tab form *Kunjungan Lapangan* dan *Rotasi Mitra Tengah Semester*).
+    - **Tahap 7 (Mentor `/v/[token]/*` & Publik HRD `/verify/[passportSlug]`):**
+      - Menghapus form penilaian karakter/lencana harian dari `/v/[token]` agar persetujuan jurnal harian mentor murni selesai `< 10 detik` (review kegiatan + foto + 4 digit PIN).
+      - Menyelaraskan halaman endorsement akhir periode `/v/[token]/endorse` ke tema terang bersih (`bg-slate-50`, kartu putih) dan menghapus tombol *Auto-Rekomendasi (A1)* serta kode `FR-010`/`BR-010`.
+      - Menyederhanakan halaman verifikasi publik `/verify/[passportSlug]` dengan menghapus blok *Verifikasi Standar Ganda* dan *Galeri Artefak Foto* agar HRD dapat memvalidasi keaslian dokumen dalam 5 detik.
+
 ### Hari 4 — Sab 24 Okt 2026
 - Selesai:
   - Penyelarasan Faktual Domain SMK & DUDI (Permendikbudristek No. 12/2024 & Panduan BSKAP PKL):

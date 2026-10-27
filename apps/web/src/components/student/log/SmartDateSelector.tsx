@@ -270,7 +270,7 @@ export function SmartDateSelector({
           {/* Header Popover */}
           <div className="flex items-center justify-between px-2.5 py-1 text-xs font-semibold text-slate-600">
             <span>OPSI TANGGAL (BATAS H-3):</span>
-            <span className="font-normal text-slate-500">Standar BR-003</span>
+            <span className="font-normal text-slate-500">Maksimal 3 Hari Lalu</span>
           </div>
 
           {/* 4 Opsi Cepat */}

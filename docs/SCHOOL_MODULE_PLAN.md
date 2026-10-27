@@ -148,12 +148,12 @@ Modul Sekolah akan mengadopsi arsitektur visual persis seperti [`apps/web/src/ap
 </AuthGuard>
 ```
 
-### 4.2 Navigasi 5 Menu Utama Modul Sekolah
-1. **Dasbor** (`/school/dashboard`) — Ikon: `LayoutDashboard` / `Building2`
-2. **Kurikulum CP** (`/school/curriculum`) — Ikon: `Layers` / `BookOpen`
-3. **Mitra DUDI** (`/school/dudi-directory`) — Ikon: `Compass` / `Building`
-4. **Smart Placement** (`/school/placements`) — Ikon: `Navigation` / `Users`
-5. **e-Rapor SMK** (`/school/erapor`) — Ikon: `FileSpreadsheet` / `GraduationCap`
+### 4.2 Navigasi 4 Menu Inti Modul Sekolah (Setelah Scope Refinement)
+> Catatan: Menu pengelolaan kurikulum (`/school/curriculum`) dihapus karena kurikulum 792 JP & 89 Job Cards bekerja 100% otomatis (*Pre-loaded System Default*) saat jurusan diaktifkan.
+1. **Dasbor** (`/school/dashboard`) — Ikon: `LayoutDashboard`
+2. **Mitra DUDI** (`/school/dudi-directory`) — Ikon: `Building2`
+3. **Penempatan Siswa** (`/school/placements`) — Ikon: `Navigation`
+4. **e-Rapor SMK** (`/school/erapor`) — Ikon: `FileSpreadsheet`
 
 ### 4.3 Desktop Right Widget Panel (`SchoolWidgetPanel.tsx`)
 Pada layar desktop (≥ lg / xl), halaman dasbor sekolah akan memiliki panel samping kanan (lebar `320px` – `360px`) yang berisi:

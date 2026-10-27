@@ -39,16 +39,16 @@ export function RegisterDudiModal({
   const [dudiName, setDudiName] = useState("");
   const [sectorCategory, setSectorCategory] = useState("Teknologi Informasi & Software");
   const [address, setAddress] = useState("");
-  const [city, setCity] = useState("Medan");
-  const [lat, setLat] = useState("3.5952");
-  const [lng, setLng] = useState("98.6722");
-  const [maxQuota, setMaxQuota] = useState(5);
+  const [city, setCity] = useState("");
+  const [lat, setLat] = useState("");
+  const [lng, setLng] = useState("");
+  const [maxQuota, setMaxQuota] = useState("");
   const [selectedJobCards, setSelectedJobCards] = useState<string[]>([]);
 
   // Optional mentor initial registration
   const [includeMentor, setIncludeMentor] = useState(true);
   const [mentorName, setMentorName] = useState("");
-  const [mentorJobTitle, setMentorJobTitle] = useState("Senior Engineer / Pembimbing");
+  const [mentorJobTitle, setMentorJobTitle] = useState("");
   const [mentorWa, setMentorWa] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
@@ -81,20 +81,30 @@ export function RegisterDudiModal({
         name: dudiName.trim(),
         sectorCategory,
         address: address.trim(),
-        city: city.trim(),
-        latitude: parseFloat(lat) || 0,
-        longitude: parseFloat(lng) || 0,
+        city: city.trim() || "Jakarta",
+        latitude: parseFloat(lat) || -6.2088,
+        longitude: parseFloat(lng) || 106.8456,
         maxQuota: Number(maxQuota) || 5,
         supportedJobCardIds: selectedJobCards,
         mentor: includeMentor
           ? {
               fullName: mentorName.trim(),
-              jobTitle: mentorJobTitle.trim(),
+              jobTitle: mentorJobTitle.trim() || "Pembimbing Industri",
               whatsappNumber: mentorWa.trim(),
             }
           : undefined,
       });
 
+      setDudiName("");
+      setAddress("");
+      setCity("");
+      setLat("");
+      setLng("");
+      setMaxQuota("");
+      setSelectedJobCards([]);
+      setMentorName("");
+      setMentorJobTitle("");
+      setMentorWa("");
       onClose();
     } catch (err: any) {
       setError(err.message || "Gagal mendaftarkan mitra DUDI.");
@@ -193,27 +203,30 @@ export function RegisterDudiModal({
                 <label className="text-[11px] font-bold text-slate-700 block mb-1">Kota / Kabupaten</label>
                 <input
                   type="text"
+                  placeholder="Contoh: Medan"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
+                  className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
                 />
               </div>
               <div>
                 <label className="text-[11px] font-bold text-slate-700 block mb-1">Latitude</label>
                 <input
                   type="text"
+                  placeholder="Contoh: 3.5952"
                   value={lat}
                   onChange={(e) => setLat(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
+                  className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-mono text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
                 />
               </div>
               <div>
                 <label className="text-[11px] font-bold text-slate-700 block mb-1">Longitude</label>
                 <input
                   type="text"
+                  placeholder="Contoh: 98.6722"
                   value={lng}
                   onChange={(e) => setLng(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
+                  className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-mono text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
                 />
               </div>
             </div>
@@ -226,25 +239,26 @@ export function RegisterDudiModal({
                 type="number"
                 min={1}
                 max={50}
+                placeholder="Contoh: 5"
                 value={maxQuota}
-                onChange={(e) => setMaxQuota(parseInt(e.target.value) || 5)}
-                className="w-28 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
+                onChange={(e) => setMaxQuota(e.target.value)}
+                className="w-36 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-900 placeholder:font-normal placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
               />
             </div>
           </div>
 
-          {/* Bagian 2: Checklist Kompetensi / Kartu Kerja Riil dari DB */}
+          {/* Bagian 2: Checklist Kompetensi / Kartu Kerja */}
           <div className="pt-3 border-t border-slate-100 space-y-2">
             <div className="flex items-center justify-between">
               <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider text-[10px]">
-                2. Kartu Pekerjaan yang Didukung di Industri (Database Riil)
+                2. Kartu Pekerjaan yang Didukung di Industri
               </h4>
               <span className="text-[10.5px] font-bold text-sky-600">
                 {selectedJobCards.length} Dipilih
               </span>
             </div>
             <p className="text-[11px] text-slate-500">
-              Digunakan oleh algoritma Smart Placement (FR-004) untuk menghitung kesesuaian kurikulum 70%.
+              Pilih jenis pekerjaan yang tersedia di mitra industri ini untuk rekomendasi penempatan siswa.
             </p>
 
             <div className="max-h-40 overflow-y-auto p-2 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
@@ -326,9 +340,10 @@ export function RegisterDudiModal({
                   </label>
                   <input
                     type="text"
+                    placeholder="Contoh: Senior Engineer / Pembimbing"
                     value={mentorJobTitle}
                     onChange={(e) => setMentorJobTitle(e.target.value)}
-                    className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
+                    className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
                   />
                 </div>
                 <div>

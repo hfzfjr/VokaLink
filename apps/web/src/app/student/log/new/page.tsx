@@ -23,9 +23,7 @@ import {
   QrCode,
   Share2,
   AlertTriangle,
-  TrendingUp,
   Paintbrush,
-  EyeOff,
   RotateCcw,
   Package,
   Truck,
@@ -45,7 +43,6 @@ import { compressEvidencePhoto, type CompressedPhotoResult } from "@/lib/pwa/pho
 import { fetchStudentLogContext, fetchStudentLogs, type StudentLogContextResponse } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { MentorQrModal } from "@/components/student/home/MentorQrModal";
-import { PhotoPrivacyStudioModal } from "@/components/student/log/PhotoPrivacyStudioModal";
 import { SmartDateSelector } from "@/components/student/log/SmartDateSelector";
 import { SmartShiftSelector } from "@/components/student/log/SmartShiftSelector";
 
@@ -162,13 +159,10 @@ export default function NewLogPage() {
   const [jobCardSearch, setJobCardSearch] = useState("");
   const [jobCardCategory, setJobCardCategory] = useState("ALL");
 
-  // Photo state & Privacy Blur (FR-006 & TC-003)
-  const [rawPhotoFile, setRawPhotoFile] = useState<File | null>(null);
-  const [applyPrivacyBlur, setApplyPrivacyBlur] = useState(false);
+  // Photo state (Client-side WebP Compression < 150 KB)
   const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
   const [compressedPhoto, setCompressedPhoto] = useState<CompressedPhotoResult | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
-  const [showPrivacyStudio, setShowPrivacyStudio] = useState(false);
 
   // Hidden file input refs for Camera vs Gallery
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -654,8 +648,6 @@ export default function NewLogPage() {
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setRawPhotoFile(file);
-    setApplyPrivacyBlur(false);
     await processPhoto(file);
     e.target.value = "";
   };
@@ -867,8 +859,6 @@ export default function NewLogPage() {
           return;
         }
         const file = new File([blob], demoFilename, { type: "image/png" });
-        setRawPhotoFile(file);
-        setApplyPrivacyBlur(false);
         await processPhoto(file);
       }, "image/png");
     } catch (err) {
@@ -881,9 +871,6 @@ export default function NewLogPage() {
     if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
     setPhotoPreviewUrl(null);
     setCompressedPhoto(null);
-    setRawPhotoFile(null);
-    setApplyPrivacyBlur(false);
-    setShowPrivacyStudio(false);
     if (cameraInputRef.current) cameraInputRef.current.value = "";
     if (galleryInputRef.current) galleryInputRef.current.value = "";
   };
@@ -918,9 +905,9 @@ export default function NewLogPage() {
       return;
     }
 
-    // Guard 3: Batas jam kerja harian (BR-002) - hanya untuk Hadir Praktik
+    // Guard 3: Batas jam kerja harian - hanya untuk Hadir Praktik
     if (!isSickOrPermit && isDailyLimitReached) {
-      showError(`Batas maksimal ${MAX_DAILY_JP} jam kerja harian untuk tanggal ini sudah terpenuhi (BR-002). Anda tidak dapat menambah jurnal lagi.`);
+      showError(`Batas maksimal ${MAX_DAILY_JP} jam kerja harian untuk tanggal ini sudah terpenuhi. Anda tidak dapat menambah jurnal lagi.`);
       return;
     }
 
@@ -1465,7 +1452,7 @@ export default function NewLogPage() {
                 </div>
               </div>
 
-              {/* 3. Durasi Jam Kerja Industri (Shift Presensi - BR-002, hanya jika Hadir) */}
+              {/* 3. Durasi Jam Kerja Industri (Shift Presensi - hanya jika Hadir) */}
               {!isSickOrPermit && (
                 <div className="space-y-4">
                   <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5">
@@ -1487,62 +1474,6 @@ export default function NewLogPage() {
                       className="py-0 border-b-0"
                     />
                   </div>
-
-                  {/* Peringatan K3 Siswa & Workload Alert (Alert card tunggal dengan border semantik) */}
-                  {(weeklyWorkStats.isCriticalOverwork || weeklyWorkStats.isWarningOverwork) && (
-                    <div
-                      className={cn(
-                        "p-4 rounded-2xl border space-y-3 transition-all animate-in fade-in duration-200 motion-reduce:animate-none",
-                        weeklyWorkStats.isCriticalOverwork
-                          ? "bg-rose-50/70 border-rose-200 text-rose-900"
-                          : "bg-amber-50/70 border-amber-200 text-amber-900"
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div
-                            className={cn(
-                              "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-2xs",
-                              weeklyWorkStats.isCriticalOverwork
-                                ? "bg-rose-100 text-rose-700"
-                                : "bg-amber-100 text-amber-700"
-                            )}
-                          >
-                            <AlertTriangle className="w-4 h-4" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-semibold truncate">
-                              {weeklyWorkStats.isCriticalOverwork
-                                ? "Peringatan K3: Overwork"
-                                : "Perhatian K3: Jam Tinggi"}
-                            </p>
-                            <p className="text-xs text-slate-600 truncate">
-                              {weeklyWorkStats.isCriticalOverwork
-                                ? `Melebihi ${STUDENT_OVERWORK_CRITICAL_HOURS} jam / lembur berlebih`
-                                : `Mendekati ${STUDENT_MAX_NORMAL_WEEKLY_HOURS} jam normal mingguan`}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span className="text-xs font-semibold block font-mono">
-                            {weeklyWorkStats.totalWeeklyHours} / {STUDENT_MAX_NORMAL_WEEKLY_HOURS} Jam
-                          </span>
-                          <span className="text-[11px] text-slate-500 font-medium">Minggu Ini</span>
-                        </div>
-                      </div>
-
-                      {/* Dual-Representation Education Callout */}
-                      <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs">
-                        <span className="text-slate-600 flex items-center gap-1 font-normal">
-                          <TrendingUp className="w-3.5 h-3.5 text-sky-600" />
-                          <span>Estimasi Beban Belajar:</span>
-                        </span>
-                        <span className="font-semibold text-slate-800 text-xs font-mono">
-                          ≈ {convertRealHoursToJp(durationJp).toFixed(1)} JP ({projectedPercentage}% target)
-                        </span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -2013,14 +1944,6 @@ export default function NewLogPage() {
                             className="max-h-60 w-auto object-contain"
                           />
 
-                          {/* Sensor Active Badge Overlay */}
-                          {applyPrivacyBlur && (
-                            <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-slate-900/85 backdrop-blur-sm border border-sky-400/40 text-xs font-medium text-sky-300 flex items-center gap-1.5 shadow-sm">
-                              <EyeOff className="w-3.5 h-3.5 text-sky-400" />
-                              <span>Sensor Privasi DUDI Aktif</span>
-                            </div>
-                          )}
-
                           {/* Remove Button */}
                           <button
                             type="button"
@@ -2033,26 +1956,13 @@ export default function NewLogPage() {
                           </button>
                         </div>
 
-                        {/* Info Bar & Dedicated Privacy Studio Action (Alur vertikal bersih tanpa nested boxes) */}
-                        <div className="p-3 rounded-xl bg-white border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs">
-                          <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1 text-slate-700 font-medium bg-slate-100 px-2.5 py-1 rounded-lg text-xs">
-                              <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
-                              <span>{compressedPhoto.savingsText}</span>
-                            </span>
-                            <span className="text-[11px] text-slate-500 font-medium">Siap diverifikasi</span>
-                          </div>
-
-                          {rawPhotoFile && (
-                            <button
-                              type="button"
-                              onClick={() => setShowPrivacyStudio(true)}
-                              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[38px] rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-semibold shadow-xs transition cursor-pointer shrink-0"
-                            >
-                              <ShieldCheck className="w-3.5 h-3.5" />
-                              <span>{applyPrivacyBlur ? "Ubah Sensor Privasi" : "Buka Kuas Sensor"}</span>
-                            </button>
-                          )}
+                        {/* Info Bar Kompresi WebP */}
+                        <div className="p-3 rounded-xl bg-white border border-slate-200/80 flex items-center justify-between gap-2.5 shadow-2xs">
+                          <span className="inline-flex items-center gap-1 text-slate-700 font-medium bg-slate-100 px-2.5 py-1 rounded-lg text-xs">
+                            <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
+                            <span>{compressedPhoto.savingsText}</span>
+                          </span>
+                          <span className="text-[11px] text-slate-500 font-medium">Siap diverifikasi</span>
                         </div>
                       </div>
                     ) : (
@@ -2517,22 +2427,6 @@ export default function NewLogPage() {
       {showQrModal && (
         <MentorQrModal
           onClose={() => setShowQrModal(false)}
-        />
-      )}
-
-      {/* ─────────────────────────────────────────────────────────────────────────────
-          4. PHOTO PRIVACY STUDIO MODAL (Draw-to-Blur & Pixelate Brush)
-      ───────────────────────────────────────────────────────────────────────────── */}
-      {showPrivacyStudio && rawPhotoFile && (
-        <PhotoPrivacyStudioModal
-          imageFile={rawPhotoFile}
-          onSave={(result) => {
-            setCompressedPhoto(result);
-            if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
-            setPhotoPreviewUrl(URL.createObjectURL(result.blob));
-            setApplyPrivacyBlur(true);
-          }}
-          onClose={() => setShowPrivacyStudio(false)}
         />
       )}
     </form>

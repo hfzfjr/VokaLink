@@ -32,11 +32,11 @@ export function ResetDeviceModal({
           </div>
 
           <div>
-            <h3 className="text-base font-extrabold text-slate-900">
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900">
               Reset Ikatan Perangkat HP {mentorName}?
             </h3>
-            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-              Tindakan ini akan memutus ikatan cookie/device token mentor pada HP lama (misal: mentor ganti HP atau HP hilang). Mentor harus mengaktivasi ulang HP baru sebelum dapat menyetujui logbook siswa kembali (BR-007).
+            <p className="text-xs sm:text-sm text-slate-600 mt-1.5 leading-relaxed">
+              Tindakan ini akan memutus ikatan perangkat mentor pada HP lama (misalnya jika mentor berganti HP atau HP hilang). Mentor perlu mengaktivasi ulang pada HP baru sebelum dapat menyetujui jurnal siswa kembali.
             </p>
           </div>
         </div>

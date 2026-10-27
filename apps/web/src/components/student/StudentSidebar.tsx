@@ -512,7 +512,7 @@ export function StudentSidebar() {
                 )}
               >
                 <Shield className="w-3.5 h-3.5" />
-                <span>Privasi (FR-012)</span>
+                <span>Privasi</span>
               </button>
               <button
                 type="button"
@@ -583,12 +583,12 @@ export function StudentSidebar() {
               </div>
             )}
 
-            {/* Tab 2: Privasi Paspor Publik (FR-012) */}
+            {/* Tab 2: Privasi Paspor Publik */}
             {activeTab === "privacy" && (
               <div className="space-y-3 text-xs">
                 <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-1">
                   <p className="font-bold text-amber-900 text-xs">
-                    Kontrol Privasi Paspor Publik (FR-012)
+                    Kontrol Privasi Paspor Publik
                   </p>
                   <p className="text-[11px] text-amber-800 leading-relaxed font-normal">
                     Paspor kompetensi publik ber-QR dapat dipindai oleh HRD dan perusahaan. Anda memiliki kendali penuh atas visibilitas data pribadi berikut:
@@ -675,7 +675,7 @@ export function StudentSidebar() {
                 </div>
 
                 <div className="p-3 rounded-2xl bg-sky-50/60 border border-sky-100 text-sky-900 space-y-1">
-                  <p className="font-semibold text-xs">Offline-First PWA (FR-006)</p>
+                  <p className="font-semibold text-xs">Offline-First PWA</p>
                   <p className="text-[11px] text-sky-800 leading-relaxed font-normal">
                     Seluruh jurnal dan foto bukti dikompres secara lokal (WebP &lt; 150 KB) dan tetap aman tersimpan di HP Anda walaupun tanpa koneksi internet.
                   </p>
@@ -778,7 +778,7 @@ export function StudentSidebar() {
             <div className="py-4 space-y-2.5 text-xs text-slate-600">
               <div className="p-3.5 rounded-xl bg-sky-50/60 border border-sky-100">
                 <p className="font-semibold text-sky-900">
-                  1. Mengisi Jurnal Harian (FR-005)
+                  1. Mengisi Jurnal Harian
                 </p>
                 <p className="text-sky-800 mt-1 font-normal leading-relaxed">
                   Pilih kartu pekerjaan dari DUDI. Durasi harian 1–12 JP
@@ -798,7 +798,7 @@ export function StudentSidebar() {
 
               <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-100">
                 <p className="font-semibold text-emerald-900">
-                  3. Verifikasi Mentor Tanpa Akun (FR-007)
+                  3. Verifikasi Mentor Tanpa Akun
                 </p>
                 <p className="text-emerald-800 mt-1 font-normal leading-relaxed">
                   Tunjukkan QR code atau kirim tautan ke mentor Anda. Mentor

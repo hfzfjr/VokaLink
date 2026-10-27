@@ -7,15 +7,12 @@ import {
   createDudiPartner,
   createDudiMentor,
   resetMentorDevice,
-  fetchDudiQualityIndex,
   fetchCurrentSchool,
   fetchCurriculum,
   type DudiPartnerItem,
-  type DudiQualityAuditResponse,
 } from "@/lib/api";
 import { DudiToolbar } from "@/components/school/dudi/DudiToolbar";
 import { DudiPartnerTable } from "@/components/school/dudi/DudiPartnerTable";
-import { DudiQualityIndexView } from "@/components/school/dudi/DudiQualityIndexView";
 import { RegisterDudiModal, type AvailableJobCard } from "@/components/school/dudi/RegisterDudiModal";
 import { MentorQrActivationModal } from "@/components/school/dudi/MentorQrActivationModal";
 import { AddMentorModal } from "@/components/school/dudi/AddMentorModal";
@@ -31,12 +28,7 @@ export default function DudiDirectoryPage() {
   const [search, setSearch] = useState("");
   const [selectedCity, setSelectedCity] = useState("Semua");
 
-  // Tabs & Quality Audit
-  const [activeTab, setActiveTab] = useState<"DIRECTORY" | "QUALITY_INDEX">("DIRECTORY");
-  const [qualityAuditData, setQualityAuditData] = useState<DudiQualityAuditResponse | null>(null);
-  const [isQualityLoading, setIsQualityLoading] = useState(false);
-
-  // Real Database Job Cards (Eliminating SAMPLE_JOB_CARDS)
+  // Real Database Job Cards
   const [availableJobCards, setAvailableJobCards] = useState<AvailableJobCard[]>([]);
 
   // Modals state
@@ -135,26 +127,6 @@ export default function DudiDirectoryPage() {
   useEffect(() => {
     loadPartners();
   }, [token, search, selectedCity]);
-
-  // 3. Load Quality Index audit data
-  const loadQualityAudit = async () => {
-    if (!token) return;
-    setIsQualityLoading(true);
-    try {
-      const data = await fetchDudiQualityIndex();
-      setQualityAuditData(data);
-    } catch (err: any) {
-      console.error("Gagal memuat audit Quality Index:", err);
-    } finally {
-      setIsQualityLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === "QUALITY_INDEX") {
-      loadQualityAudit();
-    }
-  }, [activeTab, token]);
 
   // Handle register DUDI
   const handleRegisterDudi = async (payload: {
@@ -307,8 +279,6 @@ export default function DudiDirectoryPage() {
 
       {/* Toolbar & Filter Controller */}
       <DudiToolbar
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
         search={search}
         onSearchChange={setSearch}
         selectedCity={selectedCity}
@@ -318,24 +288,20 @@ export default function DudiDirectoryPage() {
         totalPartners={partners.length}
       />
 
-      {/* Tab Content */}
-      {activeTab === "DIRECTORY" ? (
-        loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-44 rounded-3xl bg-slate-200 animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <DudiPartnerTable
-            partners={partners}
-            onOpenAddMentor={(id, name) => setAddMentorDudi({ id, name })}
-            onOpenResetDevice={(id, name) => setResetMentor({ id, name })}
-            onTriggerQr={handleTriggerQr}
-          />
-        )
+      {/* Directory Content */}
+      {loading ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-48 rounded-3xl bg-slate-200 animate-pulse" />
+          ))}
+        </div>
       ) : (
-        <DudiQualityIndexView data={qualityAuditData} loading={isQualityLoading} />
+        <DudiPartnerTable
+          partners={partners}
+          onOpenAddMentor={(id, name) => setAddMentorDudi({ id, name })}
+          onOpenResetDevice={(id, name) => setResetMentor({ id, name })}
+          onTriggerQr={handleTriggerQr}
+        />
       )}
 
       {/* Modals */}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, UserCheck, AlertCircle, Check } from "lucide-react";
 import type { PlacementCandidateStudent, PlacementCandidateData } from "@/lib/api";
 
@@ -26,13 +26,20 @@ export function SingleAssignModal({
   teachers,
   onSubmit,
 }: SingleAssignModalProps) {
-  const [chosenDudiId, setChosenDudiId] = useState<string>(
-    student?.bestRecommendation?.dudiId || dudis[0]?.id || ""
-  );
-  const [chosenTeacherId, setChosenTeacherId] = useState<string>(teachers[0]?.id || "");
+  const [chosenDudiId, setChosenDudiId] = useState<string>("");
+  const [chosenTeacherId, setChosenTeacherId] = useState<string>("");
   const [overrideReason, setOverrideReason] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (student) {
+      setChosenDudiId(student.bestRecommendation?.dudiId || dudis[0]?.id || "");
+      setChosenTeacherId(teachers[0]?.id || "");
+      setOverrideReason("");
+      setError(null);
+    }
+  }, [student, dudis, teachers]);
 
   if (!isOpen || !student) return null;
 

@@ -22,7 +22,7 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
 
     // 1. Belum login sama sekali -> lempar ke login
     if (!isAuthenticated || !user) {
-      router.replace(`/login?from=${encodeURIComponent(pathname)}`);
+      router.replace("/login");
       return;
     }
 

@@ -25,15 +25,15 @@ export function EraporFilterToolbar({
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       {/* Search & Department Selector */}
-      <div className="flex items-center gap-2.5 flex-1 max-w-lg">
+      <div className="flex items-center gap-2.5 flex-1 max-w-xl">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             placeholder="Cari siswa, NISN, atau mitra DUDI..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-9 pr-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
+            className="w-full h-10 pl-9 pr-3.5 rounded-xl bg-white border border-slate-200 text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
           />
         </div>
 
@@ -41,7 +41,7 @@ export function EraporFilterToolbar({
           <select
             value={selectedDeptId}
             onChange={(e) => onDeptChange(e.target.value)}
-            className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shrink-0 cursor-pointer"
+            className="h-10 px-3.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shrink-0 cursor-pointer"
           >
             <option value="ALL">Semua Jurusan</option>
             {departments.map((dept) => (
@@ -58,7 +58,7 @@ export function EraporFilterToolbar({
         type="button"
         onClick={onDownloadCsv}
         disabled={downloadingCsv}
-        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition shadow-xs self-start sm:self-auto cursor-pointer disabled:opacity-50"
+        className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold transition shadow-xs self-start sm:self-auto cursor-pointer disabled:opacity-50"
       >
         {downloadingCsv ? (
           <RefreshCw className="w-3.5 h-3.5 animate-spin" />

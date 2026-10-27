@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  Layers,
   Building2,
   Navigation,
   FileSpreadsheet,
@@ -22,15 +21,9 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   {
     id: "dashboard",
-    label: "Dasbor",
+    label: "Dashboard",
     href: "/school/dashboard",
     icon: LayoutDashboard,
-  },
-  {
-    id: "curriculum",
-    label: "Kurikulum",
-    href: "/school/curriculum",
-    icon: Layers,
   },
   {
     id: "dudi",

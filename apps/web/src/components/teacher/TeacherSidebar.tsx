@@ -41,7 +41,6 @@ const NAV_ITEMS: NavItem[] = [
     sublabel: "Matriks Capaian 792 JP",
     href: "/teacher/heatmap",
     icon: Flame,
-    badge: "FR-008",
   },
   {
     id: "drift",
@@ -63,7 +62,6 @@ const NAV_ITEMS: NavItem[] = [
     sublabel: "Integritas Validasi PIN",
     href: "/teacher/heatmap?view=security",
     icon: ShieldCheck,
-    badge: "TC-006",
   },
 ];
 
@@ -292,7 +290,7 @@ export function TeacherSidebar() {
                 Panduan Drift
               </p>
               <p className="text-[10px] text-slate-400 truncate leading-tight mt-0.5 whitespace-nowrap">
-                Alur Supervisi (FR-008)
+                Alur Supervisi PKL
               </p>
             </div>
           </button>
@@ -542,7 +540,7 @@ export function TeacherSidebar() {
                     Panduan Pembimbing PKL
                   </h3>
                   <p className="text-[11px] text-slate-500 font-normal">
-                    Fitur FR-008 &amp; FR-009 VokaLink
+                    Alur Pemantauan &amp; Intervensi VokaLink
                   </p>
                 </div>
               </div>
@@ -557,23 +555,23 @@ export function TeacherSidebar() {
 
             <div className="space-y-2.5 text-xs text-slate-600">
               <div className="p-3 rounded-2xl bg-sky-50/70 border border-sky-100 space-y-1">
-                <p className="font-bold text-sky-900">1. Live Competency Heatmap (FR-008)</p>
+                <p className="font-bold text-sky-900">1. Matriks Capaian Kompetensi (Heatmap)</p>
                 <p className="text-sky-800 leading-relaxed font-normal">
-                  Memantau akumulasi JP yang telah berstatus <strong>VERIFIED</strong>. Sel hijau (&ge;75%) menandakan elemen CP tuntas; kuning berjalan, dan abu-abu belum terisi.
+                  Memantau akumulasi JP yang telah disahkan mentor. Sel hijau (&ge;75%) menandakan elemen kompetensi tuntas; kuning berjalan, dan abu-abu belum terisi.
                 </p>
               </div>
 
               <div className="p-3 rounded-2xl bg-amber-50/70 border border-amber-100 space-y-1">
-                <p className="font-bold text-amber-900">2. Smart Intervention Dispatcher (FR-009)</p>
+                <p className="font-bold text-amber-900">2. Peringatan Drift &amp; Intervensi WhatsApp</p>
                 <p className="text-amber-800 leading-relaxed font-normal">
-                  Jika terdeteksi *Non-Competency Overload*, sistem menyiapkan draf sopan WhatsApp otomatis ke mentor industri untuk meluruskan penugasan kerja.
+                  Jika terdeteksi beban non-kompetensi berlebih, tugas monoton, atau jurnal tertunda, sistem menyiapkan pesan WhatsApp sopan otomatis ke mentor industri.
                 </p>
               </div>
 
               <div className="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-100 space-y-1">
-                <p className="font-bold text-emerald-900">3. Rotasi Mitra Tengah Semester (TC-009)</p>
+                <p className="font-bold text-emerald-900">3. Audit Keamanan Verifikasi PIN</p>
                 <p className="text-emerald-800 leading-relaxed font-normal">
-                  Jika mitra DUDI tidak memiliki kapasitas materi lanjutan, siswa dapat dirotasi ke DUDI pelengkap dengan jaminan akumulasi JP lama tetap utuh (BR-010).
+                  Memantau riwayat pengesahan PIN mentor industri untuk mendeteksi percobaan PIN salah berulang atau penguncian perangkat sementara.
                 </p>
               </div>
             </div>

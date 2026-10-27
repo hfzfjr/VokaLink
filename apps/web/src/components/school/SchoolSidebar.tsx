@@ -7,7 +7,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/use-auth";
 import {
   LayoutDashboard,
-  Layers,
   Building2,
   Navigation,
   FileSpreadsheet,
@@ -33,18 +32,10 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   {
     id: "dashboard",
-    label: "Dasbor Utama",
+    label: "Dashboard",
     sublabel: "Ringkasan Operasional PKL",
     href: "/school/dashboard",
     icon: LayoutDashboard,
-  },
-  {
-    id: "curriculum",
-    label: "Kurikulum & CP",
-    sublabel: "Matriks 792 JP & Job Cards",
-    href: "/school/curriculum",
-    icon: Layers,
-    badge: "792 JP",
   },
   {
     id: "dudi",
@@ -55,8 +46,8 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     id: "placements",
-    label: "Smart Placement",
-    sublabel: "Pencocokan 70% CP + 30% Jarak",
+    label: "Penempatan Siswa",
+    sublabel: "Alokasi Siswa & Pembimbing",
     href: "/school/placements",
     icon: Navigation,
   },
@@ -155,13 +146,8 @@ export function SchoolSidebar() {
                 isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
               )}
             >
-              <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-slate-900 text-sm tracking-tight leading-none block whitespace-nowrap">
-                  VokaLink <span className="text-sky-500">SMK</span>
-                </span>
-              </div>
-              <span className="text-[10px] font-bold text-slate-400 truncate block mt-0.5 whitespace-nowrap">
-                {schoolProfile.schoolName}
+              <span className="font-extrabold text-slate-900 text-sm tracking-tight leading-none block whitespace-nowrap">
+                VokaLink
               </span>
             </div>
           </Link>
@@ -556,25 +542,19 @@ export function SchoolSidebar() {
 
               <div className="p-6 space-y-3.5 max-h-[60vh] overflow-y-auto text-xs text-slate-600">
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
-                  <p className="font-bold text-slate-900">1. Konfigurasi Kurikulum & Penguncian (FR-001)</p>
+                  <p className="font-bold text-slate-900">1. Direktori Kemitraan DUDI & Mentor</p>
                   <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Pastikan total alokasi JP per jurusan genap 792 JP sesuai Kurikulum Merdeka. Setelah selesai, kunci kurikulum agar siswa dapat memulai pencatatan kartu kerja.
+                    Daftarkan mitra industri dan mentor pembimbing. Kirimkan tautan atau QR aktivasi ke WhatsApp mentor untuk mengikat perangkat HP mentor dengan PIN persetujuan.
                   </p>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
-                  <p className="font-bold text-slate-900">2. Direktori Kemitraan DUDI & Mentor (FR-003)</p>
+                  <p className="font-bold text-slate-900">2. Penempatan Siswa & Guru Pembimbing</p>
                   <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Daftarkan mitra industri dan mentor pembimbing. Kirimkan tautan atau QR aktivasi 72 jam ke WhatsApp mentor untuk mengikat HP mentor dengan PIN 6-digit.
+                    Plotkan siswa ke mitra DUDI sesuai kesesuaian bidang keahlian jurusan dan tugaskan guru pembimbing sekolah.
                   </p>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
-                  <p className="font-bold text-slate-900">3. Smart Placement Berkeadilan (FR-004)</p>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Gunakan algoritma rekomendasi multi-kriteria (70% relevansi Elemen CP + 30% jarak geospasial Haversine) untuk memplot siswa ke DUDI secara optimal.
-                  </p>
-                </div>
-                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
-                  <p className="font-bold text-slate-900">4. Ekspor e-Rapor Resmi SMK (FR-011)</p>
+                  <p className="font-bold text-slate-900">3. Ekspor e-Rapor Resmi SMK</p>
                   <p className="text-[11px] text-slate-500 leading-relaxed">
                     Setelah periode PKL selesai, unduh rekapitulasi nilai dan deskripsi capaian berformat CSV siap impor ke aplikasi e-Rapor Kemendikbudristek / Dapodik.
                   </p>

@@ -38,8 +38,8 @@ export function MentorQrActivationModal({ data, onClose }: MentorQrActivationMod
               <QrCode className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900">QR Aktivasi Perangkat Mentor</h3>
-              <p className="text-[11px] text-slate-500">Masa berlaku 72 jam (BR-007)</p>
+              <h3 className="text-sm sm:text-base font-bold text-slate-900">QR Aktivasi Perangkat Mentor</h3>
+              <p className="text-xs text-slate-500">Masa berlaku tautan 72 jam</p>
             </div>
           </div>
           <button
@@ -53,8 +53,8 @@ export function MentorQrActivationModal({ data, onClose }: MentorQrActivationMod
 
         <div className="p-6 space-y-4 text-center">
           <div>
-            <p className="text-xs font-bold text-slate-900">{data.mentorName}</p>
-            <p className="text-[11px] text-slate-500">{data.dudiName}</p>
+            <p className="text-sm sm:text-base font-bold text-slate-900">{data.mentorName}</p>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">{data.dudiName}</p>
           </div>
 
           {/* QR Code Container */}
@@ -64,8 +64,8 @@ export function MentorQrActivationModal({ data, onClose }: MentorQrActivationMod
             </div>
           </div>
 
-          <p className="text-[11px] text-slate-500 leading-relaxed px-4">
-            Minta mentor memindai QR ini langsung menggunakan kamera HP pribadinya untuk mengikat perangkat dan membuat PIN 6-digit verifikasi.
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed px-2">
+            Minta mentor memindai QR ini langsung menggunakan kamera HP pribadinya untuk mengikat perangkat dan membuat PIN 4-digit verifikasi.
           </p>
 
           {/* Actions: Copy Link & WhatsApp Direct */}
