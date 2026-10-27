@@ -21,7 +21,7 @@ export function TeacherHeader() {
         {/* Left: Brand Icon + Title */}
         <div className="flex items-center gap-2.5 min-w-0">
           <Link
-            href="/teacher/heatmap"
+            href="/teacher/dashboard"
             className="w-9 h-9 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-center p-1.5 shrink-0"
           >
             <VokaIcon className="w-full h-full object-contain" />

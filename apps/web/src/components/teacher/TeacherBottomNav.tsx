@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Flame, ShieldAlert, Users, ShieldCheck } from "lucide-react";
+import { Flame, LayoutDashboard, ShieldAlert, Users, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 interface NavItem {
@@ -16,29 +16,29 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   {
-    id: "heatmap",
-    label: "Heatmap",
-    href: "/teacher/heatmap",
-    icon: Flame,
+    id: "dashboard",
+    label: "Dashboard",
+    href: "/teacher/dashboard",
+    icon: LayoutDashboard,
   },
   {
     id: "drift",
     label: "Drift",
-    href: "/teacher/heatmap?view=drift",
+    href: "/teacher/dashboard?view=drift",
     viewParam: "drift",
     icon: ShieldAlert,
   },
   {
     id: "students",
     label: "Siswa",
-    href: "/teacher/heatmap?view=students",
+    href: "/teacher/dashboard?view=students",
     viewParam: "students",
     icon: Users,
   },
   {
     id: "security",
     label: "Audit",
-    href: "/teacher/heatmap?view=security",
+    href: "/teacher/dashboard?view=security",
     viewParam: "security",
     icon: ShieldCheck,
   },
@@ -59,7 +59,7 @@ export function TeacherBottomNav() {
           const Icon = item.icon;
           const isActive = item.viewParam
             ? currentView === item.viewParam
-            : !currentView && pathname === "/teacher/heatmap";
+            : !currentView && (pathname === "/teacher/dashboard" || pathname === "/teacher/heatmap" || pathname === "/teacher");
 
           return (
             <Link

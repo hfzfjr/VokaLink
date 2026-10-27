@@ -93,7 +93,7 @@ export default function AuthCallbackPage() {
         if (role === "SCHOOL_ADMIN") {
           router.replace("/school/dashboard");
         } else if (role === "TEACHER") {
-          router.replace("/teacher/heatmap");
+          router.replace("/teacher/dashboard");
         } else if (role === "STUDENT") {
           router.replace("/student/home");
         } else {

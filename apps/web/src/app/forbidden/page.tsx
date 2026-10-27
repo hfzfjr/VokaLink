@@ -64,7 +64,7 @@ export default function ForbiddenPage() {
       case "SCHOOL_ADMIN":
         return "/school/dashboard";
       case "TEACHER":
-        return "/teacher/heatmap";
+        return "/teacher/dashboard";
       case "STUDENT":
         return "/student/home";
       default:

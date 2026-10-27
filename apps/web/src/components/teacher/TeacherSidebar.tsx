@@ -7,6 +7,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/use-auth";
 import {
   Flame,
+  LayoutDashboard,
   Users,
   ShieldAlert,
   ShieldCheck,
@@ -34,17 +35,17 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   {
-    id: "heatmap",
-    label: "Radar & Heatmap",
-    sublabel: "Matriks Capaian 792 JP",
-    href: "/teacher/heatmap",
-    icon: Flame,
+    id: "dashboard",
+    label: "Dashboard Guru",
+    sublabel: "Monitoring & Progres Siswa",
+    href: "/teacher/dashboard",
+    icon: LayoutDashboard,
   },
   {
     id: "drift",
     label: "Peringatan Drift",
     sublabel: "Deteksi Dini Anomali",
-    href: "/teacher/heatmap?view=drift",
+    href: "/teacher/dashboard?view=drift",
     viewParam: "drift",
     icon: ShieldAlert,
   },
@@ -52,7 +53,7 @@ const NAV_ITEMS: NavItem[] = [
     id: "students",
     label: "Siswa Binaan",
     sublabel: "Daftar Siswa & DUDI",
-    href: "/teacher/heatmap?view=students",
+    href: "/teacher/dashboard?view=students",
     viewParam: "students",
     icon: Users,
   },
@@ -60,7 +61,7 @@ const NAV_ITEMS: NavItem[] = [
     id: "security",
     label: "Audit Keamanan",
     sublabel: "Integritas Validasi PIN",
-    href: "/teacher/heatmap?view=security",
+    href: "/teacher/dashboard?view=security",
     viewParam: "security",
     icon: ShieldCheck,
   },
@@ -94,7 +95,7 @@ export function TeacherSidebar() {
     if (item.viewParam) {
       return currentView === item.viewParam;
     }
-    return !currentView && (pathname === "/teacher/heatmap" || pathname === "/teacher");
+    return !currentView && (pathname === "/teacher/dashboard" || pathname === "/teacher/heatmap" || pathname === "/teacher");
   };
 
   // Settings form states
@@ -156,7 +157,7 @@ export function TeacherSidebar() {
         {/* Top: Brand Logo 'V' + Title (Fixed Icon Position) */}
         <div className="flex flex-col w-full">
           <Link
-            href="/teacher/heatmap"
+            href="/teacher/dashboard"
             title="VokaLink Guru — Beranda"
             className="w-full h-12 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center overflow-hidden hover:border-sky-300 transition-colors duration-150"
           >

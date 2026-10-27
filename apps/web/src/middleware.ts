@@ -41,7 +41,7 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/school/dashboard", request.url));
     }
     if (roleCookie === "TEACHER") {
-      return NextResponse.redirect(new URL("/teacher/heatmap", request.url));
+      return NextResponse.redirect(new URL("/teacher/dashboard", request.url));
     }
     if (roleCookie === "STUDENT") {
       return NextResponse.redirect(new URL("/student/home", request.url));

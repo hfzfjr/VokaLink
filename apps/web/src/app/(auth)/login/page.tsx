@@ -63,7 +63,7 @@ function LoginForm() {
       if (userRole === "SCHOOL_ADMIN") {
         router.replace("/school/dashboard");
       } else if (userRole === "TEACHER") {
-        router.replace("/teacher/heatmap");
+        router.replace("/teacher/dashboard");
       } else if (userRole === "STUDENT") {
         router.replace("/student/home");
       }
@@ -171,7 +171,7 @@ function LoginForm() {
             if (role === "SCHOOL_ADMIN") {
               router.push("/school/dashboard");
             } else if (role === "TEACHER") {
-              router.push("/teacher/heatmap");
+              router.push("/teacher/dashboard");
             } else if (role === "STUDENT") {
               router.push("/student/home");
             } else {
@@ -200,7 +200,7 @@ function LoginForm() {
       if (role === "STUDENT") {
         router.push("/student/home");
       } else if (role === "TEACHER") {
-        router.push("/teacher/heatmap");
+        router.push("/teacher/dashboard");
       } else if (role === "SCHOOL_ADMIN") {
         router.push("/school/dashboard");
       } else {
