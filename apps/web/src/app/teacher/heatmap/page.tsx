@@ -452,32 +452,33 @@ function HeatmapContent() {
   };
 
   return (
-    <div className="w-full flex flex-col lg:flex-row gap-4 sm:gap-5 items-stretch min-h-0 pb-12">
+    <div className="w-full flex flex-col lg:flex-row gap-4 sm:gap-5 items-start min-h-0 pb-12">
       {/* ─── LEFT: MAIN WORKSPACE ─── */}
-      <section className="flex-1 min-w-0 space-y-4 sm:space-y-5 w-full">
-        {/* ─── 1. CLEAN UNIFIED HEADER (MATCHING STUDENT DASHBOARD 86PX BAR) ─── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl p-4 sm:px-5 lg:h-[86px] border border-slate-200/70 shadow-2xs shrink-0">
+      <section className="flex-1 min-w-0 space-y-5 sm:space-y-6 w-full">
+        {/* ─── 1. HEADER GURU (TEKS BEBAS TANPA CARD) ─── */}
+        <div className="pb-5 border-b border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="min-w-0 space-y-1">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-none">
-                Halo, {teacherFirstName}!
-              </h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight leading-none">
+              Halo, {teacherFirstName}!
+            </h1>
+            <div className="mt-1.5 flex items-center gap-2 flex-wrap">
               {summary.studentsWithDrift > 0 ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200/60 text-[11px] font-semibold leading-none shadow-2xs">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200/60 text-[11px] font-semibold leading-none shadow-2xs">
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
                   <span>{summary.studentsWithDrift} Anomali Drift</span>
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[11px] font-medium leading-none shadow-2xs">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[11px] font-medium leading-none shadow-2xs">
                   <Check className="w-3 h-3 stroke-[2.5]" />
                   <span>Semua Siswa On-Track</span>
                 </span>
               )}
+              <span className="text-slate-300">&bull;</span>
+              <p className="text-xs text-slate-500 font-normal truncate">
+                {data?.department.name || "Rekayasa Perangkat Lunak"} &bull;{" "}
+                {user?.school?.name || "SMK Telkom 1 Medan"} &bull; Target {TOTAL_TARGET_JP} JP
+              </p>
             </div>
-            <p className="text-xs text-slate-500 font-normal truncate mt-0.5">
-              {data?.department.name || "Rekayasa Perangkat Lunak"} &bull;{" "}
-              {user?.school?.name || "SMK Telkom 1 Medan"} &bull; Target {TOTAL_TARGET_JP} JP
-            </p>
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-auto">
@@ -508,6 +509,7 @@ function HeatmapContent() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Tile 1: Siswa Binaan */}
           <div
+            title="Tampilkan semua siswa"
             onClick={() => {
               setStatusFilter("ALL");
               if (viewMode === "security") setViewMode("matrix");
@@ -530,6 +532,7 @@ function HeatmapContent() {
 
           {/* Tile 2: Peringatan Drift */}
           <div
+            title="Filter siswa dengan anomali drift"
             onClick={() => {
               setStatusFilter(statusFilter === "DRIFT" ? "ALL" : "DRIFT");
               if (viewMode === "security") setViewMode("matrix");
@@ -571,6 +574,7 @@ function HeatmapContent() {
 
           {/* Tile 3: Rata-rata Capaian */}
           <div
+            title="Filter siswa yang sudah tuntas"
             onClick={() => {
               setStatusFilter(statusFilter === "ACHIEVED" ? "ALL" : "ACHIEVED");
               if (viewMode === "security") setViewMode("matrix");
@@ -602,6 +606,7 @@ function HeatmapContent() {
 
           {/* Tile 4: Integritas Validasi */}
           <div
+            title="Buka tab audit validasi"
             onClick={() => setViewMode("security")}
             className={cn(
               "p-4 sm:p-5 rounded-2xl border shadow-2xs flex items-center gap-3 cursor-pointer transition hover:shadow-xs",
@@ -696,9 +701,9 @@ function HeatmapContent() {
           </div>
         </div>
 
-        {/* ─── 4. SECONDARY CONTROL BAR: Status Chips | Search, DUDI & Counter ─── */}
+        {/* ─── 4. SECONDARY CONTROL BAR: Status Chips | Search, DUDI & Counter | Legend ─── */}
         {viewMode !== "security" && (
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+          <div className="mt-1 pt-4 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-2.5">
             {/* Status chips ringan */}
             <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
               <button
@@ -780,7 +785,7 @@ function HeatmapContent() {
               </button>
             </div>
 
-            {/* Search + DUDI + Compact Legend & Pagination Info */}
+            {/* Search + DUDI */}
             <div className="flex items-center gap-2 w-full md:w-auto">
               {/* Search Box */}
               <div className="relative flex-1 sm:w-56 md:w-60">
@@ -819,6 +824,19 @@ function HeatmapContent() {
                 </select>
               )}
             </div>
+
+            {/* Legend Pindah ke Ujung Kanan */}
+            <div className="hidden xl:flex items-center gap-3 text-[10.5px] text-slate-500 font-medium ml-auto">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-slate-300 inline-block" /> 0% Belum
+              </span>
+              <span className="flex items-center gap-1.5 text-amber-700">
+                <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> 1–74% Berjalan
+              </span>
+              <span className="flex items-center gap-1.5 text-emerald-700">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> &ge;75% Tuntas
+              </span>
+            </div>
           </div>
         )}
 
@@ -826,29 +844,6 @@ function HeatmapContent() {
         {viewMode === "matrix" && (
           <div className="space-y-4">
             <div className="bg-white rounded-2xl border border-slate-200/70 shadow-2xs overflow-hidden">
-              {/* Header Bar dengan Legend Capaian */}
-              <div className="px-4 py-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50/40">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-800">
-                    Ketercapaian per Elemen Capaian Pembelajaran (CP)
-                  </span>
-                  <span className="text-[11px] text-slate-400">
-                    &bull; {filteredStudents.length} Siswa Terdaftar
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 text-[10.5px]">
-                  <span className="flex items-center gap-1.5 text-slate-400 font-medium">
-                    <span className="w-2 h-2 rounded-full bg-slate-300 inline-block" /> 0% Belum
-                  </span>
-                  <span className="flex items-center gap-1.5 text-amber-700 font-medium">
-                    <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> 1–74% Berjalan
-                  </span>
-                  <span className="flex items-center gap-1.5 text-emerald-700 font-medium">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> &ge;75% Tuntas
-                  </span>
-                </div>
-              </div>
-
               {/* Desktop Table */}
               <div className="hidden lg:block overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
@@ -942,6 +937,7 @@ function HeatmapContent() {
                               return (
                                 <td
                                   key={cp.cpElementId}
+                                  title={`${cp.verifiedJp} dari ${cp.targetJp} JP terverifikasi`}
                                   className="py-2.5 px-2 text-center border-r border-slate-100"
                                 >
                                   <div className="inline-flex flex-col items-center w-full max-w-[84px] space-y-1">
@@ -982,9 +978,6 @@ function HeatmapContent() {
                                         }}
                                       />
                                     </div>
-                                    <span className="text-[9.5px] text-slate-400 font-mono leading-none">
-                                      {cp.verifiedJp}/{cp.targetJp} JP
-                                    </span>
                                   </div>
                                 </td>
                               );
@@ -1268,32 +1261,21 @@ function HeatmapContent() {
                             />
                           </div>
 
-                          <div className="flex items-center justify-between text-xs px-3 py-2 rounded-xl bg-slate-50 border border-slate-200/60">
-                            <div>
-                              <span className="text-slate-400 text-[11px]">14 Hari Terakhir: </span>
-                              <span className="font-semibold text-slate-800">
-                                {student.totalJpLast14Days - student.nonCompetencyJpLast14Days} JP
-                                Teknis
-                              </span>
-                            </div>
-                            <span
-                              className={cn(
-                                "text-[11px] font-medium",
-                                student.nonCompetencyJpLast14Days > 0
-                                  ? "text-amber-700"
-                                  : "text-slate-400"
-                              )}
-                            >
-                              {student.nonCompetencyJpLast14Days} JP Non-Jurusan
-                            </span>
-                          </div>
+                          <p className="text-[11px] text-slate-500">
+                            <span className="font-medium text-slate-700">
+                              {student.totalJpLast14Days - student.nonCompetencyJpLast14Days} JP
+                              teknis
+                            </span>{" "}
+                            &middot; {student.nonCompetencyJpLast14Days} JP non-jurusan &middot; 14
+                            hari terakhir
+                          </p>
                         </div>
 
-                        <div className="pt-2.5 flex items-center justify-between border-t border-slate-100">
+                        <div className="pt-2.5 flex items-center gap-2 border-t border-slate-100">
                           <button
                             type="button"
                             onClick={() => setSelectedStudent(student)}
-                            className="text-xs font-medium text-slate-600 hover:text-slate-900 flex items-center gap-1 cursor-pointer transition"
+                            className="flex-1 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium flex items-center justify-center gap-1.5 cursor-pointer transition"
                           >
                             <Eye className="w-3.5 h-3.5" />
                             <span>Rincian CP</span>
@@ -1302,9 +1284,9 @@ function HeatmapContent() {
                           <button
                             type="button"
                             onClick={() => openInterventionModal(student)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-xs font-semibold transition cursor-pointer"
+                            className="flex-1 h-9 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition"
                           >
-                            <Sparkles className="w-3 h-3 text-sky-400" />
+                            <Sparkles className="w-3.5 h-3.5 text-sky-400" />
                             <span>Intervensi</span>
                           </button>
                         </div>
