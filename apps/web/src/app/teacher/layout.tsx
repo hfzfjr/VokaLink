@@ -35,7 +35,9 @@ export default function TeacherLayout({
 
           {/* 3. Desktop Left Slim Sidebar Dock (hidden on mobile, sticky on desktop, hidden on print) */}
           <div className="hidden md:flex md:sticky md:top-0 md:h-dvh pl-3.5 lg:pl-4 py-4 shrink-0 w-[88px] lg:w-[92px] z-30 no-print print:hidden">
-            <TeacherSidebar />
+            <Suspense fallback={null}>
+              <TeacherSidebar />
+            </Suspense>
           </div>
 
           {/* 4. Main Content Container */}

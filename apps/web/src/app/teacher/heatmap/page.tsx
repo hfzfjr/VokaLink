@@ -1,15 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/use-auth";
 import {
   Users,
-  AlertTriangle,
   CheckCircle2,
   Clock,
   Building2,
-  Filter,
   Search,
   RefreshCw,
   MessageCircle,
@@ -26,12 +24,9 @@ import {
   Eye,
   LayoutGrid,
   CreditCard,
-  Lock,
   Loader2,
-  HardDrive,
-  Award,
   ChevronRight,
-  GraduationCap,
+  ChevronLeft,
 } from "lucide-react";
 import {
   fetchTeacherHeatmap,
@@ -53,7 +48,6 @@ import { TeacherWidgetPanel } from "@/components/teacher/TeacherWidgetPanel";
 import { cn } from "@/lib/cn";
 
 function HeatmapContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { user, token } = useAuth();
 
@@ -62,13 +56,17 @@ function HeatmapContent() {
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // View mode: matrix (table) | cards (student grid feed) | security (TC-006 audit)
+  // View mode: matrix (table) | cards (student grid feed) | security (audit log)
   const [viewMode, setViewMode] = useState<"matrix" | "cards" | "security">("matrix");
 
   // Filters state
   const [selectedDudi, setSelectedDudi] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "DRIFT" | "ACHIEVED">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Pagination for cards view
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 6;
 
   // Sync with searchParams if view is specified
   useEffect(() => {
@@ -83,13 +81,20 @@ function HeatmapContent() {
     }
   }, [searchParams]);
 
+  // Reset pagination on filter or view changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedDudi, statusFilter, searchQuery, viewMode]);
+
   // Student Detail Modal state
   const [selectedStudent, setSelectedStudent] = useState<HeatmapStudentRow | null>(null);
 
-  // FR-009: Smart Intervention & Rotation Modal state
+  // Smart Intervention & Mid-term Rotation Modal state
   const [interventionStudent, setInterventionStudent] = useState<HeatmapStudentRow | null>(null);
   const [interventionAlert, setInterventionAlert] = useState<DriftAlertItem | null>(null);
-  const [interventionTab, setInterventionTab] = useState<"WA_COORDINATION" | "SITE_VISIT" | "DUDI_ROTATION">("WA_COORDINATION");
+  const [interventionTab, setInterventionTab] = useState<
+    "WA_COORDINATION" | "SITE_VISIT" | "DUDI_ROTATION"
+  >("WA_COORDINATION");
   const [draftMessage, setDraftMessage] = useState("");
   const [isDraftLoading, setIsDraftLoading] = useState(false);
   const [isSubmittingIntervention, setIsSubmittingIntervention] = useState(false);
@@ -98,7 +103,7 @@ function HeatmapContent() {
   const [rotationReason, setRotationReason] = useState("");
   const [siteVisitDate, setSiteVisitDate] = useState("");
 
-  // FR-007 A2 & TC-006: Security Audit Flags state
+  // Security Audit Flags state
   const [securityFlags, setSecurityFlags] = useState<SecurityFlagItem[]>([]);
   const [isAcknowledgingFlag, setIsAcknowledgingFlag] = useState<string | null>(null);
 
@@ -124,13 +129,13 @@ function HeatmapContent() {
     }
   };
 
-  // Load heatmap data from API
+  // Load heatmap data from API (fetch all once, filter instantaneously on client)
   const loadHeatmapData = useCallback(async () => {
     setIsLoading(true);
     setErrorMessage(null);
     try {
       const res = await fetchTeacherHeatmap({
-        driftOnly: statusFilter === "DRIFT",
+        driftOnly: false,
         token: token || undefined,
       });
       setData(res);
@@ -139,12 +144,28 @@ function HeatmapContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [statusFilter, token]);
+  }, [token]);
 
   useEffect(() => {
     loadHeatmapData();
     loadSecurityFlags();
   }, [loadHeatmapData, loadSecurityFlags]);
+
+  // Close Modals on Escape Key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (interventionStudent) {
+          setInterventionStudent(null);
+          setInterventionSuccessMsg(null);
+        } else if (selectedStudent) {
+          setSelectedStudent(null);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedStudent, interventionStudent]);
 
   // Trigger on-demand drift evaluation
   const handleTriggerEvaluate = async () => {
@@ -159,11 +180,8 @@ function HeatmapContent() {
     }
   };
 
-  // FR-009: Buka Modal Intervensi & Ambil Draf Otomatis
-  const openInterventionModal = async (
-    student: HeatmapStudentRow,
-    alert?: DriftAlertItem
-  ) => {
+  // Open intervention modal & fetch data-driven auto draft
+  const openInterventionModal = async (student: HeatmapStudentRow, alert?: DriftAlertItem) => {
     setInterventionStudent(student);
     setInterventionAlert(alert || student.driftAlerts[0] || null);
     setInterventionTab("WA_COORDINATION");
@@ -190,7 +208,7 @@ function HeatmapContent() {
     }
   };
 
-  // FR-009: Eksekusi Kirim WhatsApp & Catat Log Intervensi
+  // Send WhatsApp intervention & record audit log
   const handleSendWaIntervention = async () => {
     if (!interventionStudent) return;
     setIsSubmittingIntervention(true);
@@ -211,7 +229,9 @@ function HeatmapContent() {
         window.open(waUrl, "_blank");
       }
 
-      setInterventionSuccessMsg("Pesan koordinasi berhasil dicatat dan jendela WhatsApp telah dibuka!");
+      setInterventionSuccessMsg(
+        "Pesan koordinasi berhasil dicatat dan jendela WhatsApp telah dibuka."
+      );
       await loadHeatmapData();
     } catch (err: any) {
       alert(err.message || "Gagal mencatat intervensi pembimbing");
@@ -220,7 +240,7 @@ function HeatmapContent() {
     }
   };
 
-  // FR-009: Catat Kunjungan Lapangan
+  // Record site visit supervision
   const handleRecordSiteVisit = async () => {
     if (!interventionStudent) return;
     setIsSubmittingIntervention(true);
@@ -230,9 +250,12 @@ function HeatmapContent() {
         placementId: interventionStudent.placement.id,
         driftAlertId: interventionAlert?.id,
         actionType: "SITE_VISIT",
-        messageSent: `Rencana kunjungan supervisi lapangan dijadwalkan pada ${siteVisitDate || "minggu depan"}. Catatan agenda: ${draftMessage}`,
+        messageSent: `Rencana kunjungan supervisi lapangan dijadwalkan pada ${siteVisitDate || "minggu depan"
+          }. Catatan agenda: ${draftMessage}`,
       });
-      setInterventionSuccessMsg("Jadwal kunjungan supervisi lapangan berhasil disimpan ke riwayat intervensi!");
+      setInterventionSuccessMsg(
+        "Jadwal kunjungan supervisi lapangan berhasil disimpan ke riwayat intervensi."
+      );
       await loadHeatmapData();
     } catch (err: any) {
       alert(err.message || "Gagal mencatat jadwal kunjungan lapangan");
@@ -241,7 +264,7 @@ function HeatmapContent() {
     }
   };
 
-  // FR-009: Eksekusi Rotasi Mitra DUDI Tengah Semester (TC-009)
+  // Execute mid-term DUDI rotation while preserving cumulative verified JP
   const handleExecuteRotation = async () => {
     if (!interventionStudent || !targetDudiId) {
       alert("Pilih mitra DUDI tujuan baru terlebih dahulu");
@@ -254,11 +277,13 @@ function HeatmapContent() {
         fromPlacementId: interventionStudent.placement.id,
         toDudiId: targetDudiId,
         driftAlertId: interventionAlert?.id,
-        reason: rotationReason || "Rotasi tengah semester untuk pemenuhan elemen kompetensi kurikulum (TC-009).",
+        reason:
+          rotationReason ||
+          "Rotasi tengah semester untuk pemenuhan elemen kompetensi kurikulum.",
       });
 
       setInterventionSuccessMsg(
-        `Sukses! Siswa berhasil dirotasi ke ${res.newPlacement.dudiName}. Total ${res.cumulativeVerifiedJp} JP terverifikasi tetap tersimpan utuh di portofolio siswa (TC-009).`
+        `Sukses! Siswa berhasil dirotasi ke ${res.newPlacement.dudiName}. Total ${res.cumulativeVerifiedJp} JP terverifikasi tetap tersimpan utuh di portofolio siswa.`
       );
       await loadHeatmapData();
     } catch (err: any) {
@@ -282,20 +307,15 @@ function HeatmapContent() {
   const filteredStudents = useMemo(() => {
     if (!data?.students) return [];
     return data.students.filter((student) => {
-      // DUDI filter
       if (selectedDudi !== "ALL" && student.placement.dudiId !== selectedDudi) {
         return false;
       }
-
-      // Status filter
       if (statusFilter === "DRIFT" && !student.hasDriftWarning) {
         return false;
       }
       if (statusFilter === "ACHIEVED" && student.overallPercentage < 75) {
         return false;
       }
-
-      // Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesName = student.fullName.toLowerCase().includes(q);
@@ -306,6 +326,20 @@ function HeatmapContent() {
       return true;
     });
   }, [data, selectedDudi, statusFilter, searchQuery]);
+
+  // Count achieved students (overall percentage >= 75%)
+  const totalAchievedCount = useMemo(() => {
+    if (!data?.students) return 0;
+    return data.students.filter((s) => s.overallPercentage >= 75).length;
+  }, [data]);
+
+  // Paginated students for both matrix table and cards view (6 per page)
+  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedStudents = useMemo(() => {
+    const start = (safeCurrentPage - 1) * PAGE_SIZE;
+    return filteredStudents.slice(start, start + PAGE_SIZE);
+  }, [filteredStudents, safeCurrentPage]);
 
   // Priority Drift Alerts extracted from all students
   const priorityAlerts = useMemo(() => {
@@ -324,8 +358,7 @@ function HeatmapContent() {
     };
 
     return alerts.sort(
-      (a, b) =>
-        (priorityMap[a.alert.alertType] || 99) - (priorityMap[b.alert.alertType] || 99)
+      (a, b) => (priorityMap[a.alert.alertType] || 99) - (priorityMap[b.alert.alertType] || 99)
     );
   }, [data]);
 
@@ -349,67 +382,59 @@ function HeatmapContent() {
   }, [user]);
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // 5 UI CONDITIONS: 1. LOADING SKELETON
+  // 1. LOADING SKELETON
   // ─────────────────────────────────────────────────────────────────────────────
   if (isLoading && !data) {
     return (
       <div className="flex flex-col lg:flex-row gap-6 items-start pb-12">
-        <div className="flex-1 min-w-0 space-y-4 sm:space-y-5 w-full">
-          {/* Desktop Greeting Skeleton */}
-          <div className="hidden lg:flex lg:h-[86px] items-center justify-between bg-white rounded-2xl px-5 border border-slate-200/70 shadow-2xs animate-pulse">
+        <div className="flex-1 min-w-0 space-y-5 w-full">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 animate-pulse">
             <div className="space-y-2">
-              <div className="h-4 w-48 bg-slate-200 rounded" />
-              <div className="h-3 w-64 bg-slate-100 rounded" />
+              <div className="h-5 w-48 bg-slate-200 rounded-full" />
+              <div className="h-3.5 w-72 bg-slate-100 rounded-full" />
             </div>
-            <div className="h-10 w-36 bg-slate-200 rounded-xl" />
+            <div className="h-9 w-36 bg-slate-200 rounded-full" />
           </div>
 
-          {/* 4 KPI Cards Skeleton */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-28 bg-white border border-slate-200/70 rounded-2xl p-4 space-y-3 animate-pulse">
-                <div className="flex justify-between">
-                  <div className="h-3 w-16 bg-slate-200 rounded" />
-                  <div className="w-8 h-8 rounded-xl bg-slate-100" />
-                </div>
-                <div className="h-6 w-20 bg-slate-200 rounded" />
+              <div
+                key={i}
+                className="h-24 bg-white border border-slate-200/70 rounded-2xl p-4 space-y-3 animate-pulse"
+              >
+                <div className="h-3 w-20 bg-slate-200 rounded-full" />
+                <div className="h-6 w-16 bg-slate-200 rounded-full" />
               </div>
             ))}
           </div>
 
-          {/* View Controller Skeleton */}
-          <div className="h-12 bg-white border border-slate-200/70 rounded-2xl animate-pulse" />
-
-          {/* Table Skeleton */}
-          <div className="h-96 bg-white border border-slate-200/70 rounded-2xl animate-pulse" />
+          <div className="h-[460px] bg-white border border-slate-200/70 rounded-2xl animate-pulse" />
         </div>
 
-        {/* Right Widget Panel Skeleton */}
-        <div className="hidden lg:flex w-[320px] xl:w-[340px] 2xl:w-[360px] flex-col gap-4 shrink-0">
-          <div className="h-[86px] bg-white border border-slate-200/70 rounded-2xl animate-pulse" />
+        <div className="hidden lg:flex w-[320px] xl:w-[340px] flex-col gap-4 shrink-0">
           <div className="h-44 bg-white border border-slate-200/70 rounded-2xl animate-pulse" />
-          <div className="h-60 bg-white border border-slate-200/70 rounded-2xl animate-pulse" />
+          <div className="h-64 bg-white border border-slate-200/70 rounded-2xl animate-pulse" />
         </div>
       </div>
     );
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // 5 UI CONDITIONS: 2. ERROR RECOVERY
+  // 2. ERROR RECOVERY
   // ─────────────────────────────────────────────────────────────────────────────
   if (errorMessage && !data) {
     return (
       <div className="flex items-center justify-center py-16 px-4">
-        <div className="bg-white p-8 rounded-2xl border border-slate-200/80 shadow-card max-w-md w-full text-center space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center mx-auto shadow-2xs">
-            <AlertOctagon className="w-7 h-7" />
+        <div className="bg-white p-8 rounded-2xl border border-slate-200/80 shadow-2xs max-w-md w-full text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+            <AlertOctagon className="w-6 h-6" />
           </div>
-          <h2 className="text-base font-extrabold text-slate-900">Gagal Memuat Dasbor Heatmap</h2>
-          <p className="text-xs text-slate-500 leading-relaxed font-normal">{errorMessage}</p>
+          <h2 className="text-base font-bold text-slate-900">Gagal Memuat Dasbor Heatmap</h2>
+          <p className="text-xs text-slate-500 leading-relaxed">{errorMessage}</p>
           <button
             type="button"
             onClick={loadHeatmapData}
-            className="w-full py-3 px-4 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+            className="w-full py-2.5 px-4 rounded-full bg-sky-500 hover:bg-sky-600 active:scale-95 text-white font-semibold text-xs shadow-xs transition cursor-pointer"
           >
             Coba Muat Ulang
           </button>
@@ -427,379 +452,195 @@ function HeatmapContent() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 items-start pb-12">
+    <div className="w-full flex flex-col lg:flex-row gap-4 sm:gap-5 items-stretch min-h-0 pb-12">
       {/* ─── LEFT: MAIN WORKSPACE ─── */}
       <section className="flex-1 min-w-0 space-y-4 sm:space-y-5 w-full">
-        {/* ─── A.1 TAMPILAN KHUSUS MOBILE: GRADIENT HERO BANNER (< lg) ─── */}
-        <div className="lg:hidden space-y-3">
-          <div className="bg-gradient-to-br from-sky-500 to-sky-700 text-white p-5 rounded-3xl shadow-card relative overflow-hidden space-y-4">
-            <div className="absolute -top-12 -right-12 w-44 h-44 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-            <div className="absolute -bottom-12 -left-12 w-44 h-44 bg-sky-400/20 rounded-full blur-2xl pointer-events-none" />
-
-            <div className="flex items-center justify-between relative z-10">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-[11px] font-bold border border-white/25">
-                <GraduationCap className="w-3.5 h-3.5" />
-                <span>{data?.department.name || "Rekayasa Perangkat Lunak"}</span>
-              </span>
-              <span className="text-[11px] font-semibold text-sky-100 bg-sky-900/40 px-2.5 py-0.5 rounded-full border border-white/15">
-                Target {TOTAL_TARGET_JP} JP
-              </span>
-            </div>
-
-            <div className="space-y-1 relative z-10">
-              <h2 className="text-xl font-black tracking-tight leading-snug">
-                Halo, {teacherFirstName}!
-              </h2>
-              <p className="text-xs text-sky-100/90 leading-relaxed font-normal">
-                Matriks ketercapaian CP, anomali penugasan kerja industri, dan intervensi pembimbing.
-              </p>
-            </div>
-
-            <div className="pt-1 flex items-center gap-2 relative z-10">
-              <button
-                type="button"
-                onClick={handleTriggerEvaluate}
-                disabled={isEvaluating}
-                className="flex-1 h-11 bg-white hover:bg-sky-50 active:scale-[0.98] text-sky-700 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition disabled:opacity-50 cursor-pointer"
-              >
-                <RefreshCw className={cn("w-4 h-4", isEvaluating && "animate-spin text-sky-700")} />
-                <span>{isEvaluating ? "Memindai Anomali..." : "Pindai Drift Sekarang"}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Quick Metric Pills di Mobile */}
-          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-2xs space-y-2.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-slate-500 text-[10.5px] uppercase tracking-wider">
-                Capaian Rata-Rata Kelas
-              </span>
-              <span className="text-xs font-bold text-sky-600">
-                {summary.averageCompetencyPercentage}% / 792 JP
-              </span>
-            </div>
-
-            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden flex gap-0.5 p-0.5">
-              <div
-                style={{ width: `${Math.min(100, summary.averageCompetencyPercentage)}%` }}
-                className={cn(
-                  "h-full rounded-full transition-all duration-500",
-                  summary.averageCompetencyPercentage >= 75 ? "bg-emerald-500" : "bg-sky-500"
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-1.5 pt-0.5">
-              <div className="p-2 rounded-xl bg-slate-50/80 border border-slate-100 text-center">
-                <span className="text-[9.5px] font-semibold text-slate-400 uppercase tracking-wider block">Siswa Aktif</span>
-                <span className="text-sm font-bold text-slate-900 mt-0.5 block">{summary.totalStudents} <span className="text-[10px] font-normal text-slate-400">Org</span></span>
-                <span className="text-[9.5px] font-semibold text-sky-700 flex items-center justify-center gap-1 mt-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
-                  Terdaftar
-                </span>
-              </div>
-
-              <div
-                onClick={() => {
-                  setStatusFilter("DRIFT");
-                  setViewMode("matrix");
-                }}
-                className={cn(
-                  "p-2 rounded-xl border text-center cursor-pointer transition active:scale-95",
-                  summary.studentsWithDrift > 0
-                    ? "bg-rose-50/80 border-rose-200/80 text-rose-900"
-                    : "bg-slate-50/80 border-slate-100 text-slate-600"
-                )}
-              >
-                <span className="text-[9.5px] font-semibold uppercase tracking-wider block opacity-75">Drift Alert</span>
-                <span className="text-sm font-bold mt-0.5 block">{summary.studentsWithDrift} <span className="text-[10px] font-normal opacity-60">Siswa</span></span>
-                <span className={cn(
-                  "text-[9.5px] font-semibold flex items-center justify-center gap-0.5 mt-0.5",
-                  summary.studentsWithDrift > 0 ? "text-rose-700" : "text-emerald-700"
-                )}>
-                  <span className={cn("w-1.5 h-1.5 rounded-full", summary.studentsWithDrift > 0 ? "bg-rose-500 animate-pulse" : "bg-emerald-500")} />
-                  {summary.studentsWithDrift > 0 ? "Lihat ›" : "Nir-Drift"}
-                </span>
-              </div>
-
-              <div
-                onClick={() => setViewMode("security")}
-                className={cn(
-                  "p-2 rounded-xl border text-center cursor-pointer transition active:scale-95",
-                  securityFlags.length > 0
-                    ? "bg-amber-50/80 border-amber-200/80 text-amber-900"
-                    : "bg-slate-50/80 border-slate-100 text-slate-600"
-                )}
-              >
-                <span className="text-[9.5px] font-semibold uppercase tracking-wider block opacity-75">Audit TC-006</span>
-                <span className="text-sm font-bold mt-0.5 block">{securityFlags.length} <span className="text-[10px] font-normal opacity-60">Kasus</span></span>
-                <span className={cn(
-                  "text-[9.5px] font-semibold flex items-center justify-center gap-0.5 mt-0.5",
-                  securityFlags.length > 0 ? "text-amber-700" : "text-slate-400"
-                )}>
-                  <span className={cn("w-1.5 h-1.5 rounded-full", securityFlags.length > 0 ? "bg-amber-500 animate-pulse" : "bg-slate-300")} />
-                  {securityFlags.length > 0 ? "Periksa ›" : "Aman"}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ─── A.2 TAMPILAN KHUSUS DESKTOP: HEADER SAPAAN + AKSI UTAMA (≥ lg) ─── */}
-        <div className="hidden lg:flex lg:h-[86px] items-center justify-between gap-6 bg-white rounded-2xl px-5 border border-slate-200/70 shadow-2xs shrink-0">
+        {/* ─── 1. CLEAN UNIFIED HEADER (MATCHING STUDENT DASHBOARD 86PX BAR) ─── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl p-4 sm:px-5 lg:h-[86px] border border-slate-200/70 shadow-2xs shrink-0">
           <div className="min-w-0 space-y-1">
-            <div className="flex items-center gap-2.5">
-              <h2 className="text-base font-bold text-slate-900 tracking-tight leading-none">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-none">
                 Halo, {teacherFirstName}!
-              </h2>
+              </h1>
               {summary.studentsWithDrift > 0 ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200/60 text-[11px] font-medium leading-none">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200/60 text-[11px] font-semibold leading-none shadow-2xs">
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                  <span>{summary.studentsWithDrift} Siswa Anomali Drift</span>
+                  <span>{summary.studentsWithDrift} Anomali Drift</span>
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[11px] font-medium leading-none">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[11px] font-medium leading-none shadow-2xs">
                   <Check className="w-3 h-3 stroke-[2.5]" />
-                  <span>Semua Siswa On-Track (Nir-Anomali)</span>
+                  <span>Semua Siswa On-Track</span>
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-500 truncate max-w-xl leading-normal">
-              {data?.department.name || "Rekayasa Perangkat Lunak"} &bull; {user?.school?.name || "SMK Telkom 1 Medan"} &bull; Target Kelulusan {TOTAL_TARGET_JP} JP &bull; {summary.totalStudents} Siswa Terdaftar
+            <p className="text-xs text-slate-500 font-normal truncate mt-0.5">
+              {data?.department.name || "Rekayasa Perangkat Lunak"} &bull;{" "}
+              {user?.school?.name || "SMK Telkom 1 Medan"} &bull; Target {TOTAL_TARGET_JP} JP
             </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-auto">
+            {securityFlags.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setViewMode("security")}
+                className="h-10 px-3.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+              >
+                <ShieldAlert className="w-3.5 h-3.5 text-rose-600 animate-pulse" />
+                <span>{securityFlags.length} Insiden Audit</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={handleTriggerEvaluate}
               disabled={isEvaluating}
-              className="h-10 px-4 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs font-semibold flex items-center justify-center gap-2 transition shadow-xs disabled:opacity-50 cursor-pointer"
+              className="h-10 px-4 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs font-semibold flex items-center gap-2 transition shadow-xs disabled:opacity-50 cursor-pointer"
             >
-              <RefreshCw className={cn("w-3.5 h-3.5", isEvaluating && "animate-spin text-white")} />
-              <span>{isEvaluating ? "Memindai Anomali..." : "Pindai Algoritma Drift"}</span>
+              <RefreshCw className={cn("w-3.5 h-3.5 text-white", isEvaluating && "animate-spin")} />
+              <span>{isEvaluating ? "Memindai..." : "Evaluasi Drift"}</span>
             </button>
           </div>
         </div>
 
-        {/* ─── B. AUDIT KEAMANAN BANNER (TC-006) ─── */}
-        {securityFlags.length > 0 && (
-          <div className="bg-gradient-to-r from-rose-50/90 via-red-50/60 to-amber-50/70 rounded-2xl border border-rose-200/90 shadow-2xs p-5 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-rose-200/70 pb-3.5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <ShieldAlert className="w-5 h-5 animate-pulse" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-sm sm:text-base font-bold text-rose-950">
-                      Bendera Peringatan Audit Keamanan (TC-006)
-                    </h2>
-                    <span className="px-2.5 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-black tracking-wide shadow-2xs">
-                      {securityFlags.length} INSIDEN AKTIF
-                    </span>
-                  </div>
-                  <p className="text-xs text-rose-800/90 font-medium mt-0.5">
-                    Sistem mendeteksi percobaan verifikasi jurnal siswa dari perangkat tidak terdaftar (HP Siswa/Incognito) atau penguncian PIN mentor.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
-              {securityFlags.map((flag) => {
-                const isUntrusted = flag.kind === "UNTRUSTED_DEVICE";
-                const isPinLockout = flag.kind === "PIN_LOCKOUT";
-
-                return (
-                  <div
-                    key={flag.id}
-                    className="p-4 rounded-xl bg-white/95 backdrop-blur-xs border border-rose-200/80 shadow-2xs space-y-3 flex flex-col justify-between"
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <span
-                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                            isUntrusted
-                              ? "bg-rose-100 text-rose-800 border border-rose-200"
-                              : isPinLockout
-                              ? "bg-amber-100 text-amber-900 border border-amber-200"
-                              : "bg-purple-100 text-purple-900 border border-purple-200"
-                          }`}
-                        >
-                          {isUntrusted
-                            ? "Perangkat Asing / Bukan HP Mentor"
-                            : isPinLockout
-                            ? "PIN Terkunci (Salah 5 Kali)"
-                            : "Pakai Ulang Tautan"}
-                        </span>
-                        <span className="text-[10.5px] text-slate-400 font-semibold">
-                          {new Date(flag.createdAt).toLocaleTimeString("id-ID", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}{" "}
-                          WIB
-                        </span>
-                      </div>
-
-                      <div>
-                        <p className="text-xs font-bold text-slate-900">
-                          {flag.studentName}{" "}
-                          <span className="text-[11px] font-normal text-slate-500">
-                            (NISN: {flag.nisn})
-                          </span>
-                        </p>
-                        <p className="text-[11px] text-slate-600 font-medium mt-0.5">
-                          {flag.dudiName} &bull; Mentor: {flag.mentorName}
-                        </p>
-                      </div>
-
-                      <p className="text-[11px] text-rose-700 bg-rose-50/80 p-2.5 rounded-xl border border-rose-100 leading-snug font-medium">
-                        {flag.meta?.note ||
-                          flag.meta?.reason ||
-                          "Percobaan persetujuan jurnal ditolak demi menjaga integritas validasi."}
-                      </p>
-                    </div>
-
-                    <div className="pt-2 flex items-center justify-between border-t border-slate-100">
-                      <span className="text-[10.5px] text-slate-400 italic font-medium">
-                        Perlu ditinjau pembimbing
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleAcknowledgeFlag(flag.id)}
-                        disabled={isAcknowledgingFlag === flag.id}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-[11px] font-bold transition disabled:opacity-50 cursor-pointer shadow-2xs"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>
-                          {isAcknowledgingFlag === flag.id
-                            ? "Menandai..."
-                            : "Tandai Telah Ditinjau"}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* ─── C. 4 KPI OVERVIEW METRIC CARDS ─── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-          {/* Siswa Binaan */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/70 shadow-2xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400">
-                Siswa Binaan
-              </span>
-              <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shadow-2xs">
-                <Users className="w-4 h-4" />
-              </div>
-            </div>
-            <div>
-              <p className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
-                {summary.totalStudents}
-              </p>
-              <p className="text-[11px] font-medium text-slate-400 mt-0.5">Siswa Terdaftar Aktif</p>
-            </div>
-          </div>
-
-          {/* Peringatan Drift */}
+        {/* ─── 2. COMPACT KPI METRIC STRIP (Konsisten dengan Kartu Siswa) ─── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Tile 1: Siswa Binaan */}
           <div
+            onClick={() => {
+              setStatusFilter("ALL");
+              if (viewMode === "security") setViewMode("matrix");
+            }}
+            className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/70 shadow-2xs hover:border-slate-300 hover:shadow-xs flex items-center gap-3 cursor-pointer transition"
+          >
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">
+                Siswa Binaan
+              </p>
+              <p className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight mt-0.5">
+                {summary.totalStudents}{" "}
+                <span className="text-xs font-normal text-slate-500">Siswa</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Tile 2: Peringatan Drift */}
+          <div
+            onClick={() => {
+              setStatusFilter(statusFilter === "DRIFT" ? "ALL" : "DRIFT");
+              if (viewMode === "security") setViewMode("matrix");
+            }}
             className={cn(
-              "p-4 sm:p-5 rounded-2xl border shadow-2xs space-y-2 transition",
-              summary.studentsWithDrift > 0
-                ? "bg-rose-50/40 border-rose-200/70 text-rose-900"
-                : "bg-white border-slate-200/70 text-slate-900"
+              "p-4 sm:p-5 rounded-2xl border shadow-2xs flex items-center gap-3 cursor-pointer transition hover:shadow-xs",
+              statusFilter === "DRIFT"
+                ? "bg-rose-50/70 border-rose-300 ring-2 ring-rose-500/20"
+                : summary.studentsWithDrift > 0
+                  ? "bg-white border-rose-200/80 hover:bg-rose-50/30"
+                  : "bg-white border-slate-200/70 hover:border-slate-300"
             )}
           >
-            <div className="flex items-center justify-between">
-              <span
+            <div
+              className={cn(
+                "w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 border",
+                summary.studentsWithDrift > 0
+                  ? "bg-rose-50 text-rose-600 border-rose-200/70"
+                  : "bg-slate-50 text-slate-400 border-slate-200/60"
+              )}
+            >
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p
                 className={cn(
-                  "text-[10.5px] font-bold uppercase tracking-wider",
+                  "text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider truncate",
                   summary.studentsWithDrift > 0 ? "text-rose-600" : "text-slate-400"
                 )}
               >
-                Peringatan Drift
-              </span>
-              <div
-                className={cn(
-                  "w-8 h-8 rounded-xl flex items-center justify-center shadow-2xs",
-                  summary.studentsWithDrift > 0 ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-500"
-                )}
-              >
-                <ShieldAlert className="w-4 h-4" />
-              </div>
-            </div>
-            <div>
-              <p className="text-xl sm:text-2xl font-bold leading-tight">
-                {summary.studentsWithDrift}
+                Anomali Drift
               </p>
-              <p className="text-[11px] font-medium opacity-75 mt-0.5">
-                {summary.studentsWithDrift > 0 ? "Perlu Tindak Lanjut" : "Nir-Anomali"}
+              <p className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight mt-0.5">
+                {summary.studentsWithDrift}{" "}
+                <span className="text-xs font-normal text-slate-500">Siswa</span>
               </p>
             </div>
           </div>
 
-          {/* Rata-Rata Capaian */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/70 shadow-2xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400">
-                Rata-Rata Capaian
-              </span>
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-2xs">
-                <TrendingUp className="w-4 h-4" />
-              </div>
+          {/* Tile 3: Rata-rata Capaian */}
+          <div
+            onClick={() => {
+              setStatusFilter(statusFilter === "ACHIEVED" ? "ALL" : "ACHIEVED");
+              if (viewMode === "security") setViewMode("matrix");
+            }}
+            className={cn(
+              "p-4 sm:p-5 rounded-2xl border shadow-2xs flex items-center gap-3 cursor-pointer transition hover:shadow-xs",
+              statusFilter === "ACHIEVED"
+                ? "bg-emerald-50/70 border-emerald-300 ring-2 ring-emerald-500/20"
+                : "bg-white border-slate-200/70 hover:border-slate-300"
+            )}
+          >
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0">
+              <TrendingUp className="w-5 h-5" />
             </div>
-            <div>
-              <p className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
-                {summary.averageCompetencyPercentage}%
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">
+                Rata-Rata CP
               </p>
-              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1.5">
-                <div
-                  className="bg-emerald-500 h-full rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, summary.averageCompetencyPercentage)}%` }}
-                />
+              <div className="flex items-baseline gap-1.5 mt-0.5">
+                <p className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
+                  {summary.averageCompetencyPercentage}%
+                </p>
+                <span className="text-[10px] text-emerald-700 font-medium truncate">
+                  ({totalAchievedCount} Tuntas)
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Audit Integritas TC-006 */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/70 shadow-2xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400">
-                Audit Integritas
-              </span>
-              <div className={cn(
-                "w-8 h-8 rounded-xl flex items-center justify-center shadow-2xs",
-                securityFlags.length > 0 ? "bg-amber-100 text-amber-700" : "bg-sky-50 text-sky-600"
-              )}>
-                <ShieldCheck className="w-4 h-4" />
-              </div>
+          {/* Tile 4: Integritas Validasi */}
+          <div
+            onClick={() => setViewMode("security")}
+            className={cn(
+              "p-4 sm:p-5 rounded-2xl border shadow-2xs flex items-center gap-3 cursor-pointer transition hover:shadow-xs",
+              viewMode === "security"
+                ? "bg-amber-50/70 border-amber-300 ring-2 ring-amber-500/20"
+                : "bg-white border-slate-200/70 hover:border-slate-300"
+            )}
+          >
+            <div
+              className={cn(
+                "w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 border",
+                securityFlags.length > 0
+                  ? "bg-amber-50 text-amber-600 border-amber-200/70"
+                  : "bg-slate-50 text-slate-500 border-slate-200/60"
+              )}
+            >
+              <ShieldCheck className="w-5 h-5" />
             </div>
-            <div>
-              <p className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
-                {securityFlags.length}
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">
+                Audit Validasi
               </p>
-              <p className="text-[11px] font-medium text-slate-400 mt-0.5">
-                {securityFlags.length > 0 ? "Percobaan Tak Wajar Ditolak" : "Validasi Bersih & Sah"}
+              <p className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight mt-0.5">
+                {securityFlags.length}{" "}
+                <span className="text-xs font-normal text-slate-500">Insiden</span>
               </p>
             </div>
           </div>
         </div>
 
-        {/* ─── D. VIEW CONTROLLER (Judul + Apple Segmented Control) ─── */}
+        {/* ─── 3. VIEW CONTROLLER (Judul & Segmented Tabs ala Dashboard Siswa) ─── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1">
-          <div>
-            <h2 className="text-sm font-semibold text-slate-900 tracking-tight">
-              Matriks Pengawasan &amp; Capaian Siswa
-            </h2>
-            <p className="text-xs text-slate-500 font-normal mt-0.5">
-              Monitoring ketercapaian CP, evaluasi drift 14 hari, dan supervisi validasi.
-            </p>
-          </div>
+          <h2 className="text-sm font-semibold text-slate-900 tracking-tight">
+            {viewMode === "matrix"
+              ? "Matriks Capaian Elemen Kompetensi Siswa"
+              : viewMode === "cards"
+              ? "Daftar Siswa Binaan & Monitoring Terpadu"
+              : "Audit Validasi & Integritas Kriptografis"}
+          </h2>
 
           {/* Apple Segmented Control Bar */}
           <div className="grid grid-cols-3 sm:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/70 text-xs font-semibold w-full sm:w-auto">
@@ -812,10 +653,10 @@ function HeatmapContent() {
                   ? "bg-white text-slate-900 shadow-2xs font-semibold"
                   : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
               )}
+              title="Matriks CP"
             >
               <LayoutGrid className="w-3.5 h-3.5" />
-              <span className="sm:hidden">Matriks</span>
-              <span className="hidden sm:inline">Matriks CP</span>
+              <span>Matriks CP</span>
             </button>
 
             <button
@@ -827,524 +668,789 @@ function HeatmapContent() {
                   ? "bg-white text-slate-900 shadow-2xs font-semibold"
                   : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
               )}
+              title="Kartu Siswa"
             >
               <CreditCard className="w-3.5 h-3.5" />
-              <span className="sm:hidden">Kartu</span>
-              <span className="hidden sm:inline">Kartu Siswa</span>
+              <span>Kartu Siswa</span>
             </button>
 
             <button
               type="button"
               onClick={() => setViewMode("security")}
               className={cn(
-                "px-2 sm:px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-[11px] sm:text-xs flex items-center justify-center gap-1.5 relative",
+                "px-2 sm:px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-[11px] sm:text-xs flex items-center justify-center gap-1.5",
                 viewMode === "security"
                   ? "bg-white text-slate-900 shadow-2xs font-semibold"
                   : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
               )}
+              title="Audit Keamanan"
             >
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span className="sm:hidden">Audit</span>
-              <span className="hidden sm:inline">Audit Keamanan</span>
+              <span>Audit</span>
               {securityFlags.length > 0 && (
-                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse ml-0.5" />
+                <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-bold leading-none">
+                  {securityFlags.length}
+                </span>
               )}
             </button>
           </div>
         </div>
 
-        {/* ─── E. FILTER & SEARCH STRIP ─── */}
-        <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-slate-200/70 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          <div className="flex flex-wrap items-center gap-2 flex-1">
-            {/* Search Box */}
-            <div className="relative min-w-[200px] flex-1 sm:flex-initial">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                placeholder="Cari siswa, NISN, atau DUDI..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full text-xs pl-9 pr-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/15 transition font-medium"
-              />
-            </div>
-
-            {/* Filter DUDI Dropdown */}
-            {dudiOptions.length > 0 && (
-              <select
-                value={selectedDudi}
-                onChange={(e) => setSelectedDudi(e.target.value)}
-                className="text-xs py-2 px-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-semibold focus:outline-none focus:border-sky-500 cursor-pointer transition"
+        {/* ─── 4. SECONDARY CONTROL BAR: Status Chips | Search, DUDI & Counter ─── */}
+        {viewMode !== "security" && (
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+            {/* Status chips ringan */}
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+              <button
+                type="button"
+                onClick={() => setStatusFilter("ALL")}
+                aria-pressed={statusFilter === "ALL"}
+                className={cn(
+                  "h-8 px-3 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer",
+                  statusFilter === "ALL"
+                    ? "bg-sky-500 text-white shadow-xs font-semibold"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                )}
               >
-                <option value="ALL">Semua Mitra DUDI ({dudiOptions.length})</option>
-                {dudiOptions.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
+                <span>Semua</span>
+                <span
+                  className={cn(
+                    "tabular-nums text-[11px]",
+                    statusFilter === "ALL" ? "text-white/80 font-medium" : "text-slate-400"
+                  )}
+                >
+                  {data?.students?.length || 0}
+                </span>
+              </button>
 
-          {/* Quick Status Filter Tabs */}
-          <div className="flex items-center gap-1 p-0.5 bg-slate-100 rounded-xl shrink-0">
-            <button
-              type="button"
-              onClick={() => setStatusFilter("ALL")}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer",
-                statusFilter === "ALL"
-                  ? "bg-white text-slate-900 shadow-2xs"
-                  : "text-slate-500 hover:text-slate-800"
-              )}
-            >
-              Semua
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatusFilter("DRIFT")}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5",
-                statusFilter === "DRIFT"
-                  ? "bg-white text-rose-600 shadow-2xs font-bold"
-                  : "text-slate-500 hover:text-rose-600"
-              )}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-              <span>Drift ({summary.studentsWithDrift})</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatusFilter("ACHIEVED")}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5",
-                statusFilter === "ACHIEVED"
-                  ? "bg-white text-emerald-700 shadow-2xs font-bold"
-                  : "text-slate-500 hover:text-emerald-700"
-              )}
-            >
-              <span>Tuntas (&ge;75%)</span>
-            </button>
-          </div>
-        </div>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("DRIFT")}
+                aria-pressed={statusFilter === "DRIFT"}
+                className={cn(
+                  "h-8 px-3 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer",
+                  statusFilter === "DRIFT"
+                    ? "bg-rose-500 text-white shadow-xs font-semibold"
+                    : "text-slate-600 hover:bg-rose-50 hover:text-rose-700"
+                )}
+              >
+                <span
+                  className={cn(
+                    "w-1.5 h-1.5 rounded-full shrink-0",
+                    statusFilter === "DRIFT" ? "bg-white" : "bg-rose-500"
+                  )}
+                />
+                <span>Drift</span>
+                <span
+                  className={cn(
+                    "tabular-nums text-[11px]",
+                    statusFilter === "DRIFT" ? "text-white/80 font-medium" : "text-slate-400"
+                  )}
+                >
+                  {summary.studentsWithDrift}
+                </span>
+              </button>
 
-        {/* ─── F. VIEW 1: MATRIX TABLE VIEW ─── */}
-        {viewMode === "matrix" && (
-          <div className="bg-white rounded-2xl border border-slate-200/70 shadow-2xs overflow-hidden">
-            <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">
-                  Matriks Ketercapaian Capaian Pembelajaran ({filteredStudents.length} Siswa)
-                </h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Pewarnaan sel memenuhi pedoman WCAG AA (Ikon status + Angka + Persentase Capaian)
-                </p>
-              </div>
-
-              {/* Legend */}
-              <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold">
-                <span className="flex items-center gap-1.5 text-slate-400">
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200 inline-block" /> 0% Belum
+              <button
+                type="button"
+                onClick={() => setStatusFilter("ACHIEVED")}
+                aria-pressed={statusFilter === "ACHIEVED"}
+                className={cn(
+                  "h-8 px-3 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer",
+                  statusFilter === "ACHIEVED"
+                    ? "bg-emerald-600 text-white shadow-xs font-semibold"
+                    : "text-slate-600 hover:bg-emerald-50 hover:text-emerald-700"
+                )}
+              >
+                <span
+                  className={cn(
+                    "w-1.5 h-1.5 rounded-full shrink-0",
+                    statusFilter === "ACHIEVED" ? "bg-white" : "bg-emerald-500"
+                  )}
+                />
+                <span>Tuntas</span>
+                <span
+                  className={cn(
+                    "tabular-nums text-[11px]",
+                    statusFilter === "ACHIEVED" ? "text-white/80 font-medium" : "text-slate-400"
+                  )}
+                >
+                  {totalAchievedCount}
                 </span>
-                <span className="flex items-center gap-1.5 text-amber-700">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" /> 1–74% Berjalan
-                </span>
-                <span className="flex items-center gap-1.5 text-emerald-700">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> &ge;75% Tuntas
-                </span>
-                <span className="flex items-center gap-1.5 text-rose-700">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" /> Drift
-                </span>
-              </div>
+              </button>
             </div>
 
-            {/* Desktop Table View */}
-            <div className="hidden lg:block overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-600">
-                    <th className="py-3.5 px-4 font-bold uppercase tracking-wider w-64 sticky left-0 bg-slate-50 z-10 border-r border-slate-200/80">
-                      Siswa &amp; Lokasi DUDI
-                    </th>
-                    {cpElements.map((cp) => (
-                      <th key={cp.id} className="py-3.5 px-3 font-bold text-center min-w-[130px] border-r border-slate-100">
-                        <p className="font-mono text-[10px] text-sky-700 font-bold bg-sky-50 px-2 py-0.5 rounded-full inline-block border border-sky-200/60">
-                          {cp.code}
-                        </p>
-                        <p className="text-[11px] text-slate-800 line-clamp-1 font-bold mt-1" title={cp.title}>
-                          {cp.title}
-                        </p>
-                        <p className="text-[10px] text-slate-400 font-normal">Target: {cp.targetJp} JP</p>
+            {/* Search + DUDI + Compact Legend & Pagination Info */}
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              {/* Search Box */}
+              <div className="relative flex-1 sm:w-56 md:w-60">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Cari siswa, NISN, DUDI..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-8 pl-9 pr-8 rounded-full bg-white border border-slate-200/90 text-xs text-slate-900 placeholder:text-slate-400 font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Filter DUDI Dropdown */}
+              {dudiOptions.length > 0 && (
+                <select
+                  value={selectedDudi}
+                  onChange={(e) => setSelectedDudi(e.target.value)}
+                  className="h-8 px-3 rounded-full bg-white border border-slate-200/90 text-[11px] font-medium text-slate-700 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs cursor-pointer max-w-[150px] truncate"
+                >
+                  <option value="ALL">Semua DUDI</option>
+                  {dudiOptions.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ─── VIEW 1: MATRIX TABLE VIEW ─── */}
+        {viewMode === "matrix" && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-2xl border border-slate-200/70 shadow-2xs overflow-hidden">
+              {/* Header Bar dengan Legend Capaian */}
+              <div className="px-4 py-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50/40">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-800">
+                    Ketercapaian per Elemen Capaian Pembelajaran (CP)
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    &bull; {filteredStudents.length} Siswa Terdaftar
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 text-[10.5px]">
+                  <span className="flex items-center gap-1.5 text-slate-400 font-medium">
+                    <span className="w-2 h-2 rounded-full bg-slate-300 inline-block" /> 0% Belum
+                  </span>
+                  <span className="flex items-center gap-1.5 text-amber-700 font-medium">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> 1–74% Berjalan
+                  </span>
+                  <span className="flex items-center gap-1.5 text-emerald-700 font-medium">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> &ge;75% Tuntas
+                  </span>
+                </div>
+              </div>
+
+              {/* Desktop Table */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50/70 border-b border-slate-200/70 text-slate-500">
+                      <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[10.5px] w-72 sticky left-0 bg-slate-50 z-10 border-r border-slate-200/70">
+                        Siswa &amp; Mitra DUDI ({filteredStudents.length})
                       </th>
-                    ))}
-                    <th className="py-3.5 px-4 font-bold text-center w-36">
-                      Total Capaian
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredStudents.length === 0 ? (
-                    <tr>
-                      <td colSpan={cpElements.length + 2} className="py-12 text-center text-slate-400 font-medium">
-                        Tidak ada data siswa yang memenuhi filter ini.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredStudents.map((student) => {
-                      const initials = student.fullName
-                        .split(" ")
-                        .map((w) => w[0])
-                        .slice(0, 2)
-                        .join("")
-                        .toUpperCase();
-
-                      return (
-                        <tr
-                          key={student.studentId}
-                          onClick={() => setSelectedStudent(student)}
-                          className={cn(
-                            "hover:bg-sky-50/40 transition cursor-pointer",
-                            student.hasDriftWarning && "bg-rose-50/25"
-                          )}
+                      {cpElements.map((cp) => (
+                        <th
+                          key={cp.id}
+                          className="py-3 px-3 text-center min-w-[125px] border-r border-slate-100"
                         >
-                          <td className="py-3 px-4 sticky left-0 bg-white hover:bg-slate-50/90 z-10 border-r border-slate-200/80">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-400 to-sky-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">
-                                {initials}
-                              </div>
-                              <div className="space-y-0.5 min-w-0">
-                                <p className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                                  <span className="truncate">{student.fullName}</span>
-                                  {student.hasDriftWarning && (
-                                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" title="Siswa Mengalami Anomali Drift" />
-                                  )}
-                                </p>
-                                <p className="text-[11px] text-slate-500 flex items-center gap-1">
-                                  <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
-                                  <span className="truncate max-w-[150px]">{student.placement.dudiName}</span>
-                                </p>
-                              </div>
-                            </div>
-                          </td>
+                          <span className="font-mono text-[10px] text-sky-700 font-semibold bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200/60">
+                            {cp.code}
+                          </span>
+                          <p
+                            className="text-[11px] text-slate-700 line-clamp-1 font-semibold mt-1"
+                            title={cp.title}
+                          >
+                            {cp.title}
+                          </p>
+                          <p className="text-[10px] text-slate-400 font-normal">{cp.targetJp} JP</p>
+                        </th>
+                      ))}
+                      <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[10.5px] text-center w-36">
+                        Total Progres
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredStudents.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={cpElements.length + 2}
+                          className="py-14 text-center text-slate-400 font-normal"
+                        >
+                          Tidak ada data siswa yang sesuai dengan filter pencarian.
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedStudents.map((student) => {
+                        const initials = student.fullName
+                          .split(" ")
+                          .map((w) => w[0])
+                          .slice(0, 2)
+                          .join("")
+                          .toUpperCase();
 
-                          {student.cpProgress.map((cp) => {
-                            const isAchieved = cp.status === "ACHIEVED";
-                            const isInProgress = cp.status === "IN_PROGRESS";
-
-                            return (
-                              <td key={cp.cpElementId} className="py-2.5 px-2 text-center border-r border-slate-100">
+                        return (
+                          <tr
+                            key={student.studentId}
+                            onClick={() => setSelectedStudent(student)}
+                            className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                          >
+                            <td className="py-3 px-4 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200/70">
+                              <div className="flex items-center gap-2.5">
                                 <div
                                   className={cn(
-                                    "p-2 rounded-xl text-center space-y-0.5 transition",
-                                    isAchieved
-                                      ? "bg-emerald-50 text-emerald-800 border border-emerald-200/80"
-                                      : isInProgress
-                                      ? "bg-amber-50 text-amber-900 border border-amber-200/80"
-                                      : "bg-slate-50/70 text-slate-400 border border-slate-200/60"
+                                    "w-8 h-8 rounded-xl font-bold text-[11px] flex items-center justify-center shrink-0",
+                                    student.hasDriftWarning
+                                      ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                      : "bg-slate-100 text-slate-700"
                                   )}
                                 >
-                                  <div className="flex items-center justify-center gap-1">
-                                    {isAchieved ? (
-                                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                    ) : isInProgress ? (
-                                      <Clock className="w-3 h-3 text-amber-600" />
-                                    ) : (
-                                      <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                                  {initials}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <p className="font-semibold text-slate-900 group-hover:text-sky-600 transition-colors truncate">
+                                      {student.fullName}
+                                    </p>
+                                    {student.hasDriftWarning && (
+                                      <span
+                                        className="w-2 h-2 rounded-full bg-rose-500 shrink-0"
+                                        title="Terdeteksi Anomali Drift"
+                                      />
                                     )}
-                                    <span className="font-bold text-xs">{cp.percentage}%</span>
                                   </div>
-                                  <p className="text-[10px] font-medium opacity-75">
-                                    {cp.verifiedJp}/{cp.targetJp} JP
+                                  <p className="text-[11px] text-slate-400 truncate">
+                                    {student.placement.dudiName}
                                   </p>
                                 </div>
-                              </td>
-                            );
-                          })}
-
-                          <td className="py-3 px-4 text-center">
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between text-[11px] font-bold">
-                                <span className="text-slate-900">{student.overallPercentage}%</span>
-                                <span className="text-slate-500 font-mono text-[10px]">
-                                  {student.totalVerifiedJp} JP
-                                </span>
                               </div>
-                              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                                <div
-                                  className={cn(
-                                    "h-full rounded-full transition-all duration-500",
-                                    student.hasDriftWarning
-                                      ? "bg-rose-500"
-                                      : student.overallPercentage >= 75
-                                      ? "bg-emerald-500"
-                                      : "bg-sky-500"
-                                  )}
-                                  style={{ width: `${Math.min(100, student.overallPercentage)}%` }}
-                                />
+                            </td>
+
+                            {student.cpProgress.map((cp) => {
+                              const isAchieved = cp.status === "ACHIEVED";
+                              const isInProgress = cp.status === "IN_PROGRESS";
+
+                              return (
+                                <td
+                                  key={cp.cpElementId}
+                                  className="py-2.5 px-2 text-center border-r border-slate-100"
+                                >
+                                  <div className="inline-flex flex-col items-center w-full max-w-[84px] space-y-1">
+                                    <div className="flex items-center justify-center gap-1">
+                                      {isAchieved ? (
+                                        <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                                      ) : isInProgress ? (
+                                        <Clock className="w-3 h-3 text-amber-500 shrink-0" />
+                                      ) : (
+                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0" />
+                                      )}
+                                      <span
+                                        className={cn(
+                                          "text-xs font-bold",
+                                          isAchieved
+                                            ? "text-emerald-700"
+                                            : isInProgress
+                                              ? "text-amber-700"
+                                              : "text-slate-400"
+                                        )}
+                                      >
+                                        {cp.percentage}%
+                                      </span>
+                                    </div>
+                                    <div className="w-full h-1 rounded-full bg-slate-100 overflow-hidden">
+                                      <div
+                                        className={cn(
+                                          "h-full rounded-full transition-all duration-300",
+                                          isAchieved
+                                            ? "bg-emerald-500"
+                                            : isInProgress
+                                              ? "bg-amber-400"
+                                              : "bg-transparent"
+                                        )}
+                                        style={{
+                                          width: `${Math.min(100, cp.percentage)}%`,
+                                          minWidth: cp.percentage > 0 ? "4px" : "0px",
+                                        }}
+                                      />
+                                    </div>
+                                    <span className="text-[9.5px] text-slate-400 font-mono leading-none">
+                                      {cp.verifiedJp}/{cp.targetJp} JP
+                                    </span>
+                                  </div>
+                                </td>
+                              );
+                            })}
+
+                            <td className="py-3 px-4 text-center">
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between text-[11px]">
+                                  <span className="font-bold text-slate-900">
+                                    {student.overallPercentage}%
+                                  </span>
+                                  <span className="text-slate-400 font-mono text-[10px]">
+                                    {student.totalVerifiedJp} JP
+                                  </span>
+                                </div>
+                                <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden">
+                                  <div
+                                    className={cn(
+                                      "h-full rounded-full transition-all duration-500",
+                                      student.hasDriftWarning
+                                        ? "bg-rose-500"
+                                        : student.overallPercentage >= 75
+                                          ? "bg-emerald-500"
+                                          : "bg-sky-500"
+                                    )}
+                                    style={{
+                                      width: `${Math.min(100, student.overallPercentage)}%`,
+                                      minWidth: student.overallPercentage > 0 ? "4px" : "0px",
+                                    }}
+                                  />
+                                </div>
                               </div>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
-            {/* Mobile / Tablet Accordion Feed (< lg) */}
-            <div className="lg:hidden divide-y divide-slate-100">
-              {filteredStudents.length === 0 ? (
-                <div className="p-8 text-center text-slate-400 text-xs">
-                  Tidak ada data siswa yang memenuhi filter ini.
-                </div>
-              ) : (
-                filteredStudents.map((student) => {
-                  const initials = student.fullName
-                    .split(" ")
-                    .map((w) => w[0])
-                    .slice(0, 2)
-                    .join("")
-                    .toUpperCase();
+              {/* Mobile / Tablet List View (< lg) */}
+              <div className="lg:hidden divide-y divide-slate-100">
+                {filteredStudents.length === 0 ? (
+                  <div className="p-10 text-center text-slate-400 text-xs">
+                    Tidak ada data siswa yang sesuai dengan filter ini.
+                  </div>
+                ) : (
+                  paginatedStudents.map((student) => {
+                    const initials = student.fullName
+                      .split(" ")
+                      .map((w) => w[0])
+                      .slice(0, 2)
+                      .join("")
+                      .toUpperCase();
 
-                  return (
-                    <div
-                      key={student.studentId}
-                      onClick={() => setSelectedStudent(student)}
-                      className="p-4 space-y-3 hover:bg-slate-50/70 transition cursor-pointer"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-400 to-sky-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">
-                            {initials}
-                          </div>
-                          <div>
-                            <p className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                              <span>{student.fullName}</span>
-                              {student.hasDriftWarning && (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
-                                  Drift
-                                </span>
+                    return (
+                      <div
+                        key={student.studentId}
+                        onClick={() => setSelectedStudent(student)}
+                        className="p-4 space-y-3 hover:bg-slate-50/70 transition cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div
+                              className={cn(
+                                "w-9 h-9 rounded-xl font-bold text-xs flex items-center justify-center shrink-0",
+                                student.hasDriftWarning
+                                  ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                  : "bg-slate-100 text-slate-700"
                               )}
-                            </p>
-                            <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5 font-normal">
-                              <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                              <span className="truncate max-w-[200px]">{student.placement.dudiName}</span>
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="text-right">
-                          <span className="text-sm font-bold text-slate-900">
-                            {student.overallPercentage}%
-                          </span>
-                          <p className="text-[10px] text-slate-400 font-mono">
-                            {student.totalVerifiedJp}/{TOTAL_TARGET_JP} JP
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
-                        {student.cpProgress.map((cp) => (
-                          <div
-                            key={cp.cpElementId}
-                            className={cn(
-                              "p-2 rounded-xl text-xs space-y-0.5 border",
-                              cp.status === "ACHIEVED"
-                                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                                : cp.status === "IN_PROGRESS"
-                                ? "bg-amber-50 border-amber-200 text-amber-900"
-                                : "bg-slate-50 border-slate-100 text-slate-400"
-                            )}
-                          >
-                            <p className="text-[10px] font-mono font-bold truncate">{cp.code}</p>
-                            <div className="flex items-center justify-between font-bold">
-                              <span>{cp.percentage}%</span>
-                              <span className="text-[10px] font-normal opacity-80">{cp.verifiedJp} JP</span>
+                            >
+                              {initials}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <p className="font-semibold text-slate-900 text-sm truncate">
+                                  {student.fullName}
+                                </p>
+                                {student.hasDriftWarning && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/70">
+                                    Drift
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-slate-500 truncate">
+                                {student.placement.dudiName}
+                              </p>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        )}
 
-        {/* ─── G. VIEW 2: CARDS GRID VIEW ─── */}
-        {viewMode === "cards" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredStudents.map((student) => {
-              const initials = student.fullName
-                .split(" ")
-                .map((w) => w[0])
-                .slice(0, 2)
-                .join("")
-                .toUpperCase();
-
-              return (
-                <div
-                  key={student.studentId}
-                  className="bg-white rounded-2xl p-5 border border-slate-200/70 shadow-2xs space-y-4 hover:shadow-card hover:border-sky-300 transition-all group"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 to-sky-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">
-                        {initials}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-sm text-slate-900 truncate">
-                            {student.fullName}
-                          </h3>
-                          {student.hasDriftWarning && (
-                            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-100 text-rose-800 shrink-0">
-                              Drift
+                          <div className="text-right shrink-0">
+                            <span className="text-sm font-bold text-slate-900">
+                              {student.overallPercentage}%
                             </span>
-                          )}
+                            <p className="text-[10px] text-slate-400 font-mono">
+                              {student.totalVerifiedJp}/{TOTAL_TARGET_JP} JP
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                          NISN: {student.nisn} &bull; {student.placement.dudiName}
-                        </p>
+
+                        {/* Simplified Horizontal Scroll CP Badges for Mobile */}
+                        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 text-[11px] font-mono">
+                          {student.cpProgress.map((cp, idx) => (
+                            <React.Fragment key={cp.cpElementId}>
+                              {idx > 0 && <span className="text-slate-300 select-none">&bull;</span>}
+                              <span className="shrink-0 flex items-center gap-1">
+                                <span className="text-slate-500">{cp.code}:</span>
+                                <span
+                                  className={cn(
+                                    "font-bold",
+                                    cp.status === "ACHIEVED"
+                                      ? "text-emerald-700"
+                                      : cp.status === "IN_PROGRESS"
+                                        ? "text-amber-700"
+                                        : "text-slate-400"
+                                  )}
+                                >
+                                  {cp.percentage}%
+                                </span>
+                              </span>
+                            </React.Fragment>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="text-right shrink-0">
-                      <span className="text-base font-bold text-slate-900">
-                        {student.overallPercentage}%
-                      </span>
-                      <p className="text-[10px] text-slate-400 font-mono">
-                        {student.totalVerifiedJp}/{TOTAL_TARGET_JP} JP
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div
-                      className={cn(
-                        "h-full rounded-full transition-all duration-500",
-                        student.hasDriftWarning
-                          ? "bg-rose-500"
-                          : student.overallPercentage >= 75
-                          ? "bg-emerald-500"
-                          : "bg-sky-500"
-                      )}
-                      style={{ width: `${Math.min(100, student.overallPercentage)}%` }}
-                    />
-                  </div>
-
-                  {/* Workload 14-days breakdown */}
-                  <div className="grid grid-cols-2 gap-2 text-[11px]">
-                    <div className="p-2.5 rounded-xl bg-sky-50/70 border border-sky-100">
-                      <span className="text-[9.5px] uppercase font-bold text-sky-800 block">Jam Teknis</span>
-                      <p className="font-bold text-slate-900 mt-0.5">
-                        {student.totalJpLast14Days - student.nonCompetencyJpLast14Days} JP
-                      </p>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70">
-                      <span className="text-[9.5px] uppercase font-bold text-slate-500 block">Non-Kompetensi</span>
-                      <p className="font-bold text-slate-900 mt-0.5">
-                        {student.nonCompetencyJpLast14Days} JP
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Action buttons */}
-                  <div className="pt-2 flex items-center justify-between border-t border-slate-100">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedStudent(student)}
-                      className="text-xs font-semibold text-slate-600 hover:text-sky-600 flex items-center gap-1 cursor-pointer transition"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>Rincian Jam Kerja</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => openInterventionModal(student)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-semibold shadow-2xs transition cursor-pointer"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>Intervensi WA</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* ─── H. VIEW 3: AUDIT KEAMANAN (TC-006) ─── */}
-        {viewMode === "security" && (
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/70 shadow-2xs space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2.5">
-                <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">
-                    Log Audit Keamanan &amp; Integritas Verifikasi (TC-006)
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Mencatat semua percobaan validasi yang ditolak oleh sistem karena perangkat asing atau kesalahan PIN berulang.
-                  </p>
-                </div>
+                    );
+                  })
+                )}
               </div>
             </div>
 
-            {securityFlags.length === 0 ? (
-              <div className="py-12 text-center space-y-2">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center mx-auto shadow-xs">
-                  <CheckCircle2 className="w-6 h-6" />
-                </div>
-                <h4 className="text-sm font-bold text-slate-900">Seluruh Validasi Mentor Bersih</h4>
-                <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                  Tidak ada percobaan otentikasi mencurigakan atau penguncian PIN mentor pada sekolah Anda.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {securityFlags.map((flag) => (
-                  <div
-                    key={flag.id}
-                    className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+            {/* ─── Modern Minimalist Centered Pagination (TERPISAH DARI CARD UTAMA) ─── */}
+            {totalPages > 1 && (
+              <div className="pt-4 border-t border-slate-200/60 flex items-center justify-center">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <button
+                    type="button"
+                    disabled={safeCurrentPage <= 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    className="h-9 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs"
+                    title="Halaman Sebelumnya"
                   >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-rose-100 text-rose-800">
-                          {flag.kind}
-                        </span>
-                        <span className="text-[11px] font-bold text-slate-900">
-                          {flag.studentName} ({flag.dudiName})
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-600">
-                        {flag.meta?.note || flag.meta?.reason || "Percobaan verifikasi ditolak oleh gerbang keamanan."}
-                      </p>
-                    </div>
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>Sebelumnya</span>
+                  </button>
 
-                    <button
-                      type="button"
-                      onClick={() => handleAcknowledgeFlag(flag.id)}
-                      className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shrink-0 transition"
-                    >
-                      Tandai Telah Ditinjau
-                    </button>
+                  <div className="flex items-center gap-1 sm:gap-1.5 mx-0.5 sm:mx-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter((page) => {
+                        if (totalPages <= 5) return true;
+                        return (
+                          page === 1 ||
+                          page === totalPages ||
+                          Math.abs(page - safeCurrentPage) <= 1
+                        );
+                      })
+                      .map((page, idx, arr) => {
+                        const prev = arr[idx - 1];
+                        const showEllipsis = prev && page - prev > 1;
+                        return (
+                          <React.Fragment key={page}>
+                            {showEllipsis && <span className="px-1 text-slate-400 text-xs sm:text-sm">...</span>}
+                            <button
+                              type="button"
+                              onClick={() => setCurrentPage(page)}
+                              className={cn(
+                                "min-w-[36px] h-9 px-2.5 rounded-xl text-xs sm:text-sm flex items-center justify-center transition-all cursor-pointer",
+                                safeCurrentPage === page
+                                  ? "bg-sky-500 text-white font-bold shadow-xs border border-sky-500"
+                                  : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs"
+                              )}
+                            >
+                              {page}
+                            </button>
+                          </React.Fragment>
+                        );
+                      })}
                   </div>
-                ))}
+
+                  <button
+                    type="button"
+                    disabled={safeCurrentPage >= totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, safeCurrentPage + 1))}
+                    className="h-9 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs"
+                    title="Halaman Berikutnya"
+                  >
+                    <span>Berikutnya</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             )}
           </div>
-        )}
+          )}
+
+          {/* ─── VIEW 2: CARDS GRID VIEW ─── */}
+          {viewMode === "cards" && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
+                {paginatedStudents.length === 0 ? (
+                  <div className="col-span-full py-12 text-center space-y-2 bg-white rounded-2xl border border-dashed border-slate-200/90 p-8 shadow-2xs">
+                    <p className="text-xs font-semibold text-slate-700">
+                      Tidak ada siswa yang sesuai filter
+                    </p>
+                    <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                      Silakan sesuaikan kata kunci pencarian atau pilihan filter status di atas.
+                    </p>
+                  </div>
+                ) : (
+                  paginatedStudents.map((student) => {
+                    const initials = student.fullName
+                      .split(" ")
+                      .map((w) => w[0])
+                      .slice(0, 2)
+                      .join("")
+                      .toUpperCase();
+
+                    return (
+                      <div
+                        key={student.studentId}
+                        className="rounded-2xl p-4 sm:p-4.5 border border-slate-200/70 hover:border-slate-300 hover:shadow-xs transition-all flex flex-col justify-between space-y-3.5 bg-white shadow-2xs group"
+                      >
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div
+                                className={cn(
+                                  "w-9 h-9 rounded-xl font-bold text-xs flex items-center justify-center shrink-0",
+                                  student.hasDriftWarning
+                                    ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                    : "bg-slate-100 text-slate-700"
+                                )}
+                              >
+                                {initials}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <h3 className="font-semibold text-xs sm:text-sm text-slate-900 group-hover:text-sky-600 transition-colors truncate">
+                                    {student.fullName}
+                                  </h3>
+                                </div>
+                                <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                                  {student.placement.dudiName} &bull; NISN {student.nisn}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="shrink-0 flex flex-col items-end gap-1">
+                              {student.hasDriftWarning ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200/70 text-[10.5px] font-semibold leading-none shadow-2xs">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                                  <span>Drift</span>
+                                </span>
+                              ) : student.overallPercentage >= 75 ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[10.5px] font-semibold leading-none shadow-2xs">
+                                  <Check className="w-3 h-3 stroke-[2.5]" />
+                                  <span>Tuntas</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200/70 text-[10.5px] font-semibold leading-none shadow-2xs">
+                                  <span>On-Track</span>
+                                </span>
+                              )}
+                              <span className="text-[11px] font-bold text-slate-900 font-mono">
+                                {student.overallPercentage}%
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className={cn(
+                                "h-full rounded-full transition-all duration-500",
+                                student.hasDriftWarning
+                                  ? "bg-rose-500"
+                                  : student.overallPercentage >= 75
+                                    ? "bg-emerald-500"
+                                    : "bg-sky-500"
+                              )}
+                              style={{ width: `${Math.min(100, student.overallPercentage)}%` }}
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between text-xs px-3 py-2 rounded-xl bg-slate-50 border border-slate-200/60">
+                            <div>
+                              <span className="text-slate-400 text-[11px]">14 Hari Terakhir: </span>
+                              <span className="font-semibold text-slate-800">
+                                {student.totalJpLast14Days - student.nonCompetencyJpLast14Days} JP
+                                Teknis
+                              </span>
+                            </div>
+                            <span
+                              className={cn(
+                                "text-[11px] font-medium",
+                                student.nonCompetencyJpLast14Days > 0
+                                  ? "text-amber-700"
+                                  : "text-slate-400"
+                              )}
+                            >
+                              {student.nonCompetencyJpLast14Days} JP Non-Jurusan
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="pt-2.5 flex items-center justify-between border-t border-slate-100">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedStudent(student)}
+                            className="text-xs font-medium text-slate-600 hover:text-slate-900 flex items-center gap-1 cursor-pointer transition"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Rincian CP</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => openInterventionModal(student)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-xs font-semibold transition cursor-pointer"
+                          >
+                            <Sparkles className="w-3 h-3 text-sky-400" />
+                            <span>Intervensi</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Modern Minimalist Centered Pagination for Cards View */}
+              {totalPages > 1 && (
+                <div className="pt-4 border-t border-slate-200/60 flex items-center justify-center">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <button
+                      type="button"
+                      disabled={safeCurrentPage <= 1}
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      className="h-9 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs"
+                      title="Halaman Sebelumnya"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span>Sebelumnya</span>
+                    </button>
+
+                    <div className="flex items-center gap-1 sm:gap-1.5 mx-0.5 sm:mx-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter((page) => {
+                          if (totalPages <= 5) return true;
+                          return (
+                            page === 1 ||
+                            page === totalPages ||
+                            Math.abs(page - safeCurrentPage) <= 1
+                          );
+                        })
+                        .map((page, idx, arr) => {
+                          const prev = arr[idx - 1];
+                          const showEllipsis = prev && page - prev > 1;
+                          return (
+                            <React.Fragment key={page}>
+                              {showEllipsis && <span className="px-1 text-slate-400 text-xs sm:text-sm">...</span>}
+                              <button
+                                type="button"
+                                onClick={() => setCurrentPage(page)}
+                                className={cn(
+                                  "min-w-[36px] h-9 px-2.5 rounded-xl text-xs sm:text-sm flex items-center justify-center transition-all cursor-pointer",
+                                  safeCurrentPage === page
+                                    ? "bg-sky-500 text-white font-bold shadow-xs border border-sky-500"
+                                    : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs"
+                                )}
+                              >
+                                {page}
+                              </button>
+                            </React.Fragment>
+                          );
+                        })}
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={safeCurrentPage >= totalPages}
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, safeCurrentPage + 1))}
+                      className="h-9 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs"
+                      title="Halaman Berikutnya"
+                    >
+                      <span>Berikutnya</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ─── VIEW 3: AUDIT KEAMANAN ─── */}
+          {viewMode === "security" && (
+            <div className="bg-white rounded-2xl border border-slate-200/70 shadow-2xs p-5 sm:p-6">
+              {securityFlags.length === 0 ? (
+                <div className="py-10 text-center space-y-2">
+                  <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200/70 flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-sm font-semibold text-slate-900">
+                    Seluruh Validasi Mentor Bersih &amp; Sah
+                  </h4>
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                    Tidak ada percobaan otentikasi mencurigakan atau penguncian PIN mentor pada
+                    sekolah Anda.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {securityFlags.map((flag) => (
+                    <div
+                      key={flag.id}
+                      className="py-3.5 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/70">
+                            {flag.kind === "UNTRUSTED_DEVICE"
+                              ? "Perangkat Asing"
+                              : flag.kind === "PIN_LOCKOUT"
+                                ? "PIN Terkunci (5x Salah)"
+                                : "Penggunaan Ulang Tautan"}
+                          </span>
+                          <span className="text-xs font-semibold text-slate-900">
+                            {flag.studentName} &bull; {flag.dudiName}
+                          </span>
+                          <span className="text-[11px] text-slate-400">
+                            {new Date(flag.createdAt).toLocaleTimeString("id-ID", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}{" "}
+                            WIB
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500">
+                          {flag.meta?.note ||
+                            flag.meta?.reason ||
+                            "Percobaan verifikasi ditolak oleh gerbang keamanan."}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleAcknowledgeFlag(flag.id)}
+                        disabled={isAcknowledgingFlag === flag.id}
+                        className="px-3.5 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shrink-0 transition disabled:opacity-50 cursor-pointer self-start sm:self-auto"
+                      >
+                        {isAcknowledgingFlag === flag.id ? "Menandai..." : "Tandai Ditinjau"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
       </section>
 
       {/* ─── RIGHT: COMPANION WIDGET PANEL (Desktop >= lg) ─── */}
       <TeacherWidgetPanel
         teacherName={user?.fullName || "Budi Santoso, S.Kom"}
         schoolName={user?.school?.name || "SMK Telkom 1 Medan"}
-        departmentName={user?.department?.name || data?.department.name || "Rekayasa Perangkat Lunak"}
+        departmentName={
+          user?.department?.name || data?.department.name || "Rekayasa Perangkat Lunak"
+        }
         averagePercentage={summary.averageCompetencyPercentage}
         totalStudents={summary.totalStudents}
         driftCount={summary.studentsWithDrift}
@@ -1356,16 +1462,24 @@ function HeatmapContent() {
 
       {/* ─────────────────────────────────────────────────────────────────────────────
           MODAL 1: DETAIL SISWA & BREAKDOWN DISTRIBUSI JAM
-         ───────────────────────────────────────────────────────────────────────────── */}
+      ───────────────────────────────────────────────────────────────────────────── */}
       {selectedStudent && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in-0 duration-150">
-          <div className="bg-white w-full max-w-xl rounded-2xl sm:rounded-3xl p-6 sm:p-7 border border-slate-200/70 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+        <div
+          onClick={() => setSelectedStudent(null)}
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in-0 duration-150"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-6 pb-[env(safe-area-inset-bottom,1.5rem)] sm:pb-6 border border-slate-200/80 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <span className="text-[10px] font-bold text-sky-600 uppercase tracking-wider block">
-                  Rincian Pengawasan Siswa
+                <span className="text-[10px] font-semibold text-sky-600 uppercase tracking-wider block">
+                  Rincian Capaian Siswa
                 </span>
-                <h3 className="font-bold text-base text-slate-900">{selectedStudent.fullName}</h3>
+                <h3 className="font-semibold text-base text-slate-900">
+                  {selectedStudent.fullName}
+                </h3>
               </div>
               <button
                 type="button"
@@ -1376,80 +1490,70 @@ function HeatmapContent() {
               </button>
             </div>
 
-            {/* Profil & Penempatan DUDI */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 text-xs space-y-2">
+            <div className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/70 text-xs space-y-2">
               <div className="flex justify-between">
-                <span className="text-slate-400 font-bold uppercase">NISN:</span>
-                <span className="font-mono font-bold text-slate-800">{selectedStudent.nisn}</span>
+                <span className="text-slate-500">NISN:</span>
+                <span className="font-mono font-semibold text-slate-800">
+                  {selectedStudent.nisn}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400 font-bold uppercase">Tempat Magang:</span>
-                <span className="font-bold text-slate-800">{selectedStudent.placement.dudiName}</span>
+                <span className="text-slate-500">Mitra DUDI:</span>
+                <span className="font-semibold text-slate-800">
+                  {selectedStudent.placement.dudiName}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400 font-bold uppercase">Mentor Industri:</span>
-                <span className="font-medium text-slate-700">
+                <span className="text-slate-500">Mentor Industri:</span>
+                <span className="font-medium text-slate-800">
                   {selectedStudent.placement.mentorName}{" "}
-                  {selectedStudent.placement.mentorPhone && `(${selectedStudent.placement.mentorPhone})`}
+                  {selectedStudent.placement.mentorPhone &&
+                    `(${selectedStudent.placement.mentorPhone})`}
                 </span>
               </div>
             </div>
 
-            {/* Workload Breakdown: Teknis vs Tombol Jujur Non-Kompetensi */}
-            <div className="space-y-2">
-              <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Distribusi Jam Kerja 14 Hari Terakhir:
-              </p>
-              <div className="grid grid-cols-2 gap-3 text-center">
-                <div className="p-3.5 rounded-xl bg-sky-50 border border-sky-100 text-sky-900">
-                  <p className="text-[10px] font-bold uppercase">Jam Teknis Kejuruan</p>
-                  <p className="text-lg font-bold mt-0.5">
-                    {selectedStudent.totalJpLast14Days - selectedStudent.nonCompetencyJpLast14Days} JP
-                  </p>
-                </div>
-                <div
-                  className={cn(
-                    "p-3.5 rounded-xl border",
-                    selectedStudent.nonCompetencyJpLast14Days > 0
-                      ? "bg-rose-50 border-rose-200 text-rose-900"
-                      : "bg-slate-50 border-slate-100 text-slate-600"
-                  )}
-                >
-                  <p className="text-[10px] font-bold uppercase">Non-Kejuruan (Tombol Jujur)</p>
-                  <p className="text-lg font-bold mt-0.5">
-                    {selectedStudent.nonCompetencyJpLast14Days} JP
-                  </p>
-                </div>
+            <div className="grid grid-cols-2 gap-2.5 text-center">
+              <div className="p-3 rounded-2xl bg-sky-50/70 border border-sky-200/60">
+                <p className="text-[10px] font-semibold uppercase text-sky-700">
+                  Jam Teknis (14 Hr)
+                </p>
+                <p className="text-base font-bold text-slate-900 mt-0.5">
+                  {selectedStudent.totalJpLast14Days - selectedStudent.nonCompetencyJpLast14Days} JP
+                </p>
+              </div>
+              <div
+                className={cn(
+                  "p-3 rounded-2xl border",
+                  selectedStudent.nonCompetencyJpLast14Days > 0
+                    ? "bg-rose-50/70 border-rose-200/70 text-rose-900"
+                    : "bg-slate-50 border-slate-200/60 text-slate-600"
+                )}
+              >
+                <p className="text-[10px] font-semibold uppercase">Non-Kejuruan (14 Hr)</p>
+                <p className="text-base font-bold mt-0.5">
+                  {selectedStudent.nonCompetencyJpLast14Days} JP
+                </p>
               </div>
             </div>
 
-            {/* Rincian per Elemen CP */}
             <div className="space-y-2">
-              <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Capaian Tiap Elemen CP (dari Target {TOTAL_TARGET_JP} JP):
+              <p className="text-xs font-semibold text-slate-700">
+                Progres Elemen CP (Target {TOTAL_TARGET_JP} JP):
               </p>
               <div className="space-y-2">
                 {selectedStudent.cpProgress.map((cp) => (
                   <div
                     key={cp.cpElementId}
-                    className="p-3.5 rounded-xl border border-slate-100 bg-white text-xs space-y-1.5 shadow-2xs"
+                    className="p-3 rounded-2xl border border-slate-200/70 bg-white text-xs space-y-1.5"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-900">{cp.title}</span>
-                      <span
-                        className={cn(
-                          "font-bold px-2 py-0.5 rounded-full text-[10px]",
-                          cp.status === "ACHIEVED"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : cp.status === "IN_PROGRESS"
-                            ? "bg-amber-100 text-amber-800"
-                            : "bg-slate-100 text-slate-600"
-                        )}
-                      >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-slate-800 truncate">{cp.title}</span>
+                      <span className="font-mono text-[11px] font-semibold text-slate-700 shrink-0">
                         {cp.percentage}% ({cp.verifiedJp}/{cp.targetJp} JP)
                       </span>
                     </div>
-                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                       <div
                         className={cn(
                           "h-full rounded-full",
@@ -1463,8 +1567,7 @@ function HeatmapContent() {
               </div>
             </div>
 
-            {/* Quick Action Button */}
-            <div className="pt-2">
+            <div className="pt-1 flex gap-2">
               <button
                 type="button"
                 onClick={() => {
@@ -1472,10 +1575,10 @@ function HeatmapContent() {
                   setSelectedStudent(null);
                   openInterventionModal(st);
                 }}
-                className="w-full h-11 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
+                className="flex-1 h-10 rounded-full bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
               >
-                <Sparkles className="w-4 h-4" />
-                <span>Buka Smart Intervention Dispatcher &amp; Rotasi (FR-009)</span>
+                <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+                <span>Intervensi &amp; Rotasi Mitra</span>
               </button>
             </div>
           </div>
@@ -1483,26 +1586,28 @@ function HeatmapContent() {
       )}
 
       {/* ─────────────────────────────────────────────────────────────────────────────
-          MODAL 2: SMART INTERVENTION DISPATCHER & MID-TERM ROTATION (FR-009)
-         ───────────────────────────────────────────────────────────────────────────── */}
+          MODAL 2: SMART INTERVENTION DISPATCHER & MID-TERM ROTATION
+      ───────────────────────────────────────────────────────────────────────────── */}
       {interventionStudent && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-in fade-in-0 duration-150">
-          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl border border-slate-200/70 space-y-5 my-8">
-            <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+        <div
+          onClick={() => {
+            setInterventionStudent(null);
+            setInterventionSuccessMsg(null);
+          }}
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto animate-in fade-in-0 duration-150"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-6 pb-[env(safe-area-inset-bottom,1.5rem)] sm:pb-6 shadow-2xl border border-slate-200/80 space-y-4 max-h-[92vh] overflow-y-auto"
+          >
+            <div className="flex items-start justify-between border-b border-slate-100 pb-3.5">
               <div>
-                <div className="flex items-center gap-2.5">
-                  <span className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-2xs">
-                    <Sparkles className="w-5 h-5" />
-                  </span>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-slate-900">
-                      Smart Intervention Dispatcher
-                    </h3>
-                    <p className="text-xs text-slate-500 font-medium">
-                      Bimbingan &amp; Rotasi Mitra untuk <span className="font-bold text-slate-800">{interventionStudent.fullName}</span> ({interventionStudent.nisn})
-                    </p>
-                  </div>
-                </div>
+                <h3 className="text-base font-semibold text-slate-900">
+                  Tindak Lanjut Pembimbing
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {interventionStudent.fullName} &bull; {interventionStudent.placement.dudiName}
+                </p>
               </div>
               <button
                 type="button"
@@ -1510,279 +1615,213 @@ function HeatmapContent() {
                   setInterventionStudent(null);
                   setInterventionSuccessMsg(null);
                 }}
-                className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {interventionSuccessMsg && (
-              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <p className="font-bold">Aksi Berhasil Diproses!</p>
-                  <p>{interventionSuccessMsg}</p>
+              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-start gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold">Berhasil Diproses</p>
+                  <p className="mt-0.5">{interventionSuccessMsg}</p>
                 </div>
               </div>
             )}
 
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 text-xs space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mitra DUDI Aktif:</p>
-                  <p className="font-bold text-slate-800 text-sm">{interventionStudent.placement.dudiName}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mentor Pembimbing:</p>
-                  <p className="font-bold text-slate-800">
-                    {interventionStudent.placement.mentorName}{" "}
-                    <span className="font-mono text-emerald-600 font-semibold">({interventionStudent.placement.mentorPhone || "WA Siap"})</span>
-                  </p>
-                </div>
+            {interventionAlert && (
+              <div className="px-3.5 py-2.5 rounded-2xl bg-rose-50/70 border border-rose-200/70 flex items-center justify-between gap-2 text-xs">
+                <span className="font-medium text-rose-900 truncate">
+                  {interventionAlert.metricSnapshot.detectedReason}
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 text-[10px] font-semibold shrink-0">
+                  {interventionAlert.alertType}
+                </span>
               </div>
-              {interventionAlert && (
-                <div className="pt-2 border-t border-slate-200/60 flex items-center gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Pemicu Anomali:</span>
-                  <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 text-[10px] font-bold">
-                    {interventionAlert.alertType}
-                  </span>
-                  <span className="text-[11px] text-slate-600 truncate">
-                    {interventionAlert.metricSnapshot.detectedReason}
-                  </span>
-                </div>
-              )}
-            </div>
+            )}
 
-            {/* Tabs */}
-            <div className="flex border-b border-slate-200 gap-2">
+            {/* Segmented Action Tabs */}
+            <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-full border border-slate-200/70 text-xs font-medium">
               <button
                 type="button"
                 onClick={() => setInterventionTab("WA_COORDINATION")}
                 className={cn(
-                  "pb-3 px-3 text-xs font-semibold border-b-2 flex items-center gap-2 transition cursor-pointer",
+                  "flex-1 py-1.5 px-2.5 rounded-full flex items-center justify-center gap-1.5 transition cursor-pointer",
                   interventionTab === "WA_COORDINATION"
-                    ? "border-emerald-600 text-emerald-700 font-bold"
-                    : "border-transparent text-slate-400 hover:text-slate-700"
+                    ? "bg-white text-slate-900 shadow-2xs font-semibold"
+                    : "text-slate-500 hover:text-slate-800"
                 )}
               >
-                <MessageCircle className="w-4 h-4" />
-                <span>Koordinasi WhatsApp</span>
+                <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                <span>WhatsApp</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setInterventionTab("SITE_VISIT")}
                 className={cn(
-                  "pb-3 px-3 text-xs font-semibold border-b-2 flex items-center gap-2 transition cursor-pointer",
+                  "flex-1 py-1.5 px-2.5 rounded-full flex items-center justify-center gap-1.5 transition cursor-pointer",
                   interventionTab === "SITE_VISIT"
-                    ? "border-sky-500 text-sky-600 font-bold"
-                    : "border-transparent text-slate-400 hover:text-slate-700"
+                    ? "bg-white text-slate-900 shadow-2xs font-semibold"
+                    : "text-slate-500 hover:text-slate-800"
                 )}
               >
-                <Calendar className="w-4 h-4" />
-                <span>Kunjungan Lapangan</span>
+                <Calendar className="w-3.5 h-3.5 text-sky-600" />
+                <span>Kunjungan</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setInterventionTab("DUDI_ROTATION")}
                 className={cn(
-                  "pb-3 px-3 text-xs font-semibold border-b-2 flex items-center gap-2 transition cursor-pointer",
+                  "flex-1 py-1.5 px-2.5 rounded-full flex items-center justify-center gap-1.5 transition cursor-pointer",
                   interventionTab === "DUDI_ROTATION"
-                    ? "border-amber-500 text-amber-700 font-bold"
-                    : "border-transparent text-slate-400 hover:text-slate-700"
+                    ? "bg-white text-slate-900 shadow-2xs font-semibold"
+                    : "text-slate-500 hover:text-slate-800"
                 )}
               >
-                <Repeat className="w-4 h-4" />
-                <span>Rotasi Mitra (TC-009)</span>
+                <Repeat className="w-3.5 h-3.5 text-amber-600" />
+                <span>Rotasi DUDI</span>
               </button>
             </div>
 
             {/* Tab 1: WhatsApp */}
             {interventionTab === "WA_COORDINATION" && (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-slate-700">Draf Pesan Koordinasi Otomatis (Data-Driven):</span>
-                  <span className="text-slate-400 text-[11px] font-medium">Bisa disunting sebelum kirim</span>
-                </div>
-
-                <div className="relative">
-                  {isDraftLoading ? (
-                    <div className="h-44 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-xs text-slate-400">
-                      <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-                      Menyusun draf pesan koordinasi berbasis data capaian...
-                    </div>
-                  ) : (
-                    <textarea
-                      rows={7}
-                      value={draftMessage}
-                      onChange={(e) => setDraftMessage(e.target.value)}
-                      className="w-full text-xs p-4 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 font-sans leading-relaxed text-slate-800 resize-none transition"
-                      placeholder="Draf pesan koordinasi..."
-                    />
-                  )}
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-                  <span className="text-[11px] text-slate-500">
-                    Nomor tujuan mentor: <span className="font-mono font-bold">{interventionStudent.placement.mentorPhone || "08..."}</span>
+                  <span className="font-medium text-slate-700">
+                    Kepada: {interventionStudent.placement.mentorName} (
+                    {interventionStudent.placement.mentorPhone || "WA"})
                   </span>
-
-                  <button
-                    type="button"
-                    disabled={isSubmittingIntervention || !draftMessage.trim()}
-                    onClick={handleSendWaIntervention}
-                    className="w-full sm:w-auto h-11 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition disabled:opacity-50 cursor-pointer"
-                  >
-                    {isSubmittingIntervention ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>Mencatat Intervensi...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4" />
-                        <span>Kirim via WhatsApp &amp; Catat Intervensi</span>
-                      </>
-                    )}
-                  </button>
                 </div>
+
+                {isDraftLoading ? (
+                  <div className="h-40 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-xs text-slate-400">
+                    <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                    Menyusun draf pesan...
+                  </div>
+                ) : (
+                  <textarea
+                    rows={6}
+                    value={draftMessage}
+                    onChange={(e) => setDraftMessage(e.target.value)}
+                    className="w-full text-xs p-3.5 rounded-2xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-sky-500 font-sans leading-relaxed text-slate-800 resize-none"
+                    placeholder="Tulis pesan koordinasi..."
+                  />
+                )}
+
+                <button
+                  type="button"
+                  disabled={isSubmittingIntervention || !draftMessage.trim()}
+                  onClick={handleSendWaIntervention}
+                  className="w-full h-10 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>
+                    {isSubmittingIntervention
+                      ? "Mencatat..."
+                      : "Kirim WhatsApp & Catat Log Intervensi"}
+                  </span>
+                </button>
               </div>
             )}
 
             {/* Tab 2: Site Visit */}
             {interventionTab === "SITE_VISIT" && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Tanggal Rencana Supervisi:
-                    </label>
-                    <input
-                      type="date"
-                      value={siteVisitDate}
-                      onChange={(e) => setSiteVisitDate(e.target.value)}
-                      className="w-full text-xs p-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 font-medium text-slate-800 transition"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Lokasi Kunjungan:
-                    </label>
-                    <input
-                      type="text"
-                      disabled
-                      value={`${interventionStudent.placement.dudiName}`}
-                      className="w-full text-xs p-3 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 font-medium"
-                    />
-                  </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                    Tanggal Rencana Kunjungan:
+                  </label>
+                  <input
+                    type="date"
+                    value={siteVisitDate}
+                    onChange={(e) => setSiteVisitDate(e.target.value)}
+                    className="w-full text-xs p-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-sky-500 text-slate-800"
+                  />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Agenda Pembahasan / Catatan Bimbingan:
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                    Agenda Supervisi:
                   </label>
                   <textarea
                     rows={4}
                     value={draftMessage}
                     onChange={(e) => setDraftMessage(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 font-sans text-slate-800 resize-none transition"
-                    placeholder="Contoh: Evaluasi langsung penugasan teknis dengan pimpinan unit, sinkronisasi jadwal rotasi pekerjaan..."
+                    className="w-full text-xs p-3 rounded-2xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-sky-500 text-slate-800 resize-none"
                   />
                 </div>
 
-                <div className="pt-2 flex justify-end">
-                  <button
-                    type="button"
-                    disabled={isSubmittingIntervention}
-                    onClick={handleRecordSiteVisit}
-                    className="h-11 px-6 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition disabled:opacity-50 cursor-pointer"
-                  >
-                    {isSubmittingIntervention ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>Menyimpan Jadwal...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Calendar className="w-4 h-4" />
-                        <span>Simpan Jadwal Kunjungan Supervisi</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  disabled={isSubmittingIntervention}
+                  onClick={handleRecordSiteVisit}
+                  className="w-full h-10 rounded-full bg-sky-500 hover:bg-sky-600 active:scale-95 text-white font-semibold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer"
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>
+                    {isSubmittingIntervention ? "Menyimpan..." : "Simpan Jadwal Kunjungan"}
+                  </span>
+                </button>
               </div>
             )}
 
             {/* Tab 3: Rotation */}
             {interventionTab === "DUDI_ROTATION" && (
-              <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-900 text-xs space-y-2">
-                  <div className="flex items-center gap-2 font-bold text-amber-800">
-                    <Repeat className="w-4 h-4" />
-                    <span>Prinsip Rotasi Mitra Berkelanjutan (Aturan Bisnis BR-010 &amp; TC-009)</span>
-                  </div>
-                  <p className="text-[11px] leading-relaxed text-amber-900/90 font-normal">
-                    Siswa telah mengumpulkan <span className="font-bold">{interventionStudent.totalVerifiedJp} JP</span> terverifikasi di <span className="font-bold">{interventionStudent.placement.dudiName}</span>. 
-                    Saat rotasi dieksekusi, status penempatan lama menjadi <span className="font-mono font-bold">ROTATED_OUT</span>, seluruh jam tetap tersimpan utuh di e-Rapor dan CV ATS, serta kedua mitra DUDI akan tercantum resmi pada portofolio karier siswa.
-                  </p>
-                </div>
+              <div className="space-y-3">
+                <p className="p-3 rounded-2xl bg-amber-50/80 border border-amber-200/70 text-[11px] leading-relaxed text-amber-900">
+                  Akumulasi <strong>{interventionStudent.totalVerifiedJp} JP</strong> yang sudah
+                  terverifikasi di <strong>{interventionStudent.placement.dudiName}</strong> tetap
+                  tersimpan utuh di portofolio siswa.
+                </p>
 
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Pilih Mitra DUDI Tujuan Baru:
-                    </label>
-                    <select
-                      value={targetDudiId}
-                      onChange={(e) => setTargetDudiId(e.target.value)}
-                      className="w-full text-xs p-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 font-semibold text-slate-800 cursor-pointer transition"
-                    >
-                      <option value="">-- Pilih Mitra DUDI Pelengkap --</option>
-                      {dudiOptions
-                        .filter((d) => d.id !== interventionStudent.placement.dudiId)
-                        .map((d) => (
-                          <option key={d.id} value={d.id}>
-                            {d.name} (Kapasitas Elemen Tersedia)
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Alasan Rotasi Resmi (Audit Trail):
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={rotationReason}
-                      onChange={(e) => setRotationReason(e.target.value)}
-                      placeholder="Contoh: Pemenuhan kompetensi pengujian QA dan Cloud CI/CD yang tidak tersedia di DUDI pertama."
-                      className="w-full text-xs p-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 font-sans text-slate-800 resize-none transition"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-2 flex justify-end">
-                  <button
-                    type="button"
-                    disabled={isSubmittingIntervention || !targetDudiId}
-                    onClick={handleExecuteRotation}
-                    className="h-11 px-6 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition disabled:opacity-50 cursor-pointer"
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                    Mitra DUDI Tujuan Baru:
+                  </label>
+                  <select
+                    value={targetDudiId}
+                    onChange={(e) => setTargetDudiId(e.target.value)}
+                    className="w-full text-xs p-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-amber-500 text-slate-800 cursor-pointer"
                   >
-                    {isSubmittingIntervention ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>Memproses Rotasi...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Repeat className="w-4 h-4" />
-                        <span>Konfirmasi Eksekusi Rotasi Mitra DUDI (TC-009)</span>
-                      </>
-                    )}
-                  </button>
+                    <option value="">-- Pilih Mitra DUDI Tujuan --</option>
+                    {dudiOptions
+                      .filter((d) => d.id !== interventionStudent.placement.dudiId)
+                      .map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                  </select>
                 </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                    Alasan Rotasi:
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={rotationReason}
+                    onChange={(e) => setRotationReason(e.target.value)}
+                    placeholder="Contoh: Pemenuhan elemen kompetensi yang belum tersedia di DUDI awal."
+                    className="w-full text-xs p-3 rounded-2xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-amber-500 text-slate-800 resize-none"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  disabled={isSubmittingIntervention || !targetDudiId}
+                  onClick={handleExecuteRotation}
+                  className="w-full h-10 rounded-full bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-semibold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer"
+                >
+                  <Repeat className="w-3.5 h-3.5" />
+                  <span>
+                    {isSubmittingIntervention ? "Memproses..." : "Konfirmasi Rotasi Mitra DUDI"}
+                  </span>
+                </button>
               </div>
             )}
           </div>
@@ -1797,7 +1836,7 @@ export default function TeacherHeatmapPage() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-sky-500" />
+          <Loader2 className="w-7 h-7 animate-spin text-sky-500" />
         </div>
       }
     >

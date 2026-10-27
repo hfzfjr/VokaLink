@@ -62,7 +62,7 @@ export function TeacherWidgetPanel({
   const averageJp = Math.round((averagePercentage / 100) * targetJp);
 
   return (
-    <aside className="w-full lg:w-[320px] xl:w-[340px] 2xl:w-[360px] flex flex-col gap-4 shrink-0">
+    <aside className="w-full lg:w-[320px] xl:w-[340px] 2xl:w-[360px] flex flex-col gap-4 flex-shrink-0">
       {/* ─── 1. Profile Card Header (Desktop) ─── */}
       <div className="hidden lg:flex lg:h-[86px] bg-white rounded-2xl px-5 border border-slate-200/70 shadow-2xs items-center justify-between shrink-0">
         <div className="flex items-center gap-3.5 min-w-0">
@@ -102,7 +102,7 @@ export function TeacherWidgetPanel({
       </div>
 
       {/* ─── 2. Target Capaian Rata-Rata Kelas (792 JP) ─── */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200/70 shadow-card space-y-3">
+      <div className="bg-white rounded-2xl p-4 border border-slate-200/70 shadow-2xs space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold text-slate-900 tracking-tight uppercase">
             Rata-Rata Capaian Kelas
@@ -147,7 +147,7 @@ export function TeacherWidgetPanel({
       </div>
 
       {/* ─── 3. Pantauan Anomali Mendesak (Drift Watchlist) ─── */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/70 shadow-card space-y-3">
+      <div className="bg-white rounded-2xl p-4 border border-slate-200/70 shadow-2xs space-y-3">
         <div className="flex items-center justify-between pb-1 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <ShieldAlert className="w-4 h-4 text-rose-500" />
@@ -191,7 +191,7 @@ export function TeacherWidgetPanel({
                   <button
                     type="button"
                     onClick={item.onIntervene}
-                    className="w-full mt-1 py-1 rounded-lg bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10.5px] font-semibold flex items-center justify-center gap-1 transition cursor-pointer"
+                    className="w-full mt-1 py-1.5 rounded-full bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10.5px] font-semibold flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs"
                   >
                     <Sparkles className="w-3 h-3 text-emerald-600" />
                     <span>Tindak Lanjuti via WhatsApp</span>
@@ -203,8 +203,8 @@ export function TeacherWidgetPanel({
         )}
       </div>
 
-      {/* ─── 4. Audit Integritas & Keamanan (TC-006) ─── */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/70 shadow-card space-y-3">
+      {/* ─── 4. Audit Integritas Data & Keamanan ─── */}
+      <div className="bg-white rounded-2xl p-4 border border-slate-200/70 shadow-2xs space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-500" />
@@ -213,7 +213,7 @@ export function TeacherWidgetPanel({
             </h3>
           </div>
           <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-            HMAC Aktif
+            Segel Sah
           </span>
         </div>
 
@@ -230,16 +230,16 @@ export function TeacherWidgetPanel({
           </div>
           <div className="flex justify-between items-center pt-1 border-t border-slate-200/50">
             <span className="text-slate-500">Segel Digital:</span>
-            <span className="font-medium text-slate-800">SHA-256 Valid</span>
+            <span className="font-medium text-slate-800">HMAC-SHA256 Valid</span>
           </div>
         </div>
       </div>
 
-      {/* ─── 5. Pintasan Paspor Kompetensi Digital Siswa (FR-009 / FR-012) ─── */}
+      {/* ─── 5. Pintasan Paspor Kompetensi Digital Siswa ─── */}
       <Link
         href="/verify/andi-pratama"
         target="_blank"
-        className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-200/70 shadow-card hover:border-sky-300 transition-colors group"
+        className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-200/70 shadow-2xs hover:border-sky-300 transition-colors group"
       >
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">

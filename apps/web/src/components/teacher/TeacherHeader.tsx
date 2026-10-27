@@ -31,7 +31,7 @@ export function TeacherHeader() {
               <h1 className="text-xs font-extrabold text-slate-900 truncate">
                 {teacherName}
               </h1>
-              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-sky-100 text-sky-800 leading-none">
+              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-sky-100 text-sky-800 leading-none">
                 Guru
               </span>
             </div>
