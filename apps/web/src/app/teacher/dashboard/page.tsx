@@ -470,7 +470,7 @@ function HeatmapContent() {
               ) : (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[11px] font-medium leading-none shadow-2xs">
                   <Check className="w-3 h-3 stroke-[2.5]" />
-                  <span>Semua Siswa On-Track</span>
+                  <span>Semua Siswa Sesuai Target</span>
                 </span>
               )}
             </div>
@@ -587,7 +587,7 @@ function HeatmapContent() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">
-                Rata-Rata CP
+                Rata-Rata Capaian CP
               </p>
               <div className="flex items-baseline gap-1.5 mt-0.5">
                 <p className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
@@ -686,7 +686,7 @@ function HeatmapContent() {
               title="Audit Keamanan"
             >
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Audit</span>
+              <span>Audit Keamanan</span>
               {securityFlags.length > 0 && (
                 <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-bold leading-none">
                   {securityFlags.length}
@@ -1261,7 +1261,7 @@ function HeatmapContent() {
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200/70 text-[10.5px] font-semibold leading-none shadow-2xs">
-                                  <span>On-Track</span>
+                                  <span>Sesuai Target</span>
                                 </span>
                               )}
                               <span className="text-[11px] font-bold text-slate-900 font-mono">
@@ -1289,7 +1289,7 @@ function HeatmapContent() {
                               <span className="text-slate-400 text-[11px]">14 Hari Terakhir: </span>
                               <span className="font-semibold text-slate-800">
                                 {student.totalJpLast14Days - student.nonCompetencyJpLast14Days} JP
-                                Teknis
+                                Kompetensi
                               </span>
                             </div>
                             <span
@@ -1300,7 +1300,7 @@ function HeatmapContent() {
                                   : "text-slate-400"
                               )}
                             >
-                              {student.nonCompetencyJpLast14Days} JP Non-Jurusan
+                              {student.nonCompetencyJpLast14Days} JP Non-Kompetensi
                             </span>
                           </div>
                         </div>
@@ -1532,7 +1532,7 @@ function HeatmapContent() {
             <div className="grid grid-cols-2 gap-2.5 text-center">
               <div className="p-3 rounded-2xl bg-sky-50/70 border border-sky-200/60">
                 <p className="text-[10px] font-semibold uppercase text-sky-700">
-                  Jam Teknis (14 Hr)
+                  Jam Kompetensi (14 Hari)
                 </p>
                 <p className="text-base font-bold text-slate-900 mt-0.5">
                   {selectedStudent.totalJpLast14Days - selectedStudent.nonCompetencyJpLast14Days} JP
@@ -1546,7 +1546,7 @@ function HeatmapContent() {
                     : "bg-slate-50 border-slate-200/60 text-slate-600"
                 )}
               >
-                <p className="text-[10px] font-semibold uppercase">Non-Kejuruan (14 Hr)</p>
+                <p className="text-[10px] font-semibold uppercase">Non-Kompetensi (14 Hari)</p>
                 <p className="text-base font-bold mt-0.5">
                   {selectedStudent.nonCompetencyJpLast14Days} JP
                 </p>

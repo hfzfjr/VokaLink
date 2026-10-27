@@ -238,7 +238,7 @@ export function TeacherWidgetPanel({
                 : "bg-emerald-50 text-emerald-700 border-emerald-200"
             )}
           >
-            {securityFlagsCount > 0 ? `${securityFlagsCount} Perlu Review` : "Segel Sah"}
+            {securityFlagsCount > 0 ? `${securityFlagsCount} Perlu Ditinjau` : "Segel Sah"}
           </span>
         </div>
 
@@ -251,7 +251,7 @@ export function TeacherWidgetPanel({
               ? "bg-amber-50/60 border-amber-200"
               : "bg-slate-50 border-slate-200"
           )}
-          title={onViewSecurityAudit ? "Klik untuk membuka detail audit validasi" : undefined}
+          title={onViewSecurityAudit ? "Klik untuk membuka rincian audit validasi" : undefined}
         >
           <div className="flex justify-between items-center">
             <span className="text-slate-500">Insiden Audit Aktif:</span>
@@ -261,7 +261,7 @@ export function TeacherWidgetPanel({
                 securityFlagsCount > 0 ? "text-rose-600" : "text-emerald-700"
               )}
             >
-              {securityFlagsCount > 0 ? `${securityFlagsCount} Perlu Review` : "0 (Aman)"}
+              {securityFlagsCount > 0 ? `${securityFlagsCount} Perlu Ditinjau` : "0 (Aman)"}
               {onViewSecurityAudit && securityFlagsCount > 0 && (
                 <span className="text-[10px] underline ml-1 font-semibold text-rose-600">
                   Lihat

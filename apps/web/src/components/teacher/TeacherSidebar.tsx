@@ -469,7 +469,7 @@ export function TeacherSidebar() {
                       Notifikasi Peringatan Drift Otomatis
                     </p>
                     <p className="text-[11px] text-slate-500 font-normal">
-                      Peringatan anomali beban non-kejuruan &gt;15% atau stagnasi materi.
+                      Peringatan anomali beban non-kompetensi &gt;15% atau stagnasi materi.
                     </p>
                   </div>
                   <input
