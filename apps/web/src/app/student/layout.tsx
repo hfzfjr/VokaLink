@@ -4,6 +4,7 @@ import { StudentHeader } from "@/components/student/StudentHeader";
 import { StudentSidebar } from "@/components/student/StudentSidebar";
 import { BottomNav } from "@/components/student/BottomNav";
 import { PwaInstallPrompt } from "@/components/student/PwaInstallPrompt";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 
 export const metadata: Metadata = {
   title: "Portal Siswa PKL — VokaLink",
@@ -17,15 +18,15 @@ export default function StudentLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-slate-50/80 text-slate-900 selection:bg-sky-500 selection:text-white flex flex-col font-sans print:bg-white print:p-0 print:m-0 print:min-h-0 print:block">
-      {/* 1. Aksesibilitas: Skip-to-Content */}
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2 focus:bg-slate-900 focus:text-white focus:rounded-xl focus:text-xs focus:font-semibold focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
-      >
-        Lewati ke konten utama
-      </a>
-
+    <AuthGuard allowedRoles={["STUDENT"]}>
+      <div className="min-h-screen bg-slate-50/80 text-slate-900 selection:bg-sky-500 selection:text-white flex flex-col font-sans print:bg-white print:p-0 print:m-0 print:min-h-0 print:block">
+        {/* 1. Aksesibilitas: Skip-to-Content */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2 focus:bg-slate-900 focus:text-white focus:rounded-xl focus:text-xs focus:font-semibold focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+        >
+          Lewati ke konten utama
+        </a>
       <div className="flex-1 flex flex-col md:flex-row print:block print:w-full print:p-0 print:m-0">
         {/* 2. Mobile-only top header (hidden on desktop md:hidden, hidden on print) */}
         <div className="md:hidden no-print print:hidden">
@@ -58,5 +59,6 @@ export default function StudentLayout({
         <BottomNav />
       </div>
     </div>
+    </AuthGuard>
   );
 }

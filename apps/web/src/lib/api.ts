@@ -787,6 +787,7 @@ export interface StudentCvResponse {
     fullName: string;
     identityNumber: string;
     whatsappNumber?: string;
+    email?: string;
     departmentName: string;
     schoolName: string;
     schoolAddress?: string;
@@ -933,6 +934,7 @@ export interface StudentLogContextResponse {
     whatsappNumber?: string;
     departmentName: string;
     schoolName: string;
+    email?: string;
   };
   activePlacement: {
     id: string;
@@ -955,10 +957,13 @@ export interface StudentLogContextResponse {
 
 /** GET /students/me/log-context */
 export async function fetchStudentLogContext(
-  studentId?: string
+  studentId?: string,
+  token?: string
 ): Promise<StudentLogContextResponse> {
   const query = studentId ? `?studentId=${encodeURIComponent(studentId)}` : "";
-  const res = await fetch(`${API_BASE_URL}/students/me/log-context${query}`);
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE_URL}/students/me/log-context${query}`, { headers });
   const json = await res.json();
   if (!res.ok) throw new Error(json.detail || "Gagal memuat konteks penempatan dan job card");
   return json;
@@ -1147,6 +1152,7 @@ export async function fetchTeacherHeatmap(params?: {
   departmentId?: string;
   dudiId?: string;
   driftOnly?: boolean;
+  token?: string;
 }): Promise<HeatmapResponse> {
   const query = new URLSearchParams();
   if (params?.departmentId) query.set("departmentId", params.departmentId);
@@ -1156,9 +1162,14 @@ export async function fetchTeacherHeatmap(params?: {
   const qs = query.toString();
   const url = `${API_BASE_URL}/teachers/heatmap${qs ? `?${qs}` : ""}`;
 
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (params?.token) {
+    headers["Authorization"] = `Bearer ${params.token}`;
+  }
+
   const res = await fetch(url, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers,
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json.detail || "Gagal memuat matriks heatmap kompetensi");

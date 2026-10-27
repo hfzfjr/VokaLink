@@ -31,105 +31,8 @@ import Link from "next/link";
 import { fetchStudentCv, updateStudentPassport, type StudentCvResponse } from "@/lib/api";
 import { QrCodeView } from "@/components/ui/QrCodeView";
 import { cn } from "@/lib/cn";
+import { useAuth } from "@/lib/use-auth";
 import CareerCvLoading from "./loading";
-
-const DEMO_FALLBACK_CV: StudentCvResponse = {
-  student: {
-    id: "00000000-0000-0000-0000-000000000001",
-    fullName: "Andi Pratama",
-    identityNumber: "0078901234",
-    departmentName: "Rekayasa Perangkat Lunak (RPL)",
-    schoolName: "SMK Demo VokaLink",
-    schoolAddress: "Jl. Pendidikan Vokasi No. 1, Surabaya",
-    whatsappNumber: "081234567890",
-  },
-  summaryBio:
-    "Siswa SMK konsentrasi Rekayasa Perangkat Lunak dengan pengalaman magang industri 280 JP terverifikasi resmi (280 jam kerja industri riil) di PT Nusantara Tech. Menguasai arsitektur Express.js, TypeScript, Next.js, dan optimasi basis data relasional PostgreSQL dengan standar SKKNI.",
-  totalVerifiedJp: 280,
-  totalRealHours: 280,
-  technicalJp: 280,
-  nonCompetencyJp: 0,
-  completedTasksCount: 35,
-  experiences: [
-    {
-      placementId: "3ffec674-ad55-482a-a566-9dff84ab71be",
-      dudiName: "PT Nusantara Tech",
-      dudiCity: "Surabaya",
-      mentorName: "Rizky Firmansyah (Engineering Lead)",
-      roleTitle: "Junior Software Engineer Intern",
-      periodLabel: "Jan 2026 – Sekarang",
-      totalVerifiedJp: 280,
-      totalRealHours: 280,
-      technicalJp: 280,
-      nonCompetencyJp: 0,
-      bulletPoints: [
-        {
-          jobCardId: "00000000-0000-0000-0000-000000000031",
-          jobCardTitle: "Implementasi RESTful API Express.js",
-          skkniUnitCode: "J.620100.009.01",
-          totalJp: 64,
-          totalRealHours: 64,
-          taskCount: 8,
-          predominantAutonomyLevel: 3,
-          autonomyLabel: "Mandiri",
-          toolsUsed: ["Express", "TypeScript", "PostgreSQL"],
-          bulletText:
-            "Mengembangkan 12 modul endpoint backend menggunakan Express, TypeScript, PostgreSQL untuk Implementasi RESTful API Express.js secara mandiri melalui 8 penugasan (SOP Mandiri (Level 3)) dengan akumulasi 64 JP kerja terverifikasi (64 jam kerja industri riil) (SKKNI: J.620100.009.01).",
-        },
-        {
-          jobCardId: "00000000-0000-0000-0000-000000000032",
-          jobCardTitle: "Pembuatan Komponen Antarmuka Web Next.js",
-          skkniUnitCode: "J.620100.012.01",
-          totalJp: 56,
-          totalRealHours: 56,
-          taskCount: 7,
-          predominantAutonomyLevel: 2,
-          autonomyLabel: "Terbimbing",
-          toolsUsed: ["Next.js", "React", "Tailwind CSS"],
-          bulletText:
-            "Mengimplementasikan antarmuka responsif mobile-first menggunakan Next.js, React, Tailwind CSS untuk Pembuatan Komponen Antarmuka Web Next.js secara terbimbing melalui 7 penugasan (SOP Terbimbing (Level 2)) dengan akumulasi 56 JP kerja terverifikasi (56 jam kerja industri riil) (SKKNI: J.620100.012.01).",
-        },
-        {
-          jobCardId: "00000000-0000-0000-0000-000000000033",
-          jobCardTitle: "Perancangan Skema Basis Data Relasional",
-          skkniUnitCode: "J.620100.010.01",
-          totalJp: 48,
-          totalRealHours: 48,
-          taskCount: 6,
-          predominantAutonomyLevel: 3,
-          autonomyLabel: "Mandiri",
-          toolsUsed: ["PostgreSQL", "Prisma ORM"],
-          bulletText:
-            "Merancang skema relasional PostgreSQL dan migrasi skema menggunakan Prisma ORM untuk Perancangan Skema Basis Data Relasional secara mandiri melalui 6 penugasan (SOP Mandiri (Level 3)) dengan akumulasi 48 JP kerja terverifikasi (48 jam kerja industri riil) (SKKNI: J.620100.010.01).",
-        },
-      ],
-    },
-  ],
-  technicalSkills: [
-    { name: "TypeScript", totalJp: 120 },
-    { name: "Express.js", totalJp: 64 },
-    { name: "Next.js", totalJp: 56 },
-    { name: "PostgreSQL", totalJp: 48 },
-    { name: "Prisma ORM", totalJp: 48 },
-    { name: "Tailwind CSS", totalJp: 56 },
-  ],
-  endorsement: {
-    mentorName: "Rizky Firmansyah",
-    dudiName: "PT Nusantara Tech",
-    attitudeScore: 96,
-    quote:
-      "Andi memiliki etos kerja luar biasa, mampu menyelesaikan rancangan REST API backend secara mandiri, dan berdisiplin tinggi dalam mengikuti SOP industri.",
-    badges: ["INISIATIF_TINGGI", "PROBLEM_SOLVER", "DISIPLIN_PRESENSI"],
-  },
-  visibility: {
-    showPhotos: true,
-    showGrades: true,
-  },
-  extraActivities: [],
-  passportSlug: "andi-pratama",
-  verificationUrl: "/verify/andi-pratama",
-  masterSignatureHash: "a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0",
-};
 
 export interface EditableExperience {
   id: string;
@@ -213,6 +116,7 @@ const DEFAULT_VALIDITY =
   "100% tervalidasi mentor industri melalui tanda tangan digital & PIN resmi (BR-010).";
 
 export default function CareerCvPage() {
+  const { user } = useAuth();
   const [cvData, setCvData] = useState<StudentCvResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -296,9 +200,9 @@ export default function CareerCvPage() {
           setCustomDepartment(p.departmentName || data.student.departmentName || "Rekayasa Perangkat Lunak (RPL)");
           setCustomSchoolName(p.schoolName || data.student.schoolName || "SMK Demo VokaLink");
           setCustomNisn(p.nisn || data.student.identityNumber || "0078901234");
-          setCustomEmail(p.email || "andi.pratama@smk.sch.id");
+          setCustomEmail(p.email || data.student.email || user?.email || "andipratama@smktelkom1medan.sch.id");
           setCustomPhone(p.phone || data.student.whatsappNumber || "081234567890");
-          setCustomAddress(p.address || data.student.schoolAddress || "Surabaya, Jawa Timur");
+          setCustomAddress(p.address || data.student.schoolAddress || "Medan, Sumatera Utara");
           setCustomPortfolio(p.portfolio || "github.com/andipratama");
           if (p.bioSummary) setBioSummary(p.bioSummary);
           if (Array.isArray(p.experiences) && p.experiences.length > 0) setCustomExperiences(p.experiences);
@@ -324,11 +228,11 @@ export default function CareerCvPage() {
     // Default Fallbacks
     setCustomFullName(data.student.fullName || "Andi Pratama");
     setCustomDepartment(data.student.departmentName || "Rekayasa Perangkat Lunak (RPL)");
-    setCustomSchoolName(data.student.schoolName || "SMK Demo VokaLink");
+    setCustomSchoolName(data.student.schoolName || "SMK Telkom 1 Medan");
     setCustomNisn(data.student.identityNumber || "0078901234");
-    setCustomEmail("andi.pratama@smk.sch.id");
+    setCustomEmail(data.student.email || user?.email || "andipratama@smktelkom1medan.sch.id");
     setCustomPhone(data.student.whatsappNumber || "081234567890");
-    setCustomAddress(data.student.schoolAddress || "Surabaya, Jawa Timur");
+    setCustomAddress(data.student.schoolAddress || "Medan, Sumatera Utara");
     setCustomPortfolio("github.com/andipratama");
     setCustomExperiences(defaultExps);
     setCustomEducations(DEFAULT_EDUCATIONS);
@@ -354,20 +258,17 @@ export default function CareerCvPage() {
     setError(null);
     const startTime = Date.now();
     try {
-      const data = await fetchStudentCv();
+      const data = await fetchStudentCv(user?.id);
       setCvData(data);
-      setBioSummary(data.summaryBio || DEMO_FALLBACK_CV.summaryBio);
+      setBioSummary(data.summaryBio || "");
       initManualFields(data);
       if (data.visibility) {
         setShowPhotos(data.visibility.showPhotos ?? true);
         setShowGrades(data.visibility.showGrades ?? true);
       }
-    } catch {
-      setCvData(DEMO_FALLBACK_CV);
-      setBioSummary(DEMO_FALLBACK_CV.summaryBio);
-      initManualFields(DEMO_FALLBACK_CV);
-      setShowPhotos(DEMO_FALLBACK_CV.visibility?.showPhotos ?? true);
-      setShowGrades(DEMO_FALLBACK_CV.visibility?.showGrades ?? true);
+    } catch (err: any) {
+      setError(err.message || "Gagal memuat CV ATS dari server database.");
+      setCvData(null);
     } finally {
       const elapsed = Date.now() - startTime;
       const delay = Math.max(0, 300 - elapsed);
@@ -375,7 +276,7 @@ export default function CareerCvPage() {
         setIsLoading(false);
       }, delay);
     }
-  }, [initManualFields]);
+  }, [initManualFields, user?.id]);
 
   useEffect(() => {
     loadCv();
@@ -444,15 +345,15 @@ export default function CareerCvPage() {
   };
 
   const handleResetManual = () => {
-    const data = cvData || DEMO_FALLBACK_CV;
+    if (!cvData) return;
     if (confirm("Kembalikan semua teks CV ke data asli terverifikasi?")) {
       try {
         if (typeof window !== "undefined") {
           localStorage.removeItem("vokalink_cv_customizations");
         }
       } catch {}
-      initManualFields(data);
-      setBioSummary(data.summaryBio || DEMO_FALLBACK_CV.summaryBio);
+      initManualFields(cvData);
+      setBioSummary(cvData.summaryBio || "");
       setIsEditMode(false);
     }
   };

@@ -35,6 +35,8 @@ export const viewport: Viewport = {
   themeColor: "#0ea5e9",
 };
 
+import { AuthProvider } from "@/contexts/AuthContext";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -43,7 +45,7 @@ export default function RootLayout({
   return (
     <html lang="id" className={`${plusJakartaSans.variable} ${plusJakartaSans.className}`}>
       <body className={`${plusJakartaSans.className} min-h-screen bg-paper font-sans text-ink-900 antialiased selection:bg-safety-500 selection:text-ink-900`}>
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

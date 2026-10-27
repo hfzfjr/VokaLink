@@ -89,7 +89,7 @@ export function StudentWidgetPanel({
   const pendingWidth = Math.min(100 - verifiedWidth, (student.pendingJp / targetJp) * 100);
   const remainingJp = Math.max(0, student.targetJp - student.verifiedJp);
 
-  const initials = (student.name || "Andi Pratama")
+  const initials = (student.name || "Siswa")
     .split(" ")
     .map((w) => w[0])
     .join("")

@@ -30,155 +30,24 @@ import {
   type PlacementRecordItem,
 } from "@/lib/api";
 import { matchPlacementsGreedy } from "@vokalink/core";
+import { useAuth } from "@/lib/use-auth";
 
-// Mock Fallback jika backend offline / demo awal
-const MOCK_DATA: PlacementCandidateData = {
-  period: { id: "p-1", name: "PKL Genap 2025/2026", targetTotalJp: 792 },
+const EMPTY_PLACEMENT_DATA: PlacementCandidateData = {
+  period: null,
   schoolCoordinates: { latitude: -7.2575, longitude: 112.7521 },
-  teachers: [
-    { id: "t-1", fullName: "Dra. Siti Rahayu, M.Pd", identityNumber: "198001012005012001" },
-    { id: "t-2", fullName: "Bambang Sutrisno, S.T", identityNumber: "198203152008011002" },
-  ],
-  dudis: [
-    {
-      id: "d-1",
-      name: "PT Inovasi Digital Nusantara",
-      sectorCategory: "Teknologi Informasi & Software",
-      address: "Jl. Pemuda No. 45, Embong Kaliasin",
-      city: "Surabaya",
-      latitude: -7.2625,
-      longitude: 112.7483,
-      maxQuota: 6,
-      activePlacementsCount: 3,
-      remainingQuota: 3,
-      mentors: [
-        { id: "m-1", fullName: "Hendra Wijaya, S.Kom", jobTitle: "Lead Engineer", isBound: true },
-      ],
-    },
-    {
-      id: "d-2",
-      name: "Studio Desain Kreasi Visual",
-      sectorCategory: "Desain Komunikasi Visual & Kreatif",
-      address: "Jl. Basuki Rahmat No. 12",
-      city: "Surabaya",
-      latitude: -7.268,
-      longitude: 112.742,
-      maxQuota: 4,
-      activePlacementsCount: 2,
-      remainingQuota: 2,
-      mentors: [
-        { id: "m-2", fullName: "Maya Anggraini, S.Ds", jobTitle: "Creative Director", isBound: true },
-      ],
-    },
-    {
-      id: "d-3",
-      name: "CV Bengkel Mesin Presisi",
-      sectorCategory: "Teknik Mesin & Otomasi",
-      address: "Kawasan Industri Rungkut Megah Blok B-4",
-      city: "Surabaya",
-      latitude: -7.325,
-      longitude: 112.768,
-      maxQuota: 2,
-      activePlacementsCount: 2,
-      remainingQuota: 0, // Kuota penuh
-      mentors: [],
-    },
-  ],
-  students: [
-    {
-      studentId: "s-1",
-      fullName: "Ahmad Rizky Pratama",
-      identityNumber: "0012345678",
-      department: { id: "dept-rpl", name: "Rekayasa Perangkat Lunak" },
-      hasCustomCoordinates: true,
-      homeLatitude: -7.26,
-      homeLongitude: 112.753,
-      isPlaced: false,
-      activePlacementId: null,
-      recommendations: [
-        {
-          dudiId: "d-1",
-          dudiName: "PT Inovasi Digital Nusantara",
-          totalScore: 94.2,
-          competencyScore: 91.7,
-          distanceScore: 100,
-          distanceKm: 0.85,
-          requiresMidtermRotation: false,
-          remainingQuota: 3,
-        },
-        {
-          dudiId: "d-2",
-          dudiName: "Studio Desain Kreasi Visual",
-          totalScore: 61.4,
-          competencyScore: 45.0,
-          distanceScore: 99.5,
-          distanceKm: 1.5,
-          requiresMidtermRotation: true,
-          remainingQuota: 2,
-        },
-      ],
-      bestRecommendation: {
-        dudiId: "d-1",
-        dudiName: "PT Inovasi Digital Nusantara",
-        totalScore: 94.2,
-        competencyScore: 91.7,
-        distanceScore: 100,
-        distanceKm: 0.85,
-        requiresMidtermRotation: false,
-        remainingQuota: 3,
-      },
-    },
-    {
-      studentId: "s-2",
-      fullName: "Dewi Sekar Sari",
-      identityNumber: "0012345679",
-      department: { id: "dept-rpl", name: "Rekayasa Perangkat Lunak" },
-      hasCustomCoordinates: false,
-      homeLatitude: -7.2575,
-      homeLongitude: 112.7521,
-      isPlaced: false,
-      activePlacementId: null,
-      recommendations: [
-        {
-          dudiId: "d-1",
-          dudiName: "PT Inovasi Digital Nusantara",
-          totalScore: 93.5,
-          competencyScore: 91.7,
-          distanceScore: 97.8,
-          distanceKm: 0.95,
-          requiresMidtermRotation: false,
-          remainingQuota: 3,
-        },
-        {
-          dudiId: "d-2",
-          dudiName: "Studio Desain Kreasi Visual",
-          totalScore: 59.8,
-          competencyScore: 42.5,
-          distanceScore: 100,
-          distanceKm: 1.2,
-          requiresMidtermRotation: true,
-          remainingQuota: 2,
-        },
-      ],
-      bestRecommendation: {
-        dudiId: "d-1",
-        dudiName: "PT Inovasi Digital Nusantara",
-        totalScore: 93.5,
-        competencyScore: 91.7,
-        distanceScore: 97.8,
-        distanceKm: 0.95,
-        requiresMidtermRotation: false,
-        remainingQuota: 3,
-      },
-    },
-  ],
+  teachers: [],
+  dudis: [],
+  students: [],
 };
 
 export default function SmartPlacementPage() {
+  const { user } = useAuth();
+  const schoolId = user?.school?.id || "00000000-0000-0000-0000-000000000002";
+
   const [activeTab, setActiveTab] = useState<"RECOMMENDATIONS" | "ACTIVE_LIST">("RECOMMENDATIONS");
 
   // State data
-  const [data, setData] = useState<PlacementCandidateData>(MOCK_DATA);
+  const [data, setData] = useState<PlacementCandidateData>(EMPTY_PLACEMENT_DATA);
   const [activePlacements, setActivePlacements] = useState<PlacementRecordItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -205,8 +74,6 @@ export default function SmartPlacementPage() {
   const [isBatchPreviewOpen, setIsBatchPreviewOpen] = useState(false);
   const [submittingBatch, setSubmittingBatch] = useState(false);
 
-  const schoolId = "00000000-0000-0000-0000-000000000002"; // ID Demo Sandbox
-
   // Muat data dari API
   const loadData = async () => {
     setLoading(true);
@@ -221,8 +88,7 @@ export default function SmartPlacementPage() {
       const records = await fetchPlacements(schoolId);
       setActivePlacements(records);
     } catch (err: any) {
-      console.warn("API Error, using fallback seed data:", err);
-      // Data fallback MOCK_DATA tetap dipakai jika API belum terhubung
+      setErrorMsg(err.message || "Gagal memuat kandidat penempatan dari server.");
     } finally {
       setLoading(false);
     }
@@ -230,7 +96,7 @@ export default function SmartPlacementPage() {
 
   useEffect(() => {
     loadData();
-  }, [selectedDeptId]);
+  }, [selectedDeptId, schoolId]);
 
   // Daftar jurusan unik untuk filter
   const departmentsList = useMemo(() => {

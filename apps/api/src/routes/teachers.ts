@@ -492,7 +492,7 @@ async function handleGetHeatmap(req: Request, res: Response, next: NextFunction)
     // Cek koneksi basis data
     let isDbAvailable = false;
     try {
-      if (process.env.DATABASE_URL) {
+      if (process.env.DATABASE_URL && process.env.NODE_ENV !== "test") {
         await prisma.$queryRaw`SELECT 1`;
         isDbAvailable = true;
       }
@@ -531,15 +531,23 @@ async function handleGetHeatmap(req: Request, res: Response, next: NextFunction)
     }
 
     // ─── QUERY DATABASE PRISMA ───────────────────────────────────────────────
-    // 1. Ambil Departemen & Elemen CP
-    const department = await prisma.schoolDepartment.findFirst({
-      where: departmentId ? { id: departmentId } : {},
-      include: {
-        cpElements: {
-          orderBy: { sortOrder: "asc" },
+    // 1. Ambil Departemen & Elemen CP (Default ke RPL jika tidak dispesifikasikan)
+    const department =
+      (await prisma.schoolDepartment.findFirst({
+        where: departmentId ? { id: departmentId } : { sectorCode: "RPL" },
+        include: {
+          cpElements: {
+            orderBy: { sortOrder: "asc" },
+          },
         },
-      },
-    });
+      })) ||
+      (await prisma.schoolDepartment.findFirst({
+        include: {
+          cpElements: {
+            orderBy: { sortOrder: "asc" },
+          },
+        },
+      }));
 
     if (!department) {
       res.status(200).json(getMockHeatmapData());
@@ -752,7 +760,7 @@ teachersRouter.get(
       // Cek apakah database tersedia
       let isDbAvailable = false;
       try {
-        if (process.env.DATABASE_URL) {
+        if (process.env.DATABASE_URL && process.env.NODE_ENV !== "test") {
           await prisma.$queryRaw`SELECT 1`;
           isDbAvailable = true;
         }
@@ -856,7 +864,7 @@ teachersRouter.get(
     try {
       let isDbAvailable = false;
       try {
-        if (process.env.DATABASE_URL) {
+        if (process.env.DATABASE_URL && process.env.NODE_ENV !== "test") {
           await prisma.$queryRaw`SELECT 1`;
           isDbAvailable = true;
         }
@@ -937,7 +945,7 @@ teachersRouter.patch(
 
       let isDbAvailable = false;
       try {
-        if (process.env.DATABASE_URL) {
+        if (process.env.DATABASE_URL && process.env.NODE_ENV !== "test") {
           await prisma.$queryRaw`SELECT 1`;
           isDbAvailable = true;
         }

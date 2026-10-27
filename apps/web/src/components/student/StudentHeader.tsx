@@ -6,10 +6,12 @@ import { usePathname } from "next/navigation";
 import { ArrowLeft, Sparkles, Download } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
+import { useAuth } from "@/lib/use-auth";
 import VokaIcon from "@/components/common/VokaIcon";
 
 export function StudentHeader() {
   const pathname = usePathname();
+  const { user } = useAuth();
   const [isOnline, setIsOnline] = useState(true);
   const { isInstallable, isInstalled, promptInstall } = usePwaInstall();
 
@@ -114,11 +116,18 @@ export function StudentHeader() {
 
           <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100/90 border border-slate-200/70 text-[11px] font-semibold text-slate-700 shadow-2xs">
             <Sparkles className="w-3 h-3 text-amber-500 shrink-0" />
-            <span className="whitespace-nowrap">RPL XI</span>
+            <span className="whitespace-nowrap">{user?.department?.sectorCode || "RPL"}</span>
           </div>
 
           <div className="w-8 h-8 rounded-xl bg-slate-900 text-white font-bold text-[11px] flex items-center justify-center shadow-xs shrink-0 select-none">
-            AP
+            {user?.fullName
+              ? user.fullName
+                  .split(" ")
+                  .map((n) => n[0])
+                  .slice(0, 2)
+                  .join("")
+                  .toUpperCase()
+              : "AP"}
           </div>
         </div>
       </div>

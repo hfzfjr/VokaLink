@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import VokaIcon from "@/components/common/VokaIcon";
+import { useAuth } from "@/lib/use-auth";
 import {
   LayoutDashboard,
   BookOpen,
@@ -15,7 +16,6 @@ import {
   ExternalLink,
   ChevronRight,
 } from "lucide-react";
-import { DemoBar } from "./DemoBar";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -56,16 +56,17 @@ export function AppShell({
   children,
   schoolName = "SMK Negeri 1 Bandung",
   activePeriod = "2026/2027 Ganjil",
-  isDemo = true,
+  isDemo: _isDemo = false,
 }: AppShellProps) {
+  const router = useRouter();
   const pathname = usePathname();
+  const { user, logout } = useAuth();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
+  const resolvedSchoolName = user?.school?.name || schoolName;
 
   return (
     <div className="min-h-screen bg-canvas text-content-primary flex flex-col font-sans selection:bg-sky-500 selection:text-white">
-      {/* 1. DEMO BAR ATAS */}
-      {isDemo && <DemoBar />}
-
       <div className="flex-1 flex w-full">
         {/* 2. SIDEBAR DESKTOP (Width 248px pada Layar ≥ 1024px) */}
         <aside className="hidden lg:flex w-[248px] flex-col justify-between bg-white border-r border-slate-200/80 shrink-0 sticky top-0 h-screen overflow-y-auto">
@@ -89,8 +90,8 @@ export function AppShell({
 
             {/* School Profile Card */}
             <div className="p-4 mx-3 my-3 rounded-2xl bg-slate-50 border border-slate-100">
-              <p className="text-xs font-bold text-slate-800 truncate" title={schoolName}>
-                {schoolName}
+              <p className="text-xs font-bold text-slate-800 truncate" title={resolvedSchoolName}>
+                {resolvedSchoolName}
               </p>
               <div className="flex items-center justify-between mt-1 text-[11px] text-slate-500">
                 <span>Periode:</span>
@@ -232,7 +233,7 @@ export function AppShell({
               </button>
 
               <div className="flex items-center gap-2 text-xs">
-                <span className="font-bold text-slate-800 hidden sm:inline">{schoolName}</span>
+                <span className="font-bold text-slate-800 hidden sm:inline">{resolvedSchoolName}</span>
                 <span className="text-slate-300 hidden sm:inline">&bull;</span>
                 <span className="text-slate-500">Panel Pokja PKL</span>
               </div>
@@ -245,12 +246,16 @@ export function AppShell({
                 <span>Aktif Terhubung</span>
               </span>
 
-              <Link
-                href="/login"
-                className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 border border-slate-200 hover:bg-slate-50 transition"
+              <button
+                type="button"
+                onClick={async () => {
+                  await logout();
+                  router.push("/login");
+                }}
+                className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 border border-slate-200 hover:bg-slate-50 transition cursor-pointer"
               >
                 Keluar
-              </Link>
+              </button>
             </div>
           </header>
 

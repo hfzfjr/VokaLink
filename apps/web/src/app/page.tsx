@@ -246,42 +246,42 @@ export default function Home() {
           </p>
 
           {/* Dimension Tab Buttons */}
-          <div className="inline-flex items-center bg-slate-100/70 p-1.5 rounded-full border border-slate-200/60 mt-8 gap-1">
+          <div className="w-full sm:w-auto inline-flex items-center justify-center bg-slate-100/70 p-1 sm:p-1.5 rounded-full border border-slate-200/60 mt-8 gap-0.5 sm:gap-1 max-w-full overflow-x-auto no-scrollbar">
             <button
               type="button"
               onClick={() => setActiveDimension("siswa")}
-              className={`px-5 py-2.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 ${
+              className={`px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-bold transition flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 ${
                 activeDimension === "siswa"
                   ? "bg-white text-sky-600 shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              <GraduationCap className="size-4" />
-              <span>Untuk Siswa PKL</span>
+              <GraduationCap className="size-4 shrink-0" />
+              <span>Siswa PKL</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveDimension("guru")}
-              className={`px-5 py-2.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 ${
+              className={`px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-bold transition flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 ${
                 activeDimension === "guru"
                   ? "bg-white text-sky-600 shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              <UserCheck className="size-4" />
-              <span>Untuk Guru Pembimbing</span>
+              <UserCheck className="size-4 shrink-0" />
+              <span>Guru<span className="hidden sm:inline"> Pembimbing</span></span>
             </button>
             <button
               type="button"
               onClick={() => setActiveDimension("dudi")}
-              className={`px-5 py-2.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 ${
+              className={`px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-bold transition flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 ${
                 activeDimension === "dudi"
                   ? "bg-white text-sky-600 shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              <Building2 className="size-4" />
-              <span>Untuk Mentor DUDI</span>
+              <Building2 className="size-4 shrink-0" />
+              <span>Mentor DUDI</span>
             </button>
           </div>
         </div>
@@ -348,11 +348,11 @@ export default function Home() {
               </div>
 
               {/* Visual Preview Card */}
-              <div className="bg-slate-50/70 rounded-3xl p-6 border border-slate-100 flex flex-col gap-4">
-                <div className="flex items-center justify-between border-b border-slate-200/60 pb-3">
-                  <span className="text-xs font-bold text-slate-700">Tampilan Mobile Logbook Siswa</span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
-                    Status: Disetujui Mentor
+              <div className="bg-slate-50/70 rounded-3xl p-5 sm:p-6 border border-slate-100 flex flex-col gap-4">
+                <div className="flex items-center justify-between gap-2 border-b border-slate-200/60 pb-3">
+                  <span className="text-xs font-bold text-slate-700">Mobile Logbook Siswa</span>
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 shrink-0 whitespace-nowrap">
+                    Disetujui Mentor
                   </span>
                 </div>
                 <div className="bg-white p-4 rounded-2xl border border-slate-200/50 shadow-xs space-y-2">
@@ -370,12 +370,14 @@ export default function Home() {
                     <span>2 Lampiran Foto (WebP &lt; 60 KB)</span>
                   </div>
                 </div>
-                <div className="bg-sky-500 text-white p-4 rounded-2xl flex items-center justify-between shadow-xs">
+                <div className="bg-sky-500 text-white p-4 rounded-2xl flex items-center justify-between gap-3 shadow-xs">
                   <div>
-                    <p className="text-xs font-medium text-sky-100">Total Akumulasi Jam PKL</p>
-                    <p className="text-xl font-extrabold">480 / 792 JP</p>
+                    <p className="text-[11px] sm:text-xs font-medium text-sky-100">Total Akumulasi Jam PKL</p>
+                    <p className="text-lg sm:text-xl font-extrabold tracking-tight">480 / 792 JP</p>
                   </div>
-                  <span className="text-xs font-bold bg-white/20 px-3 py-1 rounded-full">60.6% Target</span>
+                  <span className="text-xs font-bold bg-white/20 px-3 py-1.5 rounded-full shrink-0 whitespace-nowrap">
+                    60.6% Target
+                  </span>
                 </div>
               </div>
             </div>
@@ -440,10 +442,10 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="bg-slate-50/70 rounded-3xl p-6 border border-slate-100 flex flex-col gap-3">
-                <div className="flex items-center justify-between border-b border-slate-200/60 pb-3">
-                  <span className="text-xs font-bold text-slate-700">Daftar Siswa Bimbingan (Kelas XII PPLG 1)</span>
-                  <span className="text-[10px] font-bold text-sky-600">32 Siswa Terhubung</span>
+              <div className="bg-slate-50/70 rounded-3xl p-5 sm:p-6 border border-slate-100 flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-2 border-b border-slate-200/60 pb-3">
+                  <span className="text-xs font-bold text-slate-700 truncate">Siswa Bimbingan (XII PPLG 1)</span>
+                  <span className="text-[10px] font-bold text-sky-600 shrink-0 whitespace-nowrap">32 Siswa</span>
                 </div>
                 {/* Item 1 */}
                 <div className="bg-white p-3 rounded-2xl border border-slate-200/50 flex items-center justify-between shadow-xs">
@@ -546,10 +548,10 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="bg-slate-50/70 rounded-3xl p-6 border border-slate-100 flex flex-col gap-4">
-                <div className="flex items-center justify-between border-b border-slate-200/60 pb-3">
-                  <span className="text-xs font-bold text-slate-700">Formulir Asesmen Akhir Mentor</span>
-                  <span className="text-[10px] font-bold text-purple-600">IDUKA Certified</span>
+              <div className="bg-slate-50/70 rounded-3xl p-5 sm:p-6 border border-slate-100 flex flex-col gap-4">
+                <div className="flex items-center justify-between gap-2 border-b border-slate-200/60 pb-3">
+                  <span className="text-xs font-bold text-slate-700 truncate">Formulir Asesmen Mentor</span>
+                  <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100 shrink-0 whitespace-nowrap">IDUKA Certified</span>
                 </div>
                 <div className="space-y-3">
                   <div>

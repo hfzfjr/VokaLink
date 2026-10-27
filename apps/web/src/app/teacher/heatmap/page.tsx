@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/use-auth";
 import {
   Users,
   AlertTriangle,
@@ -19,6 +21,7 @@ import {
   Repeat,
   Send,
   Calendar,
+  LogOut,
 } from "lucide-react";
 import {
   fetchTeacherHeatmap,
@@ -37,6 +40,9 @@ import type {
 } from "@vokalink/shared";
 
 export default function TeacherHeatmapPage() {
+  const router = useRouter();
+  const { user, token, logout } = useAuth();
+
   const [data, setData] = useState<HeatmapResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEvaluating, setIsEvaluating] = useState(false);
@@ -95,6 +101,7 @@ export default function TeacherHeatmapPage() {
     try {
       const res = await fetchTeacherHeatmap({
         driftOnly: driftOnlyFilter,
+        token: token || undefined,
       });
       setData(res);
     } catch (err: any) {
@@ -102,7 +109,7 @@ export default function TeacherHeatmapPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [driftOnlyFilter]);
+  }, [driftOnlyFilter, token]);
 
   useEffect(() => {
     loadHeatmapData();
@@ -358,16 +365,40 @@ export default function TeacherHeatmapPage() {
             </div>
           </div>
 
-          {/* Action Button: Scan Algoritma Drift */}
-          <div className="flex items-center gap-2">
+          {/* Action Buttons: Scan Algoritma Drift & Teacher Profile / Logout */}
+          <div className="flex items-center gap-2.5">
+            {user && (
+              <div className="hidden sm:flex flex-col text-right pr-1">
+                <span className="text-xs font-bold text-slate-900 leading-tight">
+                  {user.fullName || "Guru Pembimbing"}
+                </span>
+                <span className="text-[10px] text-slate-500 font-medium">
+                  {user.school?.name || "SMK Mitra"}
+                </span>
+              </div>
+            )}
+
             <button
               type="button"
               onClick={handleTriggerEvaluate}
               disabled={isEvaluating}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition disabled:opacity-50 cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isEvaluating ? "animate-spin text-blue-600" : ""}`} />
-              <span>{isEvaluating ? "Memindai..." : "Pindai Algoritma Drift"}</span>
+              <span className="hidden sm:inline">{isEvaluating ? "Memindai..." : "Pindai Drift"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={async () => {
+                await logout();
+                router.push("/login");
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-rose-600 border border-slate-200 hover:bg-rose-50/50 hover:border-rose-200 transition cursor-pointer"
+              title="Keluar dari akun guru"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Keluar</span>
             </button>
           </div>
         </div>

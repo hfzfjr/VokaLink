@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/lib/use-auth";
 import {
   Home,
   PlusCircle,
@@ -76,7 +77,9 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export function StudentSidebar() {
+  const router = useRouter();
   const pathname = usePathname();
+  const { logout } = useAuth();
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [activeTab, setActiveTab] = useState<"profile" | "privacy" | "offline">("profile");
@@ -104,17 +107,31 @@ export function StudentSidebar() {
   const [isOnline, setIsOnline] = useState(true);
   const [syncStatus, setSyncStatus] = useState<string>("Tersinkronisasi penuh (0 antrean)");
 
+  const { user, token } = useAuth();
+
   const [studentProfile, setStudentProfile] = useState<{
     fullName: string;
     identityNumber: string;
     departmentName: string;
     schoolName: string;
   }>({
-    fullName: "Andi Pratama",
-    identityNumber: "0078901234",
-    departmentName: "Rekayasa Perangkat Lunak (RPL)",
-    schoolName: "SMK Demo VokaLink",
+    fullName: user?.fullName || "Siswa VokaLink",
+    identityNumber: user?.identityNumber || "-",
+    departmentName: user?.department?.name || "Kejuruan",
+    schoolName: user?.school?.name || "SMK VokaLink",
   });
+
+  useEffect(() => {
+    if (user) {
+      setStudentProfile({
+        fullName: user.fullName || "Siswa",
+        identityNumber: user.identityNumber || "-",
+        departmentName: user.department?.name || "Kejuruan",
+        schoolName: user.school?.name || "SMK VokaLink",
+      });
+      if (user.whatsappNumber) setPhone(user.whatsappNumber);
+    }
+  }, [user]);
 
   // Load from localStorage & database context
   useEffect(() => {
@@ -127,27 +144,28 @@ export function StudentSidebar() {
 
       const loadProfile = async () => {
         try {
-          const cached = await db.refData.get("student_log_context");
+          const cacheKey = user?.id ? `student_log_context_${user.id}` : "student_log_context";
+          const cached = await db.refData.get(cacheKey);
           if (cached?.data) {
             const data = cached.data as StudentLogContextResponse;
-            if (data.student) {
+            if (data.student && (!user?.id || data.student.id === user.id)) {
               setStudentProfile({
-                fullName: data.student.fullName || "Andi Pratama",
-                identityNumber: data.student.identityNumber || "0078901234",
-                departmentName: data.student.departmentName || "Rekayasa Perangkat Lunak (RPL)",
-                schoolName: data.student.schoolName || "SMK Demo VokaLink",
+                fullName: data.student.fullName || user?.fullName || "Siswa",
+                identityNumber: data.student.identityNumber || user?.identityNumber || "-",
+                departmentName: data.student.departmentName || user?.department?.name || "Kejuruan",
+                schoolName: data.student.schoolName || user?.school?.name || "SMK VokaLink",
               });
               if (data.student.whatsappNumber) setPhone(data.student.whatsappNumber);
             }
           }
           if (navigator.onLine) {
-            const fresh = await fetchStudentLogContext();
+            const fresh = await fetchStudentLogContext(user?.id, token || undefined);
             if (fresh?.student) {
               setStudentProfile({
-                fullName: fresh.student.fullName || "Andi Pratama",
-                identityNumber: fresh.student.identityNumber || "0078901234",
-                departmentName: fresh.student.departmentName || "Rekayasa Perangkat Lunak (RPL)",
-                schoolName: fresh.student.schoolName || "SMK Demo VokaLink",
+                fullName: fresh.student.fullName || user?.fullName || "Siswa",
+                identityNumber: fresh.student.identityNumber || user?.identityNumber || "-",
+                departmentName: fresh.student.departmentName || user?.department?.name || "Kejuruan",
+                schoolName: fresh.student.schoolName || user?.school?.name || "SMK VokaLink",
               });
               if (fresh.student.whatsappNumber) setPhone(fresh.student.whatsappNumber);
             }
@@ -404,11 +422,15 @@ export function StudentSidebar() {
             </div>
           </button>
 
-          {/* Exit / Back to Portal Home */}
-          <Link
-            href="/"
-            title="Keluar ke Portal Utama"
-            aria-label="Keluar ke Portal Utama"
+          {/* Exit / Logout to Login Page */}
+          <button
+            type="button"
+            onClick={async () => {
+              await logout();
+              router.push("/login");
+            }}
+            title="Keluar dari Akun Siswa"
+            aria-label="Keluar dari Akun Siswa"
             className="w-full h-12 rounded-2xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center overflow-hidden transition-colors duration-150 cursor-pointer group text-left"
           >
             <div className="w-12 h-12 shrink-0 flex items-center justify-center">
@@ -421,13 +443,13 @@ export function StudentSidebar() {
               )}
             >
               <p className="text-xs font-semibold text-rose-600 truncate leading-tight whitespace-nowrap">
-                Keluar Portal
+                Keluar Akun
               </p>
               <p className="text-[10px] text-slate-400 truncate leading-tight mt-0.5 whitespace-nowrap">
-                Kembali ke Beranda
+                Halaman Masuk
               </p>
             </div>
-          </Link>
+          </button>
         </div>
       </aside>
 

@@ -28,4 +28,4 @@ ENV NODE_ENV=production
 ENV PORT=3001
 EXPOSE 3001
 
-CMD ["sh", "-c", "pnpm --filter api prisma:deploy && node apps/api/dist/index.js"]
+CMD ["sh", "-c", "pnpm --filter api prisma:deploy && pnpm --filter api start"]

@@ -141,11 +141,25 @@ export default function LandingNavbar({ onScheduleDemo }: LandingNavbarProps) {
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-100 transition-all duration-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-        {/* Brand Logo with Smooth Scroll to Top */}
-        <VokaLogo size="md" href="/" onClick={scrollToTop} />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-3">
+        {/* Left Section: Mobile (Hamburger + Logo) / Desktop (Logo only) */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Mobile Hamburger Button */}
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="lg:hidden w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200/80 active:scale-95 text-slate-700 flex items-center justify-center transition focus:outline-none"
+            aria-label={mobileMenuOpen ? "Tutup menu" : "Buka menu"}
+            aria-expanded={mobileMenuOpen}
+          >
+            {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+          </button>
 
-        {/* Desktop Nav Menu with Animated Sliding Indicator */}
+          {/* Brand Logo with Smooth Scroll to Top */}
+          <VokaLogo size="md" href="/" onClick={scrollToTop} className="shrink-0" />
+        </div>
+
+        {/* Center Section: Desktop Nav Menu with Animated Sliding Indicator */}
         <nav className="relative hidden lg:flex items-center gap-1 bg-slate-100/70 p-1.5 rounded-full border border-slate-200/60 text-xs font-semibold text-slate-600">
           {/* Animated Sliding Pill */}
           <span
@@ -180,11 +194,11 @@ export default function LandingNavbar({ onScheduleDemo }: LandingNavbarProps) {
           })}
         </nav>
 
-        {/* CTA Buttons Right */}
-        <div className="hidden sm:flex items-center gap-3">
+        {/* Right Section: Mobile (Masuk Portal only) / Desktop (Masuk Portal + Jadwalkan Demo) */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <Link
             href="/login"
-            className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-700 bg-white border border-slate-200/80 hover:border-slate-300 hover:bg-slate-50 transition shadow-xs inline-flex items-center gap-1.5"
+            className="px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs font-bold text-slate-700 bg-white border border-slate-200/80 hover:border-slate-300 hover:bg-slate-50 transition shadow-xs inline-flex items-center gap-1.5"
           >
             <ExternalLink className="size-3.5 text-sky-500" />
             <span>Masuk Portal</span>
@@ -192,63 +206,64 @@ export default function LandingNavbar({ onScheduleDemo }: LandingNavbarProps) {
           <button
             type="button"
             onClick={onScheduleDemo}
-            className="px-5 py-2.5 rounded-full text-xs font-bold text-white bg-sky-500 hover:bg-sky-600 shadow-md shadow-sky-500/25 transition cursor-pointer"
+            className="hidden lg:inline-flex px-5 py-2.5 rounded-full text-xs font-bold text-white bg-sky-500 hover:bg-sky-600 shadow-md shadow-sky-500/25 transition cursor-pointer"
           >
             Jadwalkan Demo Sekolah
           </button>
         </div>
-
-        {/* Mobile Hamburger Button */}
-        <button
-          type="button"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="lg:hidden w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-base focus:outline-none"
-          aria-label="Toggle menu"
-        >
-          {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
-        </button>
       </div>
 
-      {/* Mobile Drawer Menu */}
+      {/* Mobile Floating Overlay Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-white border-b border-slate-200 px-6 py-5 space-y-2">
-          {NAV_ITEMS.map((item) => {
-            const isActive = activeSection === item.id;
-            return (
-              <a
-                key={item.id}
-                href={`#${item.id}`}
-                onClick={scrollToMobile(item.id)}
-                className={`block text-sm py-2 px-3 rounded-xl transition-all duration-200 cursor-pointer ${
-                  isActive
-                    ? "bg-sky-50 text-sky-600 font-bold border-l-4 border-sky-500 pl-3"
-                    : "font-semibold text-slate-700 hover:text-sky-600 hover:bg-slate-50"
-                }`}
-              >
-                {item.label}
-              </a>
-            );
-          })}
+        <>
+          {/* Backdrop Click Outside */}
+          <div
+            className="fixed inset-0 top-20 bg-slate-900/20 backdrop-blur-xs z-30 lg:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
 
-          <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
-            <Link
-              href="/login"
-              className="w-full text-center py-2.5 rounded-full text-xs font-bold text-slate-700 bg-slate-100"
-            >
-              Masuk Portal
-            </Link>
-            <button
-              type="button"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                onScheduleDemo?.();
-              }}
-              className="w-full text-center py-2.5 rounded-full text-xs font-bold text-white bg-sky-500 hover:bg-sky-600"
-            >
-              Jadwalkan Demo
-            </button>
+          {/* Floating Menu Panel */}
+          <div className="absolute top-full inset-x-0 bg-white border-b border-slate-200 shadow-2xl px-6 py-5 space-y-2 z-40 lg:hidden">
+            {NAV_ITEMS.map((item) => {
+              const isActive = activeSection === item.id;
+              return (
+                <a
+                  key={item.id}
+                  href={`#${item.id}`}
+                  onClick={scrollToMobile(item.id)}
+                  className={`block text-sm py-2.5 px-3 rounded-xl transition-all duration-200 cursor-pointer ${
+                    isActive
+                      ? "bg-sky-50 text-sky-600 font-bold border-l-4 border-sky-500 pl-3"
+                      : "font-semibold text-slate-700 hover:text-sky-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {item.label}
+                </a>
+              );
+            })}
+
+            <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full text-center py-2.5 rounded-full text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200/80 transition"
+              >
+                Masuk Portal
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onScheduleDemo?.();
+                }}
+                className="w-full text-center py-2.5 rounded-full text-xs font-bold text-white bg-sky-500 hover:bg-sky-600 shadow-md shadow-sky-500/25 transition cursor-pointer"
+              >
+                Jadwalkan Demo
+              </button>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </header>
   );

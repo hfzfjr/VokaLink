@@ -20,7 +20,7 @@ export async function evaluateDriftForAllPlacements(): Promise<DriftEvaluationRe
   // Cek ketersediaan database
   let isDbAvailable = false;
   try {
-    if (process.env["DATABASE_URL"]) {
+    if (process.env["DATABASE_URL"] && process.env["NODE_ENV"] !== "test") {
       await prisma.$queryRaw`SELECT 1`;
       isDbAvailable = true;
     }

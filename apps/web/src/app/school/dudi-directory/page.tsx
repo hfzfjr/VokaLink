@@ -42,93 +42,14 @@ import {
   type DudiQualityAuditResponse,
   type DudiQualityMetricItem,
 } from "@/lib/api";
-
-// Fallback seed jika offline / backend belum menyala
-const MOCK_PARTNERS: DudiPartnerItem[] = [
-  {
-    id: "dudi-1",
-    name: "PT Inovasi Digital Nusantara",
-    sectorCategory: "Teknologi Informasi & Software",
-    address: "Jl. Pemuda No. 45, Embong Kaliasin",
-    city: "Surabaya",
-    latitude: -7.2625,
-    longitude: 112.7483,
-    maxQuota: 6,
-    qualityIndexScore: 94.2,
-    mentorsCount: 2,
-    capabilitiesCount: 12,
-    placementsCount: 4,
-    mentors: [
-      {
-        id: "m-1",
-        fullName: "Hendra Wijaya, S.Kom",
-        jobTitle: "Head of Software Engineering",
-        whatsappNumber: "081234567890",
-        isDeviceBound: true,
-      },
-      {
-        id: "m-2",
-        fullName: "Rina Kusuma",
-        jobTitle: "UI/UX Design Lead",
-        whatsappNumber: "081987654321",
-        isDeviceBound: false,
-      },
-    ],
-  },
-  {
-    id: "dudi-2",
-    name: "Kantor Akuntan Publik Drs. Bambang & Rekan",
-    sectorCategory: "Akuntansi & Keuangan",
-    address: "Jl. Raya Darmo No. 88",
-    city: "Surabaya",
-    latitude: -7.2891,
-    longitude: 112.7384,
-    maxQuota: 4,
-    qualityIndexScore: 89.0,
-    mentorsCount: 1,
-    capabilitiesCount: 10,
-    placementsCount: 2,
-    mentors: [
-      {
-        id: "m-3",
-        fullName: "Siti Rahmawati, SE, Ak, CA",
-        jobTitle: "Senior Audit Supervisor",
-        whatsappNumber: "081345678912",
-        isDeviceBound: true,
-      },
-    ],
-  },
-  {
-    id: "dudi-3",
-    name: "Bengkel Resmi Astra Otoservice",
-    sectorCategory: "Otomotif & Manufaktur",
-    address: "Jl. Basuki Rahmat No. 12",
-    city: "Surabaya",
-    latitude: -7.2711,
-    longitude: 112.7412,
-    maxQuota: 5,
-    qualityIndexScore: 91.4,
-    mentorsCount: 1,
-    capabilitiesCount: 9,
-    placementsCount: 3,
-    mentors: [
-      {
-        id: "m-4",
-        fullName: "Agus Prasetyo",
-        jobTitle: "Kepala Bengkel & Instruktur",
-        whatsappNumber: "082156789012",
-        isDeviceBound: true,
-      },
-    ],
-  },
-];
+import { useAuth } from "@/lib/use-auth";
 
 export default function DudiDirectoryPage() {
+  const { token } = useAuth();
   const [partners, setPartners] = useState<DudiPartnerItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedCity, setSelectedCity] = useState("Semua");
-  const [token] = useState("mock-token");
 
   // FR-010: Quality Index & Tab State
   const [activeTab, setActiveTab] = useState<"DIRECTORY" | "QUALITY_INDEX">("DIRECTORY");
@@ -188,16 +109,12 @@ export default function DudiDirectoryPage() {
           search: search || undefined,
           city: selectedCity === "Semua" ? undefined : selectedCity,
         },
-        token
+        token || undefined
       );
-      if (data && data.length > 0) {
-        setPartners(data);
-      } else {
-        setPartners(MOCK_PARTNERS);
-      }
+      setPartners(data || []);
     } catch (err: any) {
-      console.warn("API fallback to mock DUDI:", err);
-      setPartners(MOCK_PARTNERS);
+      setErrorMsg(err.message || "Gagal memuat direktori DUDI dari server.");
+      setPartners([]);
     } finally {
       setLoading(false);
     }
@@ -262,6 +179,10 @@ export default function DudiDirectoryPage() {
   // Submit Pendaftaran DUDI + Mentor
   const handleCreateDudiSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!token) {
+      setErrorMsg("Sesi login tidak valid. Silakan login kembali.");
+      return;
+    }
     if (selectedJobCards.length === 0) {
       setErrorMsg("Pilih minimal 1 pekerjaan teknis yang tersedia di lokasi mitra ini.");
       return;
@@ -335,6 +256,10 @@ export default function DudiDirectoryPage() {
 
   // Reset perangkat mentor (A2: Pergantian HP)
   const handleResetMentorDevice = async (mentorId: string, mentorName: string, dudiTitle: string) => {
+    if (!token) {
+      setErrorMsg("Sesi login tidak valid. Silakan login kembali.");
+      return;
+    }
     const confirmReset = window.confirm(
       `Reset ikatan perangkat untuk ${mentorName}? Perangkat lama tidak akan bisa memverifikasi lagi dan tautan aktivasi baru akan diterbitkan.`
     );
