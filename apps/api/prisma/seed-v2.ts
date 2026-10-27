@@ -761,30 +761,33 @@ export async function seedV2(): Promise<void> {
         homeLongitude: Number((schoolInfo.longitude + lngOffset).toFixed(6)),
       });
 
-      const dudi = effectiveDudis[s % effectiveDudis.length];
-      const mentorId = deterministicUuid(`mentor-${dudi.id}`);
-      const placementId = deterministicUuid(`placement-${studentId}`);
+      // Tempatkan 80 siswa pertama, sisakan 20 siswa (s >= 80) sebagai kandidat penempatan untuk demo
+      if (s < 80) {
+        const dudi = effectiveDudis[s % effectiveDudis.length];
+        const mentorId = deterministicUuid(`mentor-${dudi.id}`);
+        const placementId = deterministicUuid(`placement-${studentId}`);
 
-      placementsToBatch.push({
-        id: placementId,
-        studentId: studentId,
-        academicPeriodId: periodId,
-        dudiPartnerId: dudi.id,
-        dudiMentorId: mentorId,
-        teacherId: assignedTeacher.id,
-        status: PlacementStatus.ACTIVE,
-        compatibilityScore: 88.5,
-        coverageScore: 92.0,
-        distanceKm: Number((1.5 + (s % 7) * 0.8).toFixed(2)),
-        requiresMidtermRotation: false,
-        rotationSequence: 1,
-      });
+        placementsToBatch.push({
+          id: placementId,
+          studentId: studentId,
+          academicPeriodId: periodId,
+          dudiPartnerId: dudi.id,
+          dudiMentorId: mentorId,
+          teacherId: assignedTeacher.id,
+          status: PlacementStatus.ACTIVE,
+          compatibilityScore: 88.5,
+          coverageScore: 92.0,
+          distanceKm: Number((1.5 + (s % 7) * 0.8).toFixed(2)),
+          requiresMidtermRotation: false,
+          rotationSequence: 1,
+        });
+      }
     }
 
-    // Simpan 100 Siswa dan 100 Placement dalam satu roundtrip
+    // Simpan 100 Siswa dan 80 Placement dalam satu roundtrip
     await prisma.userProfile.createMany({ data: studentsToBatch });
     await prisma.placement.createMany({ data: placementsToBatch });
-    console.log(`   ✅ 100 Siswa & Penempatan tersimpan di database.`);
+    console.log(`   ✅ 100 Siswa & ${placementsToBatch.length} Penempatan tersimpan di database.`);
 
     // 4.7 Buat Log Harian untuk 4 Siswa Utama di Masing-Masing Sekolah
     console.log(`   📝 Mengisi riwayat logbook dan aktivitas siswa utama...`);

@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Hapus seluruh sesi (Logout)
+  // Hapus seluruh sesi (Logout) dan arahkan langsung ke /login
   const logout = useCallback(async () => {
     setUser(null);
     setToken(null);
@@ -109,6 +109,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await supabase.auth.signOut();
     } catch {
       // Ignored
+    } finally {
+      if (typeof window !== "undefined") {
+        window.location.replace("/login");
+      }
     }
   }, []);
 

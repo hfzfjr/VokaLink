@@ -62,10 +62,16 @@ placementsRouter.get(
 
       const targetTotalJp = activePeriod?.targetTotalJp ?? 792;
 
-      // 3. Ambil daftar siswa di sekolah (dan filter jurusan bila ada)
+      // 3. Ambil daftar siswa di sekolah yang BELUM memiliki penempatan aktif di periode ini (dan filter jurusan bila ada)
       const studentWhere: any = {
         schoolId,
         role: "STUDENT",
+        studentPlacements: {
+          none: {
+            status: "ACTIVE",
+            ...(activePeriod ? { academicPeriodId: activePeriod.id } : {}),
+          },
+        },
       };
       if (departmentId) {
         studentWhere.schoolDepartmentId = departmentId;

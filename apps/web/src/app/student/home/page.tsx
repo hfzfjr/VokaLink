@@ -220,7 +220,7 @@ export default function StudentHomePage() {
         skkniUnitCode: log.isNonCompetency ? "NON-KOMPETENSI" : "J.620100.009.01",
         status: isVerified ? "verified" : isInReview ? "in_review" : "in_progress",
         isoDate: log.logDate,
-        tools: log.isNonCompetency ? ["SOP Industri"] : ["Logbook PKL", "Dexie IndexedDB"],
+        tools: log.isNonCompetency ? ["SOP Industri"] : ["Logbook PKL", "SOP Industri"],
         submittedAt: syncStatusText,
         mentorSignature: isVerified
           ? placementInfo?.mentorName || "Mentor Industri"
@@ -268,7 +268,7 @@ export default function StudentHomePage() {
           : firstItem?.jobCard?.skkniUnitCode || "J.620100.009.01",
         status: isVerified ? "verified" : isInReview ? "in_review" : "in_progress",
         isoDate: sl.logDate,
-        tools: isNonCompetency ? ["SOP Industri"] : ["Logbook PKL", "Database PostgreSQL"],
+        tools: isNonCompetency ? ["SOP Industri"] : ["Logbook PKL", "SOP Industri"],
         submittedAt: isVerified ? "Sah Terverifikasi" : "Tersinkron (Menunggu PIN)",
         mentorSignature: isVerified ? placementInfo?.mentorName || "Mentor Industri" : undefined,
         hmacVerified: isVerified,

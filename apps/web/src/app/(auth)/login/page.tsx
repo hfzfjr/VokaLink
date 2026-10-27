@@ -162,12 +162,6 @@ function LoginForm() {
             // Simpan sesi ke AuthContext & cookies
             setSession(authData.session.access_token, profileData);
 
-            const fromParam = searchParams.get("from");
-            if (fromParam && fromParam.startsWith("/")) {
-              router.push(fromParam);
-              return;
-            }
-
             if (role === "SCHOOL_ADMIN") {
               router.push("/school/dashboard");
             } else if (role === "TEACHER") {
@@ -191,11 +185,6 @@ function LoginForm() {
       }
 
       const role = result.role;
-      const fromParam = searchParams.get("from");
-      if (fromParam && fromParam.startsWith("/")) {
-        router.push(fromParam);
-        return;
-      }
 
       if (role === "STUDENT") {
         router.push("/student/home");
@@ -260,9 +249,9 @@ function LoginForm() {
                 <ShieldCheck className="w-4 h-4" />
               </div>
               <div className="space-y-0.5">
-                <h3 className="font-bold text-xs sm:text-sm text-white">Verifikasi Mentor Zero-Login</h3>
+                <h3 className="font-bold text-xs sm:text-sm text-white">Verifikasi Mentor Tanpa Akun</h3>
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  Mentor industri menyetujui logbook dalam &lt;10 detik via tautan terenkripsi, token perangkat, dan PIN.
+                  Mentor industri menyetujui jurnal siswa dalam &lt;10 detik lewat tautan QR/WhatsApp dan PIN HP.
                 </p>
               </div>
             </div>
@@ -287,7 +276,7 @@ function LoginForm() {
               <ShieldCheck className="w-3.5 h-3.5" />
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">
-              Integritas data terjamin dengan segel kriptografi HMAC-SHA256 sesuai standar kurikulum vokasi nasional.
+              Setiap sertifikat dan paspor kompetensi dilengkapi segel digital resmi sesuai standar kurikulum vokasi nasional.
             </p>
           </div>
         </section>

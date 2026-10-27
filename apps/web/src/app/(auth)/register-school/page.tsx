@@ -11,7 +11,6 @@ import {
   AlertCircle,
   ArrowRight,
   ArrowLeft,
-  Sparkles,
   RefreshCw,
   WifiOff,
   ShieldCheck,
@@ -20,18 +19,15 @@ import { TOTAL_TARGET_JP } from "@vokalink/shared";
 import {
   fetchMasterDepartments,
   registerSchool,
-  fetchDemoSandboxData,
   type MasterDepartmentItem,
 } from "../../../lib/api";
 import Navbar, { NavbarButton } from "@/components/layout/Navbar";
-import { DemoBar } from "@/components/shell/DemoBar";
 
 type Step = 1 | 2 | 3 | 4 | 5; // 1: Info, 2: Jurusan, 3: Periode, 4: Admin, 5: Sukses
 
 export default function RegisterSchoolPage() {
   const [step, setStep] = useState<Step>(1);
   const [loading, setLoading] = useState(false);
-  const [loadingDemo, setLoadingDemo] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [isOffline, setIsOffline] = useState(false);
@@ -239,33 +235,8 @@ export default function RegisterSchoolPage() {
     }
   };
 
-  // Muat Sandbox Demo Instan untuk Pengujian Juri
-  const handleLoadDemoSandbox = async () => {
-    setLoadingDemo(true);
-    setErrorMsg(null);
-    try {
-      const demoData = await fetchDemoSandboxData();
-      setSuccessResult({
-        schoolName: demoData.school.name,
-        npsn: demoData.school.npsn,
-        adminEmail: "admin.smk@vokalink.id",
-        departmentsCount: demoData.departments.length,
-        targetJp: demoData.period?.targetTotalJp ?? 792,
-      });
-      setStep(5);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Gagal memuat data demo sandbox.";
-      setErrorMsg(msg);
-    } finally {
-      setLoadingDemo(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-canvas text-content-primary flex flex-col justify-between font-sans selection:bg-sky-500 selection:text-white">
-      {/* 1. DEMO BAR (Top Judge Switcher) */}
-      <DemoBar />
-
       {/* Offline Connectivity Banner */}
       {isOffline && (
         <div className="bg-amber-500 text-slate-900 px-4 py-2.5 text-center text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 shadow-xs">
@@ -274,7 +245,7 @@ export default function RegisterSchoolPage() {
         </div>
       )}
 
-      {/* 2. TOP NAVBAR */}
+      {/* TOP NAVBAR */}
       <Navbar
         variant="sticky"
         rightSlot={
@@ -282,46 +253,11 @@ export default function RegisterSchoolPage() {
         }
       />
 
-      {/* 3. MAIN WORKSPACE CONTAINER */}
+      {/* MAIN WORKSPACE CONTAINER */}
       <main className="max-w-3xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex-1">
         {/* Step Progress Header (Steps 1 to 4) */}
         {step <= 4 && (
           <div className="mb-8">
-            {/* Quick Demo Switcher Hero Banner for Judges */}
-            <div className="mb-6 p-5 rounded-3xl bg-slate-900 text-white shadow-xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-2xl bg-sky-500/20 text-sky-400 shrink-0">
-                  <Sparkles className="w-6 h-6 animate-pulse" />
-                </div>
-                <div>
-                  <h2 className="font-extrabold text-sm sm:text-base text-white tracking-tight">
-                    Mode Penjurian UINIC 8.0 (1-Click Sandbox)
-                  </h2>
-                  <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
-                    Muat langsung simulasi sekolah demo: 6 jurusan, 5 siswa, 6 DUDI & penempatan aktif.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={handleLoadDemoSandbox}
-                disabled={loadingDemo}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-sky-500 hover:bg-sky-400 text-white text-xs font-bold transition shadow-md shadow-sky-500/20 whitespace-nowrap disabled:opacity-50 cursor-pointer active:scale-95"
-              >
-                {loadingDemo ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Memuat Sandbox...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    <span>Muat Data Demo Instan</span>
-                  </>
-                )}
-              </button>
-            </div>
-
             {/* Stepper Navigation Indicator */}
             <div className="grid grid-cols-4 gap-2">
               {[
@@ -472,8 +408,7 @@ export default function RegisterSchoolPage() {
                 Pilih Konsentrasi Keahlian / Jurusan Aktif
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
-                Pilih minimal 1 jurusan yang aktif di sekolah Anda. Sistem otomatis mengklon katalog
-                Capaian Pembelajaran (CP) dan Job Cards bawaan.
+                Pilih jurusan yang aktif di sekolah Anda. Kurikulum standar 792 JP dan katalog Kartu Pekerjaan (Job Cards) akan langsung diaktifkan secara otomatis oleh sistem tanpa perlu konfigurasi manual.
               </p>
             </div>
 
