@@ -13,6 +13,8 @@ import {
   FileText,
   Calendar,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/pwa/db";
@@ -186,69 +188,56 @@ export function EvidenceGalleryView() {
     });
   }, [allEvidences, statusFilter, searchQuery]);
 
+  const PAGE_SIZE = 6;
+  const [currentPage, setCurrentPage] = useState<number>(1);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, searchQuery]);
+
+  const totalItems = filteredEvidences.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedEvidences = useMemo(() => {
+    const start = (safeCurrentPage - 1) * PAGE_SIZE;
+    return filteredEvidences.slice(start, start + PAGE_SIZE);
+  }, [filteredEvidences, safeCurrentPage]);
+
   return (
     <div className="space-y-4 pt-1 pb-6 animate-in fade-in duration-200">
-      {/* ─── Control Bar: Status Filter Tabs, Search & List/Grid Switcher ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-        {/* Status Filter Segmented Buttons (Mobile-Tuned) */}
-        <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-full border border-slate-200 text-xs font-medium w-full sm:w-auto overflow-x-auto scrollbar-none">
-          <button
-            type="button"
-            onClick={() => setStatusFilter("ALL")}
-            className={cn(
-              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95 text-[11px] sm:text-xs",
-              statusFilter === "ALL"
-                ? "bg-white text-slate-900 shadow-xs font-semibold"
-                : "text-slate-600 hover:text-slate-900 font-medium"
-            )}
-          >
-            <span className="sm:hidden">Semua</span>
-            <span className="hidden sm:inline">Semua Bukti</span>
-            <span
-              className={cn(
-                "px-1.5 py-0.2 rounded-full text-[10px] font-semibold",
-                statusFilter === "ALL" ? "bg-slate-100 text-slate-800" : "bg-slate-300/60 text-slate-600"
-              )}
-            >
-              {allEvidences.length}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStatusFilter("VERIFIED")}
-            className={cn(
-              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95 text-[11px] sm:text-xs",
-              statusFilter === "VERIFIED"
-                ? "bg-white text-emerald-800 shadow-xs font-semibold"
-                : "text-slate-600 hover:text-slate-900 font-medium"
-            )}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-            <span className="sm:hidden">Sah</span>
-            <span className="hidden sm:inline">Sah Terverifikasi</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-semibold">
-              {verifiedCount}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStatusFilter("IN_REVIEW")}
-            className={cn(
-              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95 text-[11px] sm:text-xs",
-              statusFilter === "IN_REVIEW"
-                ? "bg-white text-amber-800 shadow-xs font-semibold"
-                : "text-slate-600 hover:text-slate-900 font-medium"
-            )}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-            <span className="sm:hidden">Pending</span>
-            <span className="hidden sm:inline">Menunggu Validasi</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 text-[10px] font-semibold">
-              {pendingCount}
-            </span>
-          </button>
+      {/* ─── Control Bar: Status chips (sekunder) | Cari & List/Grid ─── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        {/* Status chips ringan — warna biru VokaLink saat aktif, bersih tanpa dot */}
+        <div className="flex items-center gap-1 w-full sm:w-auto overflow-x-auto scrollbar-none">
+          {(
+            [
+              { key: "ALL", label: "Semua", count: allEvidences.length },
+              { key: "VERIFIED", label: "Sah", count: verifiedCount },
+              { key: "IN_REVIEW", label: "Menunggu", count: pendingCount },
+            ] as const
+          ).map((chip) => {
+            const active = statusFilter === chip.key;
+            return (
+              <button
+                key={chip.key}
+                type="button"
+                onClick={() => setStatusFilter(chip.key)}
+                aria-pressed={active}
+                className={cn(
+                  "h-8 px-3 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer",
+                  active
+                    ? "bg-sky-500 text-white shadow-xs font-semibold"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                )}
+              >
+                <span>{chip.label}</span>
+                <span className={cn("tabular-nums text-[11px]", active ? "text-white/80 font-medium" : "text-slate-400")}>
+                  {chip.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Search Bar + View Mode Switcher (List vs Grid) */}
@@ -261,7 +250,7 @@ export function EvidenceGalleryView() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari bukti kegiatan..."
-              className="w-full pl-9 pr-8 py-1.5 rounded-full bg-white border border-slate-200/90 text-xs text-slate-900 placeholder:text-slate-400 font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs"
+              className="w-full h-8 pl-9 pr-8 rounded-full bg-white border border-slate-200/90 text-xs text-slate-900 placeholder:text-slate-400 font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
             />
             {searchQuery && (
               <button
@@ -336,7 +325,7 @@ export function EvidenceGalleryView() {
       {/* ─── Mode 1: GRID VIEW (Notion Minimalist Bento Photo Showcase) ─── */}
       {galleryLayout === "GRID" && filteredEvidences.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-4 pt-1 animate-in fade-in duration-150">
-          {filteredEvidences.map((ev) => (
+          {paginatedEvidences.map((ev) => (
             <div
               key={ev.id}
               onClick={() => setSelectedItem(ev)}
@@ -434,7 +423,7 @@ export function EvidenceGalleryView() {
       {/* ─── Mode 2: LIST VIEW ─── */}
       {galleryLayout === "LIST" && filteredEvidences.length > 0 && (
         <div className="space-y-2.5 animate-in fade-in duration-150">
-          {filteredEvidences.map((ev) => (
+          {paginatedEvidences.map((ev) => (
             <div
               key={ev.id}
               onClick={() => setSelectedItem(ev)}
@@ -502,6 +491,68 @@ export function EvidenceGalleryView() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* ─── Modern Minimalist Centered Pagination for Gallery ─── */}
+      {totalPages > 1 && (
+        <div className="pt-4 border-t border-slate-200/60 flex items-center justify-center">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              disabled={safeCurrentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="h-9 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs"
+              title="Halaman Sebelumnya"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Sebelumnya</span>
+            </button>
+
+            <div className="flex items-center gap-1 sm:gap-1.5 mx-0.5 sm:mx-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((page) => {
+                  if (totalPages <= 5) return true;
+                  return (
+                    page === 1 ||
+                    page === totalPages ||
+                    Math.abs(page - safeCurrentPage) <= 1
+                  );
+                })
+                .map((page, idx, arr) => {
+                  const prev = arr[idx - 1];
+                  const showEllipsis = prev && page - prev > 1;
+                  return (
+                    <React.Fragment key={page}>
+                      {showEllipsis && <span className="px-1 text-slate-400 text-xs sm:text-sm">...</span>}
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage(page)}
+                        className={cn(
+                          "min-w-[36px] h-9 px-2.5 rounded-xl text-xs sm:text-sm flex items-center justify-center transition-all cursor-pointer",
+                          safeCurrentPage === page
+                            ? "bg-sky-500 text-white font-bold shadow-xs border border-sky-500"
+                            : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs"
+                        )}
+                      >
+                        {page}
+                      </button>
+                    </React.Fragment>
+                  );
+                })}
+            </div>
+
+            <button
+              type="button"
+              disabled={safeCurrentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className="h-9 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs"
+              title="Halaman Berikutnya"
+            >
+              <span>Berikutnya</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
 

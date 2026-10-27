@@ -43,8 +43,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className={plusJakartaSans.variable}>
-      <body className="min-h-screen bg-paper font-sans text-ink-900 antialiased selection:bg-safety-500 selection:text-ink-900">
+    <html lang="id" className={`${plusJakartaSans.variable} ${plusJakartaSans.className}`}>
+      <body className={`${plusJakartaSans.className} min-h-screen bg-paper font-sans text-ink-900 antialiased selection:bg-safety-500 selection:text-ink-900`}>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

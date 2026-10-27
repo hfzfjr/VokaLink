@@ -34,6 +34,7 @@ interface SmartShiftSelectorProps {
   isWeekday?: boolean;
   existingDailyJp?: number;
   remainingDailyQuota?: number;
+  stepNumber?: number;
   onResetTodayLogs?: () => void;
   className?: string;
 }
@@ -58,6 +59,7 @@ export function SmartShiftSelector({
   isWeekday: _isWeekday = true,
   existingDailyJp = 0,
   remainingDailyQuota = 12,
+  stepNumber = 3,
   onResetTodayLogs,
   className,
 }: SmartShiftSelectorProps) {
@@ -176,20 +178,20 @@ export function SmartShiftSelector({
     <div
       ref={dropdownRef}
       className={cn(
-        "relative bg-slate-50/60 rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 space-y-2 transition-all",
+        "relative py-5 border-b border-slate-100 space-y-2 transition-all",
         className
       )}
     >
-      {/* ─── LABEL HEADER RAMPING (KEMBAR DENGAN PEMILIH TANGGAL) ─── */}
-      <div className="flex items-center justify-between">
+      {/* ─── LABEL HEADER APPLE HIG STYLE ─── */}
+      <div className="flex items-center justify-between mb-2">
         <label
           htmlFor="smart-shift-trigger"
-          className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5"
+          className="text-[11px] font-medium text-slate-500 uppercase tracking-widest flex items-center gap-1.5"
         >
           <Clock className="w-3.5 h-3.5 text-sky-600" />
           <span>Jam Kerja Industri (Shift Presensi)</span>
         </label>
-        <span className="text-[11px] font-medium text-slate-500">
+        <span className="text-xs font-medium text-slate-500">
           Ekuivalen: <strong className="text-sky-700 font-semibold">≈ {equivalentJp} JP</strong>
         </span>
       </div>
@@ -203,7 +205,7 @@ export function SmartShiftSelector({
         aria-haspopup="listbox"
         onClick={() => setIsOpen((prev) => !prev)}
         className={cn(
-          "w-full flex items-center justify-between gap-2.5 px-3.5 py-2 sm:py-2.5 rounded-xl bg-white border text-left transition-all duration-150 shadow-2xs group cursor-pointer select-none",
+          "w-full flex items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl bg-white border text-left transition-all duration-150 shadow-2xs group cursor-pointer select-none min-h-[44px]",
           isOpen
             ? "border-sky-500 ring-2 ring-sky-500/20 shadow-xs"
             : "border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/50"
@@ -215,16 +217,16 @@ export function SmartShiftSelector({
             className={cn(
               "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors",
               isOvertime
-                ? "bg-amber-50 text-amber-600 border border-amber-200/60"
+                ? "bg-slate-100 text-slate-600 border border-slate-200"
                 : "bg-sky-50 text-sky-600 border border-sky-100"
             )}
           >
             {isOvertime ? (
-              <AlertTriangle className="w-4 h-4" />
+              <AlertTriangle className="w-3.5 h-3.5" />
             ) : durationJp === 8 ? (
-              <Sparkles className="w-4 h-4" />
+              <Sparkles className="w-3.5 h-3.5" />
             ) : (
-              <Briefcase className="w-4 h-4" />
+              <Briefcase className="w-3.5 h-3.5" />
             )}
           </div>
 
@@ -233,12 +235,12 @@ export function SmartShiftSelector({
               <span className="text-xs sm:text-sm font-semibold text-slate-900 leading-tight">
                 {durationJp} Jam Kerja
               </span>
-              <span className="text-xs text-slate-400 font-normal">·</span>
-              <span className="text-xs text-slate-600 font-medium truncate">
+              <span className="text-xs text-slate-500 font-normal">·</span>
+              <span className="text-xs text-slate-700 font-medium truncate">
                 {currentShiftMeta.title}
               </span>
             </div>
-            <p className="text-xs text-slate-400 leading-none mt-0.5 truncate font-normal">
+            <p className="text-xs text-slate-600 leading-none mt-0.5 truncate font-normal">
               {currentShiftMeta.subtitle}
             </p>
           </div>
@@ -247,23 +249,23 @@ export function SmartShiftSelector({
         {/* Kanan: Badge Status & Panah Dropdown */}
         <div className="flex items-center gap-2 shrink-0">
           {isOvertime ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/70 text-[10px] font-medium">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium">
               <span>Lembur</span>
             </span>
           ) : durationJp === 8 ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[10px] font-medium">
-              <Check className="w-2.5 h-2.5 stroke-[3]" />
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-slate-600 border border-slate-200 text-xs font-medium">
+              <Check className="w-3 h-3 stroke-[2.5] text-slate-500" />
               <span>Standar Baku</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200/70 text-[10px] font-medium">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200/70 text-xs font-medium">
               <span>{currentShiftMeta.badge}</span>
             </span>
           )}
 
           <ChevronDown
             className={cn(
-              "w-4 h-4 text-slate-400 transition-transform duration-200",
+              "w-4 h-4 text-slate-500 transition-transform duration-200",
               isOpen && "rotate-180 text-sky-600"
             )}
           />
@@ -275,11 +277,11 @@ export function SmartShiftSelector({
         <div
           role="listbox"
           aria-label="Daftar Pilihan Shift Jam Kerja"
-          className="absolute left-0 right-0 top-full mt-1.5 z-40 bg-white rounded-2xl border border-slate-200/90 shadow-xl shadow-slate-900/10 p-2 space-y-1 animate-in fade-in-0 zoom-in-95 duration-150 backdrop-blur-sm"
+          className="absolute left-0 right-0 top-full mt-1.5 z-40 bg-white rounded-2xl border border-slate-200/90 shadow-xl shadow-slate-900/10 p-2 space-y-1 animate-in fade-in-0 zoom-in-95 motion-reduce:animate-none duration-150 backdrop-blur-sm"
         >
           {/* Header Popover */}
-          <div className="flex items-center justify-between px-2.5 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-            <span>Template Shift Industri</span>
+          <div className="flex items-center justify-between px-2.5 py-1 text-xs font-semibold text-slate-600">
+            <span>TEMPLATE SHIFT INDUSTRI</span>
             <span>Beban JP</span>
           </div>
 
@@ -297,7 +299,7 @@ export function SmartShiftSelector({
                   aria-selected={isSelected}
                   onClick={() => handleSelectShift(opt.hours)}
                   className={cn(
-                    "w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left transition-all cursor-pointer select-none",
+                    "w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left transition-all cursor-pointer select-none min-h-[44px]",
                     isSelected
                       ? "bg-sky-50 text-sky-950 font-semibold border border-sky-200/90 shadow-2xs"
                       : "hover:bg-slate-50 text-slate-700 active:scale-[0.99] border border-transparent"
@@ -326,11 +328,11 @@ export function SmartShiftSelector({
                         >
                           {opt.hours} Jam Kerja
                         </span>
-                        <span className="text-[11px] text-slate-500 font-normal">
+                        <span className="text-xs text-slate-600 font-normal">
                           · {opt.title}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-400 font-normal leading-tight">
+                      <p className="text-xs text-slate-600 font-normal leading-tight">
                         {opt.subtitle}
                       </p>
                     </div>
@@ -340,7 +342,7 @@ export function SmartShiftSelector({
                   <div className="shrink-0 text-right">
                     <span
                       className={cn(
-                        "inline-block text-[11px] font-semibold px-2 py-0.5 rounded-md",
+                        "inline-block text-xs font-semibold px-2 py-0.5 rounded-md",
                         isSelected
                           ? "bg-sky-100 text-sky-800"
                           : opt.isOvertime
@@ -365,7 +367,7 @@ export function SmartShiftSelector({
               <span className="text-xs font-semibold text-slate-700 block">
                 Sesuaikan Jam Khusus (1 - 12 Jam):
               </span>
-              <span className="text-[10px] text-slate-400 font-normal">
+              <span className="text-xs text-slate-600 font-normal">
                 Gunakan tombol untuk menambah atau mengurangi
               </span>
             </div>
@@ -375,10 +377,10 @@ export function SmartShiftSelector({
                 type="button"
                 onClick={handleMinus}
                 disabled={durationJp <= minJp}
-                className="w-7 h-7 rounded-md bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-slate-700 transition cursor-pointer active:scale-95"
+                className="w-8 h-8 rounded-md bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-slate-700 transition cursor-pointer active:scale-95"
                 title="Kurangi 1 jam"
               >
-                <Minus className="w-3.5 h-3.5" />
+                <Minus className="w-4 h-4" />
               </button>
 
               <span className="text-xs font-semibold text-slate-800 px-2 min-w-[50px] text-center">
@@ -389,10 +391,10 @@ export function SmartShiftSelector({
                 type="button"
                 onClick={handlePlus}
                 disabled={durationJp >= maxJp}
-                className="w-7 h-7 rounded-md bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-slate-700 transition cursor-pointer active:scale-95"
+                className="w-8 h-8 rounded-md bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-slate-700 transition cursor-pointer active:scale-95"
                 title="Tambah 1 jam"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -401,16 +403,16 @@ export function SmartShiftSelector({
 
       {/* ─── JUSTIFIKASI LEMBUR / PROYEK KHUSUS (DOKUMENTASI K3 & GURU PEMBIMBING) ─── */}
       {isOvertime ? (
-        <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/80 space-y-2 animate-in fade-in">
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2 animate-in fade-in motion-reduce:animate-none">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-amber-900 flex items-center gap-1.5">
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <span className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 text-slate-600 shrink-0" />
               <span>Justifikasi Proyek Lembur ({durationJp} Jam):</span>
             </span>
-            <span className="text-[10px] text-amber-700 font-medium">Wajib Sesuai SOP</span>
+            <span className="text-xs text-slate-500 font-medium">Wajib Sesuai SOP</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
             {OVERTIME_JUSTIFICATIONS.map((just) => {
               const isSelected = overtimeReason === just.id;
               return (
@@ -419,27 +421,27 @@ export function SmartShiftSelector({
                   type="button"
                   onClick={() => onChangeOvertimeReason?.(just.id)}
                   className={cn(
-                    "p-2 rounded-lg text-left transition-all border text-xs cursor-pointer active:scale-95 flex items-center justify-between gap-1.5",
+                    "p-2.5 rounded-lg text-left transition-all border text-xs cursor-pointer active:scale-95 flex items-center justify-between gap-1.5 min-h-[40px]",
                     isSelected
-                      ? "bg-amber-100/90 text-amber-950 font-semibold border-amber-300 shadow-2xs"
-                      : "bg-white text-slate-700 hover:bg-slate-50 border-amber-200/60"
+                      ? "bg-slate-900 text-white font-medium border-slate-900 shadow-2xs"
+                      : "bg-white text-slate-700 hover:bg-slate-50 border-slate-200"
                   )}
                   title={just.desc}
                 >
-                  <span className="truncate text-[11px] leading-tight">{just.label}</span>
-                  {isSelected && <Check className="w-3 h-3 text-amber-700 shrink-0 stroke-[3]" />}
+                  <span className="truncate text-xs leading-tight">{just.label}</span>
+                  {isSelected && <Check className="w-3.5 h-3.5 text-white shrink-0 stroke-[2.5]" />}
                 </button>
               );
             })}
           </div>
 
-          <p className="text-[10.5px] text-amber-800/80 font-normal leading-tight">
+          <p className="text-xs text-slate-500 font-normal leading-tight">
             Dicatat transparan agar guru pembimbing mengetahui bahwa jam lembur adalah penugasan resmi proyek industri, bukan eksploitasi kerja.
           </p>
         </div>
       ) : (
-        <p className="text-[11px] text-slate-400 flex items-center gap-1.5 font-normal leading-snug">
-          <Info className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+        <p className="text-xs text-slate-600 flex items-center gap-1.5 font-normal leading-snug">
+          <Info className="w-3.5 h-3.5 text-slate-500 shrink-0" />
           <span>Standar alokasi harian 8 jam riil setara 10.7 JP untuk pemenuhan beban 792 JP.</span>
         </p>
       )}
@@ -448,15 +450,15 @@ export function SmartShiftSelector({
       {existingDailyJp > 0 && (
         <div
           className={cn(
-            "p-3 rounded-xl border text-[11px] leading-snug space-y-1 animate-in fade-in mt-1",
+            "p-3 rounded-xl border text-xs leading-snug space-y-1 animate-in fade-in motion-reduce:animate-none mt-1",
             existingDailyJp + durationJp > maxJp
               ? "bg-rose-50 border-rose-200 text-rose-800"
-              : "bg-amber-50/70 border-amber-200/70 text-amber-800"
+              : "bg-slate-50 border-slate-200 text-slate-700"
           )}
         >
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-start gap-2">
-              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600" />
+              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-slate-500" />
               <span>
                 Tanggal ini sudah memiliki <strong>{existingDailyJp} Jam</strong> tercatat sebelumnya.
                 {existingDailyJp + durationJp > maxJp
@@ -469,10 +471,10 @@ export function SmartShiftSelector({
               <button
                 type="button"
                 onClick={onResetTodayLogs}
-                className="text-[11px] font-semibold text-rose-700 hover:text-rose-900 flex items-center gap-1 shrink-0 cursor-pointer underline active:scale-95 ml-2"
+                className="text-xs font-semibold text-rose-700 hover:text-rose-900 flex items-center gap-1 shrink-0 cursor-pointer underline active:scale-95 ml-2 min-h-[32px]"
                 title="Hapus log tersimpan pada tanggal ini agar form bersih untuk simulasi demo juri"
               >
-                <RotateCcw className="w-3 h-3" />
+                <RotateCcw className="w-3.5 h-3.5" />
                 <span>Reset Demo</span>
               </button>
             )}

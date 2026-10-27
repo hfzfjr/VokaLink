@@ -7,8 +7,8 @@ export function HomeSkeleton() {
   return (
     <div className="w-full flex flex-col lg:flex-row gap-4 sm:gap-5 items-stretch min-h-[840px] animate-in fade-in-0 duration-200">
       {/* ─── 1. CENTER SECTION CANVAS SKELETON ─── */}
-      <section className="flex-1 min-w-0 bg-transparent rounded-none p-0 border-0 shadow-none flex flex-col justify-between space-y-4 lg:space-y-5">
-        <div className="space-y-3.5 sm:space-y-5">
+      <section className="flex-1 min-w-0 bg-transparent rounded-none p-0 border-0 shadow-none flex flex-col justify-between gap-4 lg:gap-5">
+        <div className="flex flex-col gap-3.5 sm:gap-4">
           {/* Mobile Hero Skeleton (< lg) */}
           <div className="block lg:hidden space-y-3 font-sans">
             <div className="flex items-center justify-between text-xs px-1">
@@ -29,7 +29,7 @@ export function HomeSkeleton() {
           </div>
 
           {/* Desktop Slim Executive Header Skeleton (≥ lg) */}
-          <div className="hidden lg:flex items-center justify-between gap-6 bg-white rounded-2xl px-5 py-3.5 border border-slate-200/70 shadow-2xs">
+          <div className="hidden lg:flex lg:h-[86px] items-center justify-between gap-6 bg-white rounded-2xl px-5 border border-slate-200/70 shadow-2xs shrink-0">
             <div className="flex items-center gap-4 min-w-0">
               <div className="space-y-1.5 min-w-0">
                 <div className="flex items-center gap-2">
@@ -121,7 +121,7 @@ export function HomeSkeleton() {
       {/* ─── 2. RIGHT SIDEBAR WIDGET PANEL SKELETON ─── */}
       <aside className="w-full lg:w-[320px] xl:w-[340px] 2xl:w-[360px] flex flex-col gap-4 flex-shrink-0">
         {/* Profile Card Header Skeleton */}
-        <div className="hidden lg:flex bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/70 shadow-card items-center justify-between">
+        <div className="hidden lg:flex lg:h-[86px] bg-white rounded-2xl px-4 sm:px-5 border border-slate-200/70 shadow-2xs items-center justify-between shrink-0">
           <div className="flex items-center gap-3.5 min-w-0">
             <SkeletonRect className="w-10 h-10 rounded-xl shrink-0" />
             <div className="space-y-1.5 flex-1 min-w-0">

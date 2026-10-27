@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   CheckCircle2,
@@ -11,12 +11,14 @@ import {
   ShieldCheck,
   Calendar,
   ChevronRight,
+  ChevronLeft,
   Inbox,
   LayoutList,
   LayoutGrid,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { type KanbanTask, getCategoryDotColor, getCategoryShortLabel } from "./types";
+import { type KanbanTask } from "./types";
 
 interface DailyTimelineFeedProps {
   tasks: KanbanTask[];
@@ -60,10 +62,34 @@ export function DailyTimelineFeed({
   onOpenQrModal,
 }: DailyTimelineFeedProps) {
   const [statusFilter, setStatusFilter] = useState<"ALL" | "IN_REVIEW" | "VERIFIED">("ALL");
+  const [monthFilter, setMonthFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [feedLayout, setFeedLayout] = useState<"GRID" | "LIST">("GRID");
+  const PAGE_SIZE = 6;
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Filter tasks based on status and search query
+  // Ekstrak daftar bulan yang tersedia dari data jurnal
+  const availableMonths = useMemo(() => {
+    const map = new Map<string, string>();
+    tasks.forEach((t) => {
+      if (t.isoDate && t.isoDate.length >= 7) {
+        const ym = t.isoDate.slice(0, 7);
+        if (!map.has(ym)) {
+          const d = new Date(t.isoDate + "T00:00:00");
+          if (!isNaN(d.getTime())) {
+            const label = d.toLocaleDateString("id-ID", { month: "short", year: "numeric" });
+            map.set(ym, label);
+          }
+        }
+      }
+    });
+    return Array.from(map.entries())
+      .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+      .map(([key, label]) => ({ key, label }));
+  }, [tasks]);
+
+  // Filter tasks berdasarkan status, bulan, dan pencarian kata kunci
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
       // 1. Status Filter
@@ -74,7 +100,14 @@ export function DailyTimelineFeed({
         return false;
       }
 
-      // 2. Search Query
+      // 2. Month Filter
+      if (monthFilter !== "ALL") {
+        if (t.isoDate && !t.isoDate.startsWith(monthFilter)) {
+          return false;
+        }
+      }
+
+      // 3. Search Query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesTitle = t.title.toLowerCase().includes(q);
@@ -89,7 +122,27 @@ export function DailyTimelineFeed({
 
       return true;
     });
-  }, [tasks, statusFilter, searchQuery]);
+  }, [tasks, statusFilter, monthFilter, searchQuery]);
+
+  // Reset ke halaman 1 setiap kali filter berubah
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, monthFilter, searchQuery]);
+
+  const totalItems = filteredTasks.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  // Item yang dipaginasi agar tidak terjadi scroll tak terbatas
+  const paginatedTasks = useMemo(() => {
+    const start = (safeCurrentPage - 1) * PAGE_SIZE;
+    return filteredTasks.slice(start, start + PAGE_SIZE);
+  }, [filteredTasks, safeCurrentPage]);
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    containerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const pendingCount = useMemo(
     () => tasks.filter((t) => t.status === "in_review" || t.status === "in_progress").length,
@@ -101,83 +154,72 @@ export function DailyTimelineFeed({
   );
 
   return (
-    <div className="space-y-4 pt-1 pb-6 animate-in fade-in duration-200">
-      {/* ─── Control Bar: Status Filter Tabs, Search & List/Grid Switcher ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-        {/* Status Filter Segmented Buttons - Apple Style Rounded Full (Mobile-Tuned) */}
-        <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-full border border-slate-200 text-xs font-medium w-full sm:w-auto overflow-x-auto scrollbar-none">
-          <button
-            type="button"
-            onClick={() => setStatusFilter("ALL")}
-            className={cn(
-              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95 text-[11px] sm:text-xs",
-              statusFilter === "ALL"
-                ? "bg-white text-slate-900 shadow-xs font-semibold"
-                : "text-slate-600 hover:text-slate-900 font-medium"
-            )}
-          >
-            <span className="sm:hidden">Semua</span>
-            <span className="hidden sm:inline">Semua Jurnal</span>
-            <span
-              className={cn(
-                "px-1.5 py-0.2 rounded-full text-[10px] font-semibold",
-                statusFilter === "ALL"
-                  ? "bg-slate-100 text-slate-800"
-                  : "bg-slate-300/60 text-slate-600"
-              )}
-            >
-              {tasks.length}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStatusFilter("VERIFIED")}
-            className={cn(
-              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95 text-[11px] sm:text-xs",
-              statusFilter === "VERIFIED"
-                ? "bg-white text-emerald-800 shadow-xs font-semibold"
-                : "text-slate-600 hover:text-slate-900 font-medium"
-            )}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-            <span className="sm:hidden">Sah</span>
-            <span className="hidden sm:inline">Sah Terverifikasi</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-semibold">
-              {verifiedCount}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStatusFilter("IN_REVIEW")}
-            className={cn(
-              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95 text-[11px] sm:text-xs",
-              statusFilter === "IN_REVIEW"
-                ? "bg-white text-amber-800 shadow-xs font-semibold"
-                : "text-slate-600 hover:text-slate-900 font-medium"
-            )}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-            <span className="sm:hidden">Pending</span>
-            <span className="hidden sm:inline">Menunggu Validasi</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 text-[10px] font-semibold">
-              {pendingCount}
-            </span>
-          </button>
+    <div ref={containerRef} className="space-y-4 pt-1 pb-6 animate-in fade-in duration-200">
+      {/* ─── Control Bar: Status chips (sekunder) | Bulan, Cari & List/Grid ─── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+        {/* Status chips ringan — warna biru VokaLink saat aktif, bersih tanpa dot */}
+        <div className="flex items-center gap-1 w-full md:w-auto overflow-x-auto scrollbar-none">
+          {(
+            [
+              { key: "ALL", label: "Semua", count: tasks.length },
+              { key: "VERIFIED", label: "Sah", count: verifiedCount },
+              { key: "IN_REVIEW", label: "Menunggu", count: pendingCount },
+            ] as const
+          ).map((chip) => {
+            const active = statusFilter === chip.key;
+            return (
+              <button
+                key={chip.key}
+                type="button"
+                onClick={() => setStatusFilter(chip.key)}
+                aria-pressed={active}
+                className={cn(
+                  "h-8 px-3 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer",
+                  active
+                    ? "bg-sky-500 text-white shadow-xs font-semibold"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                )}
+              >
+                <span>{chip.label}</span>
+                <span className={cn("tabular-nums text-[11px]", active ? "text-white/80 font-medium" : "text-slate-400")}>
+                  {chip.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Search Bar + View Mode Switcher (List vs Grid) */}
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        {/* Filter Bulan + Search Bar + View Mode Switcher (List vs Grid) */}
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          {/* Quick Month Filter Selector (If > 1 months exist) */}
+          {availableMonths.length > 1 && (
+            <div className="relative shrink-0">
+              <select
+                aria-label="Pilih Periode Bulan Jurnal"
+                value={monthFilter}
+                onChange={(e) => setMonthFilter(e.target.value)}
+                className="h-8 pl-7 pr-3 rounded-full bg-white border border-slate-200/90 text-[11px] font-medium text-slate-700 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs cursor-pointer appearance-none"
+              >
+                <option value="ALL">Semua Bulan</option>
+                {availableMonths.map((m) => (
+                  <option key={m.key} value={m.key}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+              <CalendarDays className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          )}
+
           {/* Pill Search Input */}
-          <div className="relative flex-1 sm:w-60 md:w-64">
+          <div className="relative flex-1 sm:w-56 md:w-60">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari tanggal, tugas..."
-              className="w-full pl-9 pr-8 py-1.5 rounded-full bg-white border border-slate-200/90 text-xs text-slate-900 placeholder:text-slate-400 font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs"
+              className="w-full h-8 pl-9 pr-8 rounded-full bg-white border border-slate-200/90 text-xs text-slate-900 placeholder:text-slate-400 font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
             />
             {searchQuery && (
               <button
@@ -237,6 +279,8 @@ export function DailyTimelineFeed({
             <p className="text-xs text-slate-500 mt-0.5 max-w-sm mx-auto font-normal">
               {searchQuery
                 ? `Tidak ditemukan catatan jurnal dengan kata kunci "${searchQuery}".`
+                : monthFilter !== "ALL"
+                ? "Tidak ada catatan jurnal magang pada bulan yang dipilih."
                 : statusFilter === "IN_REVIEW"
                 ? "Bagus sekali! Semua jurnal Anda telah diverifikasi oleh mentor industri."
                 : "Belum ada catatan jurnal pada filter ini."}
@@ -253,9 +297,8 @@ export function DailyTimelineFeed({
       ) : feedLayout === "LIST" ? (
         /* ─── TAMPILAN A: MODERN LIST CARDS (KONSISTEN DENGAN GALERI & MATRIKS) ─── */
         <div className="space-y-3 animate-in fade-in duration-150">
-          {filteredTasks.map((task) => {
+          {paginatedTasks.map((task) => {
             const isVerified = task.status === "verified";
-            const dotColor = getCategoryDotColor(task.categoryColor);
             const { day, month, weekday } = parseTaskDateParts(task.date);
 
             return (
@@ -266,7 +309,7 @@ export function DailyTimelineFeed({
               >
                 {/* Bagian Kiri: Date Squircle Badge + Info Utama */}
                 <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                  {/* Modern Calendar Tile Date Badge - Option 1: Vivid Sky Ribbon */}
+                  {/* Modern Calendar Tile Date Badge - Vivid Sky Ribbon */}
                   <div className="w-12 sm:w-13 h-13 sm:h-14 rounded-2xl bg-white border border-slate-200/90 flex flex-col items-center justify-between text-center shrink-0 shadow-2xs group-hover:border-sky-300 group-hover:shadow-xs transition-all overflow-hidden select-none">
                     <div className="w-full bg-sky-600 group-hover:bg-sky-500 py-0.5 border-b border-sky-700/20 transition-colors">
                       <span className="text-[9.5px] font-bold text-white tracking-wider uppercase leading-none block">
@@ -290,13 +333,16 @@ export function DailyTimelineFeed({
                     </h3>
 
                     <div className="flex items-center gap-1.5 flex-wrap text-slate-500 text-xs">
-                      {/* Kategori Dot + Label */}
-                      <span className="inline-flex items-center gap-1 text-[10.5px] font-medium text-slate-600">
-                        <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", dotColor)} />
-                        <span>{getCategoryShortLabel(task.category)}</span>
-                      </span>
-
-                      <span className="text-slate-300">·</span>
+                      {/* Tag Khusus Non-Kompetensi (BR-004) */}
+                      {task.category.toLowerCase().includes("non-kompetensi") && (
+                        <>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200/70 text-[10px] font-semibold text-amber-700">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                            <span>Non-Kompetensi</span>
+                          </span>
+                          <span className="text-slate-300">·</span>
+                        </>
+                      )}
 
                       {/* Kemandirian Badge */}
                       <span
@@ -368,9 +414,8 @@ export function DailyTimelineFeed({
       ) : (
         /* ─── TAMPILAN B: NOTION MINIMALIST BENTO CARDS ─── */
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4 animate-in fade-in duration-150">
-          {filteredTasks.map((task) => {
+          {paginatedTasks.map((task) => {
             const isVerified = task.status === "verified";
-            const dotColor = getCategoryDotColor(task.categoryColor);
 
             return (
               <div
@@ -415,15 +460,17 @@ export function DailyTimelineFeed({
                     </div>
                   </div>
 
-                  {/* Category Pill Tag */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-50 border border-slate-200/60 text-[10.5px] font-medium text-slate-600">
-                      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", dotColor)} />
-                      <span className="truncate">{getCategoryShortLabel(task.category)}</span>
-                    </span>
-                  </div>
+                  {/* Tag Khusus Non-Kompetensi jika tugas umum (BR-004) */}
+                  {task.category.toLowerCase().includes("non-kompetensi") && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200/70 text-[10.5px] font-semibold text-amber-700">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                        <span>Non-Kompetensi</span>
+                      </span>
+                    </div>
+                  )}
 
-                  {/* Task Title (Prominent & Clear, without redundant quote paragraph) */}
+                  {/* Task Title (Prominent & Clear) */}
                   <h3 className="text-[13.5px] sm:text-sm font-semibold text-slate-900 group-hover:text-sky-600 transition-colors leading-snug line-clamp-2">
                     {task.title}
                   </h3>
@@ -461,7 +508,68 @@ export function DailyTimelineFeed({
           })}
         </div>
       )}
+
+      {/* ─── Modern Minimalist Centered Pagination ─── */}
+      {totalPages > 1 && (
+        <div className="pt-4 border-t border-slate-200/60 flex items-center justify-center">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              disabled={safeCurrentPage <= 1}
+              onClick={() => handlePageChange(Math.max(1, safeCurrentPage - 1))}
+              className="h-9 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs"
+              title="Halaman Sebelumnya"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Sebelumnya</span>
+            </button>
+
+            <div className="flex items-center gap-1 sm:gap-1.5 mx-0.5 sm:mx-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((page) => {
+                  if (totalPages <= 5) return true;
+                  return (
+                    page === 1 ||
+                    page === totalPages ||
+                    Math.abs(page - safeCurrentPage) <= 1
+                  );
+                })
+                .map((page, idx, arr) => {
+                  const prev = arr[idx - 1];
+                  const showEllipsis = prev && page - prev > 1;
+                  return (
+                    <React.Fragment key={page}>
+                      {showEllipsis && <span className="px-1 text-slate-400 text-xs sm:text-sm">...</span>}
+                      <button
+                        type="button"
+                        onClick={() => handlePageChange(page)}
+                        className={cn(
+                          "min-w-[36px] h-9 px-2.5 rounded-xl text-xs sm:text-sm flex items-center justify-center transition-all cursor-pointer",
+                          safeCurrentPage === page
+                            ? "bg-sky-500 text-white font-bold shadow-xs border border-sky-500"
+                            : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs"
+                        )}
+                      >
+                        {page}
+                      </button>
+                    </React.Fragment>
+                  );
+                })}
+            </div>
+
+            <button
+              type="button"
+              disabled={safeCurrentPage >= totalPages}
+              onClick={() => handlePageChange(Math.min(totalPages, safeCurrentPage + 1))}
+              className="h-9 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs"
+              title="Halaman Berikutnya"
+            >
+              <span>Berikutnya</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

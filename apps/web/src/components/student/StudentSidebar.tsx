@@ -85,32 +85,18 @@ export function StudentSidebar() {
   const [activeTab, setActiveTab] = useState<"profile" | "privacy" | "offline">("profile");
   const { isInstallable, isInstalled, promptInstall } = usePwaInstall();
 
-  // Smooth hover expansion & auto-collapse upon tab switch ("kembali ke bentuk awal")
+  // Smooth hover expansion (hanya mengecil ketika kursor tidak di-hover lagi)
   const [isHovered, setIsHovered] = useState(false);
-  const [isLocked, setIsLocked] = useState(false);
-
-  useEffect(() => {
-    setIsHovered(false);
-    setIsLocked(false);
-  }, [pathname]);
 
   const handleMouseEnter = () => {
-    if (!isLocked) {
-      setIsHovered(true);
-    }
+    setIsHovered(true);
   };
 
   const handleMouseLeave = () => {
     setIsHovered(false);
-    setIsLocked(false);
   };
 
-  const handleItemClick = () => {
-    setIsHovered(false);
-    setIsLocked(true);
-  };
-
-  const isExpanded = isHovered && !isLocked;
+  const isExpanded = isHovered;
 
   // Form states for settings
   const [phone, setPhone] = useState("081234567890");
@@ -286,7 +272,6 @@ export function StudentSidebar() {
         <div className="flex flex-col w-full">
           <Link
             href="/student/home"
-            onClick={handleItemClick}
             title="VokaLink Siswa — Beranda"
             className="w-full h-12 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center overflow-hidden hover:border-sky-300 transition-colors duration-150"
           >
@@ -325,7 +310,6 @@ export function StudentSidebar() {
 
                 <Link
                   href={item.href}
-                  onClick={handleItemClick}
                   className={cn(
                     "w-full h-12 rounded-2xl flex items-center overflow-hidden transition-colors duration-150 group",
                     isActive
@@ -381,10 +365,7 @@ export function StudentSidebar() {
           {/* Settings Trigger */}
           <button
             type="button"
-            onClick={() => {
-              handleItemClick();
-              setShowSettingsModal(true);
-            }}
+            onClick={() => setShowSettingsModal(true)}
             aria-label="Pengaturan & Profil Siswa"
             className={cn(
               "w-full h-12 rounded-2xl flex items-center overflow-hidden transition-colors duration-150 cursor-pointer group text-left",
@@ -414,10 +395,7 @@ export function StudentSidebar() {
           {/* Help Modal Trigger */}
           <button
             type="button"
-            onClick={() => {
-              handleItemClick();
-              setShowHelpModal(true);
-            }}
+            onClick={() => setShowHelpModal(true)}
             aria-label="Panduan Penggunaan"
             className={cn(
               "w-full h-12 rounded-2xl flex items-center overflow-hidden transition-colors duration-150 cursor-pointer group text-left",
@@ -444,12 +422,10 @@ export function StudentSidebar() {
             </div>
           </button>
 
-          {/* Exit / Back to Portal Home */}
           {/* Exit / Logout to Login Page */}
           <button
             type="button"
             onClick={async () => {
-              handleItemClick();
               await logout();
               router.push("/login");
             }}
