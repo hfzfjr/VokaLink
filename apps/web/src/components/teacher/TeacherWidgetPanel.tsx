@@ -3,19 +3,14 @@
 import React from "react";
 import Link from "next/link";
 import {
-  Bell,
-  TrendingUp,
   ShieldAlert,
   ShieldCheck,
-  RefreshCw,
   Sparkles,
   ExternalLink,
   Award,
-  ChevronRight,
-  Flame,
   CheckCircle2,
-  Users,
 } from "lucide-react";
+import { cn } from "@/lib/cn";
 
 export interface PriorityStudentWatchItem {
   studentId: string;
@@ -32,11 +27,12 @@ interface TeacherWidgetPanelProps {
   departmentName?: string;
   averagePercentage?: number;
   totalStudents?: number;
+  achievedCount?: number;
   driftCount?: number;
   securityFlagsCount?: number;
   priorityStudents?: PriorityStudentWatchItem[];
-  onTriggerEvaluate?: () => void;
-  isEvaluating?: boolean;
+  samplePassportSlug?: string;
+  onViewSecurityAudit?: () => void;
 }
 
 export function TeacherWidgetPanel({
@@ -45,11 +41,12 @@ export function TeacherWidgetPanel({
   departmentName = "Rekayasa Perangkat Lunak",
   averagePercentage = 68,
   totalStudents = 4,
+  achievedCount = 0,
   driftCount = 0,
   securityFlagsCount = 0,
   priorityStudents = [],
-  onTriggerEvaluate,
-  isEvaluating = false,
+  samplePassportSlug,
+  onViewSecurityAudit,
 }: TeacherWidgetPanelProps) {
   const initials = teacherName
     .split(" ")
@@ -76,29 +73,19 @@ export function TeacherWidgetPanel({
             <p className="text-xs text-slate-500 font-normal truncate mt-0.5">
               {schoolName}
             </p>
-            <div className="mt-1 flex items-center gap-1.5">
-              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[10px] tracking-wide leading-none">
+            <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+              <span
+                className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[10px] tracking-wide leading-none truncate max-w-[160px]"
+                title={departmentName}
+              >
                 {departmentName.includes("RPL") ? "RPL (Fase F)" : departmentName}
               </span>
-              <span className="text-[11px] text-slate-400 font-normal truncate leading-none">
-                &bull; Pembimbing
+              <span className="text-[10px] text-slate-500 font-medium leading-none shrink-0">
+                Guru Pembimbing
               </span>
             </div>
           </div>
         </div>
-
-        {/* Action Scan / Refresh */}
-        {onTriggerEvaluate && (
-          <button
-            type="button"
-            onClick={onTriggerEvaluate}
-            disabled={isEvaluating}
-            title="Pindai Algoritma Drift Sekarang"
-            className="w-9 h-9 rounded-xl bg-slate-100/80 hover:bg-slate-200/60 border border-slate-200/70 flex items-center justify-center text-slate-600 transition cursor-pointer shrink-0 ml-2 shadow-2xs disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${isEvaluating ? "animate-spin text-sky-600" : ""}`} />
-          </button>
-        )}
       </div>
 
       {/* ─── 2. Target Capaian Rata-Rata Kelas (792 JP) ─── */}
@@ -116,47 +103,71 @@ export function TeacherWidgetPanel({
           <span className="text-2xl font-bold text-slate-900 tracking-tight leading-none">
             {averageJp}
           </span>
-          <span className="text-xs text-slate-400 font-normal">/ 792 JP Target Kelulusan</span>
+          <span className="text-xs text-slate-500 font-normal">/ 792 JP Target Kelulusan</span>
         </div>
 
         {/* Progress Bar */}
         <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden flex gap-0.5 p-0.5">
           <div
             style={{ width: `${Math.min(100, averagePercentage)}%` }}
-            className={`h-full rounded-full transition-all duration-500 ${
+            className={cn(
+              "h-full rounded-full transition-all duration-500",
               averagePercentage >= 75 ? "bg-emerald-500" : "bg-sky-500"
-            }`}
+            )}
           />
         </div>
 
-        {/* 3 Metric Pills */}
+        {/* 3 Metric Pills (Simetris: Semua berupa jumlah siswa) */}
         <div className="grid grid-cols-3 gap-2 text-[11px] pt-0.5">
-          <div className="flex items-center gap-1.5 text-slate-600">
+          <div className="flex items-center gap-1.5 text-slate-600" title="Siswa dengan capaian >= 75%">
             <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-            <span>Tuntas <strong className="text-slate-900 tabular-nums">&ge;75%</strong></span>
+            <span>
+              Tuntas <strong className="text-slate-900 tabular-nums">{achievedCount}</strong>
+            </span>
           </div>
-          <div className="flex items-center gap-1.5 text-slate-600">
+          <div className="flex items-center gap-1.5 text-slate-600" title="Total siswa terdaftar">
             <span className="w-2 h-2 rounded-full bg-sky-500 shrink-0" />
-            <span>Aktif <strong className="text-slate-900 tabular-nums">{totalStudents}</strong></span>
+            <span>
+              Aktif <strong className="text-slate-900 tabular-nums">{totalStudents}</strong>
+            </span>
           </div>
-          <div className="flex items-center gap-1.5 text-slate-600 justify-end">
-            <span className={`w-2 h-2 rounded-full shrink-0 ${driftCount > 0 ? "bg-rose-500 animate-pulse" : "bg-slate-300"}`} />
-            <span>Drift <strong className="text-slate-900 tabular-nums">{driftCount}</strong></span>
+          <div className="flex items-center gap-1.5 text-slate-600 justify-end" title="Siswa terdeteksi deviasi drift">
+            <span
+              className={cn(
+                "w-2 h-2 rounded-full shrink-0",
+                driftCount > 0 ? "bg-rose-500 animate-pulse" : "bg-slate-300"
+              )}
+            />
+            <span>
+              Drift <strong className="text-slate-900 tabular-nums">{driftCount}</strong>
+            </span>
           </div>
         </div>
       </div>
 
-      {/* ─── 3. Pantauan Anomali Mendesak (Drift Watchlist) ─── */}
+      {/* ─── 3. Pantauan Anomali Siswa (Drift Watchlist) ─── */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200/70 shadow-2xs space-y-3">
         <div className="flex items-center justify-between pb-1 border-b border-slate-100">
           <div className="flex items-center gap-2">
-            <ShieldAlert className="w-4 h-4 text-rose-500" />
+            <ShieldAlert
+              className={cn(
+                "w-4 h-4",
+                driftCount > 0 ? "text-rose-500 animate-pulse" : "text-slate-400"
+              )}
+            />
             <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-900">
               Pantauan Anomali Siswa
             </h3>
           </div>
-          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200/60">
-            {driftCount} Kasus
+          <span
+            className={cn(
+              "text-[11px] font-bold px-2 py-0.5 rounded-full border",
+              driftCount > 0
+                ? "bg-rose-50 text-rose-700 border-rose-200"
+                : "bg-slate-100 text-slate-600 border-slate-200"
+            )}
+          >
+            {driftCount > 0 ? `${driftCount} Kasus` : "0 Kasus (Aman)"}
           </span>
         </div>
 
@@ -166,19 +177,21 @@ export function TeacherWidgetPanel({
               <CheckCircle2 className="w-4 h-4" />
             </div>
             <p className="text-xs font-semibold text-slate-800">Semua Siswa Terverifikasi Normal</p>
-            <p className="text-[11px] text-slate-400">Tidak ada deviasi kurikulum yang melewati ambang batas.</p>
+            <p className="text-[11px] text-slate-500">
+              Tidak ada deviasi kurikulum yang melewati ambang batas.
+            </p>
           </div>
         ) : (
           <div className="space-y-2">
             {priorityStudents.slice(0, 3).map((item) => (
               <div
                 key={item.studentId}
-                className="p-3 rounded-xl bg-slate-50/70 border border-slate-200/60 space-y-1.5 hover:bg-slate-100/70 transition"
+                className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5 hover:bg-slate-100 transition"
               >
                 <div className="flex items-start justify-between gap-1.5">
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-slate-900 truncate">{item.name}</p>
-                    <p className="text-[10px] text-slate-400 truncate">{item.dudiName}</p>
+                    <p className="text-[10px] text-slate-500 truncate">{item.dudiName}</p>
                   </div>
                   <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-800 shrink-0">
                     {item.alertType.replace(/_/g, " ")}
@@ -207,28 +220,60 @@ export function TeacherWidgetPanel({
       <div className="bg-white rounded-2xl p-4 border border-slate-200/70 shadow-2xs space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            <ShieldCheck
+              className={cn(
+                "w-4 h-4",
+                securityFlagsCount > 0 ? "text-amber-500" : "text-emerald-500"
+              )}
+            />
             <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-900">
               Audit Integritas Data
             </h3>
           </div>
-          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-            Segel Sah
+          <span
+            className={cn(
+              "text-[11px] font-bold px-2 py-0.5 rounded-full border",
+              securityFlagsCount > 0
+                ? "bg-amber-50 text-amber-800 border-amber-200"
+                : "bg-emerald-50 text-emerald-700 border-emerald-200"
+            )}
+          >
+            {securityFlagsCount > 0 ? `${securityFlagsCount} Perlu Review` : "Segel Sah"}
           </span>
         </div>
 
-        <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-200/60 text-xs space-y-1.5">
+        <div
+          onClick={onViewSecurityAudit}
+          className={cn(
+            "p-3 rounded-xl border text-xs space-y-1.5 transition",
+            onViewSecurityAudit ? "cursor-pointer hover:bg-slate-100" : "",
+            securityFlagsCount > 0
+              ? "bg-amber-50/60 border-amber-200"
+              : "bg-slate-50 border-slate-200"
+          )}
+          title={onViewSecurityAudit ? "Klik untuk membuka detail audit validasi" : undefined}
+        >
           <div className="flex justify-between items-center">
             <span className="text-slate-500">Insiden Audit Aktif:</span>
-            <span className={`font-bold ${securityFlagsCount > 0 ? "text-rose-600" : "text-emerald-700"}`}>
+            <span
+              className={cn(
+                "font-bold flex items-center gap-1",
+                securityFlagsCount > 0 ? "text-rose-600" : "text-emerald-700"
+              )}
+            >
               {securityFlagsCount > 0 ? `${securityFlagsCount} Perlu Review` : "0 (Aman)"}
+              {onViewSecurityAudit && securityFlagsCount > 0 && (
+                <span className="text-[10px] underline ml-1 font-semibold text-rose-600">
+                  Lihat
+                </span>
+              )}
             </span>
           </div>
-          <div className="flex justify-between items-center pt-1 border-t border-slate-200/50">
+          <div className="flex justify-between items-center pt-1 border-t border-slate-200">
             <span className="text-slate-500">Verifikasi Mentor:</span>
             <span className="font-medium text-slate-800">Device Token + PIN</span>
           </div>
-          <div className="flex justify-between items-center pt-1 border-t border-slate-200/50">
+          <div className="flex justify-between items-center pt-1 border-t border-slate-200">
             <span className="text-slate-500">Segel Digital:</span>
             <span className="font-medium text-slate-800">HMAC-SHA256 Valid</span>
           </div>
@@ -237,7 +282,7 @@ export function TeacherWidgetPanel({
 
       {/* ─── 5. Pintasan Paspor Kompetensi Digital Siswa ─── */}
       <Link
-        href="/verify/andi-pratama"
+        href={`/verify/${samplePassportSlug || "andi-pratama-rpl-2026"}`}
         target="_blank"
         className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-200/70 shadow-2xs hover:border-sky-300 transition-colors group"
       >

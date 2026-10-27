@@ -1483,11 +1483,11 @@ function HeatmapContent() {
         }
         averagePercentage={summary.averageCompetencyPercentage}
         totalStudents={summary.totalStudents}
+        achievedCount={totalAchievedCount}
         driftCount={summary.studentsWithDrift}
         securityFlagsCount={securityFlags.length}
         priorityStudents={widgetPriorityStudents}
-        onTriggerEvaluate={handleTriggerEvaluate}
-        isEvaluating={isEvaluating}
+        onViewSecurityAudit={() => setViewMode("security")}
       />
 
       {/* ─────────────────────────────────────────────────────────────────────────────
