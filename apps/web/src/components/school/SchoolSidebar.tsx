@@ -135,7 +135,7 @@ export function SchoolSidebar() {
         className={cn(
           "hidden md:flex flex-col shrink-0 sticky top-4 h-[calc(100vh-2rem)] py-3 px-3 bg-white/95 backdrop-blur-xl rounded-[28px] border border-slate-200/80 z-40 select-none overflow-hidden transition-[width,box-shadow] duration-250 ease-out",
           isExpanded
-            ? "w-[248px] shadow-[0_16px_40px_rgba(15,23,42,0.12),0_0_0_1px_rgba(226,232,240,0.8)]"
+            ? "w-[240px] shadow-[0_16px_40px_rgba(15,23,42,0.12),0_0_0_1px_rgba(226,232,240,0.8)]"
             : "w-[72px] shadow-[0_8px_30px_rgba(15,23,42,0.05)]"
         )}
       >
@@ -143,132 +143,198 @@ export function SchoolSidebar() {
         <div className="flex flex-col w-full">
           <Link
             href="/school/dashboard"
-            className="flex items-center gap-3 px-1 py-1 rounded-2xl hover:bg-slate-100/70 transition-colors group"
+            title="VokaLink Sekolah — Panel Pengelola"
+            className="w-full h-12 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center overflow-hidden hover:border-sky-300 transition-colors duration-150"
           >
-            <div className="w-11 h-11 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex items-center justify-center p-1.5 shrink-0 group-hover:scale-105 transition-transform">
+            <div className="w-12 h-12 shrink-0 flex items-center justify-center p-2.5">
               <VokaIcon className="w-full h-full object-contain" />
             </div>
-            {isExpanded && (
-              <div className="min-w-0 transition-opacity duration-200">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold text-sm text-slate-900 tracking-tight">VokaLink</span>
-                  <span className="px-1.5 py-0.2 rounded-md bg-sky-50 text-sky-700 font-bold text-[9px] border border-sky-100">
-                    SMK
-                  </span>
-                </div>
-                <p className="text-[10px] text-slate-400 font-medium truncate mt-0.5">
-                  {schoolProfile.schoolName}
-                </p>
+            <div
+              className={cn(
+                "min-w-0 transition-opacity duration-200 overflow-hidden pl-1 pr-2",
+                isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
+              )}
+            >
+              <div className="flex items-center gap-1.5">
+                <span className="font-extrabold text-slate-900 text-sm tracking-tight leading-none block whitespace-nowrap">
+                  VokaLink <span className="text-sky-500">SMK</span>
+                </span>
               </div>
-            )}
+              <span className="text-[10px] font-bold text-slate-400 truncate block mt-0.5 whitespace-nowrap">
+                {schoolProfile.schoolName}
+              </span>
+            </div>
           </Link>
+          <div className="w-full h-px bg-slate-200/80 my-2.5" />
         </div>
 
-        {/* Navigation Items */}
-        <nav className="flex-1 mt-6 flex flex-col gap-1.5 w-full">
+        {/* Navigation Items (Center Stack) */}
+        <nav aria-label="Menu Sekolah" className="flex flex-col gap-1.5 w-full">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname.startsWith(item.href);
+            const isActive =
+              Boolean(pathname) &&
+              (pathname === item.href ||
+                (item.href !== "/school/dashboard" && pathname!.startsWith(item.href)));
 
             return (
-              <Link
-                key={item.id}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 px-2 py-2.5 rounded-2xl transition-all duration-150 relative group",
-                  isActive
-                    ? "bg-slate-900 text-white shadow-xs"
-                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-100/80"
+              <div key={item.id} className="relative flex items-center w-full">
+                {isActive && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full bg-sky-500 z-10" />
                 )}
-                title={!isExpanded ? item.label : undefined}
-              >
-                <div
-                  className={cn(
-                    "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105",
-                    isActive
-                      ? "text-sky-400"
-                      : "text-slate-500 group-hover:text-slate-900"
-                  )}
-                >
-                  <Icon className="w-5 h-5" />
-                </div>
 
-                {isExpanded && (
-                  <div className="flex-1 min-w-0 flex items-center justify-between pr-1">
-                    <div className="truncate">
-                      <p className={cn("text-xs font-bold truncate", isActive ? "text-white" : "text-slate-800")}>
-                        {item.label}
-                      </p>
-                      <p className={cn("text-[10px] truncate", isActive ? "text-slate-300" : "text-slate-400")}>
-                        {item.sublabel}
-                      </p>
-                    </div>
-                    {item.badge && (
-                      <span
+                <Link
+                  href={item.href}
+                  className={cn(
+                    "w-full h-12 rounded-2xl flex items-center overflow-hidden transition-colors duration-150 group",
+                    isActive
+                      ? "bg-sky-50 text-sky-600 border border-sky-200/80 shadow-2xs font-semibold"
+                      : "text-slate-400 hover:text-slate-700 hover:bg-slate-100/80"
+                  )}
+                  aria-label={item.label}
+                  title={!isExpanded ? item.label : undefined}
+                >
+                  <div className="w-12 h-12 shrink-0 flex items-center justify-center">
+                    <Icon
+                      className={cn(
+                        "w-5 h-5",
+                        isActive
+                          ? "text-sky-600 stroke-[2.3]"
+                          : "text-slate-500 group-hover:text-slate-800"
+                      )}
+                    />
+                  </div>
+
+                  <div
+                    className={cn(
+                      "min-w-0 transition-opacity duration-200 overflow-hidden text-left pr-2",
+                      isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
+                    )}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <p
                         className={cn(
-                          "px-1.5 py-0.5 rounded-md text-[9px] font-black shrink-0 ml-1.5",
-                          isActive
-                            ? "bg-white/15 text-sky-300"
-                            : "bg-slate-100 text-slate-600 border border-slate-200/60"
+                          "text-xs font-semibold truncate leading-tight whitespace-nowrap",
+                          isActive ? "text-sky-600 font-bold" : "text-slate-800"
                         )}
                       >
-                        {item.badge}
-                      </span>
-                    )}
+                        {item.label}
+                      </p>
+                      {item.badge && (
+                        <span
+                          className={cn(
+                            "px-1.5 py-0.5 rounded-full text-[9px] font-bold leading-none shrink-0",
+                            isActive
+                              ? "bg-sky-100 text-sky-800 border border-sky-200/60"
+                              : "bg-slate-100 text-slate-600 border border-slate-200/60"
+                          )}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-400 truncate leading-tight mt-0.5 whitespace-nowrap">
+                      {item.sublabel}
+                    </p>
                   </div>
-                )}
-              </Link>
+                </Link>
+              </div>
             );
           })}
         </nav>
 
+        {/* Natural Elastic Spacer */}
+        <div className="flex-1 min-h-[16px]" />
+
         {/* Bottom Actions: Settings, Help, Profile */}
-        <div className="pt-3 border-t border-slate-100 flex flex-col gap-1 w-full">
+        <div className="flex flex-col gap-1.5 w-full">
+          <div className="w-full h-px bg-slate-200/80 my-1" />
+
           {/* Settings Trigger */}
           <button
             type="button"
             onClick={() => setShowSettingsModal(true)}
-            className="flex items-center gap-3 px-2 py-2 rounded-2xl text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 transition-colors w-full text-left cursor-pointer"
+            aria-label="Pengaturan Sekolah"
+            className={cn(
+              "w-full h-12 rounded-2xl flex items-center overflow-hidden transition-colors duration-150 cursor-pointer group text-left",
+              showSettingsModal
+                ? "bg-sky-50 text-sky-600 border border-sky-200/80 shadow-2xs"
+                : "text-slate-400 hover:text-slate-700 hover:bg-slate-100/80"
+            )}
             title={!isExpanded ? "Pengaturan Sekolah" : undefined}
           >
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0">
-              <Settings className="w-4 h-4" />
+            <div className="w-12 h-12 shrink-0 flex items-center justify-center">
+              <Settings className="w-5 h-5 text-slate-500 group-hover:text-slate-800" />
             </div>
-            {isExpanded && (
-              <span className="text-xs font-bold text-slate-700 truncate">Pengaturan Sekolah</span>
-            )}
+            <div
+              className={cn(
+                "min-w-0 transition-opacity duration-200 overflow-hidden text-left pr-2",
+                isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
+              )}
+            >
+              <p className="text-xs font-semibold text-slate-800 truncate leading-tight whitespace-nowrap">
+                Pengaturan Sekolah
+              </p>
+              <p className="text-[10px] text-slate-400 truncate leading-tight mt-0.5 whitespace-nowrap">
+                Profil &amp; Kontak Instansi
+              </p>
+            </div>
           </button>
 
           {/* Help Trigger */}
           <button
             type="button"
             onClick={() => setShowHelpModal(true)}
-            className="flex items-center gap-3 px-2 py-2 rounded-2xl text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 transition-colors w-full text-left cursor-pointer"
+            aria-label="Panduan Pengelola"
+            className={cn(
+              "w-full h-12 rounded-2xl flex items-center overflow-hidden transition-colors duration-150 cursor-pointer group text-left",
+              showHelpModal
+                ? "bg-sky-50 text-sky-600 border border-sky-200/80 shadow-2xs"
+                : "text-slate-400 hover:text-slate-700 hover:bg-slate-100/80"
+            )}
             title={!isExpanded ? "Panduan Pengelola" : undefined}
           >
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0">
-              <HelpCircle className="w-4 h-4" />
+            <div className="w-12 h-12 shrink-0 flex items-center justify-center">
+              <HelpCircle className="w-5 h-5 text-slate-500 group-hover:text-slate-800" />
             </div>
-            {isExpanded && (
-              <span className="text-xs font-bold text-slate-700 truncate">Panduan Pengelola</span>
-            )}
+            <div
+              className={cn(
+                "min-w-0 transition-opacity duration-200 overflow-hidden text-left pr-2",
+                isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
+              )}
+            >
+              <p className="text-xs font-semibold text-slate-800 truncate leading-tight whitespace-nowrap">
+                Panduan Pengelola
+              </p>
+              <p className="text-[10px] text-slate-400 truncate leading-tight mt-0.5 whitespace-nowrap">
+                SOP Kurikulum &amp; DUDI
+              </p>
+            </div>
           </button>
 
           {/* User Profile Mini Trigger */}
-          <div className="mt-2 pt-2 border-t border-slate-100/80 flex items-center gap-2 px-1">
-            <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-700 border border-sky-100 flex items-center justify-center font-black text-xs shrink-0 shadow-2xs">
-              <School className="w-4 h-4" />
-            </div>
-            {isExpanded && (
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-slate-900 truncate">
-                  {schoolProfile.adminName}
-                </p>
-                <div className="flex items-center gap-1">
-                  <span className="text-[10px] text-slate-400 font-mono">NPSN: {schoolProfile.npsn}</span>
-                </div>
+          <div
+            className="w-full h-12 rounded-2xl flex items-center overflow-hidden bg-slate-50/80 border border-slate-200/60"
+            title={!isExpanded ? `${schoolProfile.adminName} (NPSN: ${schoolProfile.npsn})` : undefined}
+          >
+            <div className="w-12 h-12 shrink-0 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-700 border border-sky-100 flex items-center justify-center shrink-0 shadow-2xs">
+                <School className="w-4 h-4" />
               </div>
-            )}
+            </div>
+            <div
+              className={cn(
+                "min-w-0 transition-opacity duration-200 overflow-hidden text-left pr-2",
+                isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
+              )}
+            >
+              <p className="text-xs font-bold text-slate-900 truncate leading-tight whitespace-nowrap">
+                {schoolProfile.adminName}
+              </p>
+              <p className="text-[10px] text-slate-400 font-mono truncate leading-tight mt-0.5 whitespace-nowrap">
+                NPSN: {schoolProfile.npsn}
+              </p>
+            </div>
           </div>
         </div>
       </aside>
