@@ -62,7 +62,7 @@ export function TeacherWidgetPanel({
   const averageJp = Math.round((averagePercentage / 100) * targetJp);
 
   return (
-    <aside className="w-full lg:w-[320px] xl:w-[340px] 2xl:w-[360px] flex flex-col gap-4 flex-shrink-0 lg:sticky lg:top-6 self-start">
+    <aside className="w-full lg:w-[320px] xl:w-[340px] 2xl:w-[360px] flex flex-col gap-4 flex-shrink-0">
       {/* ─── 1. Profile Card Header (Desktop) ─── */}
       <div className="hidden lg:flex lg:h-[86px] bg-white rounded-2xl px-5 border border-slate-200/70 shadow-2xs items-center justify-between shrink-0">
         <div className="flex items-center gap-3.5 min-w-0">
