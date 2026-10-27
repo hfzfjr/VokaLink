@@ -1,8 +1,8 @@
 # PROGRESS — VokaLink
 
 > Papan status hidup. Perbarui setiap malam. Rencana ada di `SPRINT.md`, spesifikasi di `PRD.md`.
-> **Terakhir diperbarui:** 24 Okt 2026 (Hari 4)
-> **Hari sprint saat ini:** 4 dari 10 · **Deadline:** 30 Okt 2026 · **Code freeze:** 28 Okt
+> **Terakhir diperbarui:** 27 Okt 2026 (Hari 7)
+> **Hari sprint saat ini:** 7 dari 10 · **Deadline:** 30 Okt 2026 · **Code freeze:** 28 Okt
 
 Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblokir
 
@@ -273,8 +273,18 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
 - Sedang dikerjakan:
   - Persiapan integrasi akhir, code freeze, dan demo showcase persiapan lomba UINIC 8.0.
 - Blocker:
-  - Tidak ada blocker aktif saat ini. Seluruh lingkup fitur Orang C (FR-007, FR-008, FR-009, FR-010, `/verify/[slug]`) dan hardening selesai 100%.
-- Rencana besok (Hari 3):
+  - Tidak ada blocker aktif saat ini.
+
+### Hari 7 — Sel 27 Okt 2026
+- Selesai:
+  - Refaktor Menyeluruh Portal Pengelola Sekolah (`/school`) & Standarisasi Apple HIG (`docs/SCHOOL_MODULE_PLAN.md`):
+    - Penggantian `AppShell` lama dengan arsitektur modern VokaLink: `SchoolSidebar.tsx` (slim desktop dock 88-92px), `SchoolHeader.tsx` (mobile top bar), `SchoolBottomNav.tsx` (mobile bottom dock), dan `SchoolWidgetPanel.tsx` (desktop right widget panel).
+    - Pemisahan komponen modular ke `apps/web/src/components/school/*` (`dashboard`, `curriculum`, `dudi`, `placements`, `erapor`), memangkas ribuan baris file monolitik menjadi komponen terfokus < 200 baris.
+    - Eliminasi 100% data mock lokal: Menghapus `SAMPLE_JOB_CARDS` hardcode pada registrasi DUDI dan menggantinya dengan query katalog Job Cards nyata dari database sekolah via API.
+    - Eliminasi seluruh fallback UUID hardcode (`0000...0002`), migrasi murni ke sesi dinamis `user.school.id` dan token Bearer.
+    - Clean UI: Menghapus 4 kartu navigasi redundan di dasbor, mengoptimalkan hierarki visual, dan memastikan kepatuhan kontras WCAG AA.
+    - Seluruh pengujian hijau: `pnpm lint`, `pnpm typecheck`, dan `pnpm test` (15 test files, 122 tests) lulus 100%.
+
 ### Hari 4 — Sab 24 Okt 2026
 - Selesai:
   - Rekonstruksi Sistem Presensi Logbook Siswa & Quick Shift Presets (FR-005, D-011):
