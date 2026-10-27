@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   Calendar,
+  CalendarDays,
   CheckCircle2,
   Clock,
   QrCode,
@@ -13,6 +14,7 @@ import {
   PlusCircle,
   X,
   ChevronRight,
+  ChevronLeft,
   ShieldCheck,
   Image as ImageIcon,
   Trash2,
@@ -90,10 +92,22 @@ function parseDateParts(dateStr: string) {
 
 export default function LogHistoryPage() {
   const [filter, setFilter] = useState<"ALL" | "PENDING" | "VERIFIED" | "NON_COMPETENCY">("ALL");
+  const [monthFilter, setMonthFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"LIST" | "GRID">("LIST");
+  const PAGE_SIZE = 6;
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const listContainerRef = useRef<HTMLDivElement>(null);
   const [showQrModal, setShowQrModal] = useState(false);
   const [selectedLogDetail, setSelectedLogDetail] = useState<LogEntry | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const deleteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (deleteTimeoutRef.current) clearTimeout(deleteTimeoutRef.current);
+    };
+  }, []);
 
   // Photo viewer state for modal & fullscreen lightbox
   const [detailPhotoUrl, setDetailPhotoUrl] = useState<string | null>(null);
@@ -130,11 +144,13 @@ export default function LogHistoryPage() {
     async function loadPlacementAndLogs() {
       try {
         let activePlacementId = "3ffec674-ad55-482a-a566-9dff84ab71be";
+        let activeMentorName = placementInfo.mentorName;
         const cached = await db.refData.get("student_log_context");
         if (cached && cached.data && isMounted) {
           const data = cached.data as StudentLogContextResponse;
           if (data.activePlacement) {
             activePlacementId = data.activePlacement.id;
+            activeMentorName = data.activePlacement.mentorName || activeMentorName;
             setPlacementInfo({
               dudiName: data.activePlacement.dudiName,
               dudiCity: data.activePlacement.dudiCity,
@@ -146,6 +162,7 @@ export default function LogHistoryPage() {
           const fresh = await fetchStudentLogContext();
           if (fresh && fresh.activePlacement && isMounted) {
             activePlacementId = fresh.activePlacement.id;
+            activeMentorName = fresh.activePlacement.mentorName || activeMentorName;
             setPlacementInfo({
               dudiName: fresh.activePlacement.dudiName,
               dudiCity: fresh.activePlacement.dudiCity,
@@ -188,7 +205,7 @@ export default function LogHistoryPage() {
                   verifiedAt: sl.verifiedAt
                     ? formatDateIndo(sl.verifiedAt.slice(0, 10))
                     : null,
-                  mentor: "Rizky Firmansyah",
+                  mentor: activeMentorName || "Rizky Firmansyah",
                   hasPhoto: Boolean(sl.evidenceWebpUrl),
                   samplePhotoUrl: sl.evidenceWebpUrl || undefined,
                   isNonCompetency,
@@ -303,15 +320,47 @@ export default function LogHistoryPage() {
     return Math.round((mandiriCount / allLogs.length) * 100);
   }, [allLogs]);
 
-  // Persentase Ketercapaian Target 792 JP
+  // Persentase Ketercapaian Target 792 JP (Multi-segment: Verified + Pending)
   const verifiedJpEquivalent = useMemo(
     () => convertRealHoursToJp(totalVerifiedJp),
     [totalVerifiedJp]
   );
-  const targetProgressPercent = useMemo(
-    () => Math.min(100, Math.round((verifiedJpEquivalent / TOTAL_TARGET_JP) * 100)),
+  const pendingJpEquivalent = useMemo(
+    () => convertRealHoursToJp(totalPendingJp),
+    [totalPendingJp]
+  );
+  const verifiedPercent = useMemo(
+    () => Math.min(100, (verifiedJpEquivalent / TOTAL_TARGET_JP) * 100),
     [verifiedJpEquivalent]
   );
+  const pendingPercent = useMemo(
+    () => Math.min(100 - verifiedPercent, (pendingJpEquivalent / TOTAL_TARGET_JP) * 100),
+    [pendingJpEquivalent, verifiedPercent]
+  );
+  const targetProgressPercent = useMemo(
+    () => Math.min(100, Math.round(verifiedPercent)),
+    [verifiedPercent]
+  );
+
+  // Ekstrak daftar bulan yang tersedia dari data jurnal (Sama persis dengan Dashboard)
+  const availableMonths = useMemo(() => {
+    const map = new Map<string, string>();
+    allLogs.forEach((log) => {
+      if (log.date && log.date.length >= 7) {
+        const ym = log.date.slice(0, 7);
+        if (!map.has(ym)) {
+          const d = new Date(log.date + "T00:00:00");
+          if (!isNaN(d.getTime())) {
+            const label = d.toLocaleDateString("id-ID", { month: "short", year: "numeric" });
+            map.set(ym, label);
+          }
+        }
+      }
+    });
+    return Array.from(map.entries())
+      .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+      .map(([key, label]) => ({ key, label }));
+  }, [allLogs]);
 
   // Filter & Pencarian
   const filteredLogs = useMemo(() => {
@@ -319,6 +368,11 @@ export default function LogHistoryPage() {
       if (filter === "VERIFIED" && log.status !== "VERIFIED") return false;
       if (filter === "PENDING" && log.status !== "PENDING_VERIFICATION") return false;
       if (filter === "NON_COMPETENCY" && !log.isNonCompetency) return false;
+
+      // Filter Periode Bulan
+      if (monthFilter !== "ALL") {
+        if (!log.date.startsWith(monthFilter)) return false;
+      }
 
       if (searchQuery.trim() !== "") {
         const q = searchQuery.toLowerCase();
@@ -331,7 +385,71 @@ export default function LogHistoryPage() {
 
       return true;
     });
-  }, [allLogs, filter, searchQuery]);
+  }, [allLogs, filter, monthFilter, searchQuery]);
+
+  // Reset ke halaman 1 setiap kali filter/pencarian berubah
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, monthFilter, searchQuery]);
+
+  const totalItems = filteredLogs.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  // Item yang dipaginasi agar rapi dan tidak terjadi scroll tak terbatas (Identik Dashboard)
+  const paginatedLogs = useMemo(() => {
+    const start = (safeCurrentPage - 1) * PAGE_SIZE;
+    return filteredLogs.slice(start, start + PAGE_SIZE);
+  }, [filteredLogs, safeCurrentPage]);
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    listContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // Pengelompokan Kronologis per Bulan (Monthly Grouping) pada halaman aktif
+  const groupedLogs = useMemo<{
+    key: string;
+    title: string;
+    totalHours: number;
+    totalJp: number;
+    logs: LogEntry[];
+  }[]>(() => {
+    const groups: {
+      [key: string]: {
+        key: string;
+        title: string;
+        totalHours: number;
+        totalJp: number;
+        logs: LogEntry[];
+      };
+    } = {};
+    const order: string[] = [];
+
+    for (const log of paginatedLogs) {
+      const ym = log.date.slice(0, 7); // e.g. "2026-10"
+      if (!groups[ym]) {
+        let title = ym;
+        try {
+          const d = new Date(ym + "-01T00:00:00");
+          title = d.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+        } catch {}
+        groups[ym] = {
+          key: ym,
+          title,
+          totalHours: 0,
+          totalJp: 0,
+          logs: [],
+        };
+        order.push(ym);
+      }
+      groups[ym].logs.push(log);
+      groups[ym].totalHours += log.durationJp;
+      groups[ym].totalJp += convertRealHoursToJp(log.durationJp);
+    }
+
+    return order.map((k) => groups[k]).filter((g): g is NonNullable<typeof g> => Boolean(g));
+  }, [paginatedLogs]);
 
   // Auto-buka rincian log jika ada query parameter ?logId=... dari Dashboard
   useEffect(() => {
@@ -347,11 +465,14 @@ export default function LogHistoryPage() {
     }
   }, [allLogs]);
 
-  // Memuat foto dari IndexedDB saat modal detail dibuka
+  // Memuat foto dari IndexedDB saat modal detail dibuka (Bebas stale closure)
   useEffect(() => {
     let isMounted = true;
+    let createdBlobUrl: string | null = null;
+
     if (!selectedLogDetail) {
       setDetailPhotoUrl(null);
+      setConfirmDeleteId(null);
       return;
     }
 
@@ -360,8 +481,8 @@ export default function LogHistoryPage() {
       try {
         const photo = await db.photos.get(selectedLogDetail!.id);
         if (photo && photo.blob && isMounted) {
-          const url = URL.createObjectURL(photo.blob);
-          setDetailPhotoUrl(url);
+          createdBlobUrl = URL.createObjectURL(photo.blob);
+          setDetailPhotoUrl(createdBlobUrl);
         } else if (selectedLogDetail?.samplePhotoUrl && isMounted) {
           setDetailPhotoUrl(selectedLogDetail.samplePhotoUrl);
         } else if (selectedLogDetail?.hasPhoto && isMounted) {
@@ -385,8 +506,8 @@ export default function LogHistoryPage() {
 
     return () => {
       isMounted = false;
-      if (detailPhotoUrl && detailPhotoUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(detailPhotoUrl);
+      if (createdBlobUrl) {
+        URL.revokeObjectURL(createdBlobUrl);
       }
     };
   }, [selectedLogDetail]);
@@ -417,16 +538,19 @@ export default function LogHistoryPage() {
     };
   }, [lightboxPhotoUrl, selectedLogDetail, showQrModal]);
 
-  // Handler Hapus Log Offline Lokal
+  // Handler Hapus Log Offline Lokal (Two-step inline confirmation)
   const handleDeleteOfflineLog = async (logId: string) => {
-    if (
-      !confirm(
-        "Apakah Anda yakin ingin menghapus antrean jurnal ini? Data yang belum tersinkronisasi akan dihapus dari penyimpanan perangkat Anda."
-      )
-    ) {
+    if (confirmDeleteId !== logId) {
+      setConfirmDeleteId(logId);
+      if (deleteTimeoutRef.current) clearTimeout(deleteTimeoutRef.current);
+      deleteTimeoutRef.current = setTimeout(() => {
+        setConfirmDeleteId(null);
+      }, 3000);
       return;
     }
 
+    if (deleteTimeoutRef.current) clearTimeout(deleteTimeoutRef.current);
+    setConfirmDeleteId(null);
     try {
       await db.logs.delete(logId);
       await db.photos.delete(logId);
@@ -491,7 +615,7 @@ export default function LogHistoryPage() {
             <span className="sm:hidden">Validasi</span>
             <span className="hidden sm:inline">Minta Validasi (QR)</span>
             {pendingCountTotal > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-sky-500 text-white text-[10px] font-bold">
+              <span className="px-1.5 py-0.5 rounded-full bg-sky-500 text-white text-[10px] font-bold">
                 {pendingCountTotal}
               </span>
             )}
@@ -512,8 +636,8 @@ export default function LogHistoryPage() {
           Satu kartu aktivitas terpadu dengan tipografi sans yang bersih dan proporsional
       ───────────────────────────────────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200/80 shadow-xs space-y-4">
-        {/* Progress Bar Target 792 JP */}
-        <div className="space-y-1.5">
+        {/* Multi-Segment Stacked Progress Bar Target 792 JP */}
+        <div className="space-y-2">
           <div className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
               <span className="font-semibold text-slate-900 flex items-center gap-1.5">
@@ -534,11 +658,31 @@ export default function LogHistoryPage() {
             </div>
           </div>
 
-          <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden relative">
+          <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden flex relative">
             <div
-              className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-              style={{ width: `${Math.max(4, targetProgressPercent)}%` }}
+              className="h-full bg-emerald-500 transition-all duration-500"
+              style={{ width: `${verifiedPercent}%` }}
+              title={`Tervalidasi: ${verifiedJpEquivalent.toFixed(1)} JP (${Math.round(verifiedPercent)}%)`}
             />
+            {pendingPercent > 0 && (
+              <div
+                className="h-full bg-amber-400 transition-all duration-500"
+                style={{ width: `${pendingPercent}%` }}
+                title={`Menunggu PIN: ${pendingJpEquivalent.toFixed(1)} JP (${Math.round(pendingPercent)}%)`}
+              />
+            )}
+          </div>
+
+          {/* Legenda Progress Bar */}
+          <div className="flex items-center gap-4 pt-0.5 text-[11px] text-slate-500">
+            <span className="flex items-center gap-1.5 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              <span>Tervalidasi: <strong className="text-slate-700 font-mono font-semibold">{verifiedJpEquivalent.toFixed(1)} JP</strong></span>
+            </span>
+            <span className="flex items-center gap-1.5 font-medium">
+              <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+              <span>Menunggu PIN: <strong className="text-slate-700 font-mono font-semibold">{pendingJpEquivalent.toFixed(1)} JP</strong></span>
+            </span>
           </div>
         </div>
 
@@ -621,7 +765,7 @@ export default function LogHistoryPage() {
       {/* ─────────────────────────────────────────────────────────────────────────────
           3. APPLE SEGMENTED CONTROL, SEARCH & VIEW SWITCHER (LIST vs GRID)
       ───────────────────────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div ref={listContainerRef} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         {/* Segmented Filter Tabs: Persis Sesuai Beranda Siswa (Landing Feed) */}
         <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-full border border-slate-200 text-xs font-medium overflow-x-auto w-full sm:w-auto scrollbar-none">
           {/* 1. Semua Jurnal */}
@@ -639,7 +783,7 @@ export default function LogHistoryPage() {
             <span className="hidden sm:inline">Semua Jurnal</span>
             <span
               className={cn(
-                "px-1.5 py-0.2 rounded-full text-[10px] font-semibold",
+                "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
                 filter === "ALL"
                   ? "bg-slate-100 text-slate-800"
                   : "bg-slate-300/60 text-slate-600"
@@ -665,7 +809,7 @@ export default function LogHistoryPage() {
             <span className="hidden sm:inline">Sah Terverifikasi</span>
             <span
               className={cn(
-                "px-1.5 py-0.2 rounded-full text-[10px] font-semibold",
+                "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
                 filter === "VERIFIED"
                   ? "bg-emerald-100 text-emerald-800"
                   : "bg-slate-300/60 text-slate-600"
@@ -691,7 +835,7 @@ export default function LogHistoryPage() {
             <span className="hidden sm:inline">Menunggu Validasi</span>
             <span
               className={cn(
-                "px-1.5 py-0.2 rounded-full text-[10px] font-semibold",
+                "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
                 filter === "PENDING"
                   ? "bg-amber-100 text-amber-800"
                   : "bg-slate-300/60 text-slate-600"
@@ -717,7 +861,7 @@ export default function LogHistoryPage() {
             <span className="hidden sm:inline">Non-Kejuruan</span>
             <span
               className={cn(
-                "px-1.5 py-0.2 rounded-full text-[10px] font-semibold",
+                "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
                 filter === "NON_COMPETENCY"
                   ? "bg-indigo-100 text-indigo-800"
                   : "bg-slate-300/60 text-slate-600"
@@ -728,10 +872,30 @@ export default function LogHistoryPage() {
           </button>
         </div>
 
-        {/* Search Bar + View Switcher (List vs Grid) */}
+        {/* Month Selector + Search Bar + View Switcher (List vs Grid) */}
         <div className="flex items-center gap-2 w-full sm:w-auto">
+          {/* Quick Month Filter Selector (Identik Dashboard) */}
+          {availableMonths.length > 1 && (
+            <div className="relative shrink-0">
+              <select
+                aria-label="Pilih Periode Bulan Jurnal"
+                value={monthFilter}
+                onChange={(e) => setMonthFilter(e.target.value)}
+                className="h-8.5 pl-7.5 pr-3 rounded-full bg-white border border-slate-200/90 text-[11px] font-medium text-slate-700 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs cursor-pointer appearance-none"
+              >
+                <option value="ALL">Semua Bulan</option>
+                {availableMonths.map((m) => (
+                  <option key={m.key} value={m.key}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+              <CalendarDays className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          )}
+
           {/* Pill Search Bar */}
-          <div className="relative flex-1 sm:w-64">
+          <div className="relative flex-1 sm:w-60">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -789,266 +953,379 @@ export default function LogHistoryPage() {
           4. INSET GROUPED LIST (DEFAULT VIEW: SANGAT RAPI, KRONOLOGIS & MUDAH DISCAN)
       ───────────────────────────────────────────────────────────────────────────── */}
       {filteredLogs.length > 0 ? (
-        viewMode === "LIST" ? (
+        <>
+          {viewMode === "LIST" ? (
           /* ─── TAMPILAN A: INSET GROUPED LIST TABLE (SUPER CLEAN) ─── */
-          <div className="bg-white rounded-3xl border border-slate-200/80 divide-y divide-slate-100 shadow-xs overflow-hidden">
-            {filteredLogs.map((log) => {
-              const isVerified = log.status === "VERIFIED";
-              const isSickOrPermit = log.attendanceType === "SICK" || log.attendanceType === "PERMIT";
-              const { day, month, weekday } = parseDateParts(log.date);
-
-              return (
-                <div
-                  key={log.id}
-                  onClick={() => setSelectedLogDetail(log)}
-                  className="group flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:p-4 hover:bg-slate-50/80 transition-colors duration-150 cursor-pointer select-none gap-3"
-                >
-                  {/* Bagian Kiri: Date Badge + Info Utama */}
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    {/* Modern Calendar Tile Date Badge - Option 1: Vivid Sky Ribbon */}
-                    <div className="w-12 sm:w-13 h-13 sm:h-14 rounded-2xl bg-white border border-slate-200/90 flex flex-col items-center justify-between text-center shrink-0 shadow-2xs group-hover:border-sky-300 group-hover:shadow-xs transition-all overflow-hidden select-none">
-                      <div className="w-full bg-sky-600 group-hover:bg-sky-500 py-0.5 border-b border-sky-700/20 transition-colors">
-                        <span className="text-[9.5px] font-bold text-white tracking-wider uppercase leading-none block">
-                          {month}
-                        </span>
-                      </div>
-                      <span className="text-base sm:text-lg font-black text-slate-900 leading-none py-0.5 tracking-tight font-sans">
-                        {day}
-                      </span>
-                      <div className="w-full pb-1">
-                        <span className="text-[9.5px] font-medium text-slate-400 capitalize leading-none block">
-                          {weekday}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Judul & Detail */}
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-xs sm:text-sm text-slate-900 group-hover:text-sky-600 transition-colors truncate">
-                          {log.title}
-                        </h3>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 flex-wrap text-slate-500 text-xs">
-                        {isSickOrPermit ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200/70 text-[10px] font-medium">
-                            <HeartPulse className="w-2.5 h-2.5" />
-                            <span>{log.attendanceType === "SICK" ? "Sakit" : "Izin Resmi"}</span>
-                          </span>
-                        ) : log.isNonCompetency ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/70 text-[10px] font-medium">
-                            <span>Non-Kejuruan: {log.nonCompetencyCategory || "Operasional"}</span>
-                          </span>
-                        ) : (
-                          <>
-                            {log.skkniCode && (
-                              <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md font-medium">
-                                {log.skkniCode}
-                              </span>
-                            )}
-                            <span
-                              className={cn(
-                                "px-2 py-0.5 rounded-full text-[10px] font-medium border",
-                                log.autonomy === "Mandiri"
-                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
-                                  : "bg-sky-50 text-sky-700 border-sky-200/70"
-                              )}
-                            >
-                              {log.autonomy}
-                            </span>
-                          </>
-                        )}
-
-                        {log.hasPhoto && (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full font-medium">
-                            <ImageIcon className="w-2.5 h-2.5 text-slate-400" />
-                            <span>Foto</span>
-                          </span>
-                        )}
-
-                        {log.notes && (
-                          <span className="text-slate-400 truncate max-w-[200px] sm:max-w-xs hidden md:inline font-normal">
-                            &quot;{log.notes}&quot;
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Bagian Kanan: Jam, Status Badge & Chevron */}
-                  <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                    <div className="text-left sm:text-right">
-                      <span className="font-semibold text-xs sm:text-sm text-slate-900 block leading-tight">
-                        {log.durationJp} Jam Kerja
-                      </span>
-                      <span className="text-xs text-slate-400 block font-normal">
-                        ≈ {convertRealHoursToJp(log.durationJp).toFixed(1)} JP
-                      </span>
-                    </div>
-
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border",
-                        isVerified
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
-                          : log.syncState === "queued"
-                          ? "bg-amber-50 text-amber-800 border-amber-200/80"
-                          : "bg-amber-50 text-amber-700 border-amber-200/80"
-                      )}
-                    >
-                      {isVerified ? (
-                        <>
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
-                          <span>Terverifikasi</span>
-                        </>
-                      ) : (
-                        <>
-                          <Clock className="w-3 h-3 text-amber-600" />
-                          <span>Menunggu PIN</span>
-                        </>
-                      )}
-                    </span>
-
-                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-sky-500 group-hover:translate-x-0.5 transition-transform" />
-                  </div>
+          <div className="space-y-6">
+            {groupedLogs.map((group) => (
+              <div key={group.key} className="space-y-2">
+                {/* Sub-header Bulan & Total Jam */}
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    {group.title}
+                  </span>
+                  <span className="text-xs text-slate-500 font-medium">
+                    Total {group.totalHours} Jam ({group.totalJp.toFixed(1)} JP)
+                  </span>
                 </div>
-              );
-            })}
+
+                <div className="bg-white rounded-3xl border border-slate-200/80 divide-y divide-slate-100 shadow-xs overflow-hidden">
+                  {group.logs.map((log) => {
+                    const isVerified = log.status === "VERIFIED";
+                    const isSickOrPermit = log.attendanceType === "SICK" || log.attendanceType === "PERMIT";
+                    const { day, month, weekday } = parseDateParts(log.date);
+
+                    return (
+                      <div
+                        key={log.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelectedLogDetail(log)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setSelectedLogDetail(log);
+                          }
+                        }}
+                        className="group flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:p-4 hover:bg-slate-50/80 focus:bg-slate-50/80 focus:outline-none transition-colors duration-150 cursor-pointer select-none gap-3"
+                      >
+                        {/* Bagian Kiri: Date Badge + Info Utama */}
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          {/* Modern Calendar Tile Date Badge - Option 1: Vivid Sky Ribbon */}
+                          <div className="w-12 sm:w-13 h-13 sm:h-14 rounded-2xl bg-white border border-slate-200/90 flex flex-col items-center justify-between text-center shrink-0 shadow-2xs group-hover:border-sky-300 group-hover:shadow-xs transition-all overflow-hidden select-none">
+                            <div className="w-full bg-sky-600 group-hover:bg-sky-500 py-0.5 border-b border-sky-700/20 transition-colors">
+                              <span className="text-[9.5px] font-bold text-white tracking-wider uppercase leading-none block">
+                                {month}
+                              </span>
+                            </div>
+                            <span className="text-base sm:text-lg font-black text-slate-900 leading-none py-0.5 tracking-tight font-sans">
+                              {day}
+                            </span>
+                            <div className="w-full pb-1">
+                              <span className="text-[9.5px] font-medium text-slate-400 capitalize leading-none block">
+                                {weekday}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Judul & Detail */}
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-semibold text-xs sm:text-sm text-slate-900 group-hover:text-sky-600 transition-colors truncate">
+                                {log.title}
+                              </h3>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 flex-wrap text-slate-500 text-xs">
+                              {isSickOrPermit ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200/70 text-[10px] font-medium">
+                                  <HeartPulse className="w-2.5 h-2.5" />
+                                  <span>{log.attendanceType === "SICK" ? "Sakit" : "Izin Resmi"}</span>
+                                </span>
+                              ) : log.isNonCompetency ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/70 text-[10px] font-medium">
+                                  <span>Non-Kejuruan: {log.nonCompetencyCategory || "Operasional"}</span>
+                                </span>
+                              ) : (
+                                <>
+                                  {log.skkniCode && (
+                                    <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md font-medium">
+                                      {log.skkniCode}
+                                    </span>
+                                  )}
+                                  <span
+                                    className={cn(
+                                      "px-2 py-0.5 rounded-full text-[10px] font-medium border",
+                                      log.autonomy === "Mandiri"
+                                        ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
+                                        : "bg-sky-50 text-sky-700 border-sky-200/70"
+                                    )}
+                                  >
+                                    {log.autonomy}
+                                  </span>
+                                </>
+                              )}
+
+                              {log.hasPhoto && (
+                                <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full font-medium">
+                                  <ImageIcon className="w-2.5 h-2.5 text-slate-400" />
+                                  <span>Foto</span>
+                                </span>
+                              )}
+
+                              {log.notes && (
+                                <span className="text-slate-400 truncate max-w-[200px] sm:max-w-xs hidden md:inline font-normal">
+                                  &quot;{log.notes}&quot;
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Bagian Kanan: Jam, Status Badge & Chevron */}
+                        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                          <div className="text-left sm:text-right">
+                            <span className="font-semibold text-xs sm:text-sm text-slate-900 block leading-tight">
+                              {log.durationJp} Jam Kerja
+                            </span>
+                            <span className="text-xs text-slate-400 block font-normal">
+                              ≈ {convertRealHoursToJp(log.durationJp).toFixed(1)} JP
+                            </span>
+                          </div>
+
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border",
+                              isVerified
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
+                                : log.syncState === "queued"
+                                ? "bg-amber-50 text-amber-800 border-amber-200/80"
+                                : "bg-amber-50 text-amber-700 border-amber-200/80"
+                            )}
+                          >
+                            {isVerified ? (
+                              <>
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
+                                <span>Terverifikasi</span>
+                              </>
+                            ) : (
+                              <>
+                                <Clock className="w-3 h-3 text-amber-600" />
+                                <span>Menunggu PIN</span>
+                              </>
+                            )}
+                          </span>
+
+                          <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-sky-500 group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           /* ─── TAMPILAN B: NOTION MINIMALIST BENTO CARDS ─── */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
-            {filteredLogs.map((log) => {
-              const isVerified = log.status === "VERIFIED";
-              const isSickOrPermit = log.attendanceType === "SICK" || log.attendanceType === "PERMIT";
-
-              return (
-                <div
-                  key={log.id}
-                  onClick={() => setSelectedLogDetail(log)}
-                  className="bg-white rounded-2xl p-4 sm:p-4.5 border border-slate-200/70 hover:border-slate-300 hover:shadow-xs transition-all duration-150 cursor-pointer group active:scale-[0.99] flex flex-col justify-between space-y-3.5 relative shadow-2xs"
-                >
-                  <div className="space-y-2.5">
-                    {/* Header */}
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-                          <span>{formatDateIndo(log.date)}</span>
-                        </span>
-                        <span className="text-slate-300">·</span>
-                        <span className="px-1.5 py-0.5 rounded-md bg-slate-100 font-semibold text-[10px] text-slate-700 font-mono">
-                          {log.durationJp} Jam
-                        </span>
-                      </div>
-
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-medium border",
-                          isVerified
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
-                            : "bg-amber-50 text-amber-700 border-amber-200/70"
-                        )}
-                      >
-                        {isVerified ? (
-                          <>
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
-                            <span>Sah</span>
-                          </>
-                        ) : (
-                          <>
-                            <Clock className="w-3 h-3 text-amber-600" />
-                            <span>Menunggu PIN</span>
-                          </>
-                        )}
-                      </span>
-                    </div>
-
-                    {/* Chips Metadata (Notion Tag Style) */}
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {isSickOrPermit ? (
-                        <span className="text-[10px] font-medium text-rose-700 bg-rose-50 border border-rose-200/70 px-2 py-0.5 rounded-md flex items-center gap-1">
-                          <HeartPulse className="w-3 h-3" />
-                          {log.attendanceType === "SICK" ? "Sakit" : "Izin Resmi"}
-                        </span>
-                      ) : log.isNonCompetency ? (
-                        <span className="text-[10px] font-medium text-amber-800 bg-amber-50 border border-amber-200/70 px-2 py-0.5 rounded-md">
-                          Non-Kejuruan: {log.nonCompetencyCategory || "Operasional"}
-                        </span>
-                      ) : (
-                        <>
-                          <span
-                            className={cn(
-                              "text-[10px] font-medium px-2 py-0.5 rounded-md border",
-                              log.autonomy === "Mandiri"
-                                ? "bg-slate-50 text-slate-700 border-slate-200/70"
-                                : "bg-sky-50/60 text-sky-700 border-sky-200/60"
-                            )}
-                          >
-                            {log.autonomy}
-                          </span>
-
-                          {log.skkniCode && (
-                            <span className="text-[10px] font-medium text-slate-600 bg-slate-50 border border-slate-200/70 px-2 py-0.5 rounded-md font-mono">
-                              {log.skkniCode}
-                            </span>
-                          )}
-                        </>
-                      )}
-
-                      {log.hasPhoto && (
-                        <span className="text-[10px] font-medium text-slate-600 bg-slate-50 px-2 py-0.5 rounded-md flex items-center gap-1 border border-slate-200/60">
-                          <ImageIcon className="w-3 h-3 text-slate-400" />
-                          <span>Foto WebP</span>
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Judul */}
-                    <h3 className="text-[13.5px] sm:text-sm font-semibold text-slate-900 group-hover:text-sky-600 transition-colors leading-snug line-clamp-2">
-                      {log.title}
-                    </h3>
-                  </div>
-
-                  {/* Footer */}
-                  <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
-                    <span className="text-slate-500 font-normal text-[11px] truncate max-w-[160px] flex items-center gap-1.5">
-                      <UserCheck className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{log.mentor}</span>
-                    </span>
-                    <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-sky-500 group-hover:translate-x-0.5 transition" />
-                  </div>
+          <div className="space-y-6">
+            {groupedLogs.map((group) => (
+              <div key={group.key} className="space-y-2.5">
+                {/* Sub-header Bulan & Total Jam */}
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    {group.title}
+                  </span>
+                  <span className="text-xs text-slate-500 font-medium">
+                    Total {group.totalHours} Jam ({group.totalJp.toFixed(1)} JP)
+                  </span>
                 </div>
-              );
-            })}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
+                  {group.logs.map((log) => {
+                    const isVerified = log.status === "VERIFIED";
+                    const isSickOrPermit = log.attendanceType === "SICK" || log.attendanceType === "PERMIT";
+
+                    return (
+                      <div
+                        key={log.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelectedLogDetail(log)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setSelectedLogDetail(log);
+                          }
+                        }}
+                        className="bg-white rounded-2xl p-4 sm:p-4.5 border border-slate-200/70 hover:border-slate-300 hover:shadow-xs transition-all duration-150 cursor-pointer group active:scale-[0.99] flex flex-col justify-between space-y-3.5 relative shadow-2xs focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+                      >
+                        <div className="space-y-2.5">
+                          {/* Header */}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                                <span>{formatDateIndo(log.date)}</span>
+                              </span>
+                              <span className="text-slate-300">·</span>
+                              <span className="px-1.5 py-0.5 rounded-md bg-slate-100 font-semibold text-[10px] text-slate-700 font-mono">
+                                {log.durationJp} Jam
+                              </span>
+                            </div>
+
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-medium border",
+                                isVerified
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
+                                  : "bg-amber-50 text-amber-700 border-amber-200/70"
+                              )}
+                            >
+                              {isVerified ? (
+                                <>
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
+                                  <span>Sah</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Clock className="w-3 h-3 text-amber-600" />
+                                  <span>Menunggu PIN</span>
+                                </>
+                              )}
+                            </span>
+                          </div>
+
+                          {/* Chips Metadata (Notion Tag Style) */}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {isSickOrPermit ? (
+                              <span className="text-[10px] font-medium text-rose-700 bg-rose-50 border border-rose-200/70 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                <HeartPulse className="w-3 h-3" />
+                                {log.attendanceType === "SICK" ? "Sakit" : "Izin Resmi"}
+                              </span>
+                            ) : log.isNonCompetency ? (
+                              <span className="text-[10px] font-medium text-amber-800 bg-amber-50 border border-amber-200/70 px-2 py-0.5 rounded-md">
+                                Non-Kejuruan: {log.nonCompetencyCategory || "Operasional"}
+                              </span>
+                            ) : (
+                              <>
+                                <span
+                                  className={cn(
+                                    "text-[10px] font-medium px-2 py-0.5 rounded-md border",
+                                    log.autonomy === "Mandiri"
+                                      ? "bg-slate-50 text-slate-700 border-slate-200/70"
+                                      : "bg-sky-50/60 text-sky-700 border-sky-200/60"
+                                  )}
+                                >
+                                  {log.autonomy}
+                                </span>
+
+                                {log.skkniCode && (
+                                  <span className="text-[10px] font-medium text-slate-600 bg-slate-50 border border-slate-200/70 px-2 py-0.5 rounded-md font-mono">
+                                    {log.skkniCode}
+                                  </span>
+                                )}
+                              </>
+                            )}
+
+                            {log.hasPhoto && (
+                              <span className="text-[10px] font-medium text-slate-600 bg-slate-50 px-2 py-0.5 rounded-md flex items-center gap-1 border border-slate-200/60">
+                                <ImageIcon className="w-3 h-3 text-slate-400" />
+                                <span>Foto WebP</span>
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Judul */}
+                          <h3 className="text-[13.5px] sm:text-sm font-semibold text-slate-900 group-hover:text-sky-600 transition-colors leading-snug line-clamp-2">
+                            {log.title}
+                          </h3>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+                          <span className="text-slate-500 font-normal text-[11px] truncate max-w-[160px] flex items-center gap-1.5">
+                            <UserCheck className="w-3.5 h-3.5 text-slate-400" />
+                            <span>{log.mentor}</span>
+                          </span>
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-sky-500 group-hover:translate-x-0.5 transition" />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
-        )
-      ) : (
-        /* Empty State */
-        <div className="bg-white rounded-3xl p-10 sm:p-14 border border-slate-200/80 text-center space-y-3.5 shadow-xs">
-          <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-400 mx-auto shadow-2xs">
-            <FileText className="w-5 h-5 stroke-[1.5]" />
+        )}
+
+        {/* ─── Modern Minimalist Centered Pagination (Identik dengan Dashboard) ─── */}
+        {totalPages > 1 && (
+          <div className="pt-4 border-t border-slate-200/60 flex items-center justify-center">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <button
+                type="button"
+                disabled={safeCurrentPage <= 1}
+                onClick={() => handlePageChange(Math.max(1, safeCurrentPage - 1))}
+                className="h-9 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs"
+                title="Halaman Sebelumnya"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Sebelumnya</span>
+              </button>
+
+              <div className="flex items-center gap-1 sm:gap-1.5 mx-0.5 sm:mx-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((page) => {
+                    if (totalPages <= 5) return true;
+                    return (
+                      page === 1 ||
+                      page === totalPages ||
+                      Math.abs(page - safeCurrentPage) <= 1
+                    );
+                  })
+                  .map((page, idx, arr) => {
+                    const prev = arr[idx - 1];
+                    const showEllipsis = prev && page - prev > 1;
+                    return (
+                      <React.Fragment key={page}>
+                        {showEllipsis && <span className="px-1 text-slate-400 text-xs sm:text-sm">...</span>}
+                        <button
+                          type="button"
+                          onClick={() => handlePageChange(page)}
+                          className={cn(
+                            "min-w-[36px] h-9 px-2.5 rounded-xl text-xs sm:text-sm flex items-center justify-center transition-all cursor-pointer",
+                            safeCurrentPage === page
+                              ? "bg-sky-500 text-white font-bold shadow-xs border border-sky-500"
+                              : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs"
+                          )}
+                        >
+                          {page}
+                        </button>
+                      </React.Fragment>
+                    );
+                  })}
+              </div>
+
+              <button
+                type="button"
+                disabled={safeCurrentPage >= totalPages}
+                onClick={() => handlePageChange(Math.min(totalPages, safeCurrentPage + 1))}
+                className="h-9 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs"
+                title="Halaman Berikutnya"
+              >
+                <span>Berikutnya</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm sm:text-base font-semibold text-slate-900">
-              Tidak Ada Jurnal yang Sesuai
-            </h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 font-normal">
-              Silakan sesuaikan filter status atau gunakan kata kunci pencarian lain untuk menemukan catatan aktivitas Anda.
-            </p>
-          </div>
-          <div className="flex items-center justify-center gap-2 pt-1">
-            <button
-              type="button"
-              onClick={() => {
-                setFilter("ALL");
-                setSearchQuery("");
-              }}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200/80 transition cursor-pointer active:scale-95"
-            >
-              Reset Filter
-            </button>
+        )}
+      </>
+    ) : (
+      /* Empty State */
+      <div className="bg-white rounded-3xl p-10 sm:p-14 border border-slate-200/80 text-center space-y-3.5 shadow-xs">
+        <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-400 mx-auto shadow-2xs">
+          <FileText className="w-5 h-5 stroke-[1.5]" />
+        </div>
+        <div>
+          <h3 className="text-sm sm:text-base font-semibold text-slate-900">
+            Tidak Ada Jurnal yang Sesuai
+          </h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 font-normal">
+            Silakan sesuaikan filter status atau gunakan kata kunci pencarian lain untuk menemukan catatan aktivitas Anda.
+          </p>
+        </div>
+        <div className="flex items-center justify-center gap-2 pt-1">
+          <button
+            type="button"
+            onClick={() => {
+              setFilter("ALL");
+              setMonthFilter("ALL");
+              setSearchQuery("");
+            }}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200/80 transition cursor-pointer active:scale-95"
+          >
+            Reset Filter
+          </button>
             <Link
               href="/student/log/new"
               className="inline-flex items-center gap-1.5 px-4.5 py-2 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold transition active:scale-95 shadow-xs"
@@ -1075,13 +1352,16 @@ export default function LogHistoryPage() {
           role="dialog"
           aria-modal="true"
           onClick={() => setSelectedLogDetail(null)}
-          className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in-0 duration-150"
+          className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in-0 duration-150"
           style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-modal border border-slate-200/80 space-y-4 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto no-scrollbar scrollbar-none"
+            className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-modal border border-slate-200/80 space-y-4 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto no-scrollbar scrollbar-none"
           >
+            {/* Mobile Sheet Drag Handle */}
+            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto -mt-1 mb-2 sm:hidden" />
+
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-200/80">
               <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
@@ -1238,14 +1518,37 @@ export default function LogHistoryPage() {
 
             {/* Actions: Pill-shaped Buttons */}
             <div className="space-y-2 pt-1">
+              {selectedLogDetail.status === "PENDING_VERIFICATION" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedLogDetail(null);
+                    setShowQrModal(true);
+                  }}
+                  className="w-full py-2.5 rounded-full bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                >
+                  <QrCode className="w-3.5 h-3.5" />
+                  <span>Minta Validasi Mentor (QR)</span>
+                </button>
+              )}
+
               {selectedLogDetail.isLocalOnly && selectedLogDetail.syncState === "queued" && (
                 <button
                   type="button"
                   onClick={() => handleDeleteOfflineLog(selectedLogDetail.id)}
-                  className="w-full py-2.5 rounded-full border border-rose-200 text-rose-600 hover:bg-rose-50 active:scale-[0.98] font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  className={cn(
+                    "w-full py-2.5 rounded-full font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-[0.98] border",
+                    confirmDeleteId === selectedLogDetail.id
+                      ? "bg-rose-600 text-white border-rose-600 hover:bg-rose-700 animate-pulse"
+                      : "border-rose-200 text-rose-600 hover:bg-rose-50"
+                  )}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Hapus dari Antrean Offline</span>
+                  <span>
+                    {confirmDeleteId === selectedLogDetail.id
+                      ? "Yakin hapus? Klik lagi untuk konfirmasi"
+                      : "Hapus dari Antrean Offline"}
+                  </span>
                 </button>
               )}
 

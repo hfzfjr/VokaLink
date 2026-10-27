@@ -10,6 +10,7 @@ import {
   RefreshCw,
   Building2,
   CalendarCheck,
+  ArrowLeft,
 } from "lucide-react";
 import { generateVerificationLink, fetchStudentLogContext } from "@/lib/api";
 import { QrCodeView } from "@/components/ui/QrCodeView";
@@ -119,93 +120,92 @@ export default function VerifyRequestPage() {
   };
 
   return (
-    <div className="max-w-lg mx-auto font-sans space-y-2.5 sm:space-y-3 animate-in fade-in duration-150">
-      {/* ─────────────────────────────────────────────────────────────────────────────
-          1. HEADER RINGKAS & STATUS MENTOR
-      ───────────────────────────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-3 pb-2.5 border-b border-slate-200/80">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
-              Minta Validasi Mentor
-            </h1>
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/70 text-[10.5px] font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Mentor Aktif</span>
-            </span>
-          </div>
-          <p className="text-[11.5px] text-slate-500 mt-0.5 font-normal">
-            Pindai QR saat tatap muka atau kirimkan via WhatsApp
-          </p>
-        </div>
-
-        {/* Ringkasan Status Mentor */}
-        <div className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-white border border-slate-200/80 shadow-2xs shrink-0">
-          <div className="w-6 h-6 rounded-md bg-emerald-600 text-white flex items-center justify-center font-bold text-[11px] shrink-0">
-            {mentorName.slice(0, 2).toUpperCase()}
-          </div>
-          <div className="text-left pr-0.5">
-            <p className="text-[11.5px] font-bold text-slate-900 leading-tight">{mentorName}</p>
-            <p className="text-[9.5px] text-slate-500 font-normal truncate max-w-[140px] flex items-center gap-0.5">
-              <Building2 className="w-2.5 h-2.5 text-slate-400 shrink-0" />
-              <span>{dudiName} · {dudiCity}</span>
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* ─────────────────────────────────────────────────────────────────────────────
-          2. SATU KARTU TERPADU (Single Viewport Fit, No Scroll)
-      ───────────────────────────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs text-center space-y-3">
-        {/* Info Ringkasan Jam Kerja */}
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-200/80 text-[11.5px] font-bold">
-          <CalendarCheck className="w-3.5 h-3.5 text-emerald-600" />
-          <span>
-            {pendingDays} Hari Kerja ({totalHours} Jam) Menunggu Pengesahan
-          </span>
-        </div>
-
-        {/* Frame Kode QR Bersih */}
-        <div className="inline-block p-3 sm:p-3.5 bg-white rounded-2xl border border-slate-200/90 shadow-2xs">
-          {isLoading ? (
-            <div className="w-44 h-44 flex flex-col items-center justify-center gap-2 text-slate-400">
-              <RefreshCw className="w-5 h-5 animate-spin text-emerald-500" />
-              <span className="text-[11px] font-medium">Membangkitkan segel QR...</span>
+    <div className="max-w-md mx-auto font-sans animate-in fade-in duration-150">
+      <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-card text-center space-y-3">
+        {/* ─── 1. HEADER & IDENTITAS MENTOR (SATU BARIS TERPADU) ─── */}
+        <div className="flex items-center justify-between gap-2.5 pb-2.5 border-b border-slate-100 text-left">
+          <div className="flex items-center gap-2 min-w-0">
+            <Link
+              href="/student/log/history"
+              className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition active:scale-95 shrink-0"
+              title="Kembali ke Riwayat"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+            </Link>
+            <div className="min-w-0">
+              <h1 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight leading-tight truncate">
+                Minta Validasi Mentor
+              </h1>
+              <p className="text-[10.5px] text-slate-400 font-normal truncate">
+                Pindai QR langsung atau kirim via WA
+              </p>
             </div>
-          ) : (
-            <div className="p-1 bg-white rounded-xl flex items-center justify-center">
+          </div>
+
+          {/* Chip Profil Mentor Ringkas */}
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-slate-50 border border-slate-200/70 shrink-0">
+            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex items-center justify-center font-bold text-[10px] shrink-0 shadow-2xs">
+              {mentorName.slice(0, 2).toUpperCase()}
+            </div>
+            <div className="text-left hidden xs:block sm:block max-w-[120px]">
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] font-bold text-slate-900 leading-none truncate block">
+                  {mentorName}
+                </span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" title="Mentor Aktif" />
+              </div>
+              <span className="text-[9.5px] text-slate-400 font-normal truncate block mt-0.5">
+                {dudiName}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* ─── 2. INFO REKAP BORONGAN ─── */}
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-200/70 text-xs font-bold mx-auto">
+          <CalendarCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+          <span>{pendingDays} Hari Kerja ({totalHours} Jam) Menunggu Pengesahan</span>
+        </div>
+
+        {/* ─── 3. KODE QR DENGAN QUIET ZONE BERSIH & PRESISI ─── */}
+        <div className="flex flex-col items-center justify-center">
+          <div className="p-2 sm:p-2.5 bg-white rounded-2xl border border-slate-200/90 shadow-2xs inline-block">
+            {isLoading ? (
+              <div className="w-36 h-36 flex flex-col items-center justify-center gap-2 text-slate-400">
+                <RefreshCw className="w-5 h-5 animate-spin text-emerald-500" />
+                <span className="text-[11px] font-medium">Membangkitkan segel QR...</span>
+              </div>
+            ) : (
               <QrCodeView
                 value={effectiveVerificationUrl}
-                size={175}
+                size={146}
                 className="mx-auto"
               />
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Status Segel Aman */}
-          <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-50 border border-slate-200/60 text-[10.5px] font-medium text-slate-600">
+          <div className="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-50 border border-slate-200/70 text-[10px] font-medium text-slate-500 shadow-2xs">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             <span>Segel Kriptografis HMAC-SHA256 Siap Dipindai</span>
           </div>
         </div>
 
-        {/* ─── Tombol Aksi Nyata: WhatsApp & Salin Tautan ─── */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 max-w-sm mx-auto pt-0.5">
+        {/* ─── 4. TOMBOL AKSI UTAMA DALAM SATU BARIS RINGKAS ─── */}
+        <div className="flex items-center gap-2 max-w-sm mx-auto w-full pt-0.5">
           <a
             href={waDeepLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full sm:flex-1 h-11 px-4 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] active:scale-[0.98] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs shadow-emerald-500/20 transition cursor-pointer"
+            className="flex-1 h-10 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs shadow-emerald-600/20 transition cursor-pointer whitespace-nowrap"
           >
             <WhatsAppIcon className="w-4 h-4 fill-white shrink-0" />
-            <span>Kirim ke WhatsApp Mentor</span>
+            <span>Kirim ke WhatsApp</span>
           </a>
 
           <button
             type="button"
             onClick={handleCopyLink}
-            className="w-full sm:w-auto h-11 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition border border-slate-200/80 cursor-pointer"
+            className="h-10 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition border border-slate-200/80 cursor-pointer shadow-2xs shrink-0 whitespace-nowrap"
           >
             {copiedLink ? (
               <>
@@ -220,29 +220,26 @@ export default function VerifyRequestPage() {
             )}
           </button>
         </div>
-      </div>
 
-      {/* ─────────────────────────────────────────────────────────────────────────────
-          3. FOOTNOTE RINGKAS KEAMANAN & DEMO JURI
-      ───────────────────────────────────────────────────────────────────────────── */}
-      <div className="p-2.5 rounded-xl bg-slate-100/70 border border-slate-200/80 flex items-center justify-between text-[11px] text-slate-600">
-        <div className="flex items-center gap-1.5 min-w-0 truncate mr-2">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-          <span className="truncate text-slate-500">
-            <strong className="text-slate-700 font-semibold">Keamanan 2-Faktor:</strong> Tautan 1x pakai · PIN 4-digit
-          </span>
+        {/* ─── 5. FOOTNOTE KEAMANAN & DEMO JURI ─── */}
+        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10.5px] text-slate-500">
+          <div className="flex items-center gap-1 min-w-0 truncate">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span className="truncate">
+              <strong className="text-slate-700 font-semibold">Keamanan 2-Faktor:</strong> Tautan 1x pakai · PIN 4-digit
+            </span>
+          </div>
+
+          <Link
+            href={activeLinkData?.verificationUrl || "/v/mock-demo-token-123"}
+            target="_blank"
+            className="inline-flex items-center gap-1 font-semibold text-sky-600 hover:text-sky-700 hover:underline shrink-0 transition ml-2"
+            title="Buka simulasi tampilan mentor di browser ini"
+          >
+            <span>Simulasi Mentor</span>
+            <ExternalLink className="w-3 h-3" />
+          </Link>
         </div>
-
-        {/* Akses Cepat Simulasi Mentor untuk Presentasi Lomba / Demo Penguji */}
-        <Link
-          href={activeLinkData?.verificationUrl || "/v/mock-demo-token-123"}
-          target="_blank"
-          className="inline-flex items-center gap-1 font-semibold text-slate-500 hover:text-emerald-700 hover:underline shrink-0 transition"
-          title="Buka simulasi tampilan mentor di browser ini"
-        >
-          <span>Simulasi Mentor</span>
-          <ExternalLink className="w-3 h-3" />
-        </Link>
       </div>
     </div>
   );

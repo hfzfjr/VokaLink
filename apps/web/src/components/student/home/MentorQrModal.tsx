@@ -218,7 +218,7 @@ export function MentorQrModal({ onClose }: MentorQrModalProps) {
             href={waDeepLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full sm:flex-1 h-11 px-4 rounded-2xl bg-[#25D366] hover:bg-[#20bd5a] active:scale-[0.98] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
+            className="w-full sm:flex-1 h-11 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm shadow-emerald-600/25 transition cursor-pointer"
           >
             <WhatsAppIcon className="w-4 h-4 fill-white shrink-0" />
             <span>Kirim ke WhatsApp Mentor</span>

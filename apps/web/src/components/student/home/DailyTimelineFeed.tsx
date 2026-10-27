@@ -512,19 +512,19 @@ export function DailyTimelineFeed({
       {/* ─── Modern Minimalist Centered Pagination ─── */}
       {totalPages > 1 && (
         <div className="pt-4 border-t border-slate-200/60 flex items-center justify-center">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               type="button"
               disabled={safeCurrentPage <= 1}
               onClick={() => handlePageChange(Math.max(1, safeCurrentPage - 1))}
-              className="h-8.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1 text-xs font-semibold cursor-pointer shadow-2xs"
+              className="h-9 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs"
               title="Halaman Sebelumnya"
             >
-              <ChevronLeft className="w-3.5 h-3.5" />
+              <ChevronLeft className="w-4 h-4" />
               <span>Sebelumnya</span>
             </button>
 
-            <div className="flex items-center gap-1 mx-1">
+            <div className="flex items-center gap-1 sm:gap-1.5 mx-0.5 sm:mx-1">
               {Array.from({ length: totalPages }, (_, i) => i + 1)
                 .filter((page) => {
                   if (totalPages <= 5) return true;
@@ -539,12 +539,12 @@ export function DailyTimelineFeed({
                   const showEllipsis = prev && page - prev > 1;
                   return (
                     <React.Fragment key={page}>
-                      {showEllipsis && <span className="px-1 text-slate-400 text-xs">...</span>}
+                      {showEllipsis && <span className="px-1 text-slate-400 text-xs sm:text-sm">...</span>}
                       <button
                         type="button"
                         onClick={() => handlePageChange(page)}
                         className={cn(
-                          "min-w-[34px] h-[34px] px-2 rounded-xl text-xs flex items-center justify-center transition-all cursor-pointer",
+                          "min-w-[36px] h-9 px-2.5 rounded-xl text-xs sm:text-sm flex items-center justify-center transition-all cursor-pointer",
                           safeCurrentPage === page
                             ? "bg-sky-500 text-white font-bold shadow-xs border border-sky-500"
                             : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs"
@@ -561,11 +561,11 @@ export function DailyTimelineFeed({
               type="button"
               disabled={safeCurrentPage >= totalPages}
               onClick={() => handlePageChange(Math.min(totalPages, safeCurrentPage + 1))}
-              className="h-8.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1 text-xs font-semibold cursor-pointer shadow-2xs"
+              className="h-9 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs"
               title="Halaman Berikutnya"
             >
               <span>Berikutnya</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>

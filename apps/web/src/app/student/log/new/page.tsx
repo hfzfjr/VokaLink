@@ -13,11 +13,11 @@ import {
   Info,
   X,
   ArrowRight,
-  HeartPulse,
   FileText,
   UserCheck,
   Building2,
   ChevronRight,
+  ChevronLeft,
   Search,
   Image as ImageIcon,
   QrCode,
@@ -174,6 +174,9 @@ export default function NewLogPage() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
+  // 3-Step Wizard Navigation State (Apple HIG)
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+
   // Multi-Job Cards state (1 to 3 job cards per daily log, PRD FR-005)
   const [selectedJobCardIds, setSelectedJobCardIds] = useState<string[]>([]);
 
@@ -181,6 +184,111 @@ export default function NewLogPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedLogUuid, setSubmittedLogUuid] = useState<string | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
+
+  // Group C, D, E, F: Demo mode, loading context, inline error, and online status
+  const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+  const [isLoadingContext, setIsLoadingContext] = useState(true);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [cardLimitError, setCardLimitError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const modalSuccessRef = useRef<HTMLDivElement>(null);
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsOnline(navigator.onLine);
+      const handleOnline = () => setIsOnline(true);
+      const handleOffline = () => setIsOnline(false);
+      window.addEventListener("online", handleOnline);
+      window.addEventListener("offline", handleOffline);
+      return () => {
+        window.removeEventListener("online", handleOnline);
+        window.removeEventListener("offline", handleOffline);
+      };
+    }
+  }, []);
+
+  const previousActiveElement = useRef<HTMLElement | null>(null);
+
+  // Focus trap, body scroll lock & Escape listener untuk dialog konfirmasi sukses (Kelompok 1.4 & 2.16)
+  useEffect(() => {
+    if (!submittedLogUuid) return;
+    previousActiveElement.current = document.activeElement as HTMLElement;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const modalEl = modalSuccessRef.current;
+    if (modalEl) {
+      const focusableElements = modalEl.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      const firstEl = focusableElements[0];
+      firstEl?.focus();
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (showQrModal) return;
+      if (e.key === "Escape") {
+        e.preventDefault();
+        resetForm();
+        return;
+      }
+      if (e.key === "Tab") {
+        const modal = modalSuccessRef.current;
+        if (!modal) return;
+        const focusables = modal.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusables.length === 0) {
+          e.preventDefault();
+          return;
+        }
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last?.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first?.focus();
+          }
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+      previousActiveElement.current?.focus();
+    };
+  }, [submittedLogUuid, showQrModal]);
+
+  const showError = (message: string) => {
+    setFormError(message);
+    setToast(message);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => {
+      setToast(null);
+    }, 4000);
+  };
+
+  // Hapus formError saat field utama presensi/tugas berubah (Kelompok 2.12)
+  useEffect(() => {
+    if (formError) setFormError(null);
+  }, [attendanceType, selectedJobCardIds, durationJp, compressedPhoto, selectedDate]);
 
   // 1. Reactive Dexie Query untuk mendeteksi log yang sudah ada & pencegahan duplikasi (BR-001/002)
   const offlineLogs = useLiveQuery(() => db.logs.toArray(), []) || [];
@@ -202,11 +310,15 @@ export default function NewLogPage() {
     (l) => l.attendanceType === "SICK" || l.attendanceType === "PERMIT"
   );
 
-  // 2. Kalkulasi Dampak Progres Terhadap Target 792 JP murni dari Database
-  const [serverVerifiedJp, setServerVerifiedJp] = useState(280);
-  const currentTotalJp = serverVerifiedJp + offlineLogs.filter((l) => l.state === "verified").reduce((acc, curr) => acc + curr.durationJp, 0);
-  const projectedTotalJp = currentTotalJp + (attendanceType === "PRESENT" ? durationJp : 0);
-  const projectedPercentage = Math.min(100, Math.round((projectedTotalJp / TOTAL_TARGET_JP) * 100));
+  // 2. Kalkulasi Dampak Progres Terhadap Target 792 JP murni dari Database (Kelompok 1.2, 1.6 & 3.16)
+  const [serverVerifiedJp, setServerVerifiedJp] = useState<number | null>(null);
+  const offlineVerifiedJp = offlineLogs.filter((l) => l.state === "verified").reduce((acc, curr) => acc + curr.durationJp, 0);
+  const hasVerifiedData = serverVerifiedJp !== null || offlineVerifiedJp > 0;
+  const currentTotalJp = (serverVerifiedJp ?? 0) + offlineVerifiedJp;
+  const verifiedPercentage = Math.min(100, Math.round((currentTotalJp / TOTAL_TARGET_JP) * 100));
+  const sessionJp = attendanceType === "PRESENT" ? convertRealHoursToJp(durationJp) : 0;
+  const sessionPercentage = Math.min(100 - verifiedPercentage, Math.round((sessionJp / TOTAL_TARGET_JP) * 100));
+  const projectedPercentage = Math.min(100, Math.round(((currentTotalJp + sessionJp) / TOTAL_TARGET_JP) * 100));
 
   // 3. Kalkulasi Jam Kerja Mingguan & Perlindungan K3 Siswa (Student Welfare Protection - BR-013)
   // Perbaikan: Sinkronisasi akurat antara jam tersimpan di minggu ini + durasi aktif
@@ -263,12 +375,20 @@ export default function NewLogPage() {
     return !isNaN(d.getTime()) && d.getDay() >= 1 && d.getDay() <= 5;
   }, [selectedDate]);
 
-  // Draft auto-save and recovery
-  const [hasDraft, setHasDraft] = useState(false);
+  // Format tanggal untuk sticky submit bar (Kelompok 2.9)
+  const formattedStickyDate = useMemo(() => {
+    const d = new Date(selectedDate);
+    if (isNaN(d.getTime())) return selectedDate;
+    return d.toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short" });
+  }, [selectedDate]);
 
-  // Smart Default Effect: Otomatis memilih jam kerja sesuai hari kerja & pola DUDI (FR-003 / Permendikbud)
+  // Draft auto-save and recovery - Pisahkan draftFoundOnMount (Kelompok 1.3)
+  const [draftFoundOnMount, setDraftFoundOnMount] = useState(false);
+
+  // Smart Default Effect: Otomatis memilih jam kerja sesuai hari kerja & pola DUDI
+  // Syarat efek tidak bergantung pada banner draf, cukup pada hasUserManuallyChangedDuration (Kelompok 1.3)
   useEffect(() => {
-    if (!hasDraft && !hasUserManuallyChangedDuration.current) {
+    if (!hasUserManuallyChangedDuration.current) {
       const d = new Date(selectedDate);
       const day = isNaN(d.getTime()) ? 1 : d.getDay();
       if (day === 6) {
@@ -279,13 +399,14 @@ export default function NewLogPage() {
         setDurationJp(8);
       }
     }
-  }, [selectedDate, hasDraft]);
+  }, [selectedDate]);
 
-  // Auto-save draft ke localStorage
+  // Auto-save draft ke localStorage (tidak mengubah draftFoundOnMount - Kelompok 1.3)
   useEffect(() => {
     if (typeof window === "undefined") return;
     const timeout = setTimeout(() => {
-      if (shortNote || selectedJobCardIds.length > 1 || durationJp !== 8) {
+      const defaultDurationForDay = isSaturday ? 5 : 8;
+      if (shortNote || selectedJobCardIds.length > 1 || durationJp !== defaultDurationForDay) {
         try {
           const draftPayload = {
             selectedDate,
@@ -300,7 +421,6 @@ export default function NewLogPage() {
             savedAt: new Date().toISOString(),
           };
           localStorage.setItem("vokalink_new_log_draft_v1", JSON.stringify(draftPayload));
-          setHasDraft(true);
         } catch { }
       }
     }, 600);
@@ -315,16 +435,17 @@ export default function NewLogPage() {
     cardAutonomyMap,
     shortNote,
     selectedJobCardIds,
+    isSaturday,
   ]);
 
-  // Check draft saat mount
+  // Check draft saat mount saja (Kelompok 1.3)
   useEffect(() => {
     try {
       const saved = localStorage.getItem("vokalink_new_log_draft_v1");
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.savedAt) {
-          setHasDraft(true);
+          setDraftFoundOnMount(true);
         }
       }
     } catch { }
@@ -335,7 +456,10 @@ export default function NewLogPage() {
       const saved = localStorage.getItem("vokalink_new_log_draft_v1");
       if (!saved) return;
       const parsed = JSON.parse(saved);
-      if (parsed.selectedDate) setSelectedDate(parsed.selectedDate);
+      if (parsed.selectedDate) {
+        const isValidDate = parsed.selectedDate >= minDate && parsed.selectedDate <= today;
+        setSelectedDate(isValidDate ? parsed.selectedDate : today);
+      }
       if (parsed.attendanceType) setAttendanceType(parsed.attendanceType);
       if (typeof parsed.isNonCompetency === "boolean") setIsNonCompetency(parsed.isNonCompetency);
       if (parsed.nonCompetencyCategory) setNonCompetencyCategory(parsed.nonCompetencyCategory);
@@ -344,25 +468,30 @@ export default function NewLogPage() {
       if (parsed.cardAutonomyMap) setCardAutonomyMap(parsed.cardAutonomyMap);
       if (parsed.shortNote) setShortNote(parsed.shortNote);
       if (parsed.selectedJobCardIds) setSelectedJobCardIds(parsed.selectedJobCardIds);
-      setHasDraft(false);
+      hasUserManuallyChangedDuration.current = true;
+      setDraftFoundOnMount(false);
     } catch { }
   };
 
   const handleDiscardDraft = () => {
     try {
       localStorage.removeItem("vokalink_new_log_draft_v1");
-      setHasDraft(false);
+      setDraftFoundOnMount(false);
     } catch { }
   };
 
   // 1-Click Copy Yesterday: Duplikasi kartu pekerjaan dan durasi kemarin (FR-005 UX)
+  // Urutkan offlineLogs menurun berdasarkan logDate sebelum find (Kelompok 1.3)
   const recentPreviousLog = useMemo(() => {
     if (!offlineLogs || offlineLogs.length === 0) return null;
-    return offlineLogs.find((l) => l.attendanceType === "PRESENT" && l.logDate < selectedDate);
+    return [...offlineLogs]
+      .sort((a, b) => b.logDate.localeCompare(a.logDate))
+      .find((l) => l.attendanceType === "PRESENT" && l.logDate < selectedDate);
   }, [offlineLogs, selectedDate]);
 
   const handleCopyYesterday = () => {
     if (!recentPreviousLog) return;
+    hasUserManuallyChangedDuration.current = true;
     if (recentPreviousLog.jobCardIds && recentPreviousLog.jobCardIds.length > 0) {
       setSelectedJobCardIds(recentPreviousLog.jobCardIds);
     }
@@ -387,6 +516,11 @@ export default function NewLogPage() {
           if (data.nonCompetencyJobCard) setNonCompetencyJobCard(data.nonCompetencyJobCard);
         }
 
+        const cachedVerified = await db.refData.get("student_server_verified_jp");
+        if (cachedVerified && typeof cachedVerified.data === "number" && isMounted) {
+          setServerVerifiedJp(cachedVerified.data);
+        }
+
         if (typeof navigator !== "undefined" && navigator.onLine) {
           const fresh = await fetchStudentLogContext();
           if (fresh && isMounted) {
@@ -399,8 +533,13 @@ export default function NewLogPage() {
                     .filter((l) => l.status === "VERIFIED")
                     .reduce((sum, l) => sum + (l.items?.reduce((s, it) => s + it.durationJp, 0) || 8), 0);
                   setServerVerifiedJp(verifiedJp);
+                  await db.refData.put({
+                    key: "student_server_verified_jp",
+                    data: verifiedJp,
+                    cachedAt: Date.now(),
+                  });
                 }
-              } catch {}
+              } catch { }
             }
             if (fresh.jobCards && fresh.jobCards.length > 0) setJobCards(fresh.jobCards);
             if (fresh.nonCompetencyJobCard) setNonCompetencyJobCard(fresh.nonCompetencyJobCard);
@@ -413,6 +552,8 @@ export default function NewLogPage() {
         }
       } catch (e) {
         console.warn("Context offline fallback:", e);
+      } finally {
+        if (isMounted) setIsLoadingContext(false);
       }
     }
     loadData();
@@ -421,27 +562,29 @@ export default function NewLogPage() {
     };
   }, []);
 
-  // Multi-select toggle handler for Job Cards
+  // Multi-select toggle handler for Job Cards (Kelompok 3.18: state setters keluar dari updater)
   const handleToggleJobCard = (cardId: string) => {
-    setSelectedJobCardIds((prev) => {
-      let updated: string[];
-      if (prev.includes(cardId)) {
-        updated = prev.filter((id) => id !== cardId);
-      } else {
-        if (prev.length >= 3) {
-          return prev;
-        }
-        updated = [...prev, cardId];
-        // Initialize autonomy for the new card if not present
-        if (!cardAutonomyMap[cardId]) {
-          setCardAutonomyMap((map) => ({ ...map, [cardId]: autonomyLevel }));
-        }
+    setCardLimitError(null);
+    if (formError) setFormError(null);
+
+    const isSelected = selectedJobCardIds.includes(cardId);
+    if (isSelected) {
+      const updated = selectedJobCardIds.filter((id) => id !== cardId);
+      setSelectedJobCardIds(updated);
+    } else {
+      if (selectedJobCardIds.length >= 3) {
+        setCardLimitError("Maksimal 3 tugas per hari.");
+        return;
       }
-      if (updated.length > 0 && durationJp < updated.length) {
+      const updated = [...selectedJobCardIds, cardId];
+      setSelectedJobCardIds(updated);
+      if (!cardAutonomyMap[cardId]) {
+        setCardAutonomyMap((map) => ({ ...map, [cardId]: autonomyLevel }));
+      }
+      if (durationJp < updated.length) {
         setDurationJp(updated.length);
       }
-      return updated;
-    });
+    }
   };
 
   // Set autonomy per card
@@ -464,6 +607,12 @@ export default function NewLogPage() {
     }
   };
 
+  // Kategori unik dari jobCards untuk pill filter dinamis (A. Bug 1)
+  const uniqueCategories = useMemo(() => {
+    const cats = Array.from(new Set(jobCards.map((c) => c.category).filter(Boolean)));
+    return ["ALL", ...cats];
+  }, [jobCards]);
+
   // Filtered Job Cards based on search and category
   const filteredJobCards = useMemo(() => {
     return jobCards.filter((card) => {
@@ -481,7 +630,12 @@ export default function NewLogPage() {
     });
   }, [jobCards, jobCardCategory, jobCardSearch]);
 
-  // Proses kompresi foto awal
+
+  // Detail kartu yang dipilih untuk modal sukses & ringkasan (E.6)
+  const selectedJobCardsDetail = useMemo(() => {
+    return jobCards.filter((card) => selectedJobCardIds.includes(card.id));
+  }, [jobCards, selectedJobCardIds]);
+
   const processPhoto = async (file: File) => {
     try {
       setIsCompressingPhoto(true);
@@ -491,13 +645,12 @@ export default function NewLogPage() {
       const url = URL.createObjectURL(result.blob);
       setPhotoPreviewUrl(url);
     } catch (err) {
-      alert("Gagal memproses foto: " + (err instanceof Error ? err.message : String(err)));
+      showError("Gagal memproses foto: " + (err instanceof Error ? err.message : String(err)));
     } finally {
       setIsCompressingPhoto(false);
     }
   };
 
-  // Handle Photo selection from camera or gallery
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -743,30 +896,36 @@ export default function NewLogPage() {
 
     // Guard 1: Sakit / Izin sudah ada pada tanggal ini
     if (hasExistingSickOrPermit) {
-      alert(`Tanggal ${selectedDate} sudah tercatat presensi Sakit/Izin resmi. Anda tidak dapat menambahkan jurnal praktik pada hari tidak hadir.`);
+      showError(`Tanggal ${selectedDate} sudah tercatat presensi Sakit/Izin resmi. Anda tidak dapat menambahkan jurnal praktik pada hari tidak hadir.`);
       return;
     }
 
     // Guard 2: Jika tanggal ini sudah ada jam hadir tercatat, tidak bisa mencatat Sakit/Izin
     if (isSickOrPermit && existingDailyJp > 0) {
-      alert(`Tanggal ${selectedDate} sudah memiliki ${existingDailyJp} jam kerja tercatat. Dalam 1 hari kerja, Anda tidak dapat mencatat presensi Sakit/Izin jika sudah mengisi jam praktik.`);
+      showError(`Tanggal ${selectedDate} sudah memiliki ${existingDailyJp} jam kerja tercatat. Dalam 1 hari kerja, Anda tidak dapat mencatat presensi Sakit/Izin jika sudah mengisi jam praktik.`);
       return;
     }
 
     // Guard 2.5: Wajib memilih minimal 1 kartu pekerjaan jika Hadir Praktik Teknis
     if (!isSickOrPermit && !isNonCompetency && selectedJobCardIds.length === 0) {
-      alert("Harap pilih minimal 1 kartu pekerjaan yang Anda selesaikan hari ini sebelum menyimpan.");
+      showError("Harap pilih minimal 1 kartu pekerjaan yang Anda selesaikan hari ini sebelum menyimpan.");
+      return;
+    }
+
+    // Guard 2.6: Presensi Sakit wajib melampirkan foto surat dokter (Kelompok 1.4)
+    if (attendanceType === "SICK" && !compressedPhoto) {
+      showError("Untuk presensi Sakit, surat keterangan dokter wajib dilampirkan.");
       return;
     }
 
     // Guard 3: Batas jam kerja harian (BR-002) - hanya untuk Hadir Praktik
     if (!isSickOrPermit && isDailyLimitReached) {
-      alert("Batas maksimal jam kerja harian untuk tanggal ini sudah terpenuhi (BR-002). Anda tidak dapat menambah jurnal lagi.");
+      showError(`Batas maksimal ${MAX_DAILY_JP} jam kerja harian untuk tanggal ini sudah terpenuhi (BR-002). Anda tidak dapat menambah jurnal lagi.`);
       return;
     }
 
     if (!isSickOrPermit && durationJp > remainingDailyQuota) {
-      alert(`Alokasi waktu (${durationJp} Jam Kerja) melebihi sisa batas harian untuk tanggal ini (${remainingDailyQuota} Jam Kerja). Harap sesuaikan durasi.`);
+      showError(`Alokasi waktu (${durationJp} Jam Kerja) melebihi sisa batas harian untuk tanggal ini (${remainingDailyQuota} Jam Kerja). Harap sesuaikan durasi.`);
       return;
     }
 
@@ -845,10 +1004,10 @@ export default function NewLogPage() {
       setSubmittedLogUuid(clientLogUuid);
       try {
         localStorage.removeItem("vokalink_new_log_draft_v1");
-        setHasDraft(false);
+        setDraftFoundOnMount(false);
       } catch { }
     } catch (error) {
-      alert("Terjadi kesalahan saat menyimpan ke IndexedDB: " + (error instanceof Error ? error.message : String(error)));
+      showError("Terjadi kesalahan saat menyimpan ke IndexedDB: " + (error instanceof Error ? error.message : String(error)));
     } finally {
       setIsSubmitting(false);
     }
@@ -856,31 +1015,155 @@ export default function NewLogPage() {
 
   const resetForm = () => {
     setSubmittedLogUuid(null);
+    setFormError(null);
+    setCardLimitError(null);
     setSelectedDate(today);
     setAttendanceType("PRESENT");
     setIsNonCompetency(false);
-    setSelectedJobCardIds([jobCards[0]?.id || DEFAULT_JOB_CARDS[0]!.id]);
-    setDurationJp(8);
+    setSelectedJobCardIds([]);
+    const todayDate = new Date(today);
+    const todayDay = isNaN(todayDate.getTime()) ? 1 : todayDate.getDay();
+    setDurationJp(todayDay === 6 ? 5 : 8);
+    hasUserManuallyChangedDuration.current = false;
     setAutonomyLevel(3);
     setCardAutonomyMap({});
     setShortNote("");
     setJobCardSearch("");
     setJobCardCategory("ALL");
+    setStep(1);
     handleRemovePhoto();
   };
 
   const isSickOrPermit = attendanceType === "SICK" || attendanceType === "PERMIT";
 
+  // Wizard Step Navigation Guards
+  const isStep1Disabled =
+    (hasExistingSickOrPermit && attendanceType === "PRESENT") ||
+    (isSickOrPermit && existingDailyJp > 0) ||
+    (!isSickOrPermit && isDailyLimitReached) ||
+    (!isSickOrPermit && durationJp > remainingDailyQuota && existingDailyJp > 0);
+
+  const isStep2Disabled = !isNonCompetency && selectedJobCardIds.length === 0;
+
+  const handleNextStep = () => {
+    if (step === 1) {
+      if (hasExistingSickOrPermit && attendanceType === "PRESENT") {
+        showError(`Tanggal ${selectedDate} sudah tercatat presensi Sakit/Izin resmi.`);
+        return;
+      }
+      if (isSickOrPermit && existingDailyJp > 0) {
+        showError(`Tanggal ${selectedDate} sudah memiliki ${existingDailyJp} jam kerja tercatat. Tidak dapat mencatat Sakit/Izin.`);
+        return;
+      }
+      if (!isSickOrPermit) {
+        if (remainingDailyQuota <= 0) {
+          showError(`Batas maksimal ${MAX_DAILY_JP} jam per hari sudah tercapai.`);
+          return;
+        }
+        if (durationJp > remainingDailyQuota && existingDailyJp > 0) {
+          showError(`Melebihi sisa kuota hari ini (${remainingDailyQuota} jam lagi).`);
+          return;
+        }
+        setStep(2);
+      } else {
+        // Sakit / Izin lewati langkah 2, langsung ke step 3
+        setStep(3);
+      }
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    } else if (step === 2) {
+      if (!isNonCompetency && selectedJobCardIds.length === 0) {
+        showError("Harap pilih minimal 1 tugas pekerjaan yang Anda selesaikan hari ini.");
+        return;
+      }
+      setStep(3);
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }
+  };
+
+  const handlePrevStep = () => {
+    if (step === 3) {
+      setStep(isSickOrPermit ? 1 : 2);
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    } else if (step === 2) {
+      setStep(1);
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }
+  };
+
+  // Ekstrak submitDisabled, disabledReason, dan submitLabel (Kelompok 1.5, 2.8, 2.15)
+  const submitDisabled =
+    isSubmitting ||
+    (attendanceType === "SICK" && !compressedPhoto) ||
+    (isSickOrPermit && existingDailyJp > 0) ||
+    (!isSickOrPermit && isDailyLimitReached) ||
+    hasExistingSickOrPermit ||
+    (!isSickOrPermit && durationJp > remainingDailyQuota && existingDailyJp > 0) ||
+    (!isSickOrPermit && !isNonCompetency && selectedJobCardIds.length === 0);
+
+  const disabledReason = isSubmitting
+    ? "Sedang menyimpan jurnal..."
+    : attendanceType === "SICK" && !compressedPhoto
+      ? "Lampirkan foto surat dokter"
+      : hasExistingSickOrPermit
+        ? "Sudah ada presensi sakit/izin hari ini"
+        : isSickOrPermit && existingDailyJp > 0
+          ? "Sudah ada jam hadir yang tercatat"
+          : !isSickOrPermit && isDailyLimitReached
+            ? `Batas maksimal ${MAX_DAILY_JP} jam harian sudah tercapai`
+            : !isSickOrPermit && durationJp > remainingDailyQuota && existingDailyJp > 0
+              ? `Melebihi sisa kuota hari ini (${remainingDailyQuota} Jam tersisa)`
+              : !isSickOrPermit && !isNonCompetency && selectedJobCardIds.length === 0
+                ? "Pilih minimal 1 kartu pekerjaan"
+                : null;
+
+  const submitLabel = isSubmitting
+    ? "Menyimpan Jurnal..."
+    : disabledReason ||
+    (attendanceType === "SICK"
+      ? "Kirim Presensi Sakit"
+      : attendanceType === "PERMIT"
+        ? "Kirim Presensi Izin"
+        : "Simpan Jurnal Sekarang");
+
+
+  const stepSummaryText = useMemo(() => {
+    if (step === 1) {
+      if (attendanceType === "PRESENT") {
+        return `${formattedStickyDate} · ${durationJp} jam`;
+      }
+      return `${formattedStickyDate} · ${attendanceType === "SICK" ? "Sakit" : "Izin"}`;
+    }
+    if (step === 2) {
+      if (isNonCompetency) {
+        return "Tugas Non-Teknis";
+      }
+      return `${selectedJobCardIds.length} dari 3 tugas dipilih`;
+    }
+    // step === 3
+    if (attendanceType === "SICK") {
+      return compressedPhoto ? "Surat dokter terlampir" : "Wajib foto surat dokter";
+    }
+    return compressedPhoto ? "Foto terlampir" : "Opsional";
+  }, [step, formattedStickyDate, durationJp, attendanceType, isNonCompetency, selectedJobCardIds.length, compressedPhoto]);
+
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full flex flex-col lg:flex-row gap-4 sm:gap-5 items-stretch min-h-0 lg:min-h-[840px]"
+      className="w-full pb-20 md:pb-12 lg:pb-4"
     >
       {/* ─────────────────────────────────────────────────────────────────────────────
-          1. CENTER SECTION: WORKSPACE CANVAS (FORM ENTRY)
-          Linear Mobile-First Reading Order: Presence -> Date -> Shift -> Cards/SOP -> Photo
+          UNIFIED WORKSPACE CANVAS (FULL-WIDTH PARITY WITH PORTAL PAGES)
+          Sequential Reading Order: Header -> Presence -> Date -> Shift/K3 -> Cards/SOP -> Photo -> Note -> Submit
       ───────────────────────────────────────────────────────────────────────────── */}
-      <section className="flex-1 min-w-0 bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 lg:p-6 border border-slate-200/70 shadow-card flex flex-col justify-between overflow-hidden">
+      <section className="w-full bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-7 border border-slate-200/80 shadow-card flex flex-col">
         <div>
           {/* ─── Header: Apple Minimalist Canvas Header ─── */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-slate-200/70">
@@ -888,727 +1171,1130 @@ export default function NewLogPage() {
               <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
                 Catat Jurnal Harian PKL
               </h1>
-              <p className="text-xs text-slate-500 mt-1 font-normal">
+              <p className="text-xs text-slate-600 mt-1 font-normal">
                 Pencatatan kartu kerja zero-typing dan presensi harian siswa SMK Kurikulum Merdeka
               </p>
             </div>
 
-            <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100/80 text-slate-700 text-xs font-medium border border-slate-200/60 shadow-2xs">
-                <Clock className="w-3.5 h-3.5 text-sky-600" />
-                <span>Presensi: {durationJp} Jam Kerja</span>
+            {/* Bar Progres 792 JP & Jam Kerja Minggu Ini di header */}
+            {isLoadingContext ? (
+              <div className="flex flex-col sm:items-end gap-1.5 self-start sm:self-auto shrink-0 min-w-[200px] animate-pulse motion-reduce:animate-none">
+                <div className="w-36 h-3.5 bg-slate-200 rounded" />
+                <div className="w-48 h-2 bg-slate-200 rounded-full" />
               </div>
-            </div>
-          </div>
-
-          {/* ─── DUDI Placement & Assignment Origin Banner (Real-World Provenance) ─── */}
-          <div className="mt-3.5 p-3.5 sm:p-4 rounded-2xl bg-slate-50/70 border border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-start sm:items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0 shadow-2xs">
-                <Building2 className="w-4.5 h-4.5" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-slate-900 text-xs sm:text-[13px]">
-                    {activePlacement?.dudiName || "PT Nusantara Tech"}
+            ) : (
+              <div className="flex flex-col sm:items-end gap-1.5 self-start sm:self-auto shrink-0 min-w-[240px]">
+                <div className="flex items-center justify-between w-full text-xs gap-3">
+                  <span className="font-medium text-slate-600 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                    <span>Minggu Ini: <strong className="font-mono text-slate-800">{weeklyWorkStats.totalWeeklyHours}/{STUDENT_MAX_NORMAL_WEEKLY_HOURS} Jam</strong></span>
                   </span>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[10px] font-semibold">
-                    Mitra Industri Terdaftar
+                  <span className="font-semibold text-sky-700 font-mono">
+                    {hasVerifiedData ? `${currentTotalJp} / ${TOTAL_TARGET_JP} JP` : `– / ${TOTAL_TARGET_JP} JP`}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-0.5 font-normal">
-                  Pembimbing Lapangan: <span className="font-semibold text-slate-700">{activePlacement?.mentorName || "Rizky Firmansyah (Engineering Lead)"}</span> · Kurikulum SMK Demo
-                </p>
-              </div>
-            </div>
-
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200/70 text-slate-600 text-[11px] font-medium shrink-0 self-start sm:self-auto shadow-2xs">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Verifikasi via PIN Mentor</span>
-            </div>
-          </div>
-
-          {/* ─── DRAFT RECOVERY BANNER ─── */}
-          {hasDraft && (
-            <div className="mt-4 p-3.5 rounded-2xl bg-sky-50/80 border border-sky-200/80 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sky-950 animate-in fade-in">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <FileText className="w-4 h-4 text-sky-600 shrink-0" />
-                <div>
-                  <p className="font-semibold text-slate-900">Ditemukan Draf Belum Tersimpan</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5 font-normal">
-                    Terdapat isian jurnal sebelumnya yang tersimpan di perangkat ini.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-                <button
-                  type="button"
-                  onClick={handleRestoreDraft}
-                  className="px-3 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-semibold text-xs transition cursor-pointer shadow-2xs active:scale-95"
-                >
-                  Pulihkan
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDiscardDraft}
-                  className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-600 font-medium text-xs border border-slate-200 transition cursor-pointer active:scale-95"
-                >
-                  Abaikan
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ─── BR-002 STATUS PRESENSI SAKIT / IZIN TERDAFTAR ─── */}
-          {hasExistingSickOrPermit && (
-            <div className="mt-4 p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80 text-xs flex items-center gap-3 text-amber-900 animate-in fade-in">
-              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold">Sudah Tercatat Sakit / Izin pada Tanggal Ini</p>
-                <p className="text-[11px] text-amber-700 mt-0.5 font-normal">
-                  Tanggal {selectedDate} sudah memiliki catatan presensi Sakit/Izin resmi. Anda tidak dapat menambahkan jurnal praktik pada hari tidak hadir.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* ─── Main Form Fields (Linear Sequence) ─── */}
-          <div className="pt-4 space-y-4 sm:space-y-4.5">
-            {/* 1. Status Kehadiran (Apple Segmented Control) */}
-            <div className="bg-slate-50/60 rounded-2xl p-4 sm:p-4.5 border border-slate-200/70 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                  <UserCheck className="w-3.5 h-3.5 text-sky-600" />
-                  <span>Status Kehadiran Hari Ini</span>
-                </span>
-                <span className="text-[11px] text-slate-400 font-medium">
-                  Presensi PKL
-                </span>
-              </div>
-
-              {/* Segmented Control iOS Style */}
-              <div className="bg-slate-200/50 p-1 rounded-xl grid grid-cols-3 gap-1 border border-slate-200/50">
-                <button
-                  type="button"
-                  onClick={() => setAttendanceType("PRESENT")}
-                  className={cn(
-                    "py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95",
-                    attendanceType === "PRESENT"
-                      ? "bg-white text-slate-900 shadow-xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-white/40"
-                  )}
-                >
-                  <UserCheck className="w-3.5 h-3.5 shrink-0" />
-                  <span>Hadir Praktik</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAttendanceType("SICK");
-                    setIsNonCompetency(false);
-                  }}
-                  className={cn(
-                    "py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95",
-                    attendanceType === "SICK"
-                      ? "bg-white text-rose-700 shadow-xs"
-                      : "text-slate-600 hover:text-rose-600 hover:bg-white/40"
-                  )}
-                >
-                  <HeartPulse className="w-3.5 h-3.5 shrink-0" />
-                  <span>Sakit</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAttendanceType("PERMIT");
-                    setIsNonCompetency(false);
-                  }}
-                  className={cn(
-                    "py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95",
-                    attendanceType === "PERMIT"
-                      ? "bg-white text-amber-700 shadow-xs"
-                      : "text-slate-600 hover:text-amber-600 hover:bg-white/40"
-                  )}
-                >
-                  <FileText className="w-3.5 h-3.5 shrink-0" />
-                  <span>Izin Resmi</span>
-                </button>
-              </div>
-
-              {/* Attendance Notice for Sakit / Izin */}
-              {isSickOrPermit && (
                 <div
-                  className={cn(
-                    "p-3 rounded-xl border text-xs leading-relaxed animate-in fade-in duration-150",
-                    attendanceType === "SICK"
-                      ? "bg-rose-50/80 border-rose-200/70 text-rose-900"
-                      : "bg-amber-50/80 border-amber-200/70 text-amber-900"
-                  )}
+                  role="progressbar"
+                  aria-valuenow={hasVerifiedData ? currentTotalJp : undefined}
+                  aria-valuemin={0}
+                  aria-valuemax={TOTAL_TARGET_JP}
+                  aria-label={`Target Total Jam Praktik PKL: ${TOTAL_TARGET_JP} JP`}
+                  className="w-full h-2 rounded-full bg-slate-100 overflow-hidden border border-slate-200/60 flex"
                 >
-                  <p className="font-semibold flex items-center gap-1.5">
-                    <Info className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span>
-                      {attendanceType === "SICK"
-                        ? "Presensi Sakit — Lampirkan Surat Dokter / Resep"
-                        : "Presensi Izin — Lampirkan Surat Dispensasi Resmi"}
+                  <div
+                    className="h-full bg-sky-500 rounded-l-full transition-all duration-300 motion-reduce:transition-none"
+                    style={{ width: `${hasVerifiedData ? verifiedPercentage : 0}%` }}
+                    title={hasVerifiedData ? `Terverifikasi: ${currentTotalJp} JP` : "Belum ada data terverifikasi"}
+                  />
+                  {sessionJp > 0 && (
+                    <div
+                      className="h-full bg-sky-300 transition-all duration-300 motion-reduce:transition-none"
+                      style={{ width: `${sessionPercentage}%` }}
+                      title={`Sedang Diisi: +${sessionJp} JP (${durationJp} Jam Kerja)`}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ─── DUDI Placement & Assignment Context Bar (Non-sticky, ringkas & elegan) ─── */}
+          {isLoadingContext ? (
+            <div className="mt-3.5 p-3.5 sm:px-4 sm:py-3 rounded-2xl bg-slate-50/80 border border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs animate-pulse motion-reduce:animate-none">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-slate-200" />
+                <div className="space-y-1">
+                  <div className="w-32 h-3.5 bg-slate-200 rounded" />
+                  <div className="w-48 h-3 bg-slate-200 rounded" />
+                </div>
+              </div>
+              <div className="w-28 h-6 bg-slate-200 rounded-xl" />
+            </div>
+          ) : (
+            <div className="mt-3.5 p-3.5 sm:px-4 sm:py-2.5 rounded-2xl bg-slate-50/80 border border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0 shadow-2xs">
+                  <Building2 className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-slate-900 text-xs sm:text-sm">
+                      {activePlacement?.dudiName || (isDemoMode ? "PT Nusantara Tech" : "Mitra Industri PKL")}
                     </span>
-                  </p>
-                  <p className="mt-1 text-[11px] opacity-90 leading-normal font-normal">
-                    Status tercatat resmi dan tidak dianggap alpha. Jam tidak dimasukkan ke jam kompetensi agar analisis drift tetap objektif. Mentor industri tetap memverifikasi surat ini via PIN.
+                    <span className="px-2 py-0.5 rounded-full text-slate-500 border border-slate-200 text-[11px] font-medium bg-white">
+                      Mitra Terdaftar
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5 font-normal truncate">
+                    Pembimbing: <span className="font-semibold text-slate-700">{activePlacement?.mentorName || (isDemoMode ? "Rizky Firmansyah (Engineering Lead)" : "Mentor Industri Lapangan")}</span>
                   </p>
                 </div>
-              )}
+              </div>
+
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200/80 text-slate-700 text-xs font-medium shrink-0 self-start sm:self-auto shadow-2xs">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Verifikasi PIN Mentor</span>
+              </div>
             </div>
+          )}
 
-            {/* 2. Tanggal Pelaksanaan Kegiatan (BR-003: H to H-3) */}
-            <SmartDateSelector
-              selectedDate={selectedDate}
-              onSelectDate={(newDate) => setSelectedDate(newDate)}
-              minDate={minDate}
-              maxDate={today}
-              offlineLogs={offlineLogs}
-            />
+          {/* ─── Horizontal Stepper (Apple HIG / Modern SaaS) ─── */}
+          <nav aria-label="Alur Pengisian Jurnal" className="mt-4 pb-2 border-b border-slate-100">
+            <ol className="grid grid-cols-3 gap-2 sm:gap-3">
+              {[
+                { s: 1, title: "1. Kehadiran & Jam", short: "1. Kehadiran" },
+                { s: 2, title: "2. Pilih Tugas", short: "2. Tugas" },
+                { s: 3, title: "3. Bukti & Catatan", short: "3. Bukti" },
+              ].map((item) => {
+                const isCompleted = item.s < step;
+                const isActive = item.s === step;
 
-            {/* 3. Durasi Jam Kerja Industri (Shift Presensi - BR-002) */}
-            {!isSickOrPermit && (
-              <SmartShiftSelector
-                durationJp={durationJp}
-                onChangeDuration={(newVal) => {
-                  hasUserManuallyChangedDuration.current = true;
-                  setDurationJp(newVal);
-                }}
-                overtimeReason={overtimeReason}
-                onChangeOvertimeReason={setOvertimeReason}
-                minJp={!isNonCompetency ? Math.max(MIN_DAILY_JP, selectedJobCardIds.length) : MIN_DAILY_JP}
-                maxJp={MAX_DAILY_JP}
-                isSaturday={isSaturday}
-                isWeekday={isWeekday}
-                existingDailyJp={existingDailyJp}
-                remainingDailyQuota={remainingDailyQuota}
-                onResetTodayLogs={handleResetTodayLogsForDemo}
-              />
-            )}
-
-            {/* 4. Pilihan Kartu Pekerjaan & Penguasaan SOP (dengan Tombol Jujur Terintegrasi) */}
-            {!isSickOrPermit && (
-              <div className="bg-slate-50/60 rounded-2xl p-4 sm:p-5 border border-slate-200/70 space-y-3.5">
-                {/* Header Kartu Pekerjaan & Mode Switcher Tombol Jujur */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-slate-200/60">
-                  <div>
-                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                      <Layers className="w-3.5 h-3.5 text-sky-600" />
-                      <span>{isNonCompetency ? "Laporan Tugas Operasional Umum" : "Kartu Pekerjaan Ditugaskan DUDI"}</span>
-                    </span>
-                    <p className="text-xs text-slate-500 font-normal mt-0.5">
-                      {isNonCompetency
-                        ? "Penugasan pendukung industri dilaporkan transparan. Jam PKL tetap diakui penuh (8 Jam)."
-                        : "Pilih 1 sampai 3 kartu tugas yang diarahkan pembimbing industri hari ini (Bank unit SKKNI resmi)"}
-                    </p>
-                  </div>
-
-                  {/* Quick Actions: Salin Kemarin & Tombol Jujur */}
-                  <div className="flex items-center gap-2">
-                    {recentPreviousLog && !isNonCompetency && (
-                      <button
-                        type="button"
-                        onClick={handleCopyYesterday}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-white text-slate-700 border border-slate-200/80 hover:bg-slate-50 transition cursor-pointer active:scale-95 shadow-2xs"
-                        title={`Salin tugas & durasi dari log ${recentPreviousLog.logDate}`}
-                      >
-                        <RotateCcw className="w-3 h-3 text-slate-500" />
-                        <span>Salin Kemarin</span>
-                      </button>
+                return (
+                  <li
+                    key={item.s}
+                    className={cn(
+                      "flex items-center gap-2 p-2.5 sm:px-3.5 sm:py-2.5 rounded-xl border text-xs transition-all",
+                      isActive
+                        ? "bg-sky-50/70 border-sky-300 text-sky-950 font-semibold shadow-2xs"
+                        : isCompleted
+                          ? "bg-sky-50/40 border-sky-200/80 text-sky-800 font-medium"
+                          : "bg-slate-50/50 border-slate-200/60 text-slate-400 font-normal"
                     )}
-                    <button
-                      type="button"
-                      onClick={() => setIsNonCompetency(!isNonCompetency)}
+                  >
+                    <span
                       className={cn(
-                        "inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer active:scale-95 border shrink-0",
-                        isNonCompetency
-                          ? "bg-slate-900 hover:bg-slate-800 text-white border-slate-900 shadow-2xs"
-                          : "bg-white text-slate-700 border-amber-300 hover:bg-amber-50/80 text-amber-900 shadow-2xs"
+                        "w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 transition-all",
+                        isActive
+                          ? "bg-sky-500 text-white shadow-2xs"
+                          : isCompleted
+                            ? "bg-sky-100 text-sky-700"
+                            : "bg-slate-200/70 text-slate-500"
                       )}
                     >
-                      <Sparkles className={cn("w-3.5 h-3.5", isNonCompetency ? "text-amber-400" : "text-amber-500")} />
-                      <span>{isNonCompetency ? "Kembali ke Kartu Kejuruan" : "Tombol Jujur (Tugas Non-Teknis)"}</span>
+                      {isCompleted ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : item.s}
+                    </span>
+                    <span className="truncate hidden sm:inline">{item.title}</span>
+                    <span className="truncate sm:hidden">{item.short}</span>
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
+
+          {/* ─────────────────────────────────────────────────────────────────────────
+              STEP 1 — “HARI INI”
+              Presensi kehadiran, SmartDateSelector, dan SmartShiftSelector (bila Hadir)
+          ───────────────────────────────────────────────────────────────────────── */}
+          {step === 1 && (
+            <div className="pt-4 space-y-4 animate-in fade-in duration-200">
+              {/* ─── DRAFT RECOVERY BANNER (Kelompok 1.3: draftFoundOnMount) ─── */}
+              {draftFoundOnMount && (
+                <div className="p-3.5 rounded-2xl bg-sky-50/80 border border-sky-200/80 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sky-950 animate-in fade-in motion-reduce:animate-none">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <FileText className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                    <div>
+                      <p className="font-semibold text-slate-900">Ditemukan Draf Belum Tersimpan</p>
+                      <p className="text-xs text-slate-600 mt-0.5 font-normal">
+                        Terdapat isian jurnal sebelumnya yang tersimpan di perangkat ini.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={handleRestoreDraft}
+                      className="min-h-[40px] px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-semibold text-xs transition cursor-pointer shadow-2xs active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                    >
+                      Pulihkan
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDiscardDraft}
+                      className="min-h-[40px] px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-medium text-xs border border-slate-200 transition cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                    >
+                      Abaikan
                     </button>
                   </div>
                 </div>
+              )}
 
-                {isNonCompetency ? (
-                  /* Bantuan Operasional Non-RPL (100% Transparan & Melindungi Hak Belajar Siswa) */
-                  <div className="bg-white p-5 rounded-3xl border border-amber-200/70 space-y-4 animate-in fade-in duration-200 shadow-xs">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 border border-amber-200/70 flex items-center justify-center shrink-0 shadow-2xs">
-                        <Sparkles className="w-5 h-5 text-amber-600" />
-                      </div>
-                      <div className="space-y-0.5">
-                        <h3 className="text-sm sm:text-base font-semibold text-slate-900">
-                          Pelaporan Tugas Operasional Umum (Non-Teknis)
-                        </h3>
-                        <p className="text-xs text-slate-600 font-normal leading-relaxed">
-                          Bila hari ini Anda ditugaskan membantu administrasi kantor, merapikan inventaris gudang, pengiriman kurir, atau kasir toko, laporkan secara apa adanya.
-                        </p>
-                      </div>
+              {/* ─── BR-002 STATUS PRESENSI SAKIT / IZIN TERDAFTAR ─── */}
+              {hasExistingSickOrPermit && (
+                <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80 text-xs flex items-center gap-3 text-amber-900 animate-in fade-in motion-reduce:animate-none">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold">Sudah Tercatat Sakit / Izin pada Tanggal Ini</p>
+                    <p className="text-xs text-amber-800 mt-0.5 font-normal">
+                      Tanggal {selectedDate} sudah memiliki catatan presensi Sakit/Izin resmi. Anda tidak dapat menambahkan jurnal praktik pada hari tidak hadir.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* ─── Row 1: Status Presensi & Tanggal Pelaksanaan (Berdampingan seimbang di Desktop) ─── */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+                {/* 1. Status Kehadiran (Apple Segmented Control dalam container card rapi) */}
+                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-3">
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-medium text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <UserCheck className="w-3.5 h-3.5 text-sky-600" />
+                        <span>Status Kehadiran Hari Ini</span>
+                      </span>
+                      <span className="text-xs text-slate-400 font-medium">
+                        Presensi PKL
+                      </span>
                     </div>
 
-                    {/* Reassuring Trust Banner */}
-                    <div className="p-3.5 bg-emerald-50/80 rounded-2xl border border-emerald-200/70 text-xs text-emerald-950 flex items-start sm:items-center gap-3 shadow-2xs">
-                      <ShieldCheck className="w-4.5 h-4.5 text-emerald-600 shrink-0 mt-0.5 sm:mt-0" />
-                      <div className="leading-relaxed">
-                        <strong className="font-semibold text-emerald-900">Hak Kehadiran Terjamin 100%:</strong>{" "}
-                        <span className="text-emerald-800 font-normal">
-                          Jam kehadiran PKL tetap dihitung penuh dan nilai rapor tidak akan dikurangi. Data ini membantu guru pembimbing memantau kesesuaian pembelajaran Anda di DUDI.
+                    {/* Segmented Control iOS Style with aria-pressed */}
+                    <div className="bg-slate-100 p-1 rounded-xl grid grid-cols-3 gap-1">
+                      <button
+                        type="button"
+                        aria-pressed={attendanceType === "PRESENT"}
+                        onClick={() => setAttendanceType("PRESENT")}
+                        className={cn(
+                          "min-h-[48px] py-2 px-2.5 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 flex items-center justify-center gap-1.5",
+                          attendanceType === "PRESENT"
+                            ? "bg-white text-sky-600 shadow-sm font-semibold border border-sky-100/70"
+                            : "text-slate-600 hover:text-slate-900"
+                        )}
+                      >
+                        {attendanceType === "PRESENT" && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0" />
+                        )}
+                        <span className="whitespace-nowrap">Hadir Praktik</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        aria-pressed={attendanceType === "SICK"}
+                        onClick={() => {
+                          setAttendanceType("SICK");
+                          setIsNonCompetency(false);
+                        }}
+                        className={cn(
+                          "min-h-[48px] py-2 px-2.5 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 flex items-center justify-center gap-1.5",
+                          attendanceType === "SICK"
+                            ? "bg-white text-rose-600 shadow-sm font-semibold border border-rose-100/70"
+                            : "text-slate-600 hover:text-rose-600"
+                        )}
+                      >
+                        {attendanceType === "SICK" && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                        )}
+                        <span className="whitespace-nowrap">Sakit</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        aria-pressed={attendanceType === "PERMIT"}
+                        onClick={() => {
+                          setAttendanceType("PERMIT");
+                          setIsNonCompetency(false);
+                        }}
+                        className={cn(
+                          "min-h-[48px] py-2 px-2.5 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 flex items-center justify-center gap-1.5",
+                          attendanceType === "PERMIT"
+                            ? "bg-white text-amber-700 shadow-sm font-semibold border border-amber-100/70"
+                            : "text-slate-600 hover:text-slate-900"
+                        )}
+                      >
+                        {attendanceType === "PERMIT" && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                        )}
+                        <span className="whitespace-nowrap">Izin Resmi</span>
+                      </button>
+                    </div>
+
+                    {/* Attendance Notice for Sakit / Izin */}
+                    {isSickOrPermit && (
+                      <div
+                        className={cn(
+                          "p-3 rounded-xl border text-xs leading-relaxed animate-in fade-in duration-150 motion-reduce:animate-none",
+                          attendanceType === "SICK"
+                            ? "bg-rose-50/80 border-rose-200/70 text-rose-900"
+                            : "bg-slate-50 border-slate-200 text-slate-700"
+                        )}
+                      >
+                        <p className="font-semibold flex items-center gap-1.5">
+                          <Info className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span>
+                            {attendanceType === "SICK"
+                              ? "Presensi Sakit — Surat Dokter Wajib Dilampirkan"
+                              : "Presensi Izin — Lampirkan Surat Dispensasi Resmi"}
+                          </span>
+                        </p>
+                        <p className="mt-1 text-xs opacity-90 leading-normal font-normal">
+                          Status tercatat resmi dan tidak dianggap alpha. Terverifikasi oleh mentor industri via PIN.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. Tanggal Pelaksanaan Kegiatan (BR-003: H to H-3) */}
+                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-3">
+                  <SmartDateSelector
+                    selectedDate={selectedDate}
+                    onSelectDate={(newDate) => setSelectedDate(newDate)}
+                    minDate={minDate}
+                    maxDate={today}
+                    offlineLogs={offlineLogs}
+                    className="py-0 border-b-0 h-full flex flex-col justify-between"
+                  />
+                </div>
+              </div>
+
+              {/* 3. Durasi Jam Kerja Industri (Shift Presensi - BR-002, hanya jika Hadir) */}
+              {!isSickOrPermit && (
+                <div className="space-y-4">
+                  <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5">
+                    <SmartShiftSelector
+                      durationJp={durationJp}
+                      onChangeDuration={(newVal) => {
+                        hasUserManuallyChangedDuration.current = true;
+                        setDurationJp(newVal);
+                      }}
+                      overtimeReason={overtimeReason}
+                      onChangeOvertimeReason={setOvertimeReason}
+                      minJp={!isNonCompetency ? Math.max(MIN_DAILY_JP, selectedJobCardIds.length) : MIN_DAILY_JP}
+                      maxJp={MAX_DAILY_JP}
+                      isSaturday={isSaturday}
+                      isWeekday={isWeekday}
+                      existingDailyJp={existingDailyJp}
+                      remainingDailyQuota={remainingDailyQuota}
+                      onResetTodayLogs={isDemoMode ? handleResetTodayLogsForDemo : undefined}
+                      className="py-0 border-b-0"
+                    />
+                  </div>
+
+                  {/* Peringatan K3 Siswa & Workload Alert (Alert card tunggal dengan border semantik) */}
+                  {(weeklyWorkStats.isCriticalOverwork || weeklyWorkStats.isWarningOverwork) && (
+                    <div
+                      className={cn(
+                        "p-4 rounded-2xl border space-y-3 transition-all animate-in fade-in duration-200 motion-reduce:animate-none",
+                        weeklyWorkStats.isCriticalOverwork
+                          ? "bg-rose-50/70 border-rose-200 text-rose-900"
+                          : "bg-amber-50/70 border-amber-200 text-amber-900"
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div
+                            className={cn(
+                              "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-2xs",
+                              weeklyWorkStats.isCriticalOverwork
+                                ? "bg-rose-100 text-rose-700"
+                                : "bg-amber-100 text-amber-700"
+                            )}
+                          >
+                            <AlertTriangle className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold truncate">
+                              {weeklyWorkStats.isCriticalOverwork
+                                ? "Peringatan K3: Overwork"
+                                : "Perhatian K3: Jam Tinggi"}
+                            </p>
+                            <p className="text-xs text-slate-600 truncate">
+                              {weeklyWorkStats.isCriticalOverwork
+                                ? `Melebihi ${STUDENT_OVERWORK_CRITICAL_HOURS} jam / lembur berlebih`
+                                : `Mendekati ${STUDENT_MAX_NORMAL_WEEKLY_HOURS} jam normal mingguan`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-xs font-semibold block font-mono">
+                            {weeklyWorkStats.totalWeeklyHours} / {STUDENT_MAX_NORMAL_WEEKLY_HOURS} Jam
+                          </span>
+                          <span className="text-[11px] text-slate-500 font-medium">Minggu Ini</span>
+                        </div>
+                      </div>
+
+                      {/* Dual-Representation Education Callout */}
+                      <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs">
+                        <span className="text-slate-600 flex items-center gap-1 font-normal">
+                          <TrendingUp className="w-3.5 h-3.5 text-sky-600" />
+                          <span>Estimasi Beban Belajar:</span>
+                        </span>
+                        <span className="font-semibold text-slate-800 text-xs font-mono">
+                          ≈ {convertRealHoursToJp(durationJp).toFixed(1)} JP ({projectedPercentage}% target)
                         </span>
                       </div>
                     </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
-                    <div className="space-y-2">
-                      <label className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider block">
-                        Pilih Kategori Tugas Operasional:
-                      </label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-                        {[
-                          {
-                            id: "ADMIN_UMUM",
-                            label: "Administrasi Dokumen",
-                            desc: "Fotokopi, arsip faktur, input data",
-                            icon: FileText,
-                          },
-                          {
-                            id: "KEBERSIHAN_GUDANG",
-                            label: "Gudang & Inventaris",
-                            desc: "Pengecekan stok, penataan barang",
-                            icon: Package,
-                          },
-                          {
-                            id: "KURIR",
-                            label: "Kurir & Distribusi",
-                            desc: "Pengantaran dokumen/logistik",
-                            icon: Truck,
-                          },
-                          {
-                            id: "JAGA_TOKO",
-                            label: "Kasir & Layanan Toko",
-                            desc: "Pelayanan transaksi & operasional",
-                            icon: Store,
-                          },
-                        ].map((cat) => {
-                          const IconComp = cat.icon;
-                          const isCatActive = nonCompetencyCategory === cat.id;
+          {/* ─────────────────────────────────────────────────────────────────────────
+              STEP 2 — “PILIH TUGAS”
+              Bagian kartu pekerjaan dan mode non-teknis dalam list vertikal satu kolom
+          ───────────────────────────────────────────────────────────────────────── */}
+          {step === 2 && !isSickOrPermit && (
+            <div className="pt-3 space-y-4 animate-in fade-in duration-200">
+              {/* Header Kartu Pekerjaan & Mode Switcher */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-slate-100">
+                <div>
+                  <span className="text-[11px] font-medium text-slate-500 uppercase tracking-widest flex items-center gap-1.5 flex-wrap mb-1">
+                    <Layers className="w-3.5 h-3.5 text-sky-600" />
+                    <span>{isNonCompetency ? "Laporan Tugas Operasional Umum" : "Kartu Pekerjaan Ditugaskan DUDI"}</span>
+                    {!isNonCompetency && (
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                        {selectedJobCardIds.length} dari 3 Dipilih
+                      </span>
+                    )}
+                  </span>
+                  <p className="text-xs text-slate-600 font-normal">
+                    {isNonCompetency
+                      ? `Penugasan pendukung industri dilaporkan transparan. Jam PKL tetap diakui penuh (${durationJp} Jam Kerja).`
+                      : "Pilih 1 sampai 3 kartu tugas yang diarahkan pembimbing industri hari ini"}
+                  </p>
+                </div>
 
-                          return (
-                            <button
-                              key={cat.id}
-                              type="button"
-                              onClick={() => setNonCompetencyCategory(cat.id)}
-                              className={cn(
-                                "p-3.5 rounded-2xl text-left transition-all duration-150 cursor-pointer border flex flex-col justify-between relative group active:scale-[0.98]",
-                                isCatActive
-                                  ? "bg-amber-50/60 border-amber-500 ring-2 ring-amber-500/20 shadow-xs"
-                                  : "bg-white border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/50"
-                              )}
-                            >
-                              <div className="flex items-center justify-between mb-2">
-                                <div
-                                  className={cn(
-                                    "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border transition-colors",
-                                    isCatActive
-                                      ? "bg-amber-500 text-white border-amber-500 shadow-2xs"
-                                      : "bg-slate-100 text-slate-500 border-slate-200/60 group-hover:bg-amber-50 group-hover:text-amber-700"
-                                  )}
-                                >
-                                  <IconComp className="w-4 h-4" />
-                                </div>
-                                <div
-                                  className={cn(
-                                    "w-4 h-4 rounded-full flex items-center justify-center transition-all",
-                                    isCatActive
-                                      ? "bg-amber-500 text-white"
-                                      : "border border-slate-300 bg-white"
-                                  )}
-                                >
-                                  {isCatActive && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                                </div>
-                              </div>
-                              <div>
-                                <p
-                                  className={cn(
-                                    "text-xs font-semibold leading-tight",
-                                    isCatActive ? "text-amber-950" : "text-slate-900"
-                                  )}
-                                >
-                                  {cat.label}
-                                </p>
-                                <p className="text-[10px] text-slate-500 font-normal mt-0.5 leading-snug">
-                                  {cat.desc}
-                                </p>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
+                {/* Quick Actions: Salin Kemarin & Tugas Non-Teknis */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {recentPreviousLog && !isNonCompetency && (
+                    <button
+                      type="button"
+                      onClick={handleCopyYesterday}
+                      className="inline-flex items-center gap-1.5 min-h-[40px] px-3 py-2 rounded-xl text-xs font-medium bg-white text-slate-700 border border-slate-200/80 hover:bg-slate-50 transition cursor-pointer active:scale-95 shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                      title={`Salin tugas & durasi dari log ${recentPreviousLog.logDate}`}
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Salin Kemarin</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIsNonCompetency(!isNonCompetency)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 min-h-[40px] px-3.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer active:scale-95 border shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500",
+                      isNonCompetency
+                        ? "bg-slate-900 hover:bg-slate-800 text-white border-slate-900 shadow-2xs"
+                        : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50 shadow-2xs"
+                    )}
+                  >
+                    <Sparkles className={cn("w-3.5 h-3.5", isNonCompetency ? "text-amber-400" : "text-slate-500")} />
+                    <span>{isNonCompetency ? "Kembali ke Kartu Kejuruan" : "Tugas Non-Teknis"}</span>
+                  </button>
+                </div>
+              </div>
+
+              {isNonCompetency ? (
+                /* Bantuan Operasional Non-RPL (Palet Netral/Slate) */
+                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-4 animate-in fade-in motion-reduce:animate-none duration-200">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-700 border border-slate-200/80 flex items-center justify-center shrink-0 shadow-2xs">
+                      <Sparkles className="w-5 h-5 text-slate-600" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <h3 className="text-sm sm:text-base font-semibold text-slate-900">
+                        Pelaporan Tugas Operasional Umum (Non-Teknis)
+                      </h3>
+                      <p className="text-xs text-slate-600 font-normal leading-relaxed">
+                        Bila hari ini Anda ditugaskan membantu administrasi kantor, merapikan inventaris gudang, pengiriman kurir, atau kasir toko, laporkan secara apa adanya.
+                      </p>
                     </div>
                   </div>
-                ) : (
-                  /* Kartu Pekerjaan Teknis Kejuruan (dengan Inline Autonomy Selector per kartu) */
-                  <div className="space-y-3">
-                    {/* Category Filter Pills & Search */}
-                    <div className="flex flex-col sm:flex-row gap-2 justify-between">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {[
-                          { id: "ALL", label: "Semua Kategori" },
-                          { id: "Backend Development", label: "Backend" },
-                          { id: "Frontend UI/UX", label: "Frontend" },
-                          { id: "Database & Storage", label: "Database" },
-                          { id: "Quality Assurance", label: "QA" },
-                        ].map((cat) => (
+
+                  <div className="bg-transparent border-0 pl-0 py-1 text-xs text-slate-600 flex items-start sm:items-center gap-2">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5 sm:mt-0" />
+                    <p className="leading-relaxed">
+                      <strong className="font-medium text-slate-800">Hak Kehadiran Terjamin 100%:</strong>{" "}
+                      <span>
+                        Jam kehadiran PKL tetap dihitung penuh dan nilai rapor tidak akan dikurangi. Data ini membantu guru pembimbing memantau kesesuaian pembelajaran Anda di DUDI.
+                      </span>
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-700 block">
+                      Pilih Kategori Tugas Operasional:
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                      {[
+                        {
+                          id: "ADMIN_UMUM",
+                          label: "Administrasi Dokumen",
+                          desc: "Fotokopi, arsip faktur, input data",
+                          icon: FileText,
+                        },
+                        {
+                          id: "KEBERSIHAN_GUDANG",
+                          label: "Gudang & Inventaris",
+                          desc: "Pengecekan stok, penataan barang",
+                          icon: Package,
+                        },
+                        {
+                          id: "KURIR",
+                          label: "Kurir & Distribusi",
+                          desc: "Pengantaran dokumen/logistik",
+                          icon: Truck,
+                        },
+                        {
+                          id: "JAGA_TOKO",
+                          label: "Kasir & Layanan Toko",
+                          desc: "Pelayanan transaksi & operasional",
+                          icon: Store,
+                        },
+                      ].map((cat) => {
+                        const IconComp = cat.icon;
+                        const isCatActive = nonCompetencyCategory === cat.id;
+
+                        return (
                           <button
                             key={cat.id}
                             type="button"
-                            onClick={() => setJobCardCategory(cat.id)}
+                            aria-pressed={isCatActive}
+                            onClick={() => setNonCompetencyCategory(cat.id)}
                             className={cn(
-                              "px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer active:scale-95",
-                              jobCardCategory === cat.id
-                                ? "bg-slate-900 text-white shadow-2xs"
-                                : "bg-white text-slate-600 border border-slate-200/70 hover:bg-slate-100"
+                              "p-3.5 rounded-2xl text-left transition-all duration-150 cursor-pointer flex flex-col justify-between relative group active:scale-[0.98] min-h-[90px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500",
+                              isCatActive
+                                ? "bg-slate-900 text-white shadow-xs"
+                                : "bg-white shadow-sm hover:shadow border border-slate-100"
                             )}
                           >
-                            {cat.label}
+                            <div className="flex items-center justify-between mb-2">
+                              <div
+                                className={cn(
+                                  "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border transition-colors",
+                                  isCatActive
+                                    ? "bg-white/20 text-white border-white/30 shadow-2xs"
+                                    : "bg-slate-100 text-slate-600 border-slate-200/60"
+                                )}
+                              >
+                                <IconComp className="w-4 h-4" />
+                              </div>
+                              <div
+                                className={cn(
+                                  "w-4 h-4 rounded-full flex items-center justify-center transition-all",
+                                  isCatActive
+                                    ? "bg-sky-400 text-slate-950"
+                                    : "border border-slate-300 bg-white"
+                                )}
+                              >
+                                {isCatActive && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                              </div>
+                            </div>
+                            <div>
+                              <p
+                                className={cn(
+                                  "text-xs font-semibold leading-tight",
+                                  isCatActive ? "text-white" : "text-slate-900"
+                                )}
+                              >
+                                {cat.label}
+                              </p>
+                              <p
+                                className={cn(
+                                  "text-xs font-normal mt-0.5 leading-snug",
+                                  isCatActive ? "text-slate-300" : "text-slate-500"
+                                )}
+                              >
+                                {cat.desc}
+                              </p>
+                            </div>
                           </button>
-                        ))}
-                      </div>
-
-                      <div className="relative min-w-[180px]">
-                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <input
-                          type="text"
-                          value={jobCardSearch}
-                          onChange={(e) => setJobCardSearch(e.target.value)}
-                          placeholder="Cari tugas pekerjaan..."
-                          className="w-full pl-8 pr-3 py-1 rounded-lg bg-white border border-slate-200/80 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                        />
-                      </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Kartu Pekerjaan Teknis Kejuruan: List Vertikal Satu Kolom */
+                <div className="space-y-3">
+                  {/* Category Filter Pills & Search (Sticky top-0 di dalam area scroll) */}
+                  <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-md py-3 border-b border-slate-100 flex flex-col sm:flex-row gap-2.5 sm:items-center justify-between">
+                    {/* Search Input di sebelah kiri/atas */}
+                    <div className="relative w-full sm:w-64 shrink-0">
+                      <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="search"
+                        aria-label="Cari tugas pekerjaan atau kompetensi"
+                        value={jobCardSearch}
+                        onChange={(e) => setJobCardSearch(e.target.value)}
+                        placeholder="Cari tugas pekerjaan..."
+                        className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 min-h-[38px]"
+                      />
                     </div>
 
-                    {/* Job Cards Grid (Fixed-Height Slots: 100% Simetris, Tanpa Scroll, Tanpa Pergeseran) */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                    {/* Deretan Pill Kategori (Horizontal scroll tanpa wrap yang berantakan) */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-nowrap pb-1 sm:pb-0">
+                      {uniqueCategories.map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          aria-pressed={jobCardCategory === cat}
+                          onClick={() => setJobCardCategory(cat)}
+                          className={cn(
+                            "min-h-[36px] px-3.5 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer active:scale-95 shrink-0 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500",
+                            jobCardCategory === cat
+                              ? "bg-slate-900 text-white shadow-2xs"
+                              : "bg-white text-slate-700 border border-slate-200/80 hover:bg-slate-100"
+                          )}
+                        >
+                          {cat === "ALL" ? "Semua Kategori" : cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Card Limit Warning Message */}
+                  {cardLimitError && (
+                    <div
+                      role="alert"
+                      className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 flex items-center gap-2 animate-in fade-in motion-reduce:animate-none"
+                    >
+                      <AlertTriangle className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                      <span>{cardLimitError}</span>
+                    </div>
+                  )}
+
+                  {/* Empty State with Reset Filter */}
+                  {filteredJobCards.length === 0 ? (
+                    <div className="p-8 text-center bg-white rounded-2xl shadow-sm space-y-3 border border-slate-100">
+                      <p className="text-xs sm:text-sm text-slate-600">
+                        Tidak ada tugas yang cocok. Coba kata kunci lain.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setJobCardSearch("");
+                          setJobCardCategory("ALL");
+                        }}
+                        className="min-h-[40px] px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold transition active:scale-95 cursor-pointer shadow-2xs"
+                      >
+                        Reset filter
+                      </button>
+                    </div>
+                  ) : (
+                    /* List Vertikal Satu Kolom (Posisi stabil menggunakan filteredJobCards tanpa layout shift) */
+                    <div className="flex flex-col gap-2.5 pt-1">
                       {filteredJobCards.map((card) => {
                         const isSelected = selectedJobCardIds.includes(card.id);
                         const orderIndex = selectedJobCardIds.indexOf(card.id);
+                        const isLimitReached = selectedJobCardIds.length >= 3 && !isSelected;
                         const currentCardAutonomy = cardAutonomyMap[card.id] || autonomyLevel;
 
                         return (
                           <div
                             key={card.id}
-                            onClick={() => handleToggleJobCard(card.id)}
+                            onClick={() => {
+                              if (isLimitReached) return;
+                              handleToggleJobCard(card.id);
+                            }}
                             className={cn(
-                              "p-3.5 rounded-2xl border text-left transition-all duration-150 cursor-pointer group flex flex-col justify-between relative min-h-[120px]",
+                              "p-4 sm:p-5 rounded-2xl bg-white shadow-sm text-left transition-all duration-150 flex flex-col relative border",
                               isSelected
-                                ? "bg-sky-50/40 border-sky-500 ring-2 ring-sky-500/20 shadow-xs"
-                                : "bg-white border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/50"
+                                ? "bg-sky-50/40 border-sky-300 ring-1 ring-sky-400/80 shadow-sm"
+                                : isLimitReached
+                                  ? "border-slate-100 opacity-60 cursor-not-allowed"
+                                  : "border-slate-100 hover:bg-slate-50/60 hover:border-slate-200 cursor-pointer"
                             )}
                           >
-                            {/* Card Top: Category & Selection Badge */}
-                            <div>
-                              <div className="flex items-center justify-between gap-2 mb-1.5">
-                                <span className="text-[10px] font-medium text-slate-500 bg-slate-100/80 px-2 py-0.5 rounded-md">
-                                  {card.category}
-                                </span>
-                                <div
-                                  className={cn(
-                                    "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-all duration-200",
-                                    isSelected
-                                      ? "bg-sky-500 text-white shadow-xs"
-                                      : "border-[1.5px] border-slate-300 group-hover:border-slate-400 bg-white"
-                                  )}
-                                >
-                                  {isSelected ? (
-                                    selectedJobCardIds.length > 1 ? (
-                                      `#${orderIndex + 1}`
-                                    ) : (
-                                      <Check className="w-3 h-3 stroke-[2.5]" />
-                                    )
-                                  ) : null}
-                                </div>
-                              </div>
-
-                              {/* Card Title (Locked to 2 Lines for 100% Height Consistency) */}
-                              <h3
+                            {/* Susunan Atas: Checkbox 44x44px + Badge Kategori & SKKNI + Judul Tugas */}
+                            <div className="flex items-start gap-3">
+                              {/* Checkbox 44x44px di kiri */}
+                              <button
+                                type="button"
+                                role="checkbox"
+                                aria-checked={isSelected}
+                                aria-disabled={isLimitReached}
+                                aria-label={`Pilih tugas ${card.title}`}
+                                disabled={isLimitReached}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleJobCard(card.id);
+                                }}
                                 className={cn(
-                                  "text-xs sm:text-[13px] font-semibold leading-snug transition-colors line-clamp-2 h-[38px] flex items-center",
-                                  isSelected ? "text-sky-950" : "text-slate-800 group-hover:text-sky-600"
+                                  "w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center shrink-0 transition-all cursor-pointer mt-0.5",
+                                  isSelected
+                                    ? "bg-sky-500 text-white shadow-xs"
+                                    : "border-2 border-slate-200 hover:border-slate-400 bg-white"
                                 )}
                               >
-                                {card.title}
-                              </h3>
+                                {isSelected ? (
+                                  selectedJobCardIds.length > 1 ? (
+                                    <span className="text-xs font-bold font-mono">#{orderIndex + 1}</span>
+                                  ) : (
+                                    <Check className="w-5 h-5 stroke-[2.5]" />
+                                  )
+                                ) : null}
+                              </button>
+
+                              {/* Judul + Badge Kategori & SKKNI di tengah secara utuh */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                                  <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md shrink-0">
+                                    {card.category}
+                                  </span>
+                                  {card.skkni && (
+                                    <span className="text-[11px] font-mono text-slate-500 bg-slate-50 border border-slate-200/60 px-1.5 py-0.5 rounded-md shrink-0">
+                                      {card.skkni}
+                                    </span>
+                                  )}
+                                  {isSelected && (
+                                    <span className="text-[11px] font-semibold text-sky-700 bg-sky-100/80 px-2 py-0.5 rounded-md shrink-0">
+                                      Terpilih
+                                    </span>
+                                  )}
+                                </div>
+                                <h3
+                                  className={cn(
+                                    "text-xs sm:text-sm font-semibold leading-snug",
+                                    isSelected ? "text-sky-950 font-bold" : "text-slate-800"
+                                  )}
+                                >
+                                  {card.title}
+                                </h3>
+                              </div>
                             </div>
 
-                            {/* Card Footer: Fixed-Height Slot (h-8) — Tinggi Kartu Selalu 100% Konsisten */}
-                            <div className="mt-2.5 pt-2 border-t border-slate-100/90 h-8 flex items-center justify-between">
-                              {isSelected ? (
-                                <div
-                                  className="w-full flex items-center justify-between gap-1.5 animate-in fade-in duration-100"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <span className="text-[10.5px] font-semibold text-slate-600 shrink-0">
-                                    Tingkat:
+                            {/* Bagian Bawah: Pemilih Tingkat Penguasaan SOP (Segmented Pills 1-Tap) */}
+                            {isSelected && (
+                              <div
+                                className="pt-3 mt-3 border-t border-sky-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <div className="flex items-center gap-1.5 text-xs">
+                                  <span className="text-slate-500 font-medium">Tingkat Penguasaan:</span>
+                                  <span className="text-sky-700 font-semibold font-mono">
+                                    {AUTONOMY_LEVEL_OPTIONS.find((opt) => opt.level === currentCardAutonomy)?.label}
+                                    <span className="text-slate-400 font-normal"> ({AUTONOMY_LEVEL_OPTIONS.find((opt) => opt.level === currentCardAutonomy)?.badge})</span>
                                   </span>
-                                  <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded-lg border border-slate-200/60">
-                                    {AUTONOMY_LEVEL_OPTIONS.map((opt) => (
+                                </div>
+
+                                {/* 3 Tombol Segmented Pill */}
+                                <div
+                                  role="radiogroup"
+                                  aria-label={`Tingkat penguasaan untuk ${card.title}`}
+                                  className="flex items-center p-1 bg-slate-100/90 rounded-xl gap-1 shrink-0 self-start sm:self-auto"
+                                >
+                                  {AUTONOMY_LEVEL_OPTIONS.map((opt) => {
+                                    const isLvlActive = currentCardAutonomy === opt.level;
+                                    return (
                                       <button
                                         key={opt.level}
                                         type="button"
-                                        onClick={() => handleSetCardAutonomy(card.id, opt.level)}
+                                        role="radio"
+                                        aria-checked={isLvlActive}
+                                        aria-label={`${opt.label} (${opt.badge})`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSetCardAutonomy(card.id, opt.level);
+                                        }}
                                         className={cn(
-                                          "px-2 py-0.5 rounded-md text-[10px] font-medium transition-all cursor-pointer active:scale-95",
-                                          currentCardAutonomy === opt.level
-                                            ? "bg-sky-500 text-white font-semibold shadow-2xs"
-                                            : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                                          "min-h-[36px] px-3 py-1 rounded-lg text-xs font-medium transition cursor-pointer active:scale-95 flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500",
+                                          isLvlActive
+                                            ? "bg-white text-sky-700 font-semibold shadow-xs"
+                                            : "text-slate-600 hover:text-slate-900"
                                         )}
-                                        title={`${opt.label}: ${opt.desc}`}
                                       >
-                                        {opt.label}
+                                        <span>{opt.label}</span>
+                                        {isLvlActive && <Check className="w-3 h-3 text-sky-600 stroke-[2.5]" />}
                                       </button>
-                                    ))}
-                                  </div>
+                                    );
+                                  })}
                                 </div>
-                              ) : (
-                                <div className="w-full flex items-center justify-between text-slate-400 group-hover:text-sky-600 text-[10.5px] transition-colors">
-                                  <span className="font-normal flex items-center gap-1.5">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover:bg-sky-400 transition-colors" />
-                                    Pilih tugas ini
-                                  </span>
-                                  <span className="text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                                    Klik untuk memilih →
-                                  </span>
-                                </div>
-                              )}
-                            </div>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
                     </div>
-
-                    {/* Single-Line Compact Time Allocation Bar */}
-                    {selectedJobCardIds.length > 0 && (
-                      <div className="px-3.5 py-2.5 bg-white/90 rounded-xl border border-slate-200/70 text-xs flex items-center justify-between shadow-2xs animate-in fade-in">
-                        <span className="text-slate-500 font-normal">Alokasi Waktu ({selectedJobCardIds.length} tugas):</span>
-                        <span className="font-semibold text-sky-700 text-[11.5px]">
-                          {selectedJobCardIds.length === 1
-                            ? `${durationJp} Jam Kerja penuh (Fokus 1 tugas)`
-                            : selectedJobCardIds.length === 2
-                              ? `${Math.ceil(durationJp / 2)} Jam + ${Math.floor(durationJp / 2)} Jam (${durationJp} Jam total)`
-                              : `Dibagi rata ke 3 tugas (${durationJp} Jam total)`}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 5. Upload Foto Bukti Praktik (WebP) & Kuas Sensor Privasi */}
-            <div className="bg-slate-50/60 rounded-2xl p-4 sm:p-4.5 border border-slate-200/70 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                  <Camera className="w-3.5 h-3.5 text-sky-600" />
-                  <span>
-                    {attendanceType === "SICK"
-                      ? "Foto Surat Keterangan Dokter"
-                      : attendanceType === "PERMIT"
-                        ? "Foto Surat Izin / Dispensasi"
-                        : "Foto Bukti Praktik (WebP)"}
-                  </span>
-                </span>
-                <span className="text-[10px] font-medium text-slate-500 bg-white border border-slate-200/70 px-2 py-0.5 rounded-full shadow-2xs">
-                  Maks 150 KB
-                </span>
-              </div>
-
-              {/* Hidden file inputs: one with capture, one without */}
-              <input
-                ref={cameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handlePhotoSelect}
-                className="hidden"
-                disabled={isCompressingPhoto}
-              />
-              <input
-                ref={galleryInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoSelect}
-                className="hidden"
-                disabled={isCompressingPhoto}
-              />
-
-              {isCompressingPhoto && (
-                <div className="flex items-center justify-center gap-2.5 p-3.5 rounded-2xl bg-sky-50 border border-sky-200/80 text-sky-800 text-xs font-medium animate-pulse shadow-2xs">
-                  <Paintbrush className="w-4 h-4 animate-spin text-sky-600" />
-                  <span>Sedang memproses &amp; mengompresi foto bukti (&lt; 150 KB)...</span>
-                </div>
-              )}
-
-              {photoPreviewUrl && compressedPhoto ? (
-                <div className="p-3 bg-white rounded-2xl border border-slate-200/70 space-y-3 shadow-2xs">
-                  {/* Photo Container */}
-                  <div className="relative rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center max-h-56">
-                    <img
-                      src={photoPreviewUrl}
-                      alt="Pratinjau bukti kerja"
-                      className="max-h-56 w-auto object-contain"
-                    />
-
-                    {/* Sensor Active Badge Overlay */}
-                    {applyPrivacyBlur && (
-                      <div className="absolute top-2 left-2 px-2.5 py-1 rounded-full bg-slate-900/85 backdrop-blur-sm border border-sky-400/40 text-[10px] font-medium text-sky-300 flex items-center gap-1.5 shadow-sm">
-                        <EyeOff className="w-3 h-3 text-sky-400" />
-                        <span>Sensor Privasi DUDI Aktif</span>
-                      </div>
-                    )}
-
-                    {/* Remove Button */}
-                    <button
-                      type="button"
-                      onClick={handleRemovePhoto}
-                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-slate-900/80 text-white hover:bg-rose-600 transition cursor-pointer active:scale-95 shadow-sm"
-                      title="Hapus foto"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  {/* Dedicated Privacy Sensor Action Bar */}
-                  {rawPhotoFile && (
-                    <div className="p-3 rounded-2xl bg-slate-50/80 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
-                          <ShieldCheck className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                            <span>
-                              {attendanceType === "SICK"
-                                ? "Sensor Data Medis / Privasi Pasien"
-                                : attendanceType === "PERMIT"
-                                  ? "Sensor Data Pribadi Dokumen"
-                                  : "Sensor Dokumen / Layar DUDI"}
-                            </span>
-                            {applyPrivacyBlur && (
-                              <span className="text-[9.5px] bg-emerald-100 text-emerald-800 font-semibold px-1.5 py-0.2 rounded">
-                                TERPASANG
-                              </span>
-                            )}
-                          </p>
-                          <p className="text-[10.5px] text-slate-500 font-normal">
-                            {attendanceType === "SICK"
-                              ? "Gunakan kuas sensor untuk menyamarkan diagnosa khusus atau NIK di surat dokter"
-                              : attendanceType === "PERMIT"
-                                ? "Gunakan kuas sensor untuk menyamarkan tanda tangan atau kontak pribadi"
-                                : "Tarik kotak atau kuas untuk menyamarkan kodingan & token rahasia"}
-                          </p>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => setShowPrivacyStudio(true)}
-                        className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-semibold shadow-xs transition cursor-pointer shrink-0"
-                      >
-                        <ShieldCheck className="w-3.5 h-3.5" />
-                        <span>{applyPrivacyBlur ? "Ubah Sensor Privasi" : "Buka Kuas Sensor"}</span>
-                      </button>
-                    </div>
                   )}
 
-                  <div className="flex items-center justify-between text-xs pt-0.5">
-                    <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/70 text-[11px]">
-                      <Check className="w-3 h-3 stroke-[2.5]" />
-                      <span>{compressedPhoto.savingsText}</span>
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-medium">
-                      WebP Optimal &bull; Terverifikasi
-                    </span>
+                  {/* Single-Line Compact Time Allocation Bar */}
+                  {selectedJobCardIds.length > 0 && (
+                    <div className="px-4 py-3 bg-white rounded-2xl shadow-sm text-xs flex items-center justify-between border border-slate-200/80 mt-2">
+                      <span className="text-slate-600 font-normal">Alokasi Waktu ({selectedJobCardIds.length} tugas):</span>
+                      <span className="font-semibold text-sky-700 text-xs">
+                        {selectedJobCardIds.length === 1
+                          ? `${durationJp} Jam Kerja penuh (Fokus 1 tugas)`
+                          : selectedJobCardIds.length === 2
+                            ? `${Math.ceil(durationJp / 2)} Jam + ${Math.floor(durationJp / 2)} Jam (${durationJp} Jam total)`
+                            : `Dibagi rata ke 3 tugas (${durationJp} Jam total)`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────────────────────
+              STEP 3 — “BUKTI & CATATAN”
+              Upload foto bukti praktik & catatan singkat aktivitas
+          ───────────────────────────────────────────────────────────────────────── */}
+          {step === 3 && (
+            <div className="pt-3 space-y-4 animate-in fade-in duration-200">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+                {/* 5. Upload Foto Bukti Praktik & Kuas Sensor Privasi (Sub-card seragam) */}
+                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-3 flex flex-col justify-between h-full">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                      <h3 className="text-[11px] font-medium text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <Camera className="w-3.5 h-3.5 text-sky-600" />
+                        <span>
+                          {attendanceType === "SICK"
+                            ? "Foto Surat Keterangan Dokter"
+                            : attendanceType === "PERMIT"
+                              ? "Foto Surat Izin / Dispensasi"
+                              : "Foto Bukti Praktik"}
+                        </span>
+                      </h3>
+                      <span
+                        className={cn(
+                          "text-[11px] font-medium px-2 py-0.5 rounded-full",
+                          attendanceType === "SICK"
+                            ? "bg-rose-50 text-rose-700 font-semibold"
+                            : "bg-slate-100 text-slate-600"
+                        )}
+                      >
+                        {attendanceType === "SICK" ? "Wajib" : "Opsional"}
+                      </span>
+                    </div>
+
+                    {/* Hidden file inputs: one with capture, one without */}
+                    <input
+                      ref={cameraInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handlePhotoSelect}
+                      className="hidden"
+                      disabled={isCompressingPhoto}
+                    />
+                    <input
+                      ref={galleryInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoSelect}
+                      className="hidden"
+                      disabled={isCompressingPhoto}
+                    />
+
+                    {isCompressingPhoto && (
+                      <div className="flex items-center justify-center gap-2.5 p-3.5 rounded-2xl bg-sky-50 border border-sky-200/80 text-sky-800 text-xs font-medium animate-pulse motion-reduce:animate-none shadow-2xs">
+                        <Paintbrush className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none text-sky-600" />
+                        <span>Sedang memproses &amp; mengompresi foto bukti otomatis...</span>
+                      </div>
+                    )}
+
+                    {photoPreviewUrl && compressedPhoto ? (
+                      <div className="space-y-3">
+                        {/* Photo Container */}
+                        <div className="relative rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center max-h-60 border border-slate-200/70 shadow-xs">
+                          <img
+                            src={photoPreviewUrl}
+                            alt="Pratinjau bukti kerja"
+                            className="max-h-60 w-auto object-contain"
+                          />
+
+                          {/* Sensor Active Badge Overlay */}
+                          {applyPrivacyBlur && (
+                            <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-slate-900/85 backdrop-blur-sm border border-sky-400/40 text-xs font-medium text-sky-300 flex items-center gap-1.5 shadow-sm">
+                              <EyeOff className="w-3.5 h-3.5 text-sky-400" />
+                              <span>Sensor Privasi DUDI Aktif</span>
+                            </div>
+                          )}
+
+                          {/* Remove Button */}
+                          <button
+                            type="button"
+                            onClick={handleRemovePhoto}
+                            aria-label="Hapus foto bukti"
+                            className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-slate-900/80 text-white hover:bg-rose-600 transition cursor-pointer active:scale-95 shadow-sm min-h-[36px] min-w-[36px] flex items-center justify-center"
+                            title="Hapus foto"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* Info Bar & Dedicated Privacy Studio Action (Alur vertikal bersih tanpa nested boxes) */}
+                        <div className="p-3 rounded-xl bg-white border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1 text-slate-700 font-medium bg-slate-100 px-2.5 py-1 rounded-lg text-xs">
+                              <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
+                              <span>{compressedPhoto.savingsText}</span>
+                            </span>
+                            <span className="text-[11px] text-slate-500 font-medium">Siap diverifikasi</span>
+                          </div>
+
+                          {rawPhotoFile && (
+                            <button
+                              type="button"
+                              onClick={() => setShowPrivacyStudio(true)}
+                              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[38px] rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-semibold shadow-xs transition cursor-pointer shrink-0"
+                            >
+                              <ShieldCheck className="w-3.5 h-3.5" />
+                              <span>{applyPrivacyBlur ? "Ubah Sensor Privasi" : "Buka Kuas Sensor"}</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2.5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {/* Button 1: Kamera Langsung */}
+                          <button
+                            type="button"
+                            onClick={() => cameraInputRef.current?.click()}
+                            disabled={isCompressingPhoto}
+                            className="p-3.5 min-h-[72px] rounded-2xl border border-dashed border-slate-300 hover:border-sky-500 bg-white hover:bg-sky-50/20 flex flex-col items-center justify-center cursor-pointer transition-all group shadow-2xs active:scale-[0.99]"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center mb-1 group-hover:scale-105 transition">
+                              <Camera className="w-3.5 h-3.5" />
+                            </div>
+                            <span className="text-xs font-semibold text-slate-900 group-hover:text-sky-600 transition">
+                              Ambil Foto Kamera Langsung
+                            </span>
+                            <span className="text-xs text-slate-600 mt-0.5">
+                              Buka kamera smartphone seketika
+                            </span>
+                          </button>
+
+                          {/* Button 2: Pilih dari Galeri */}
+                          <button
+                            type="button"
+                            onClick={() => galleryInputRef.current?.click()}
+                            disabled={isCompressingPhoto}
+                            className="p-3.5 min-h-[72px] rounded-2xl border border-dashed border-slate-300 hover:border-sky-500 bg-white hover:bg-sky-50/20 flex flex-col items-center justify-center cursor-pointer transition-all group shadow-2xs active:scale-[0.99]"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center mb-1 group-hover:scale-105 transition">
+                              <ImageIcon className="w-3.5 h-3.5" />
+                            </div>
+                            <span className="text-xs font-semibold text-slate-900 group-hover:text-sky-600 transition">
+                              Pilih dari Galeri Foto
+                            </span>
+                            <span className="text-xs text-slate-600 mt-0.5">
+                              Foto dokumentasi yang sudah diambil
+                            </span>
+                          </button>
+                        </div>
+
+                        {/* Button 3: Demo Instan Juri (Hanya muncul jika NEXT_PUBLIC_DEMO_MODE=true) */}
+                        {isDemoMode && (
+                          <button
+                            type="button"
+                            onClick={handleUseDemoPhoto}
+                            disabled={isCompressingPhoto}
+                            className="w-full min-h-[40px] py-2.5 px-3 rounded-xl bg-sky-50 hover:bg-sky-100 border border-sky-200/80 text-sky-800 text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer shadow-2xs active:scale-[0.99]"
+                          >
+                            <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+                            <span>
+                              {attendanceType === "SICK"
+                                ? "Gunakan Contoh Surat Dokter (Simulasi Demo)"
+                                : attendanceType === "PERMIT"
+                                  ? "Gunakan Contoh Surat Dispensasi (Simulasi Demo)"
+                                  : "Gunakan Foto Demo Praktik (Simulasi Layar Monitor & Kuas Sensor Privasi)"}
+                            </span>
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* 6. Catatan Singkat Aktivitas / Diagnosa Medis (Sub-card seragam) */}
+                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-3 flex flex-col justify-between h-full">
+                  <div className="space-y-3 flex-1 flex flex-col">
+                    <div className="flex items-center justify-between mb-1">
+                      <label htmlFor="short-note" className="text-[11px] font-medium text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-sky-600" />
+                        <span>{isSickOrPermit ? "Keterangan Sakit / Izin" : "Catatan Singkat Aktivitas"}</span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowSuggestions((prev) => !prev)}
+                          className="px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 text-xs font-medium border border-sky-100 transition cursor-pointer active:scale-95"
+                        >
+                          Isi cepat
+                        </button>
+                        <span className="text-xs text-slate-400 font-mono">
+                          {shortNote.length}/250
+                        </span>
+                      </div>
+                    </div>
+
+                    <textarea
+                      id="short-note"
+                      value={shortNote}
+                      onChange={(e) => setShortNote(e.target.value)}
+                      maxLength={250}
+                      rows={3}
+                      placeholder={
+                        attendanceType === "SICK"
+                          ? "Diagnosa dokter atau kondisi sakit..."
+                          : attendanceType === "PERMIT"
+                            ? "Alasan izin / dispensasi kegiatan..."
+                            : "Ringkasan kendala atau fitur yang diselesaikan hari ini..."
+                      }
+                      className="w-full flex-1 min-h-[96px] text-xs sm:text-sm p-3.5 rounded-xl bg-white border border-slate-200/80 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition resize-none"
+                    />
+
+                    {/* Quick Suggestion Chips (Tersembunyi secara default, toggle dengan 'Isi cepat') */}
+                    {showSuggestions && (
+                      <div className="space-y-1.5 pt-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-slate-600 flex items-center gap-1">
+                            <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+                            <span>Rekomendasi Cepat (1-Klik):</span>
+                          </span>
+                          {shortNote && (
+                            <button
+                              type="button"
+                              onClick={() => setShortNote("")}
+                              className="text-xs text-slate-500 hover:text-rose-600 transition underline cursor-pointer"
+                            >
+                              Hapus Catatan
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5">
+                          {(attendanceType === "PRESENT"
+                            ? [
+                              "Menyelesaikan implementasi modul sesuai SOP industri",
+                              "Melakukan pengujian fitur & penelusuran bug bersama mentor",
+                              "Mengikuti daily standup briefing & evaluasi progres kerja",
+                              "Mempelajari rancangan sistem baru dan dokumentasi API",
+                            ]
+                            : attendanceType === "SICK"
+                              ? [
+                                "Demam dan flu, istirahat rawat jalan anjuran dokter",
+                                "Kondisi fisik menurun, surat keterangan dokter terlampir",
+                                "Pemeriksaan medis di faskes terdekat",
+                              ]
+                              : [
+                                "Dispensasi resmi mewakili kegiatan perlombaan sekolah",
+                                "Keperluan administrasi keluarga mendesak",
+                                "Ujian sertifikasi kompetensi kejuruan sekolah",
+                              ]
+                          ).map((suggestion) => (
+                            <button
+                              key={suggestion}
+                              type="button"
+                              onClick={() => {
+                                setShortNote((prev) => {
+                                  if (!prev.trim()) return suggestion;
+                                  if (prev.includes(suggestion)) return prev;
+                                  const combined = `${prev.trim()}. ${suggestion}`;
+                                  return combined.slice(0, 250);
+                                });
+                              }}
+                              className="text-xs px-2.5 py-1.5 rounded-lg bg-white hover:bg-sky-50 hover:text-sky-700 hover:border-sky-300 text-slate-700 border border-slate-200/80 transition-all cursor-pointer active:scale-95 shadow-2xs text-left"
+                            >
+                              + {suggestion}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ─── Desktop Action Buttons Bar (Satu baris dengan tombol step) ─── */}
+          <div className="hidden lg:flex items-center justify-between gap-3 pt-5 border-t border-slate-100">
+            <div>
+              {step === 1 ? (
+                <Link
+                  href="/student/home"
+                  className="min-h-[44px] py-2.5 px-6 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 transition border border-slate-200/80"
+                >
+                  <span>Batalkan &amp; Kembali</span>
+                </Link>
               ) : (
-                <div className="space-y-2.5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {/* Button 1: Kamera Langsung */}
-                    <button
-                      type="button"
-                      onClick={() => cameraInputRef.current?.click()}
-                      disabled={isCompressingPhoto}
-                      className="p-3.5 rounded-2xl border border-dashed border-slate-300 hover:border-sky-500 bg-white hover:bg-sky-50/20 flex flex-col items-center justify-center cursor-pointer transition-all group shadow-2xs active:scale-[0.99]"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center mb-1 group-hover:scale-105 transition">
-                        <Camera className="w-4 h-4" />
-                      </div>
-                      <span className="text-xs font-semibold text-slate-900 group-hover:text-sky-600 transition">
-                        Ambil Foto Kamera Langsung
-                      </span>
-                      <span className="text-[10px] text-slate-400 mt-0.5">
-                        Buka kamera smartphone seketika
-                      </span>
-                    </button>
+                <button
+                  type="button"
+                  onClick={handlePrevStep}
+                  className="min-h-[44px] py-2.5 px-6 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 transition border border-slate-200/80 cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  <span>Kembali</span>
+                </button>
+              )}
+            </div>
 
-                    {/* Button 2: Pilih dari Galeri */}
-                    <button
-                      type="button"
-                      onClick={() => galleryInputRef.current?.click()}
-                      disabled={isCompressingPhoto}
-                      className="p-3.5 rounded-2xl border border-dashed border-slate-300 hover:border-sky-500 bg-white hover:bg-sky-50/20 flex flex-col items-center justify-center cursor-pointer transition-all group shadow-2xs active:scale-[0.99]"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center mb-1 group-hover:scale-105 transition">
-                        <ImageIcon className="w-4 h-4" />
-                      </div>
-                      <span className="text-xs font-semibold text-slate-900 group-hover:text-sky-600 transition">
-                        Pilih dari Galeri Foto
-                      </span>
-                      <span className="text-[10px] text-slate-400 mt-0.5">
-                        Foto dokumentasi yang sudah diambil
-                      </span>
-                    </button>
-                  </div>
-
-                  {/* Button 3: Demo Instan Juri (Simulasi Monitor Kodingan DUDI / Surat Medis / Dispensasi & Kuas Sensor) */}
-                  <button
-                    type="button"
-                    onClick={handleUseDemoPhoto}
-                    disabled={isCompressingPhoto}
-                    className="w-full py-2.5 px-3 rounded-xl bg-sky-50 hover:bg-sky-100 border border-sky-200/80 text-sky-800 text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer shadow-2xs active:scale-[0.99]"
-                  >
-                    <Sparkles className="w-4 h-4 text-sky-600" />
-                    <span>
-                      {attendanceType === "SICK"
-                        ? "Gunakan Contoh Surat Dokter (Simulasi Demo)"
-                        : attendanceType === "PERMIT"
-                          ? "Gunakan Contoh Surat Dispensasi (Simulasi Demo)"
-                          : "Gunakan Foto Demo Praktik (Simulasi Layar Monitor & Kuas Sensor Privasi)"}
+            <div className="flex items-center gap-3">
+              {step < 3 ? (
+                <button
+                  type="button"
+                  onClick={handleNextStep}
+                  disabled={step === 1 ? isStep1Disabled : isStep2Disabled}
+                  className="min-h-[44px] py-2.5 px-8 bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white rounded-full text-xs sm:text-sm font-semibold shadow-pill transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span>Lanjut</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <>
+                  {submitDisabled && disabledReason && (
+                    <span className="text-xs text-slate-700 bg-slate-50 px-3.5 py-2 rounded-full border border-slate-200 flex items-center gap-1.5 shadow-2xs animate-in fade-in motion-reduce:animate-none">
+                      <Info className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                      <span>{disabledReason}</span>
                     </span>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={submitDisabled}
+                    className="min-h-[44px] py-2.5 px-8 bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white rounded-full text-xs sm:text-sm font-semibold shadow-pill transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>{submitLabel}</span>
                   </button>
-                </div>
+                </>
               )}
             </div>
           </div>
         </div>
 
-        {/* ─── Bottom Status & Quick Action Footer ─── */}
-        <div className="pt-5 border-t border-slate-200/70 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 font-normal">
+        {/* ─── Bottom Status & Quick Action Footer (Group E.4) ─── */}
+        <div className="pt-5 border-t border-slate-200/70 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600 font-normal">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="text-[11px]">Dexie IndexedDB Aktif · Data tersimpan offline-first</span>
+            <span
+              className={cn(
+                "w-2.5 h-2.5 rounded-full shrink-0",
+                isOnline ? "bg-emerald-500" : "bg-amber-500"
+              )}
+            />
+            <span className="text-xs text-slate-600 font-medium">
+              {isOnline
+                ? "Tersimpan di HP, otomatis terkirim saat online"
+                : "Mode Offline: Tersimpan di HP"}
+            </span>
           </div>
 
           <div className="flex items-center gap-3">
             <Link
               href="/student/log/history"
-              className="text-slate-600 hover:text-slate-900 font-semibold text-xs hover:underline flex items-center gap-1"
+              className="text-slate-700 hover:text-slate-900 font-semibold text-xs hover:underline flex items-center gap-1 min-h-[36px]"
             >
               <span>Lihat Riwayat Jurnal</span>
               <ChevronRight className="w-3.5 h-3.5" />
@@ -1618,229 +2304,92 @@ export default function NewLogPage() {
       </section>
 
       {/* ─────────────────────────────────────────────────────────────────────────────
-          2. RIGHT SECTION: SIDEBAR & SUBMIT CONTROLLER (APPLE HIG INSPECTOR STYLE)
-          Telemetry Live: DUDI Partner -> Ringkasan Jurnal -> K3 Workload -> Note -> Submit
+          MOBILE STICKY STEP NAVIGATION BAR (Selalu satu baris sesuai Apple HIG)
       ───────────────────────────────────────────────────────────────────────────── */}
-      <aside className="w-full lg:w-[320px] xl:w-[340px] 2xl:w-[360px] flex flex-col gap-4 flex-shrink-0">
-        {/* Card 1: DUDI & Mentor Info */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/70 shadow-card space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              Kemitraan DUDI Aktif
-            </span>
-            <span className="px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-100 text-[10px] font-medium">
-              Kurikulum Merdeka
-            </span>
+      <div className="fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px))] md:bottom-0 left-0 md:left-[88px] lg:left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-4 py-3 lg:hidden shadow-lg">
+        <div className="flex items-center justify-between gap-3 min-h-[44px]">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-slate-800 truncate">
+              {stepSummaryText}
+            </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-              <Building2 className="w-5 h-5 text-sky-400" />
-            </div>
-            <div className="truncate">
-              <h4 className="text-xs sm:text-sm font-semibold text-slate-900 truncate">
-                {activePlacement?.dudiName || "PT Nusantara Tech"}
-              </h4>
-              <p className="text-[11px] text-slate-500 font-normal truncate mt-0.5">
-                {activePlacement?.dudiCity || "Kota Bandung"}
-              </p>
-            </div>
-          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {step > 1 && (
+              <button
+                type="button"
+                onClick={handlePrevStep}
+                className="min-h-[44px] px-3.5 py-2 rounded-full bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200 active:scale-95 flex items-center gap-1 cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Kembali</span>
+              </button>
+            )}
 
-          <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-500 font-normal">Mentor Lapangan:</span>
-            <span className="font-semibold text-slate-900">
-              {activePlacement?.mentorName || "Rizky Firmansyah"}
-            </span>
-          </div>
-
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-500 font-normal">Jam Kerja Minggu Ini:</span>
-            <span className="font-semibold text-slate-700 font-mono">
-              {weeklyWorkStats.totalWeeklyHours} / 40 Jam
-            </span>
+            {step < 3 ? (
+              <button
+                type="button"
+                onClick={handleNextStep}
+                disabled={step === 1 ? isStep1Disabled : isStep2Disabled}
+                className="min-h-[44px] px-5 py-2 bg-sky-500 hover:bg-sky-600 active:scale-95 text-white rounded-full text-xs font-semibold shadow-pill transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span>Lanjut</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={submitDisabled}
+                className="min-h-[44px] px-5 py-2 bg-sky-500 hover:bg-sky-600 active:scale-95 text-white rounded-full text-xs font-semibold shadow-pill transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>{isSubmitting ? "Menyimpan..." : "Simpan Jurnal"}</span>
+              </button>
+            )}
           </div>
         </div>
+      </div>
 
-        {/* Card 2: Student Welfare & K3 Workload Alert (Hanya muncul saat mendekati/melebihi batas overwork) */}
-        {!isSickOrPermit && (weeklyWorkStats.isCriticalOverwork || weeklyWorkStats.isWarningOverwork) && (
-          <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/70 shadow-card space-y-3 animate-in fade-in duration-200">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                Peringatan K3 Siswa
-              </span>
-              <span className="text-[10px] font-medium text-slate-400">
-                Permendikbud 50/2020
-              </span>
-            </div>
-
-            <div
-              className={cn(
-                "p-3 rounded-xl border flex items-center justify-between gap-2.5 transition-all",
-                weeklyWorkStats.isCriticalOverwork
-                  ? "bg-rose-50 border-rose-200 text-rose-900"
-                  : weeklyWorkStats.isWarningOverwork
-                    ? "bg-amber-50 border-amber-200 text-amber-900"
-                    : "bg-emerald-50/70 border-emerald-200/70 text-emerald-900"
-              )}
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <div
-                  className={cn(
-                    "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 shadow-2xs",
-                    weeklyWorkStats.isCriticalOverwork
-                      ? "bg-rose-100 text-rose-700"
-                      : weeklyWorkStats.isWarningOverwork
-                        ? "bg-amber-100 text-amber-700"
-                        : "bg-emerald-100 text-emerald-700"
-                  )}
-                >
-                  {weeklyWorkStats.isCriticalOverwork || weeklyWorkStats.isWarningOverwork ? (
-                    <AlertTriangle className="w-4 h-4" />
-                  ) : (
-                    <ShieldCheck className="w-4 h-4" />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold truncate">
-                    {weeklyWorkStats.isCriticalOverwork
-                      ? "Peringatan K3: Overwork"
-                      : weeklyWorkStats.isWarningOverwork
-                        ? "Perhatian K3: Jam Tinggi"
-                        : "Status K3: Aman & Sehat"}
-                  </p>
-                  <p className="text-[9.5px] text-slate-500 truncate">
-                    {weeklyWorkStats.isCriticalOverwork
-                      ? "Melebihi 45 jam / lembur berlebih"
-                      : weeklyWorkStats.isWarningOverwork
-                        ? "Mendekati 40 jam normal mingguan"
-                        : "Sesuai batas normal jam belajar"}
-                  </p>
-                </div>
-              </div>
-              <div className="text-right shrink-0">
-                <span className="text-xs font-semibold block">
-                  {weeklyWorkStats.totalWeeklyHours} / 40 Jam
-                </span>
-                <span className="text-[9px] text-slate-400 font-medium">Minggu Ini</span>
-              </div>
-            </div>
-
-            {/* Dual-Representation Education Callout */}
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-              <span className="text-slate-500 flex items-center gap-1 font-normal">
-                <TrendingUp className="w-3 h-3 text-sky-600" />
-                <span>Beban Belajar:</span>
-              </span>
-              <span className="font-semibold text-slate-800 text-[11px]">
-                ≈ {convertRealHoursToJp(durationJp).toFixed(1)} JP ({projectedPercentage}% total)
-              </span>
-            </div>
-          </div>
-        )}
-
-
-        {/* Card 4: Catatan Singkat Aktivitas */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/70 shadow-card space-y-2.5">
-          <div className="flex items-center justify-between">
-            <label htmlFor="short-note" className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              {isSickOrPermit ? "Keterangan Sakit / Izin:" : "Catatan Singkat:"}
-            </label>
-            <span className="text-[10px] text-slate-400 font-medium">
-              {shortNote.length}/250
-            </span>
-          </div>
-
-          <textarea
-            id="short-note"
-            value={shortNote}
-            onChange={(e) => setShortNote(e.target.value)}
-            maxLength={250}
-            rows={3}
-            placeholder={
-              attendanceType === "SICK"
-                ? "Diagnosa dokter atau kondisi sakit..."
-                : attendanceType === "PERMIT"
-                  ? "Alasan izin / dispensasi kegiatan..."
-                  : "Ringkasan kendala atau fitur yang diselesaikan..."
-            }
-            className="w-full text-xs p-3 rounded-xl bg-slate-50/70 border border-slate-200/80 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 focus:bg-white transition"
-          />
+      {/* Floating Apple HIG Toast for Top Error & Notification (Slide-in, Auto-dismiss 4s) */}
+      {toast && (
+        <div
+          role="alert"
+          className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-xs sm:text-sm font-medium px-4 py-2.5 rounded-full shadow-xl animate-in fade-in slide-in-from-top-3 flex items-center gap-2 pointer-events-auto max-w-[90vw] text-center justify-center border border-slate-700/50"
+        >
+          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>{toast}</span>
         </div>
-
-        {/* Card 5: Submit Actions */}
-        <div className="space-y-2 pt-1">
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            disabled={
-              isSubmitting ||
-              (isSickOrPermit && existingDailyJp > 0) ||
-              (!isSickOrPermit && isDailyLimitReached) ||
-              hasExistingSickOrPermit ||
-              (!isSickOrPermit && durationJp > remainingDailyQuota && existingDailyJp > 0) ||
-              (!isSickOrPermit && !isNonCompetency && selectedJobCardIds.length === 0)
-            }
-            className="w-full py-3 px-5 bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white rounded-full text-xs sm:text-sm font-semibold shadow-pill transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ShieldCheck className="w-4 h-4" />
-            <span>
-              {isSubmitting
-                ? "Menyimpan Jurnal..."
-                : hasExistingSickOrPermit
-                  ? "Sudah Ada Presensi Sakit/Izin"
-                  : isSickOrPermit && existingDailyJp > 0
-                    ? "Sudah Ada Jam Hadir Tercatat"
-                    : !isSickOrPermit && isDailyLimitReached
-                      ? "Batas Jam Harian Terpenuhi"
-                      : !isSickOrPermit && durationJp > remainingDailyQuota && existingDailyJp > 0
-                        ? `Melebihi Batas (${remainingDailyQuota} Jam Sisa)`
-                        : !isSickOrPermit && !isNonCompetency && selectedJobCardIds.length === 0
-                          ? "Pilih Minimal 1 Pekerjaan"
-                          : attendanceType === "SICK"
-                            ? "Kirim Presensi Sakit"
-                            : attendanceType === "PERMIT"
-                              ? "Kirim Presensi Izin"
-                              : "Simpan Jurnal Sekarang"}
-            </span>
-          </button>
-
-          <Link
-            href="/student/home"
-            className="w-full py-2.5 px-4 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs flex items-center justify-center gap-1 transition active:scale-[0.98] border border-slate-200/80"
-          >
-            <span>Batalkan &amp; Kembali</span>
-          </Link>
-        </div>
-      </aside>
+      )}
 
       {/* ─────────────────────────────────────────────────────────────────────────────
           3. CONFIRMATION MODAL & INSTANT MENTOR HAND-OFF
       ───────────────────────────────────────────────────────────────────────────── */}
       {submittedLogUuid && typeof document !== "undefined" && createPortal(
         <div
+          ref={modalSuccessRef}
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in-0 duration-150"
+          aria-labelledby="modal-success-title"
+          className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in-0 duration-150 motion-reduce:animate-none"
           style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
         >
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-modal border border-slate-200/80 space-y-4 animate-in zoom-in-95 duration-150 text-center">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-modal border border-slate-200/80 space-y-4 animate-in zoom-in-95 duration-150 motion-reduce:animate-none text-center">
             <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200/70 flex items-center justify-center mx-auto shadow-2xs">
               <Check className="w-6 h-6 stroke-[3]" />
             </div>
 
             <div>
-              <h2 className="text-lg font-semibold text-slate-900 tracking-tight">
+              <h2 id="modal-success-title" className="text-lg font-semibold text-slate-900 tracking-tight">
                 Jurnal Berhasil Disimpan!
               </h2>
-              <p className="text-xs text-slate-500 mt-1 font-normal">
+              <p className="text-xs text-slate-600 mt-1 font-normal">
                 Data tersimpan di penyimpanan offline perangkat Anda dan siap diverifikasi oleh mentor industri.
               </p>
             </div>
 
             <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80 text-xs text-slate-600 space-y-2.5 text-left">
               <div className="flex items-center justify-between">
-                <span className="text-slate-400 font-medium">Status Presensi:</span>
+                <span className="text-slate-600 font-medium">Status Presensi:</span>
                 <span className="font-semibold text-sky-700">
                   {attendanceType === "PRESENT"
                     ? "Hadir Praktik"
@@ -1850,28 +2399,50 @@ export default function NewLogPage() {
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-400 font-medium">Status Antrean:</span>
-                <span className="font-semibold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200/70 text-[10px]">
+                <span className="text-slate-600 font-medium">Status Antrean:</span>
+                <span className="font-semibold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200/70 text-xs">
                   Tersimpan Offline (Siap Sinkron)
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-400 font-medium">Durasi &amp; Level SOP:</span>
+                <span className="text-slate-600 font-medium">Durasi:</span>
                 <span className="font-semibold text-slate-900 font-mono">
-                  {durationJp} Jam Kerja{" "}
-                  <span className="font-sans font-normal text-slate-600">
-                    {attendanceType === "PRESENT"
-                      ? `· ${autonomyLevel === 3 ? "Mandiri (SOP)" : autonomyLevel === 2 ? "Terbimbing" : "Observasi"}`
-                      : "· Administratif"}
-                  </span>
+                  {durationJp} Jam Kerja
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-400 font-medium">Bukti Foto / Surat:</span>
+                <span className="text-slate-600 font-medium">Bukti Foto / Surat:</span>
                 <span className="font-semibold text-slate-900">
-                  {compressedPhoto ? `WebP (${(compressedPhoto.sizeBytes / 1024).toFixed(1)} KB)` : "Tanpa Foto"}
+                  {compressedPhoto ? `Foto Terlampir (${(compressedPhoto.sizeBytes / 1024).toFixed(1)} KB)` : "Tanpa Foto"}
                 </span>
               </div>
+
+              {/* Daftar Kartu Pekerjaan & Tingkat Per Kartu (Group E.6 & Kelompok 3.17) */}
+              {attendanceType === "PRESENT" && !isNonCompetency && selectedJobCardsDetail.length > 0 && (
+                <div className="pt-2 border-t border-slate-200/80 space-y-1.5">
+                  <span className="text-xs font-semibold text-slate-700 block">
+                    Kartu Pekerjaan Terpilih:
+                  </span>
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                    {selectedJobCardsDetail.map((card) => {
+                      const level = cardAutonomyMap[card.id] || autonomyLevel;
+                      const levelLabel =
+                        level === 3 ? "Mandiri (SOP)" : level === 2 ? "Terbimbing" : "Observasi";
+                      return (
+                        <div
+                          key={card.id}
+                          className="p-2 rounded-xl bg-white border border-slate-200 text-xs flex items-center justify-between gap-2"
+                        >
+                          <span className="font-medium text-slate-800 truncate">{card.title}</span>
+                          <span className="shrink-0 px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 font-semibold text-xs border border-sky-100">
+                            {levelLabel}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Instant Mentor Verification Hand-Off Buttons (Pill-shaped) */}
@@ -1879,35 +2450,58 @@ export default function NewLogPage() {
               <button
                 type="button"
                 onClick={() => setShowQrModal(true)}
-                className="w-full py-2.5 px-4 rounded-full bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-2 transition shadow-pill cursor-pointer"
+                className="w-full min-h-[44px] py-2.5 px-4 rounded-full bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-2 transition shadow-pill cursor-pointer"
               >
                 <QrCode className="w-4 h-4" />
                 <span>Minta Validasi PIN Mentor Sekarang (QR)</span>
               </button>
 
-              <a
-                href={`https://wa.me/?text=${encodeURIComponent(
-                  `Halo Bapak/Ibu ${activePlacement?.mentorName || "Mentor"}, saya telah mengisi jurnal PKL VokaLink hari ini (${durationJp} Jam Kerja - ${autonomyLevel === 3 ? "Mandiri Sesuai SOP" : autonomyLevel === 2 ? "Terbimbing" : "Observasi"}). Mohon kesediaannya untuk memvalidasi logbook saya melalui tautan berikut: https://vokalink.id/v/andi-pratama-rpl-2026`
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-2.5 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-2 transition shadow-xs"
-              >
-                <Share2 className="w-4 h-4" />
-                <span>Kirim Tautan ke WhatsApp Mentor</span>
-              </a>
+              {(() => {
+                const mentorDisplayName = activePlacement?.mentorName || (isDemoMode ? "Bpk. Rizky Firmansyah" : "Bapak/Ibu Mentor");
+                const tasksSummary = isNonCompetency
+                  ? "Tugas Operasional Umum"
+                  : selectedJobCardsDetail.length > 0
+                    ? selectedJobCardsDetail.map((c) => c.title).slice(0, 2).join(", ") + (selectedJobCardsDetail.length > 2 ? `, dan ${selectedJobCardsDetail.length - 2} tugas lainnya` : "")
+                    : `${durationJp} Jam Kerja`;
+
+                if (isDemoMode) {
+                  const demoVerificationUrl = "https://vokalink.id/v/andi-pratama-rpl-2026";
+                  const waMessage = `Halo ${mentorDisplayName}, saya telah mengisi jurnal PKL VokaLink hari ini (${durationJp} Jam Kerja - ${attendanceType === "PRESENT" ? tasksSummary : attendanceType === "SICK" ? "Sakit (Surat Dokter)" : "Izin Resmi"}). Mohon kesediaannya untuk memvalidasi logbook saya melalui tautan berikut: ${demoVerificationUrl}`;
+
+                  return (
+                    <a
+                      href={`https://wa.me/?text=${encodeURIComponent(waMessage)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full min-h-[44px] py-2.5 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-2 transition shadow-xs"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      <span>Kirim Tautan ke WhatsApp Mentor</span>
+                    </a>
+                  );
+                }
+
+                return (
+                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs text-slate-600 text-left flex items-start gap-2">
+                    <Info className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+                    <span className="leading-relaxed">
+                      Tautan verifikasi WhatsApp dapat dibagikan setelah jurnal berhasil disinkronkan ke server. Untuk verifikasi langsung di tempat saat ini, silakan tunjukkan kode QR mentor di atas.
+                    </span>
+                  </div>
+                );
+              })()}
 
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="py-2.5 px-3 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 font-semibold text-xs transition cursor-pointer border border-slate-200/80"
+                  className="py-2.5 px-3 min-h-[40px] rounded-full bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 font-semibold text-xs transition cursor-pointer border border-slate-200/80"
                 >
                   Catat Log Lain
                 </button>
                 <Link
                   href="/student/log/history"
-                  className="py-2.5 px-3 rounded-full bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition shadow-xs"
+                  className="py-2.5 px-3 min-h-[40px] rounded-full bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition shadow-xs"
                 >
                   <span>Lihat Riwayat</span>
                   <ArrowRight className="w-3.5 h-3.5" />

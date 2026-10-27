@@ -25,6 +25,7 @@ interface SmartDateSelectorProps {
   minDate: string;
   maxDate: string;
   offlineLogs?: LogDateItem[];
+  stepNumber?: number;
   className?: string;
 }
 
@@ -60,6 +61,7 @@ export function SmartDateSelector({
   minDate,
   maxDate,
   offlineLogs = [],
+  stepNumber = 2,
   className,
 }: SmartDateSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -157,20 +159,20 @@ export function SmartDateSelector({
     <div
       ref={dropdownRef}
       className={cn(
-        "relative bg-slate-50/60 rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 space-y-2 transition-all",
+        "relative py-5 border-b border-slate-100 space-y-2 transition-all",
         className
       )}
     >
-      {/* Label Header Ramping */}
-      <div className="flex items-center justify-between">
+      {/* Label Header Apple HIG Style */}
+      <div className="flex items-center justify-between mb-2">
         <label
           htmlFor="smart-date-trigger"
-          className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5"
+          className="text-[11px] font-medium text-slate-500 uppercase tracking-widest flex items-center gap-1.5"
         >
           <Calendar className="w-3.5 h-3.5 text-sky-600" />
           <span>Tanggal Pelaksanaan Kegiatan</span>
         </label>
-        <span className="text-[11px] text-slate-400 font-medium">
+        <span className="text-xs text-slate-400 font-medium">
           Maks. H-3 (72 Jam)
         </span>
       </div>
@@ -184,7 +186,7 @@ export function SmartDateSelector({
         aria-haspopup="listbox"
         onClick={() => setIsOpen((prev) => !prev)}
         className={cn(
-          "w-full flex items-center justify-between gap-2.5 px-3.5 py-2 sm:py-2.5 rounded-xl bg-white border text-left transition-all duration-150 shadow-2xs group cursor-pointer select-none",
+          "w-full flex items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl bg-white border text-left transition-all duration-150 shadow-2xs group cursor-pointer select-none min-h-[44px]",
           isOpen
             ? "border-sky-500 ring-2 ring-sky-500/20 shadow-xs"
             : "border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/50"
@@ -196,11 +198,11 @@ export function SmartDateSelector({
             className={cn(
               "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors",
               isBackdate
-                ? "bg-amber-50 text-amber-600 border border-amber-200/60"
+                ? "bg-slate-100 text-slate-600 border border-slate-200"
                 : "bg-sky-50 text-sky-600 border border-sky-100"
             )}
           >
-            {isBackdate ? <Clock className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+            {isBackdate ? <Clock className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
           </div>
 
           <div className="min-w-0">
@@ -208,12 +210,12 @@ export function SmartDateSelector({
               <span className="text-xs sm:text-sm font-semibold text-slate-900 leading-tight">
                 {activeItem ? activeItem.title : selectedDate}
               </span>
-              <span className="text-xs text-slate-400 font-normal">·</span>
-              <span className="text-xs text-slate-600 font-medium truncate">
+              <span className="text-xs text-slate-500 font-normal">·</span>
+              <span className="text-xs text-slate-700 font-medium truncate">
                 {activeItem ? activeItem.fullFormatted : selectedDate}
               </span>
             </div>
-            <p className="text-xs text-slate-400 leading-none mt-0.5 truncate font-normal">
+            <p className="text-xs text-slate-600 leading-none mt-0.5 truncate font-normal">
               {isBackdate
                 ? "Pengisian susulan diverifikasi resmi via PIN mentor"
                 : "Pencatatan langsung hari berjalan"}
@@ -224,34 +226,34 @@ export function SmartDateSelector({
         {/* Kanan: Badge Status & Panah Dropdown */}
         <div className="flex items-center gap-2 shrink-0">
           {activeItem?.hasSick ? (
-            <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200/70 text-[11px] font-medium">
-              <HeartPulse className="w-3 h-3 text-rose-600" />
+            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-50 text-rose-700 border border-rose-200/70 text-xs font-medium">
+              <HeartPulse className="w-3.5 h-3.5 text-rose-600" />
               <span>Sakit</span>
             </span>
           ) : activeItem?.hasPermit ? (
-            <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/70 text-[11px] font-medium">
-              <FileText className="w-3 h-3 text-amber-600" />
+            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium">
+              <FileText className="w-3.5 h-3.5 text-slate-600" />
               <span>Izin</span>
             </span>
           ) : activeItem && activeItem.totalJp >= 8 ? (
-            <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[11px] font-medium">
-              <Check className="w-3 h-3 text-emerald-600" />
+            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-slate-700 border border-slate-200 text-xs font-medium">
+              <Check className="w-3.5 h-3.5 text-slate-600" />
               <span>{activeItem.totalJp} JP Lengkap</span>
             </span>
           ) : isBackdate ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/70 text-[10px] font-medium">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium">
               <span>Susulan</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[10px] font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-slate-600 border border-slate-200 text-xs font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
               <span>Tepat Waktu</span>
             </span>
           )}
 
           <ChevronDown
             className={cn(
-              "w-4 h-4 text-slate-400 transition-transform duration-200",
+              "w-4 h-4 text-slate-500 transition-transform duration-200",
               isOpen && "rotate-180 text-sky-600"
             )}
           />
@@ -266,9 +268,9 @@ export function SmartDateSelector({
           className="absolute left-0 right-0 top-full mt-1.5 z-40 bg-white rounded-2xl border border-slate-200/90 shadow-xl shadow-slate-900/10 p-2 space-y-1 animate-in fade-in-0 zoom-in-95 duration-150 backdrop-blur-sm"
         >
           {/* Header Popover */}
-          <div className="flex items-center justify-between px-2.5 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-            <span>Opsi Tanggal (Batas H-3)</span>
-            <span>Status Riwayat</span>
+          <div className="flex items-center justify-between px-2.5 py-1 text-xs font-semibold text-slate-600">
+            <span>OPSI TANGGAL (BATAS H-3):</span>
+            <span className="font-normal text-slate-500">Standar BR-003</span>
           </div>
 
           {/* 4 Opsi Cepat */}
@@ -284,7 +286,7 @@ export function SmartDateSelector({
                   aria-selected={isSelected}
                   onClick={() => handleSelect(opt.iso)}
                   className={cn(
-                    "w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left transition-all cursor-pointer select-none",
+                    "w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left transition-all cursor-pointer select-none min-h-[44px]",
                     isSelected
                       ? "bg-sky-50 text-sky-950 font-semibold border border-sky-200/90 shadow-2xs"
                       : "hover:bg-slate-50 text-slate-700 active:scale-[0.99] border border-transparent"
@@ -313,11 +315,11 @@ export function SmartDateSelector({
                         >
                           {opt.title}
                         </span>
-                        <span className="text-[11px] text-slate-400 font-normal">
+                        <span className="text-xs text-slate-600 font-normal">
                           ({opt.shortTag})
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-500 font-normal leading-tight">
+                      <p className="text-xs text-slate-600 font-normal leading-tight">
                         {opt.fullFormatted}
                       </p>
                     </div>
@@ -326,32 +328,32 @@ export function SmartDateSelector({
                   {/* Kanan: Badge Status Pengisian */}
                   <div className="shrink-0">
                     {opt.hasSick ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200/70 text-[10px] font-medium">
-                        <HeartPulse className="w-2.5 h-2.5 text-rose-600" />
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-50 text-rose-700 border border-rose-200/70 text-xs font-medium">
+                        <HeartPulse className="w-3 h-3 text-rose-600" />
                         <span>Sakit</span>
                       </span>
                     ) : opt.hasPermit ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/70 text-[10px] font-medium">
-                        <FileText className="w-2.5 h-2.5 text-amber-600" />
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium">
+                        <FileText className="w-3 h-3 text-slate-600" />
                         <span>Izin</span>
                       </span>
                     ) : opt.totalJp >= 8 ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[10px] font-medium">
-                        <Check className="w-2.5 h-2.5 text-emerald-600" />
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-slate-700 border border-slate-200 text-xs font-medium">
+                        <Check className="w-3 h-3 text-slate-600" />
                         <span>{opt.totalJp} JP Lengkap</span>
                       </span>
                     ) : opt.totalJp > 0 ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 border border-sky-200/70 text-[10px] font-medium">
-                        <Clock className="w-2.5 h-2.5 text-sky-600" />
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-sky-50 text-sky-700 border border-sky-200/70 text-xs font-medium">
+                        <Clock className="w-3 h-3 text-sky-600" />
                         <span>{opt.totalJp} JP Terisi</span>
                       </span>
                     ) : opt.offset === 0 ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-medium">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-xs font-medium">
                         <span>Belum Diisi</span>
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/60 text-[10px] font-medium">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
                         <span>Perlu Diisi</span>
                       </span>
                     )}
@@ -369,23 +371,23 @@ export function SmartDateSelector({
             <button
               type="button"
               onClick={() => setShowManualInput((prev) => !prev)}
-              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-50 text-xs font-medium transition cursor-pointer"
+              className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-slate-600 hover:text-slate-800 hover:bg-slate-50 text-xs font-medium transition cursor-pointer min-h-[40px]"
             >
               <span className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                <Calendar className="w-4 h-4 text-slate-500" />
                 <span>Pilih dari Kalender Manual</span>
               </span>
               <ChevronDown
                 className={cn(
-                  "w-3 h-3 text-slate-400 transition-transform duration-150",
+                  "w-3.5 h-3.5 text-slate-500 transition-transform duration-150",
                   showManualInput && "rotate-180"
                 )}
               />
             </button>
 
             {showManualInput && (
-              <div className="mt-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5 animate-in fade-in duration-100">
-                <label htmlFor="manual-log-date" className="text-xs font-medium text-slate-600 block">
+              <div className="mt-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5 animate-in fade-in motion-reduce:animate-none duration-100">
+                <label htmlFor="manual-log-date" className="text-xs font-medium text-slate-700 block">
                   Kalender Manual ({minDate} s/d {maxDate}):
                 </label>
                 <input
@@ -398,7 +400,7 @@ export function SmartDateSelector({
                     onSelectDate(e.target.value);
                     setIsOpen(false);
                   }}
-                  className="w-full text-xs font-medium px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
+                  className="w-full text-xs font-medium px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition min-h-[40px]"
                 />
               </div>
             )}
@@ -408,15 +410,15 @@ export function SmartDateSelector({
 
       {/* Keterangan Ramping 1 Baris di Bawah Input */}
       {isBackdate ? (
-        <p className="text-[11px] text-amber-700/90 flex items-center gap-1.5 font-medium animate-in fade-in leading-snug">
-          <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+        <p className="text-xs text-amber-800 flex items-center gap-1.5 font-medium animate-in fade-in motion-reduce:animate-none leading-snug">
+          <Clock className="w-4 h-4 text-amber-600 shrink-0" />
           <span>
             Pengisian susulan (<strong>{activeItem?.title || selectedDate}</strong>): Tetap sah tercatat dan diverifikasi mentor via PIN.
           </span>
         </p>
       ) : (
-        <p className="text-[11px] text-slate-400 flex items-center gap-1.5 font-normal leading-snug">
-          <Info className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+        <p className="text-xs text-slate-600 flex items-center gap-1.5 font-normal leading-snug">
+          <Info className="w-4 h-4 text-slate-500 shrink-0" />
           <span>Batas pengisian maksimal 3 hari kerja ke belakang (72 jam) untuk mencegah rapelan fiktif.</span>
         </p>
       )}
