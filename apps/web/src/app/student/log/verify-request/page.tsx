@@ -33,7 +33,6 @@ export default function VerifyRequestPage() {
   const [studentName, setStudentName] = useState("Andi Pratama");
   const [mentorName, setMentorName] = useState("Rahmat Hidayat Siregar, S.T");
   const [dudiName, setDudiName] = useState("PT Telkom Indonesia Witel Sumut");
-  const [_dudiCity, _setDudiCity] = useState("Medan");
   const [mentorPhone, setMentorPhone] = useState("6281260001001");
   const [qrTargetMode, setQrTargetMode] = useState<"MOBILE" | "LOCAL">("MOBILE");
 
@@ -74,7 +73,6 @@ export default function VerifyRequestPage() {
       if (student?.fullName) setStudentName(student.fullName);
       if (placement?.mentorName) setMentorName(placement.mentorName);
       if (placement?.dudiName) setDudiName(placement.dudiName);
-      if (placement?.dudiCity) setDudiCity(placement.dudiCity);
       if (placement?.mentorPhone) setMentorPhone(placement.mentorPhone);
 
       // Selalu bundel seluruh jurnal yang pending dari PostgreSQL (Auto-Detect)
