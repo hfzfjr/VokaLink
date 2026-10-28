@@ -19,8 +19,9 @@ interface DepartmentReadinessCardProps {
 
 export function DepartmentReadinessCard({ departments }: DepartmentReadinessCardProps) {
   return (
-    <div className="bg-white rounded-3xl border border-slate-200/80 shadow-2xs p-5 sm:p-6 space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className="bg-white rounded-3xl border border-slate-200/80 shadow-2xs overflow-hidden">
+      {/* Header Card */}
+      <div className="p-5 sm:p-6 pb-4 sm:pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100">
         <div>
           <h2 className="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
             <Layers className="w-4 h-4 text-sky-500" />
@@ -30,17 +31,18 @@ export function DepartmentReadinessCard({ departments }: DepartmentReadinessCard
             Standar Kurikulum Merdeka ({TOTAL_TARGET_JP} JP) otomatis aktif untuk setiap konsentrasi keahlian.
           </p>
         </div>
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 self-start sm:self-auto">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 self-start sm:self-auto shrink-0">
           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
           <span>Aktif Otomatis</span>
         </span>
       </div>
 
-      <div className="divide-y divide-slate-100 overflow-hidden">
+      {/* List Jurusan dengan full-bleed separator */}
+      <div className="divide-y divide-slate-100">
         {departments.map((dept) => (
           <div
             key={dept.id}
-            className="py-3.5 first:pt-1 last:pb-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/50 rounded-2xl px-2 -mx-2 transition"
+            className="px-5 sm:px-6 py-3.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 hover:bg-slate-50/70 transition"
           >
             <div className="min-w-0 space-y-0.5">
               <div className="flex items-center gap-2 flex-wrap">
@@ -56,7 +58,8 @@ export function DepartmentReadinessCard({ departments }: DepartmentReadinessCard
               </p>
             </div>
 
-            <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t border-slate-100 sm:border-0">
+            {/* Hilangkan garis pemisah (border-t) di mobile */}
+            <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-0.5 sm:pt-0">
               <span className="text-[11px] font-bold text-slate-500 tabular-nums">
                 Target {TOTAL_TARGET_JP} JP
               </span>

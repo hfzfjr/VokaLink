@@ -100,7 +100,7 @@ export function EraporDataTable({ records, onOpenDetail }: EraporDataTableProps)
             </div>
 
             {/* Col 3: Nilai Akhir & Detail Trigger (Fixed width on desktop) */}
-            <div className="flex items-center justify-between md:justify-end gap-3.5 pt-2 md:pt-0 border-t md:border-0 border-slate-100 shrink-0 md:w-[255px]">
+            <div className="flex items-center justify-between md:justify-end gap-3.5 pt-1.5 md:pt-0 shrink-0 md:w-[255px]">
               <div className="flex flex-col items-center text-center">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                   Nilai Akhir
