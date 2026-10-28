@@ -129,11 +129,11 @@ export function GradeOverrideModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3.5 bg-slate-50/70 border-t border-slate-100 flex justify-end">
+        <div className="px-6 py-4 bg-slate-50/70 border-t border-slate-100 flex justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition cursor-pointer"
+            className="px-5 py-2 rounded-full bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition cursor-pointer"
           >
             Tutup Rincian
           </button>
