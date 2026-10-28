@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Building2,
@@ -46,6 +46,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export function SchoolBottomNav() {
+  const router = useRouter();
   const pathname = usePathname();
 
   return (
@@ -62,6 +63,8 @@ export function SchoolBottomNav() {
             <Link
               key={item.id}
               href={item.href}
+              prefetch={true}
+              onTouchStart={() => router.prefetch(item.href)}
               className={cn(
                 "flex flex-col items-center justify-center py-1 px-2 rounded-2xl transition-all duration-150 select-none group min-w-[56px]",
                 isActive ? "text-sky-600 font-bold" : "text-slate-400 hover:text-slate-600"

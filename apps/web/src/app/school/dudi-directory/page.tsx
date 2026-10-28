@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/use-auth";
+import { useSchoolContext } from "@/context/SchoolContext";
 import {
-  fetchDudiPartners,
+  fetchDudiPartnersPaginated,
   createDudiPartner,
   createDudiMentor,
   resetMentorDevice,
-  fetchCurrentSchool,
   fetchCurriculum,
   type DudiPartnerItem,
+  type PaginationMeta,
 } from "@/lib/api";
 import { DudiToolbar } from "@/components/school/dudi/DudiToolbar";
 import { DudiPartnerTable } from "@/components/school/dudi/DudiPartnerTable";
@@ -17,19 +18,34 @@ import { RegisterDudiModal, type AvailableJobCard } from "@/components/school/du
 import { MentorQrActivationModal } from "@/components/school/dudi/MentorQrActivationModal";
 import { AddMentorModal } from "@/components/school/dudi/AddMentorModal";
 import { ResetDeviceModal } from "@/components/school/dudi/ResetDeviceModal";
+import { Pagination } from "@/components/common/Pagination";
 import { AlertCircle, CheckCircle2, WifiOff } from "lucide-react";
+
+const DUDI_PAGE_LIMIT = 8;
 
 export default function DudiDirectoryPage() {
   const { token, user } = useAuth();
+  const { ensureDepartmentsLoaded } = useSchoolContext();
   const schoolId = user?.school?.id;
 
   const [partners, setPartners] = useState<DudiPartnerItem[]>([]);
+  const [citiesList, setCitiesList] = useState<string[]>([]);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<PaginationMeta>({
+    page: 1,
+    limit: DUDI_PAGE_LIMIT,
+    totalItems: 0,
+    totalPages: 1,
+  });
+
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedCity, setSelectedCity] = useState("Semua");
 
-  // Real Database Job Cards
+  // Real Database Job Cards (Lazy-loaded when RegisterDudiModal opens)
   const [availableJobCards, setAvailableJobCards] = useState<AvailableJobCard[]>([]);
+  const [jobCardsLoaded, setJobCardsLoaded] = useState(false);
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -64,33 +80,46 @@ export default function DudiDirectoryPage() {
     };
   }, []);
 
-  // 1. Load real job cards from database across departments
+  // Debounce search input (300ms) and reset page to 1
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // 1. Lazy-load real job cards from database across departments ONLY when RegisterDudiModal is opened
   useEffect(() => {
     let isMounted = true;
     async function loadRealJobCards() {
-      if (!token || !schoolId) return;
+      if (!isAddModalOpen || jobCardsLoaded || !token || !schoolId) return;
       try {
-        const schoolData = await fetchCurrentSchool(token);
-        if (schoolData && schoolData.departments?.length > 0 && isMounted) {
+        const depts = await ensureDepartmentsLoaded();
+        if (depts.length > 0 && isMounted) {
+          const curResults = await Promise.all(
+            depts.map((dept) =>
+              fetchCurriculum(schoolId, dept.id, token)
+                .then((curData) => ({ dept, curData }))
+                .catch(() => null)
+            )
+          );
           const allCards: AvailableJobCard[] = [];
-          for (const dept of schoolData.departments) {
-            try {
-              const curData = await fetchCurriculum(schoolId, dept.id, token);
-              curData.elements.forEach((el) => {
-                el.jobCards.forEach((jc) => {
-                  allCards.push({
-                    id: jc.id,
-                    title: jc.title,
-                    sector: dept.sectorCode || "SMK",
-                  });
+          curResults.forEach((item) => {
+            if (!item) return;
+            item.curData.elements.forEach((el) => {
+              el.jobCards.forEach((jc) => {
+                allCards.push({
+                  id: jc.id,
+                  title: jc.title,
+                  sector: item.dept.sectorCode || "SMK",
                 });
               });
-            } catch {
-              // Ignore single dept fail
-            }
-          }
+            });
+          });
           if (isMounted) {
             setAvailableJobCards(allCards);
+            setJobCardsLoaded(true);
           }
         }
       } catch (err: any) {
@@ -101,22 +130,26 @@ export default function DudiDirectoryPage() {
     return () => {
       isMounted = false;
     };
-  }, [token, schoolId]);
+  }, [isAddModalOpen, jobCardsLoaded, token, schoolId, ensureDepartmentsLoaded]);
 
-  // 2. Load DUDI partners from API
-  const loadPartners = async () => {
+  // 2. Load DUDI partners from API (with server-side pagination)
+  const loadPartners = async (targetPage = page) => {
     if (!token) return;
     setLoading(true);
     setErrorMsg(null);
     try {
-      const data = await fetchDudiPartners(
+      const res = await fetchDudiPartnersPaginated(
         {
-          search: search.trim() || undefined,
+          search: debouncedSearch.trim() || undefined,
           city: selectedCity !== "Semua" ? selectedCity : undefined,
+          page: targetPage,
+          limit: DUDI_PAGE_LIMIT,
         },
         token
       );
-      setPartners(data);
+      setPartners(res.data);
+      setCitiesList(res.cities);
+      setPagination(res.pagination);
     } catch (err: any) {
       setErrorMsg(err.message || "Gagal memuat direktori mitra DUDI.");
     } finally {
@@ -125,8 +158,8 @@ export default function DudiDirectoryPage() {
   };
 
   useEffect(() => {
-    loadPartners();
-  }, [token, search, selectedCity]);
+    loadPartners(page);
+  }, [token, debouncedSearch, selectedCity, page]);
 
   // Handle register DUDI
   const handleRegisterDudi = async (payload: {
@@ -225,14 +258,6 @@ export default function DudiDirectoryPage() {
     });
   };
 
-  const citiesList = useMemo(() => {
-    const set = new Set<string>();
-    partners.forEach((p) => {
-      if (p.city) set.add(p.city);
-    });
-    return Array.from(set);
-  }, [partners]);
-
   return (
     <div className="space-y-6">
       {/* Offline Alert */}
@@ -282,10 +307,13 @@ export default function DudiDirectoryPage() {
         search={search}
         onSearchChange={setSearch}
         selectedCity={selectedCity}
-        onCityChange={setSelectedCity}
+        onCityChange={(city) => {
+          setSelectedCity(city);
+          setPage(1);
+        }}
         cities={citiesList}
         onOpenAddModal={() => setIsAddModalOpen(true)}
-        totalPartners={partners.length}
+        totalPartners={pagination.totalItems}
       />
 
       {/* Directory Content */}
@@ -296,12 +324,23 @@ export default function DudiDirectoryPage() {
           ))}
         </div>
       ) : (
-        <DudiPartnerTable
-          partners={partners}
-          onOpenAddMentor={(id, name) => setAddMentorDudi({ id, name })}
-          onOpenResetDevice={(id, name) => setResetMentor({ id, name })}
-          onTriggerQr={handleTriggerQr}
-        />
+        <div className="space-y-4">
+          <DudiPartnerTable
+            partners={partners}
+            onOpenAddMentor={(id, name) => setAddMentorDudi({ id, name })}
+            onOpenResetDevice={(id, name) => setResetMentor({ id, name })}
+            onTriggerQr={handleTriggerQr}
+          />
+          <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            limit={pagination.limit}
+            onPageChange={setPage}
+            itemLabel="mitra industri"
+            loading={loading}
+          />
+        </div>
       )}
 
       {/* Modals */}

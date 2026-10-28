@@ -66,6 +66,18 @@ export function SchoolSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
+  // Idle background prefetch of the 4 main /school routes so dev compilation happens ahead of click
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      NAV_ITEMS.forEach((item) => {
+        if (item.href !== pathname) {
+          router.prefetch(item.href);
+        }
+      });
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [pathname, router]);
+
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [activeTab, setActiveTab] = useState<"school" | "period" | "about">("school");
@@ -171,6 +183,8 @@ export function SchoolSidebar() {
 
                 <Link
                   href={item.href}
+                  prefetch={true}
+                  onMouseEnter={() => router.prefetch(item.href)}
                   className={cn(
                     "w-full h-12 rounded-2xl flex items-center overflow-hidden transition-colors duration-150 group",
                     isActive

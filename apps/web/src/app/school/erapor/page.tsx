@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/use-auth";
+import { useSchoolContext } from "@/context/SchoolContext";
 import {
   fetchEraporData,
   downloadEraporCsv,
-  fetchCurrentSchool,
   type EraporStudentRecord,
   type EraporSummaryResponse,
 } from "@/lib/api";
@@ -13,7 +13,10 @@ import { EraporSummaryBanner } from "@/components/school/erapor/EraporSummaryBan
 import { EraporFilterToolbar } from "@/components/school/erapor/EraporFilterToolbar";
 import { EraporDataTable } from "@/components/school/erapor/EraporDataTable";
 import { GradeOverrideModal } from "@/components/school/erapor/GradeOverrideModal";
+import { Pagination } from "@/components/common/Pagination";
 import { AlertCircle, CheckCircle2, WifiOff } from "lucide-react";
+
+const ERAPOR_PAGE_LIMIT = 10;
 
 const EMPTY_ERAPOR_DATA: EraporSummaryResponse = {
   school: { id: "", name: "" },
@@ -21,14 +24,21 @@ const EMPTY_ERAPOR_DATA: EraporSummaryResponse = {
   studentsWithPendingLogsCount: 0,
   warningMessage: null,
   records: [],
+  pagination: {
+    page: 1,
+    limit: ERAPOR_PAGE_LIMIT,
+    totalItems: 0,
+    totalPages: 1,
+  },
 };
 
 export default function EraporPage() {
   const { token, user } = useAuth();
+  const { departments: rawDepts, ensureDepartmentsLoaded } = useSchoolContext();
   const schoolId = user?.school?.id;
 
   const [data, setData] = useState<EraporSummaryResponse>(EMPTY_ERAPOR_DATA);
-  const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([]);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -37,6 +47,7 @@ export default function EraporPage() {
   // Filters
   const [selectedDeptId, setSelectedDeptId] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [downloadingCsv, setDownloadingCsv] = useState(false);
 
   // Modal Detail
@@ -55,29 +66,26 @@ export default function EraporPage() {
     };
   }, []);
 
-  // 1. Load departments for filter dropdown
+  // Debounce search query (300ms) and reset page to 1
   useEffect(() => {
-    let isMounted = true;
-    async function loadDepts() {
-      if (!token) return;
-      try {
-        const schoolData = await fetchCurrentSchool(token);
-        if (schoolData && schoolData.departments && isMounted) {
-          setDepartments(
-            schoolData.departments.map((d: any) => ({ id: d.id, name: `[${d.sectorCode}] ${d.name}` }))
-          );
-        }
-      } catch (err: any) {
-        console.error("Gagal memuat daftar jurusan:", err);
-      }
-    }
-    loadDepts();
-    return () => {
-      isMounted = false;
-    };
-  }, [token]);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-  // 2. Load e-Rapor records from database via API
+  // 1. Ensure departments are loaded from shared SchoolContext
+  useEffect(() => {
+    ensureDepartmentsLoaded();
+  }, [ensureDepartmentsLoaded]);
+
+  const departments = useMemo(
+    () => rawDepts.map((d) => ({ id: d.id, name: `[${d.sectorCode}] ${d.name}` })),
+    [rawDepts]
+  );
+
+  // 2. Load e-Rapor records from database via API with server-side pagination
   const loadData = async () => {
     if (!token || !schoolId) return;
     setLoading(true);
@@ -85,7 +93,12 @@ export default function EraporPage() {
     try {
       const res = await fetchEraporData(
         schoolId,
-        selectedDeptId !== "ALL" ? { departmentId: selectedDeptId } : undefined,
+        {
+          departmentId: selectedDeptId !== "ALL" ? selectedDeptId : undefined,
+          search: debouncedSearch.trim() || undefined,
+          page,
+          limit: ERAPOR_PAGE_LIMIT,
+        },
         token
       );
       setData(res);
@@ -98,7 +111,7 @@ export default function EraporPage() {
 
   useEffect(() => {
     loadData();
-  }, [selectedDeptId, schoolId, token]);
+  }, [selectedDeptId, debouncedSearch, page, schoolId, token]);
 
   // Handle CSV Download
   const handleDownloadCsv = async () => {
@@ -119,25 +132,19 @@ export default function EraporPage() {
     }
   };
 
-  // Filter records by search query
-  const filteredRecords = useMemo(() => {
-    return data.records.filter((r) => {
-      if (!searchQuery.trim()) return true;
-      const q = searchQuery.toLowerCase();
-      return (
-        r.student.fullName.toLowerCase().includes(q) ||
-        r.student.identityNumber.toLowerCase().includes(q) ||
-        r.dudiPartner.name.toLowerCase().includes(q)
-      );
-    });
-  }, [data.records, searchQuery]);
-
   // Average final grade
   const averageGrade = useMemo(() => {
     if (data.records.length === 0) return 0;
     const sum = data.records.reduce((acc, r) => acc + r.finalGrade, 0);
     return sum / data.records.length;
   }, [data.records]);
+
+  const pagination = data.pagination ?? {
+    page,
+    limit: ERAPOR_PAGE_LIMIT,
+    totalItems: data.records.length,
+    totalPages: 1,
+  };
 
   return (
     <div className="space-y-6">
@@ -195,7 +202,10 @@ export default function EraporPage() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         selectedDeptId={selectedDeptId}
-        onDeptChange={setSelectedDeptId}
+        onDeptChange={(deptId) => {
+          setSelectedDeptId(deptId);
+          setPage(1);
+        }}
         departments={departments}
         onDownloadCsv={handleDownloadCsv}
         downloadingCsv={downloadingCsv}
@@ -209,10 +219,21 @@ export default function EraporPage() {
           ))}
         </div>
       ) : (
-        <EraporDataTable
-          records={filteredRecords}
-          onOpenDetail={(r) => setDetailStudent(r)}
-        />
+        <div className="space-y-4">
+          <EraporDataTable
+            records={data.records}
+            onOpenDetail={(r) => setDetailStudent(r)}
+          />
+          <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            limit={pagination.limit}
+            onPageChange={setPage}
+            itemLabel="siswa PKL"
+            loading={loading}
+          />
+        </div>
       )}
 
       {/* Modal Detail & Tinjauan Nilai */}

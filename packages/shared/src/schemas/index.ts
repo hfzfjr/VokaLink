@@ -4,7 +4,7 @@ import {
   MIN_DAILY_JP,
   MAX_EVIDENCE_SIZE_BYTES,
   PIN_LENGTH,
-} from "../constants/index.js";
+} from "../constants/index";
 
 export const authLoginSchema = z.object({
   email: z.string().email(),
@@ -268,24 +268,24 @@ export type ResetMentorDeviceInput = z.infer<typeof resetMentorDeviceSchema>;
 // ─────────────────────────────────────────────────────────
 // FR-004: Smart Placement & Spatial Compatibility schemas
 // ─────────────────────────────────────────────────────────
-export * from "./placement.js";
+export * from "./placement";
 
 // ─────────────────────────────────────────────────────────
 // FR-011: e-Rapor SMK Grade & Narrative Exporter schemas
 // ─────────────────────────────────────────────────────────
-export * from "./erapor.js";
+export * from "./erapor";
 
 // ─────────────────────────────────────────────────────────
 // FR-008: Live Competency Heatmap & Drift Alert schemas
 // ─────────────────────────────────────────────────────────
-export * from "./heatmap.js";
+export * from "./heatmap";
 
 // ─────────────────────────────────────────────────────────
 // FR-009: Smart Intervention Dispatcher & Mid-Term Rotation
 // ─────────────────────────────────────────────────────────
-export * from "./intervention.js";
+export * from "./intervention";
 
 // ─────────────────────────────────────────────────────────
 // FR-010: 1-Click Soft Skills Endorsement & DUDI Quality Index
 // ─────────────────────────────────────────────────────────
-export * from "./endorsement.js";
+export * from "./endorsement";

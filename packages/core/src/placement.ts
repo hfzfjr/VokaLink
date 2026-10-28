@@ -6,7 +6,7 @@ import {
   ROTATION_THRESHOLD_COMPETENCY_SCORE,
   TOTAL_TARGET_JP,
 } from "@vokalink/shared";
-import { calculateHaversineDistanceKm } from "./haversine.js";
+import { calculateHaversineDistanceKm } from "./haversine";
 
 export interface PlacementScoreInput {
   supportedCpJp: number;

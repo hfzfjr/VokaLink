@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { InterventionActionType } from "../types/index.js";
+import type { InterventionActionType } from "../types/index";
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────

@@ -36,11 +36,17 @@ dudiRouter.get(
   requireAuth,
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { search, city, sectorCategory } = req.query as {
+      const { search, city, sectorCategory, page: rawPage, limit: rawLimit } = req.query as {
         search?: string;
         city?: string;
         sectorCategory?: string;
+        page?: string;
+        limit?: string;
       };
+
+      const page = Math.max(1, parseInt(rawPage || "1", 10) || 1);
+      const limit = Math.min(50, Math.max(1, parseInt(rawLimit || "8", 10) || 8));
+      const skip = (page - 1) * limit;
 
       const whereClause: any = {};
 
@@ -57,29 +63,47 @@ dudiRouter.get(
         };
       }
 
-      const partners = await prisma.dudiPartner.findMany({
-        where: whereClause,
-        include: {
-          _count: {
-            select: {
-              mentors: true,
-              capabilities: true,
-              placements: true,
+      const hasCountFn = typeof prisma.dudiPartner.count === "function";
+
+      const [partners, totalItemsRaw, allCitiesRaw] = await Promise.all([
+        prisma.dudiPartner.findMany({
+          where: whereClause,
+          include: {
+            _count: {
+              select: {
+                mentors: true,
+                capabilities: true,
+                placements: true,
+              },
+            },
+            mentors: {
+              select: {
+                id: true,
+                fullName: true,
+                jobTitle: true,
+                whatsappNumber: true,
+                tokenBoundAt: true,
+              },
             },
           },
-          mentors: {
-            select: {
-              id: true,
-              fullName: true,
-              jobTitle: true,
-              whatsappNumber: true,
-              tokenBoundAt: true,
-            },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-        take: 50,
-      });
+          orderBy: { createdAt: "desc" },
+          skip,
+          take: limit,
+        }),
+        hasCountFn ? prisma.dudiPartner.count({ where: whereClause }) : Promise.resolve(null),
+        hasCountFn
+          ? prisma.dudiPartner.findMany({
+              select: { city: true },
+              distinct: ["city"],
+              orderBy: { city: "asc" },
+            })
+          : Promise.resolve(null),
+      ]);
+
+      const totalItems = typeof totalItemsRaw === "number" ? totalItemsRaw : partners.length;
+      const cities = Array.isArray(allCitiesRaw)
+        ? Array.from(new Set(allCitiesRaw.map((c) => c.city).filter(Boolean)))
+        : Array.from(new Set(partners.map((p) => p.city).filter(Boolean)));
 
       res.json({
         data: partners.map((p) => ({
@@ -103,6 +127,13 @@ dudiRouter.get(
             isDeviceBound: Boolean(m.tokenBoundAt),
           })),
         })),
+        cities,
+        pagination: {
+          page,
+          limit,
+          totalItems,
+          totalPages: Math.max(1, Math.ceil(totalItems / limit)),
+        },
       });
     } catch (err) {
       next(err);

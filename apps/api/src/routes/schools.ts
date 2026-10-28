@@ -339,6 +339,35 @@ schoolsRouter.get(
         throw new AppError("Sekolah tidak ditemukan", 404, "SCHOOL_NOT_FOUND");
       }
 
+      const mappedDepartments = school.schoolDepartments.map((d) => ({
+        id: d.id,
+        sectorCode: d.sectorCode,
+        name: d.name,
+        cpElementsCount: d._count.cpElements,
+        jobCardsCount: d._count.jobCards,
+        isLocked: d.isLocked,
+      }));
+
+      // Fast-path untuk kebutuhan metadata ringan (daftar jurusan & info dasar sekolah)
+      if (req.query["light"] === "true") {
+        res.json({
+          success: true,
+          data: {
+            school: {
+              id: school.id,
+              npsn: school.npsn,
+              name: school.name,
+              province: school.province,
+              city: school.city,
+              isDemoSandbox: school.isDemoSandbox,
+            },
+            activePeriod: school.academicPeriods[0] ?? null,
+            departments: mappedDepartments,
+          },
+        });
+        return;
+      }
+
       // Count students, teachers, placements, dudis, and fetch priority students
       const [totalStudents, totalTeachers, totalPlacements, totalDudis, rawPlacements] = await Promise.all([
         tenantDb.userProfile.count({
@@ -371,7 +400,7 @@ schoolsRouter.get(
               take: 1,
             },
           },
-          take: 8,
+          take: 6,
           orderBy: { createdAt: "desc" },
         }),
       ]);

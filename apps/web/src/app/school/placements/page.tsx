@@ -1,22 +1,26 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/use-auth";
+import { useSchoolContext } from "@/context/SchoolContext";
 import {
   fetchPlacementCandidates,
-  fetchPlacements,
+  fetchPlacementsPaginated,
   createPlacement,
-  fetchCurrentSchool,
   type PlacementCandidateData,
   type PlacementCandidateStudent,
   type PlacementRecordItem,
+  type PaginationMeta,
 } from "@/lib/api";
 import { PlacementStatsHeader } from "@/components/school/placements/PlacementStatsHeader";
 import { PlacementFilterBar } from "@/components/school/placements/PlacementFilterBar";
 import { PlacementCandidatesTable } from "@/components/school/placements/PlacementCandidatesTable";
 import { ActivePlacementsTable } from "@/components/school/placements/ActivePlacementsTable";
 import { SingleAssignModal } from "@/components/school/placements/SingleAssignModal";
+import { Pagination } from "@/components/common/Pagination";
 import { AlertCircle, CheckCircle2, WifiOff } from "lucide-react";
+
+const PLACEMENT_PAGE_LIMIT = 10;
 
 const EMPTY_PLACEMENT_DATA: PlacementCandidateData = {
   period: null,
@@ -24,16 +28,33 @@ const EMPTY_PLACEMENT_DATA: PlacementCandidateData = {
   teachers: [],
   dudis: [],
   students: [],
+  totalUnplacedCount: 0,
+  pagination: {
+    page: 1,
+    limit: PLACEMENT_PAGE_LIMIT,
+    totalItems: 0,
+    totalPages: 1,
+  },
 };
 
 export default function SmartPlacementPage() {
   const { token, user } = useAuth();
+  const { departments, ensureDepartmentsLoaded } = useSchoolContext();
   const schoolId = user?.school?.id;
 
   const [activeTab, setActiveTab] = useState<"RECOMMENDATIONS" | "ACTIVE_LIST">("RECOMMENDATIONS");
   const [data, setData] = useState<PlacementCandidateData>(EMPTY_PLACEMENT_DATA);
   const [activePlacements, setActivePlacements] = useState<PlacementRecordItem[]>([]);
-  const [departments, setDepartments] = useState<Array<{ id: string; sectorCode: string; name: string }>>([]);
+  const [totalActiveCount, setTotalActiveCount] = useState(0);
+  const [activePagination, setActivePagination] = useState<PaginationMeta>({
+    page: 1,
+    limit: PLACEMENT_PAGE_LIMIT,
+    totalItems: 0,
+    totalPages: 1,
+  });
+
+  const [candidatePage, setCandidatePage] = useState(1);
+  const [activePage, setActivePage] = useState(1);
 
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -43,6 +64,7 @@ export default function SmartPlacementPage() {
   // Filters
   const [selectedDeptId, setSelectedDeptId] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   // Modals state
   const [assignStudent, setAssignStudent] = useState<PlacementCandidateStudent | null>(null);
@@ -60,45 +82,57 @@ export default function SmartPlacementPage() {
     };
   }, []);
 
-  // 1. Initial load of departments for filter dropdown
+  // Debounce search query (300ms) and reset pages to 1
   useEffect(() => {
-    let isMounted = true;
-    async function loadDepts() {
-      if (!token) return;
-      try {
-        const schoolData = await fetchCurrentSchool(token);
-        if (schoolData && schoolData.departments && isMounted) {
-          setDepartments(schoolData.departments);
-        }
-      } catch (err: any) {
-        console.error("Gagal memuat daftar jurusan:", err);
-      }
-    }
-    loadDepts();
-    return () => {
-      isMounted = false;
-    };
-  }, [token]);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCandidatePage(1);
+      setActivePage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-  // 2. Load candidates and active placements from API
+  // 1. Ensure departments are loaded from shared SchoolContext
+  useEffect(() => {
+    ensureDepartmentsLoaded();
+  }, [ensureDepartmentsLoaded]);
+
+  // 2. Load candidates and active placements from API with server-side pagination
   const loadData = async () => {
     if (!token || !schoolId) return;
     setLoading(true);
     setErrorMsg(null);
     try {
-      const candidates = await fetchPlacementCandidates(
-        schoolId,
-        selectedDeptId !== "ALL" ? selectedDeptId : undefined,
-        token
-      );
-      setData(candidates);
+      const deptFilter = selectedDeptId !== "ALL" ? selectedDeptId : undefined;
+      const searchFilter = debouncedSearch.trim() || undefined;
 
-      const records = await fetchPlacements(
-        schoolId,
-        selectedDeptId !== "ALL" ? { departmentId: selectedDeptId } : undefined,
-        token
-      );
-      setActivePlacements(records);
+      const [candidates, activeRes] = await Promise.all([
+        fetchPlacementCandidates(
+          schoolId,
+          {
+            departmentId: deptFilter,
+            search: searchFilter,
+            page: candidatePage,
+            limit: PLACEMENT_PAGE_LIMIT,
+          },
+          token
+        ),
+        fetchPlacementsPaginated(
+          schoolId,
+          {
+            departmentId: deptFilter,
+            search: searchFilter,
+            page: activePage,
+            limit: PLACEMENT_PAGE_LIMIT,
+          },
+          token
+        ),
+      ]);
+
+      setData(candidates);
+      setActivePlacements(activeRes.data);
+      setTotalActiveCount(activeRes.totalActiveCount);
+      setActivePagination(activeRes.pagination);
     } catch (err: any) {
       setErrorMsg(err.message || "Gagal memuat data penempatan dari database.");
     } finally {
@@ -108,7 +142,7 @@ export default function SmartPlacementPage() {
 
   useEffect(() => {
     loadData();
-  }, [selectedDeptId, schoolId, token]);
+  }, [selectedDeptId, debouncedSearch, candidatePage, activePage, schoolId, token]);
 
   // Handle single assignment
   const handleSingleAssign = async (payload: {
@@ -123,33 +157,17 @@ export default function SmartPlacementPage() {
     await loadData();
   };
 
-  // Filter candidates by search query
-  const filteredStudents = useMemo(() => {
-    return data.students.filter((s) => {
-      if (!searchQuery.trim()) return true;
-      const q = searchQuery.toLowerCase();
-      return (
-        s.fullName.toLowerCase().includes(q) ||
-        s.identityNumber.toLowerCase().includes(q) ||
-        (s.department?.name && s.department.name.toLowerCase().includes(q))
-      );
-    });
-  }, [data.students, searchQuery]);
-
-  // Filter active placements by search query
-  const filteredActivePlacements = useMemo(() => {
-    return activePlacements.filter((p) => {
-      if (!searchQuery.trim()) return true;
-      const q = searchQuery.toLowerCase();
-      return (
-        p.student.fullName.toLowerCase().includes(q) ||
-        p.student.identityNumber.toLowerCase().includes(q) ||
-        p.dudiPartner.name.toLowerCase().includes(q)
-      );
-    });
-  }, [activePlacements, searchQuery]);
-
   const totalRemainingQuota = data.dudis.reduce((sum, d) => sum + d.remainingQuota, 0);
+  const candidatePagination = data.pagination ?? {
+    page: candidatePage,
+    limit: PLACEMENT_PAGE_LIMIT,
+    totalItems: data.students.length,
+    totalPages: 1,
+  };
+  const totalUnplacedCount =
+    typeof data.totalUnplacedCount === "number"
+      ? data.totalUnplacedCount
+      : candidatePagination.totalItems;
 
   return (
     <div className="space-y-6">
@@ -197,9 +215,9 @@ export default function SmartPlacementPage() {
 
       {/* Top Header & Stats Summary */}
       <PlacementStatsHeader
-        totalStudents={data.students.length + activePlacements.length}
-        unassignedCount={data.students.length}
-        totalActivePlacements={activePlacements.length}
+        totalStudents={totalUnplacedCount + totalActiveCount}
+        unassignedCount={totalUnplacedCount}
+        totalActivePlacements={totalActiveCount}
         remainingQuotaTotal={totalRemainingQuota}
       />
 
@@ -210,10 +228,14 @@ export default function SmartPlacementPage() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         selectedDeptId={selectedDeptId}
-        onDeptChange={setSelectedDeptId}
+        onDeptChange={(deptId) => {
+          setSelectedDeptId(deptId);
+          setCandidatePage(1);
+          setActivePage(1);
+        }}
         departments={departments}
-        unplacedCount={data.students.length}
-        activeCount={activePlacements.length}
+        unplacedCount={candidatePagination.totalItems}
+        activeCount={activePagination.totalItems}
       />
 
       {/* Tab Contents */}
@@ -224,26 +246,52 @@ export default function SmartPlacementPage() {
           ))}
         </div>
       ) : activeTab === "RECOMMENDATIONS" ? (
-        <PlacementCandidatesTable
-          students={filteredStudents}
-          searchQuery={searchQuery}
-          hasFilter={Boolean(searchQuery.trim() || selectedDeptId !== "ALL")}
-          onOpenAssignModal={(s) => setAssignStudent(s)}
-          onResetFilter={() => {
-            setSearchQuery("");
-            setSelectedDeptId("ALL");
-          }}
-        />
+        <div className="space-y-4">
+          <PlacementCandidatesTable
+            students={data.students}
+            searchQuery={searchQuery}
+            hasFilter={Boolean(searchQuery.trim() || selectedDeptId !== "ALL")}
+            onOpenAssignModal={(s) => setAssignStudent(s)}
+            onResetFilter={() => {
+              setSearchQuery("");
+              setDebouncedSearch("");
+              setSelectedDeptId("ALL");
+              setCandidatePage(1);
+            }}
+          />
+          <Pagination
+            page={candidatePagination.page}
+            totalPages={candidatePagination.totalPages}
+            totalItems={candidatePagination.totalItems}
+            limit={candidatePagination.limit}
+            onPageChange={setCandidatePage}
+            itemLabel="kandidat siswa"
+            loading={loading}
+          />
+        </div>
       ) : (
-        <ActivePlacementsTable
-          placements={filteredActivePlacements}
-          searchQuery={searchQuery}
-          hasFilter={Boolean(searchQuery.trim() || selectedDeptId !== "ALL")}
-          onResetFilter={() => {
-            setSearchQuery("");
-            setSelectedDeptId("ALL");
-          }}
-        />
+        <div className="space-y-4">
+          <ActivePlacementsTable
+            placements={activePlacements}
+            searchQuery={searchQuery}
+            hasFilter={Boolean(searchQuery.trim() || selectedDeptId !== "ALL")}
+            onResetFilter={() => {
+              setSearchQuery("");
+              setDebouncedSearch("");
+              setSelectedDeptId("ALL");
+              setActivePage(1);
+            }}
+          />
+          <Pagination
+            page={activePagination.page}
+            totalPages={activePagination.totalPages}
+            totalItems={activePagination.totalItems}
+            limit={activePagination.limit}
+            onPageChange={setActivePage}
+            itemLabel="penempatan aktif"
+            loading={loading}
+          />
+        </div>
       )}
 
       {/* Modals */}

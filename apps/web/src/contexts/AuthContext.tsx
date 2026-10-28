@@ -57,18 +57,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const TOKEN_KEY = "vokalink_auth_token";
 const USER_KEY = "vokalink_auth_user";
 
-function setAuthCookies(role: string | null, token: string | null) {
-  if (typeof document === "undefined") return;
-  const maxAge = 60 * 60 * 24 * 7; // 7 days
-  if (role && token) {
-    document.cookie = `vokalink_role=${role}; path=/; max-age=${maxAge}; SameSite=Lax`;
-    document.cookie = `vokalink_token_exists=true; path=/; max-age=${maxAge}; SameSite=Lax`;
-  } else {
-    document.cookie = "vokalink_role=; path=/; max-age=0; SameSite=Lax";
-    document.cookie = "vokalink_token_exists=; path=/; max-age=0; SameSite=Lax";
-  }
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -84,7 +72,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.setItem(TOKEN_KEY, newToken);
       localStorage.setItem(USER_KEY, JSON.stringify(newUser));
-      setAuthCookies(newUser.role, newToken);
       // Bersihkan cache refData IndexedDB jika berganti akun
       import("@/lib/pwa/db").then(({ db }) => {
         db.refData.clear().catch(() => {});
@@ -101,7 +88,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
-      setAuthCookies(null, null);
       try {
         const { db } = await import("@/lib/pwa/db");
         await db.refData.clear();
@@ -259,7 +245,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (isMounted) {
             setToken(storedToken);
             setUser(storedUser);
-            setAuthCookies(storedUser.role, storedToken);
           }
 
           // Verifikasi di latar belakang ke backend
@@ -289,7 +274,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!localStorage.getItem(TOKEN_KEY)) {
           setUser(null);
           setToken(null);
-          setAuthCookies(null, null);
         }
       }
     });

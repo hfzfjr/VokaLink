@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/use-auth";
 import { fetchCurrentSchool } from "@/lib/api";
+import { useSchoolContext } from "@/context/SchoolContext";
 import { SchoolHeroBanner } from "@/components/school/dashboard/SchoolHeroBanner";
 import { SchoolKpiGrid } from "@/components/school/dashboard/SchoolKpiGrid";
 import { DepartmentReadinessCard, type DepartmentItem } from "@/components/school/dashboard/DepartmentReadinessCard";
@@ -38,6 +39,7 @@ interface SchoolDashboardData {
 
 export default function SchoolDashboardPage() {
   const { token, user } = useAuth();
+  const { setDepartments } = useSchoolContext();
   const [data, setData] = useState<SchoolDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +64,9 @@ export default function SchoolDashboardPage() {
     try {
       const result = await fetchCurrentSchool(token);
       setData(result);
+      if (result?.departments) {
+        setDepartments(result.departments);
+      }
     } catch (err: any) {
       setError(err.message || "Gagal memuat data dasbor sekolah dari database.");
     } finally {
@@ -75,6 +80,15 @@ export default function SchoolDashboardPage() {
 
   const lockedDeptCount = data?.departments.filter((d) => d.isLocked).length ?? 0;
 
+  const fallbackSchool = data?.school ?? {
+    id: user?.school?.id || "",
+    npsn: user?.school?.npsn || "10210850",
+    name: user?.school?.name || "SMK Telkom 1 Medan",
+    province: user?.school?.province || "Sumatera Utara",
+    city: user?.school?.city || "Medan",
+    isDemoSandbox: false,
+  };
+
   return (
     <div className="space-y-6">
       {/* Offline Alert Banner */}
@@ -85,25 +99,7 @@ export default function SchoolDashboardPage() {
         </div>
       )}
 
-      {loading ? (
-        /* Shimmer Skeleton Loading State */
-        <div className="flex flex-col lg:flex-row items-start gap-6">
-          <div className="flex-1 w-full space-y-4">
-            <div className="h-28 rounded-3xl bg-slate-200 animate-pulse" />
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-24 rounded-3xl bg-slate-200 animate-pulse" />
-              ))}
-            </div>
-            <div className="h-64 rounded-3xl bg-slate-200 animate-pulse" />
-            <div className="h-48 rounded-3xl bg-slate-200 animate-pulse" />
-          </div>
-          <div className="w-full lg:w-[320px] xl:w-[340px] 2xl:w-[360px] shrink-0 space-y-4">
-            <div className="h-36 rounded-3xl bg-slate-200 animate-pulse" />
-            <div className="h-44 rounded-3xl bg-slate-200 animate-pulse" />
-          </div>
-        </div>
-      ) : error ? (
+      {error ? (
         /* Error State with Retry Button */
         <div className="p-8 text-center bg-white rounded-3xl border border-rose-200 space-y-3 shadow-2xs">
           <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 mx-auto flex items-center justify-center">
@@ -119,41 +115,62 @@ export default function SchoolDashboardPage() {
             <span>Coba Muat Ulang</span>
           </button>
         </div>
-      ) : data ? (
-        /* Main 2-Column Responsive Layout */
+      ) : (
+        /* Main 2-Column Responsive Layout — Hero Banner always visible immediately, data cards show skeleton while loading */
         <div className="flex flex-col lg:flex-row items-start gap-6">
           {/* Main Content Area */}
           <div className="flex-1 min-w-0 w-full space-y-5">
-            {/* 1. School Profile Hero Banner */}
+            {/* 1. School Profile Hero Banner (Immediate Static Shell) */}
             <SchoolHeroBanner
-              school={data.school}
-              activePeriod={data.activePeriod}
+              school={fallbackSchool}
+              activePeriod={data?.activePeriod}
             />
 
-            {/* 2. 4 Metric Overview KPI Grid */}
-            <SchoolKpiGrid stats={data.stats} />
+            {loading || !data ? (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="h-24 rounded-3xl bg-slate-200 animate-pulse" />
+                  ))}
+                </div>
+                <div className="h-64 rounded-3xl bg-slate-200 animate-pulse" />
+                <div className="h-48 rounded-3xl bg-slate-200 animate-pulse" />
+              </>
+            ) : (
+              <>
+                {/* 2. 4 Metric Overview KPI Grid */}
+                <SchoolKpiGrid stats={data.stats} />
 
-            {/* 3. Department Curriculum Readiness Status */}
-            <DepartmentReadinessCard departments={data.departments} />
+                {/* 3. Department Curriculum Readiness Status */}
+                <DepartmentReadinessCard departments={data.departments} />
 
-            {/* 4. Priority Student Monitoring */}
-            <PriorityMonitoringCard students={data.priorityStudents} />
+                {/* 4. Priority Student Monitoring */}
+                <PriorityMonitoringCard students={data.priorityStudents} />
+              </>
+            )}
           </div>
 
           {/* Desktop Right Summary Widget Panel */}
-          <SchoolWidgetPanel
-            schoolName={data.school.name}
-            npsn={data.school.npsn}
-            adminName={user?.fullName || "Pokja PKL"}
-            activePeriodName={data.activePeriod?.name}
-            totalStudents={data.stats.totalStudents}
-            totalPlacements={data.stats.totalPlacements}
-            totalDudis={data.stats.totalDudis}
-            departmentsCount={data.departments.length}
-            lockedDepartmentsCount={lockedDeptCount}
-          />
+          {loading || !data ? (
+            <div className="w-full lg:w-[320px] xl:w-[340px] 2xl:w-[360px] shrink-0 space-y-4">
+              <div className="h-36 rounded-3xl bg-slate-200 animate-pulse" />
+              <div className="h-44 rounded-3xl bg-slate-200 animate-pulse" />
+            </div>
+          ) : (
+            <SchoolWidgetPanel
+              schoolName={data.school.name}
+              npsn={data.school.npsn}
+              adminName={user?.fullName || "Pokja PKL"}
+              activePeriodName={data.activePeriod?.name}
+              totalStudents={data.stats.totalStudents}
+              totalPlacements={data.stats.totalPlacements}
+              totalDudis={data.stats.totalDudis}
+              departmentsCount={data.departments.length}
+              lockedDepartmentsCount={lockedDeptCount}
+            />
+          )}
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

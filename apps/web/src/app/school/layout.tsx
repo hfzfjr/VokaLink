@@ -1,6 +1,7 @@
 import React from "react";
 import type { Metadata } from "next";
 import { AuthGuard } from "@/components/auth/AuthGuard";
+import { SchoolProvider } from "@/context/SchoolContext";
 import { SchoolHeader } from "@/components/school/SchoolHeader";
 import { SchoolSidebar } from "@/components/school/SchoolSidebar";
 import { SchoolBottomNav } from "@/components/school/SchoolBottomNav";
@@ -18,6 +19,7 @@ export default function SchoolLayout({
 }) {
   return (
     <AuthGuard allowedRoles={["SCHOOL_ADMIN"]}>
+      <SchoolProvider>
       <div className="min-h-screen bg-slate-50/80 text-slate-900 selection:bg-sky-500 selection:text-white flex flex-col font-sans print:bg-white print:p-0 print:m-0 print:min-h-0 print:block">
         {/* 1. Aksesibilitas: Skip-to-Content */}
         <a
@@ -54,6 +56,7 @@ export default function SchoolLayout({
           <SchoolBottomNav />
         </div>
       </div>
+      </SchoolProvider>
     </AuthGuard>
   );
 }

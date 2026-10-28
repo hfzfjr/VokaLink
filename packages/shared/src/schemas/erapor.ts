@@ -4,6 +4,9 @@ export const eraporQuerySchema = z.object({
   departmentId: z.string().uuid("ID Jurusan harus berupa UUID valid").optional(),
   academicPeriodId: z.string().uuid("ID Periode harus berupa UUID valid").optional(),
   format: z.enum(["json", "csv"]).default("json"),
+  search: z.string().optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
 });
 
 export type EraporQuery = z.infer<typeof eraporQuerySchema>;
