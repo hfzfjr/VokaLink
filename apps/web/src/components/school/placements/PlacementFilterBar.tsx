@@ -27,9 +27,9 @@ export function PlacementFilterBar({
   activeCount,
 }: PlacementFilterBarProps) {
   return (
-    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-      {/* Tabs Switcher (Full width grid on mobile & tablet, inline on desktop) */}
-      <div className="w-full lg:w-auto grid grid-cols-2 lg:flex items-center gap-1 bg-slate-100/80 p-1 rounded-2xl shrink-0">
+    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+      {/* Tabs Switcher (Full width on mobile/tablet, inline on desktop) */}
+      <div className="w-full xl:w-auto grid grid-cols-2 sm:flex items-center gap-1 bg-slate-100/80 p-1 rounded-2xl shrink-0">
         <button
           type="button"
           onClick={() => onTabChange("RECOMMENDATIONS")}
@@ -64,8 +64,8 @@ export function PlacementFilterBar({
       </div>
 
       {/* Search & Department Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 w-full lg:w-auto">
-        <div className="relative flex-1 w-full min-w-0 sm:w-64">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 w-full xl:w-auto">
+        <div className="relative flex-1 w-full min-w-0 sm:w-60 md:w-64">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
@@ -81,7 +81,7 @@ export function PlacementFilterBar({
             <select
               value={selectedDeptId}
               onChange={(e) => onDeptChange(e.target.value)}
-              className="w-full sm:w-auto max-w-full sm:max-w-[260px] lg:max-w-[300px] h-10 px-3.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer truncate shadow-2xs"
+              className="w-full sm:w-auto max-w-full sm:max-w-[240px] md:max-w-[260px] h-10 px-3.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer truncate shadow-2xs"
             >
               <option value="ALL">Semua Jurusan</option>
               {departments.map((dept) => (

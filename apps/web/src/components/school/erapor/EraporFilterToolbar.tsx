@@ -42,7 +42,7 @@ export function EraporFilterToolbar({
             <select
               value={selectedDeptId}
               onChange={(e) => onDeptChange(e.target.value)}
-              className="w-full sm:w-auto max-w-full h-10 px-3.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer truncate shadow-2xs"
+              className="w-full sm:w-auto max-w-full sm:max-w-[220px] md:max-w-[240px] h-10 px-3.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer truncate shadow-2xs"
             >
               <option value="ALL">Semua Jurusan</option>
               {departments.map((dept) => (

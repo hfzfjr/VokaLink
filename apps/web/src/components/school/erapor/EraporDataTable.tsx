@@ -48,10 +48,10 @@ export function EraporDataTable({ records, onOpenDetail }: EraporDataTableProps)
         return (
           <div
             key={r.placementId}
-            className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-slate-300 transition"
+            className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:border-slate-300 transition"
           >
             {/* Col 1: Student & DUDI Info (Fixed width on desktop for straight vertical alignment) */}
-            <div className="space-y-1.5 min-w-0 md:w-[320px] lg:w-[350px] shrink-0">
+            <div className="space-y-1.5 min-w-0 lg:w-[320px] xl:w-[350px] shrink-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-bold text-sm sm:text-[15px] text-slate-900 truncate">
                   {r.student.fullName}
@@ -99,8 +99,8 @@ export function EraporDataTable({ records, onOpenDetail }: EraporDataTableProps)
               </div>
             </div>
 
-            {/* Col 3: Nilai Akhir & Detail Trigger (Fixed width on desktop) */}
-            <div className="flex items-center justify-between md:justify-end gap-3.5 pt-2 md:pt-0 shrink-0 md:w-[260px]">
+            {/* Col 3: Nilai Akhir & Detail Trigger (Fixed width on desktop, flexible on mobile/tablet) */}
+            <div className="flex items-center justify-between lg:justify-end gap-3.5 pt-2 lg:pt-0 shrink-0 lg:w-[260px]">
               <div className="flex items-center gap-3.5 sm:gap-4 text-center">
                 {/* Nilai Akhir */}
                 <div className="flex flex-col items-center">
