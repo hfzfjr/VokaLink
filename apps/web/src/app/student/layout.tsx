@@ -42,7 +42,7 @@ export default function StudentLayout({
         <div className="flex-1 min-w-0 flex flex-col print:block print:w-full print:p-0 print:m-0">
           <main
             id="main-content"
-            className="flex-1 w-full max-w-7xl mx-auto px-3.5 sm:px-5 lg:px-8 py-4 md:py-6 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:pb-10 print:p-0 print:m-0 print:max-w-none print:w-full"
+            className="flex-1 w-full max-w-[1680px] mx-auto px-3 sm:px-4 lg:px-6 py-4 md:py-6 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:pb-10 print:p-0 print:m-0 print:max-w-none print:w-full"
           >
             {children}
           </main>

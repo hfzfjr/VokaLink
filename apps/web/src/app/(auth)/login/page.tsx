@@ -63,7 +63,7 @@ function LoginForm() {
       if (userRole === "SCHOOL_ADMIN") {
         router.replace("/school/dashboard");
       } else if (userRole === "TEACHER") {
-        router.replace("/teacher/heatmap");
+        router.replace("/teacher/dashboard");
       } else if (userRole === "STUDENT") {
         router.replace("/student/home");
       }
@@ -132,7 +132,10 @@ function LoginForm() {
 
     setLoading(true);
     try {
-      const apiUrl = process.env["NEXT_PUBLIC_API_URL"] || "http://localhost:3001/api/v1";
+      const apiUrl =
+        typeof window !== "undefined"
+          ? `${window.location.protocol}//${window.location.hostname}:3001/api/v1`
+          : (process.env["NEXT_PUBLIC_API_URL"] || "http://localhost:3001/api/v1");
 
       // 1. Jika identifier berformat email, coba validasi melalui Supabase Auth terlebih dahulu
       if (identifier.includes("@")) {
@@ -165,7 +168,7 @@ function LoginForm() {
             if (role === "SCHOOL_ADMIN") {
               router.push("/school/dashboard");
             } else if (role === "TEACHER") {
-              router.push("/teacher/heatmap");
+              router.push("/teacher/dashboard");
             } else if (role === "STUDENT") {
               router.push("/student/home");
             } else {
@@ -189,7 +192,7 @@ function LoginForm() {
       if (role === "STUDENT") {
         router.push("/student/home");
       } else if (role === "TEACHER") {
-        router.push("/teacher/heatmap");
+        router.push("/teacher/dashboard");
       } else if (role === "SCHOOL_ADMIN") {
         router.push("/school/dashboard");
       } else {

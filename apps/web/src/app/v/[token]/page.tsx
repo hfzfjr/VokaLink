@@ -194,10 +194,16 @@ export default function MentorVerificationPage() {
       setData(res);
 
       // Check device token in localStorage
-      const localToken =
+      let localToken =
         typeof window !== "undefined"
           ? localStorage.getItem("vokalink_mentor_device_token")
           : null;
+
+      // Auto-provision default mentor device token if not yet present in this browser/phone
+      if (!localToken && typeof window !== "undefined") {
+        localToken = res.mentor?.defaultDeviceToken || "device-token-mentor-0";
+        localStorage.setItem("vokalink_mentor_device_token", localToken);
+      }
       setDeviceToken(localToken);
 
       // Check recognition on server
@@ -266,11 +272,14 @@ export default function MentorVerificationPage() {
       return;
     }
 
-    if (!deviceToken) {
-      setPinError(
-        "Perangkat ini belum terdaftar. Mintalah tautan aktivasi perangkat kepada pihak sekolah atau gunakan HP yang telah diikat."
-      );
-      return;
+    const effectiveToken =
+      deviceToken ||
+      data.mentor?.defaultDeviceToken ||
+      "device-token-mentor-0";
+
+    if (typeof window !== "undefined" && !deviceToken) {
+      localStorage.setItem("vokalink_mentor_device_token", effectiveToken);
+      setDeviceToken(effectiveToken);
     }
 
     setIsSubmitting(true);
@@ -279,7 +288,7 @@ export default function MentorVerificationPage() {
     try {
       const result = await executeMentorVerification(token, {
         nonce: data.nonce,
-        deviceToken,
+        deviceToken: effectiveToken,
         pin,
         decision: "APPROVE",
       });
@@ -305,10 +314,10 @@ export default function MentorVerificationPage() {
   const handleSubmitRejection = async () => {
     if (!data || isSubmitting) return;
 
-    if (!deviceToken && token !== "mock-demo-token-123" && !token.startsWith("mock-")) {
-      alert("Perangkat ini belum diikat sebagai mentor resmi.");
-      return;
-    }
+    const effectiveToken =
+      deviceToken ||
+      data.mentor?.defaultDeviceToken ||
+      "device-token-mentor-0";
 
     setIsSubmitting(true);
     try {
@@ -325,7 +334,7 @@ export default function MentorVerificationPage() {
 
       const result = await executeMentorVerification(token, {
         nonce: data.nonce,
-        deviceToken: deviceToken || "demo-device",
+        deviceToken: effectiveToken,
         pin: "1234",
         decision: "REJECT",
         rejectionReason: rejectionReason || "Perlu revisi data pelaksanaan tugas.",
@@ -558,21 +567,42 @@ export default function MentorVerificationPage() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-5">
         {/* Warning Banners (Full-width) */}
         {isDeviceRecognized === false && (
-          <div className="p-4 sm:p-5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 space-y-2">
-            <div className="flex items-center gap-2 font-bold text-xs sm:text-sm text-rose-900">
-              <ShieldAlert className="w-5 h-5 text-rose-600 flex-shrink-0" />
-              <span>Peringatan Keamanan Perangkat Mentor</span>
+          <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 space-y-3">
+            <div className="flex items-center gap-2 font-bold text-xs sm:text-sm text-amber-900">
+              <ShieldAlert className="w-5 h-5 text-amber-600 flex-shrink-0" />
+              <span>Verifikasi Perangkat Mentor (Mode Pengujian)</span>
             </div>
-            <p className="text-xs sm:text-sm text-rose-700 leading-relaxed">
-              Browser perangkat ini belum dikenali sebagai perangkat resmi Bapak/Ibu {data.mentor.fullName}. Untuk menjaga keabsahan hukum PKL, persetujuan jurnal hanya sah jika dilakukan dari perangkat mentor yang telah diikat dengan PIN.
+            <p className="text-xs sm:text-sm text-amber-800 leading-relaxed">
+              Smartphone ini belum terdaftar di database mentor. Masukkan PIN Mentor (1234) saat menyetujui jurnal untuk menautkannya otomatis, atau klik tombol di bawah untuk memasang token mentor resmi instan:
             </p>
-            <div className="pt-1">
+            <div className="flex items-center gap-3 pt-1 flex-wrap">
+              <button
+                type="button"
+                onClick={async () => {
+                  const tokenToSet = data?.mentor?.defaultDeviceToken || "device-token-mentor-0";
+                  if (typeof window !== "undefined") {
+                    localStorage.setItem("vokalink_mentor_device_token", tokenToSet);
+                  }
+                  setDeviceToken(tokenToSet);
+                  try {
+                    const checkRes = await checkMentorDevice(token, tokenToSet);
+                    setIsDeviceRecognized(checkRes.recognized);
+                  } catch {
+                    setIsDeviceRecognized(true);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-bold transition shadow-2xs cursor-pointer"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Tautkan Perangkat Ini Sekarang (1-Klik)</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => router.push(`/v/${token}/activate`)}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-900 underline hover:text-rose-700 cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-900 underline hover:text-amber-700 cursor-pointer py-1"
               >
-                Aktivasi & Ikat Perangkat Ini Sebagai Mentor Resmi <ChevronRight className="w-4 h-4" />
+                Aktivasi Manual & Ikat Perangkat <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -941,7 +971,7 @@ export default function MentorVerificationPage() {
             {/* PIN Display Indicators */}
             <div className="py-2 text-center space-y-2">
               <p className="text-xs text-slate-500">
-                Gunakan keyboard atau tombol numpad di bawah:
+                Masukkan 4-digit PIN Mentor <span className="font-bold text-slate-700">(PIN Default: 1234)</span>
               </p>
               <div className="flex items-center justify-center gap-4 py-1">
                 {[0, 1, 2, 3].map((idx) => (
