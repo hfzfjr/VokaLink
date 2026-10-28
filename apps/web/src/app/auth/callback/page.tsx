@@ -17,7 +17,10 @@ export default function AuthCallbackPage() {
 
     async function handleAuth() {
       try {
-        const apiUrl = process.env["NEXT_PUBLIC_API_URL"] || "http://localhost:3001/api/v1";
+        const apiUrl =
+          typeof window !== "undefined"
+            ? `${window.location.protocol}//${window.location.hostname}:3001/api/v1`
+            : (process.env["NEXT_PUBLIC_API_URL"] || "http://localhost:3001/api/v1");
 
         // 1. Ambil session Supabase (tunggu auth state jika perlu)
         let token: string | null = null;
@@ -93,7 +96,7 @@ export default function AuthCallbackPage() {
         if (role === "SCHOOL_ADMIN") {
           router.replace("/school/dashboard");
         } else if (role === "TEACHER") {
-          router.replace("/teacher/heatmap");
+          router.replace("/teacher/dashboard");
         } else if (role === "STUDENT") {
           router.replace("/student/home");
         } else {

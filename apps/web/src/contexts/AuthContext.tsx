@@ -63,7 +63,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const apiUrl =
-    process.env["NEXT_PUBLIC_API_URL"] || "http://localhost:3001/api/v1";
+    typeof window !== "undefined"
+      ? `${window.location.protocol}//${window.location.hostname}:3001/api/v1`
+      : (process.env["NEXT_PUBLIC_API_URL"] || "http://localhost:3001/api/v1");
 
   // Simpan sesi ke state dan storage
   const setSession = useCallback((newToken: string, newUser: AuthUser) => {

@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/use-auth";
 import {
-  Flame,
+  Home,
   Users,
   ShieldAlert,
   ShieldCheck,
@@ -28,37 +28,40 @@ interface NavItem {
   label: string;
   sublabel: string;
   href: string;
+  viewParam?: string;
   icon: React.ComponentType<{ className?: string }>;
-  badge?: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
   {
-    id: "heatmap",
-    label: "Radar & Heatmap",
-    sublabel: "Matriks Capaian 792 JP",
-    href: "/teacher/heatmap",
-    icon: Flame,
+    id: "dashboard",
+    label: "Beranda",
+    sublabel: "Monitoring & Progres Siswa",
+    href: "/teacher/dashboard",
+    icon: Home,
   },
   {
     id: "drift",
     label: "Peringatan Drift",
     sublabel: "Deteksi Dini Anomali",
-    href: "/teacher/heatmap?view=drift",
+    href: "/teacher/dashboard?view=drift",
+    viewParam: "drift",
     icon: ShieldAlert,
   },
   {
     id: "students",
     label: "Siswa Binaan",
     sublabel: "Daftar Siswa & DUDI",
-    href: "/teacher/heatmap?view=students",
+    href: "/teacher/dashboard?view=students",
+    viewParam: "students",
     icon: Users,
   },
   {
     id: "security",
     label: "Audit Keamanan",
     sublabel: "Integritas Validasi PIN",
-    href: "/teacher/heatmap?view=security",
+    href: "/teacher/dashboard?view=security",
+    viewParam: "security",
     icon: ShieldCheck,
   },
 ];
@@ -66,15 +69,33 @@ const NAV_ITEMS: NavItem[] = [
 export function TeacherSidebar() {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentView = searchParams.get("view");
   const { user, logout } = useAuth();
 
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [activeTab, setActiveTab] = useState<"profile" | "school" | "drift">("profile");
 
-  // Smooth hover expansion
+  // Smooth hover expansion (hanya mengecil ketika kursor tidak di-hover lagi)
   const [isHovered, setIsHovered] = useState(false);
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+  };
+
   const isExpanded = isHovered;
+
+  const isItemActive = (item: NavItem) => {
+    if (item.viewParam) {
+      return currentView === item.viewParam;
+    }
+    return !currentView && (pathname === "/teacher/dashboard" || pathname === "/teacher/heatmap" || pathname === "/teacher");
+  };
 
   // Settings form states
   const [phone, setPhone] = useState("081234567899");
@@ -123,8 +144,8 @@ export function TeacherSidebar() {
     <>
       <aside
         aria-label="Navigasi Samping Guru Pembimbing"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         className={cn(
           "hidden md:flex flex-col shrink-0 sticky top-4 h-[calc(100vh-2rem)] py-3 px-3 bg-white/95 backdrop-blur-xl rounded-[28px] border border-slate-200/80 z-40 select-none overflow-hidden transition-[width,box-shadow] duration-250 ease-out",
           isExpanded
@@ -132,11 +153,11 @@ export function TeacherSidebar() {
             : "w-[72px] shadow-[0_8px_30px_rgba(15,23,42,0.05)]"
         )}
       >
-        {/* Top: Brand Logo 'V' + Title */}
+        {/* Top: Brand Logo 'V' + Title (Fixed Icon Position) */}
         <div className="flex flex-col w-full">
           <Link
-            href="/teacher/heatmap"
-            title="VokaLink Guru — Radar & Heatmap"
+            href="/teacher/dashboard"
+            title="VokaLink Guru — Beranda"
             className="w-full h-12 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center overflow-hidden hover:border-sky-300 transition-colors duration-150"
           >
             <div className="w-12 h-12 shrink-0 flex items-center justify-center p-2.5">
@@ -148,28 +169,23 @@ export function TeacherSidebar() {
                 isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
               )}
             >
-              <span className="font-extrabold text-slate-900 text-sm tracking-tight leading-none block whitespace-nowrap">
-                VokaLink <span className="text-sky-500">Guru</span>
-              </span>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mt-0.5">
-                Pembimbing PKL
+              <span className="font-bold text-slate-900 text-sm tracking-tight leading-none block whitespace-nowrap">
+                VokaLink
               </span>
             </div>
           </Link>
           <div className="-mx-3 w-[calc(100%+24px)] h-px bg-slate-200/80 my-2.5" />
         </div>
 
-        {/* Center: Main Navigation Stack */}
+        {/* Center: Main Navigation Stack (Fixed Icon Positions) */}
         <nav aria-label="Menu Guru" className="flex flex-col gap-1.5 w-full">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
-            const isActive =
-              Boolean(pathname) &&
-              (pathname === item.href ||
-                (item.href !== "/teacher/heatmap" && pathname!.startsWith(item.href)));
+            const isActive = isItemActive(item);
 
             return (
               <div key={item.id} className="relative flex items-center w-full">
+                {/* Active Indicator Bar on left edge - completely fixed position */}
                 {isActive && (
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full bg-sky-500 z-10" />
                 )}
@@ -201,21 +217,14 @@ export function TeacherSidebar() {
                       isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
                     )}
                   >
-                    <div className="flex items-center gap-1.5">
-                      <p
-                        className={cn(
-                          "text-xs font-semibold truncate leading-tight whitespace-nowrap",
-                          isActive ? "text-sky-600 font-bold" : "text-slate-800"
-                        )}
-                      >
-                        {item.label}
-                      </p>
-                      {item.badge && (
-                        <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-sky-100 text-sky-800 border border-sky-200/60 leading-none">
-                          {item.badge}
-                        </span>
+                    <p
+                      className={cn(
+                        "text-xs font-semibold truncate leading-tight whitespace-nowrap",
+                        isActive ? "text-sky-600 font-bold" : "text-slate-800"
                       )}
-                    </div>
+                    >
+                      {item.label}
+                    </p>
                     <p className="text-[10px] text-slate-400 truncate leading-tight mt-0.5 whitespace-nowrap">
                       {item.sublabel}
                     </p>
@@ -255,7 +264,7 @@ export function TeacherSidebar() {
               )}
             >
               <p className="text-xs font-semibold text-slate-800 truncate leading-tight whitespace-nowrap">
-                Pengaturan Guru
+                Pengaturan &amp; Akun
               </p>
               <p className="text-[10px] text-slate-400 truncate leading-tight mt-0.5 whitespace-nowrap">
                 Profil &amp; Notifikasi
@@ -285,7 +294,7 @@ export function TeacherSidebar() {
               )}
             >
               <p className="text-xs font-semibold text-slate-800 truncate leading-tight whitespace-nowrap">
-                Panduan Drift
+                Bantuan &amp; Panduan
               </p>
               <p className="text-[10px] text-slate-400 truncate leading-tight mt-0.5 whitespace-nowrap">
                 Alur Supervisi PKL
@@ -330,8 +339,9 @@ export function TeacherSidebar() {
           role="dialog"
           aria-modal="true"
           className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-in fade-in-0 duration-150"
+          style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
         >
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200/80 space-y-5">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200/80 animate-in zoom-in-95 duration-150 space-y-5">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-3">
@@ -458,7 +468,7 @@ export function TeacherSidebar() {
                       Notifikasi Peringatan Drift Otomatis
                     </p>
                     <p className="text-[11px] text-slate-500 font-normal">
-                      Peringatan anomali beban non-kejuruan &gt;15% atau stagnasi materi.
+                      Peringatan anomali beban non-kompetensi &gt;15% atau stagnasi materi.
                     </p>
                   </div>
                   <input
@@ -526,8 +536,9 @@ export function TeacherSidebar() {
           role="dialog"
           aria-modal="true"
           className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-in fade-in-0 duration-150"
+          style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
         >
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200/80 space-y-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200/80 animate-in zoom-in-95 duration-150 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center font-bold text-sm">

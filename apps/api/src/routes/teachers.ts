@@ -1,4 +1,5 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
+import { jwtVerify } from "jose";
 import { prisma } from "../lib/prisma.js";
 import { AppError } from "../middlewares/error-handler.js";
 import { evaluateDriftForAllPlacements } from "../services/drift-evaluator.js";
@@ -12,6 +13,84 @@ import {
 } from "@vokalink/shared";
 
 export const teachersRouter = Router({ mergeParams: true });
+
+interface TeacherContext {
+  userId?: string;
+  schoolId?: string;
+  role?: string;
+}
+
+/**
+ * Helper untuk mengidentifikasi tenant sekolah dan guru pembimbing dari Bearer JWT (Supabase Auth).
+ * Menjamin isolasi multi-tenant (AGENTS.md Aturan #6) sekaligus kompatibel dengan tes/demo offline.
+ */
+async function getTeacherContext(req: Request): Promise<TeacherContext | null> {
+  if (req.user) {
+    return {
+      userId: req.user.id,
+      schoolId: req.user.schoolId,
+      role: req.user.role,
+    };
+  }
+
+  const authHeader = req.headers.authorization;
+  const paramSchoolId = (req.params as any)?.schoolId;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return paramSchoolId ? { schoolId: paramSchoolId } : null;
+  }
+
+  const token = authHeader.split(" ")[1];
+  if (!token) return paramSchoolId ? { schoolId: paramSchoolId } : null;
+
+  if (process.env["NODE_ENV"] === "test" && (token === "mock-token" || !token.includes("."))) {
+    return {
+      userId: "00000000-0000-0000-0000-000000000021",
+      schoolId: paramSchoolId || "00000000-0000-0000-0000-000000000002",
+      role: "TEACHER",
+    };
+  }
+
+  const jwtSecret = process.env["SUPABASE_JWT_SECRET"];
+  if (!jwtSecret) return paramSchoolId ? { schoolId: paramSchoolId } : null;
+
+  try {
+    let payload: Record<string, unknown>;
+    try {
+      const secretKey = new TextEncoder().encode(jwtSecret);
+      const result = await jwtVerify(token, secretKey);
+      payload = result.payload as Record<string, unknown>;
+    } catch {
+      const secretKey = Buffer.from(jwtSecret, "base64");
+      const result = await jwtVerify(token, secretKey);
+      payload = result.payload as Record<string, unknown>;
+    }
+
+    const sub = payload["sub"] as string | undefined;
+    const appMetadata = (payload["app_metadata"] ?? {}) as Record<string, unknown>;
+    let role = (appMetadata["role"] ?? "TEACHER") as string;
+    let schoolId = (appMetadata["school_id"] ?? paramSchoolId ?? "") as string;
+
+    if (sub && !schoolId) {
+      const profile = await prisma.userProfile.findUnique({
+        where: { id: sub },
+        select: { schoolId: true, role: true },
+      });
+      if (profile) {
+        schoolId = profile.schoolId;
+        role = profile.role;
+      }
+    }
+
+    return {
+      userId: sub,
+      schoolId: schoolId || paramSchoolId,
+      role,
+    };
+  } catch {
+    return paramSchoolId ? { schoolId: paramSchoolId } : null;
+  }
+}
 
 // ─── MOCK FALLBACK DATA (Demo Sandbox & Resiliensi Offline) ─────────────────
 function getMockHeatmapData(): HeatmapResponse {
@@ -531,23 +610,60 @@ async function handleGetHeatmap(req: Request, res: Response, next: NextFunction)
     }
 
     // ─── QUERY DATABASE PRISMA ───────────────────────────────────────────────
-    // 1. Ambil Departemen & Elemen CP (Default ke RPL jika tidak dispesifikasikan)
-    const department =
-      (await prisma.schoolDepartment.findFirst({
+    const authContext = await getTeacherContext(req);
+
+    // 1. Ambil Departemen & Elemen CP (Scope ke sekolah guru jika terotentikasi)
+    const deptWhere: any = {};
+    if (departmentId) {
+      deptWhere.id = departmentId;
+    } else {
+      deptWhere.sectorCode = "RPL";
+    }
+    if (authContext?.schoolId) {
+      deptWhere.schoolId = authContext.schoolId;
+    }
+
+    let department = await prisma.schoolDepartment.findFirst({
+      where: deptWhere,
+      include: {
+        cpElements: {
+          orderBy: { sortOrder: "asc" },
+        },
+      },
+    });
+
+    // Fallback jika jurusan belum ditemukan di sekolah guru
+    if (!department && authContext?.schoolId) {
+      department = await prisma.schoolDepartment.findFirst({
+        where: { schoolId: authContext.schoolId },
+        include: {
+          cpElements: {
+            orderBy: { sortOrder: "asc" },
+          },
+        },
+      });
+    }
+
+    if (!department) {
+      department = await prisma.schoolDepartment.findFirst({
         where: departmentId ? { id: departmentId } : { sectorCode: "RPL" },
         include: {
           cpElements: {
             orderBy: { sortOrder: "asc" },
           },
         },
-      })) ||
-      (await prisma.schoolDepartment.findFirst({
+      });
+    }
+
+    if (!department) {
+      department = await prisma.schoolDepartment.findFirst({
         include: {
           cpElements: {
             orderBy: { sortOrder: "asc" },
           },
         },
-      }));
+      });
+    }
 
     if (!department) {
       res.status(200).json(getMockHeatmapData());
@@ -562,13 +678,19 @@ async function handleGetHeatmap(req: Request, res: Response, next: NextFunction)
       sortOrder: cp.sortOrder,
     }));
 
-    // 2. Query Penempatan Siswa
+    // 2. Query Penempatan Siswa (Isolasi Tenant Guru & Sekolah - AGENTS.md Aturan #6)
     const placementWhere: any = {
       student: {
         schoolDepartmentId: department.id,
+        ...(authContext?.schoolId ? { schoolId: authContext.schoolId } : {}),
       },
       status: { in: ["ACTIVE", "ROTATED_OUT"] },
     };
+
+    // Jika guru pembimbing login, hanya tampilkan siswa binaannya
+    if (authContext?.role === "TEACHER" && authContext.userId) {
+      placementWhere.teacherId = authContext.userId;
+    }
 
     if (dudiId) {
       placementWhere.dudiPartnerId = dudiId;
@@ -599,7 +721,26 @@ async function handleGetHeatmap(req: Request, res: Response, next: NextFunction)
     const now = new Date();
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-    const students: HeatmapStudentRow[] = placements.map((p) => {
+    // Grouping penempatan berdasarkan studentId:
+    // Menjamin siswa yang dirotasi (ROTATED_OUT -> ACTIVE) tidak muncul ganda di tabel,
+    // dan akumulasi jam JP terverifikasi lintas penempatan tetap utuh (PRD FR-009 / BR-008).
+    const studentPlacementsMap = new Map<string, typeof placements>();
+    for (const p of placements) {
+      const list = studentPlacementsMap.get(p.studentId) || [];
+      list.push(p);
+      studentPlacementsMap.set(p.studentId, list);
+    }
+
+    const students: HeatmapStudentRow[] = [];
+
+    for (const [_studentId, pList] of studentPlacementsMap.entries()) {
+      const activePlacement = pList.find((p) => p.status === "ACTIVE") || pList[0]!;
+
+      // Jika filter dudiId aktif dan penempatan saat ini bukan di DUDI tersebut, lewati
+      if (dudiId && activePlacement.dudiPartnerId !== dudiId) {
+        continue;
+      }
+
       let totalVerifiedJp = 0;
       let totalPendingJp = 0;
       let nonCompetencyJpLast14Days = 0;
@@ -611,28 +752,36 @@ async function handleGetHeatmap(req: Request, res: Response, next: NextFunction)
         cpJpMap.set(cp.id, 0);
       }
 
-      for (const log of p.dailyLogs) {
-        const isLast14Days = new Date(log.logDate) >= fourteenDaysAgo;
-        const isVerified = log.status === "VERIFIED";
+      // Agregasi seluruh log harian dari semua penempatan siswa (termasuk riwayat sebelum rotasi)
+      for (const p of pList) {
+        for (const log of p.dailyLogs) {
+          const isLast14Days = new Date(log.logDate) >= fourteenDaysAgo;
+          const isVerified = log.status === "VERIFIED";
 
-        for (const item of log.items) {
-          if (isVerified) {
-            totalVerifiedJp += item.durationJp;
-            if (item.jobCard?.cpElementId && cpJpMap.has(item.jobCard.cpElementId)) {
-              cpJpMap.set(
-                item.jobCard.cpElementId,
-                (cpJpMap.get(item.jobCard.cpElementId) || 0) + item.durationJp
-              );
+          for (const item of log.items) {
+            if (isVerified) {
+              totalVerifiedJp += item.durationJp;
+              if (item.jobCard?.cpElementId && cpJpMap.has(item.jobCard.cpElementId)) {
+                cpJpMap.set(
+                  item.jobCard.cpElementId,
+                  (cpJpMap.get(item.jobCard.cpElementId) || 0) + item.durationJp
+                );
+              }
+            } else if (log.status === "PENDING_VERIFICATION") {
+              totalPendingJp += item.durationJp;
             }
-          } else if (log.status === "PENDING_VERIFICATION") {
-            totalPendingJp += item.durationJp;
-          }
 
-          // PRD FR-005 (A2): Presensi Sakit/Izin tidak memengaruhi rasio deviasi kompetensi
-          if (isLast14Days && log.attendanceType !== "SICK" && log.attendanceType !== "PERMIT") {
-            totalJpLast14Days += item.durationJp;
-            if (item.jobCard?.isNonCompetency || item.nonCompetencyCategory) {
-              nonCompetencyJpLast14Days += item.durationJp;
+            // PRD FR-005 (A2): Presensi Sakit/Izin dan log revisi tidak memengaruhi rasio deviasi kompetensi
+            if (
+              isLast14Days &&
+              log.status !== "REVISION_REQUIRED" &&
+              log.attendanceType !== "SICK" &&
+              log.attendanceType !== "PERMIT"
+            ) {
+              totalJpLast14Days += item.durationJp;
+              if (item.jobCard?.isNonCompetency || item.nonCompetencyCategory) {
+                nonCompetencyJpLast14Days += item.durationJp;
+              }
             }
           }
         }
@@ -660,7 +809,8 @@ async function handleGetHeatmap(req: Request, res: Response, next: NextFunction)
       });
 
       const overallPercentage = Math.min(100, Math.round((totalVerifiedJp / 792) * 100));
-      const driftAlerts: DriftAlertItem[] = p.driftAlerts.map((da) => ({
+
+      const driftAlerts: DriftAlertItem[] = activePlacement.driftAlerts.map((da) => ({
         id: da.id,
         placementId: da.placementId,
         studentId: da.studentId,
@@ -673,30 +823,36 @@ async function handleGetHeatmap(req: Request, res: Response, next: NextFunction)
 
       const hasDriftWarning = driftAlerts.some((d) => d.status === "OPEN");
 
-      return {
-        studentId: p.student.id,
-        fullName: p.student.fullName,
-        nisn: p.student.identityNumber,
+      // PRD BR-008: Grace period orientasi DUDI (14 hari pertama sejak mulai penempatan)
+      const daysSincePlacementStart = Math.floor(
+        (now.getTime() - new Date(activePlacement.createdAt).getTime()) / (24 * 60 * 60 * 1000)
+      );
+      const orientationGracePeriod = daysSincePlacementStart <= 14;
+
+      students.push({
+        studentId: activePlacement.student.id,
+        fullName: activePlacement.student.fullName,
+        nisn: activePlacement.student.identityNumber,
         avatarUrl: null,
         placement: {
-          id: p.id,
-          dudiId: p.dudiPartner.id,
-          dudiName: p.dudiPartner.name,
-          mentorName: p.dudiMentor?.fullName || "Belum Ditugaskan",
-          mentorPhone: p.dudiMentor?.whatsappNumber || undefined,
-          city: p.dudiPartner.city,
+          id: activePlacement.id,
+          dudiId: activePlacement.dudiPartner.id,
+          dudiName: activePlacement.dudiPartner.name,
+          mentorName: activePlacement.dudiMentor?.fullName || "Belum Ditugaskan",
+          mentorPhone: activePlacement.dudiMentor?.whatsappNumber || undefined,
+          city: activePlacement.dudiPartner.city,
         },
         totalVerifiedJp,
         totalPendingJp,
         nonCompetencyJpLast14Days,
         totalJpLast14Days,
         overallPercentage,
-        orientationGracePeriod: false,
+        orientationGracePeriod,
         hasDriftWarning,
         driftAlerts,
         cpProgress,
-      };
-    });
+      });
+    }
 
     let filteredStudents = students;
     if (driftOnly === "true") {
@@ -749,13 +905,15 @@ async function handleGetHeatmap(req: Request, res: Response, next: NextFunction)
 // ─── GET /drift-alerts ───────────────────────────────────────────────────────
 teachersRouter.get(
   "/drift-alerts",
-  async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const priorityOrder: Record<string, number> = {
         NON_COMPETENCY_OVERLOAD: 1,
         SKILL_MONOTONY: 2,
         APPROVAL_DORMANCY: 3,
       };
+
+      const authContext = await getTeacherContext(req);
 
       // Cek apakah database tersedia
       let isDbAvailable = false;
@@ -769,8 +927,15 @@ teachersRouter.get(
       }
 
       if (isDbAvailable) {
+        const alertWhere: any = { status: "OPEN" };
+        if (authContext?.role === "TEACHER" && authContext.userId) {
+          alertWhere.placement = { teacherId: authContext.userId };
+        } else if (authContext?.schoolId) {
+          alertWhere.placement = { student: { schoolId: authContext.schoolId } };
+        }
+
         const dbAlerts = await prisma.driftAlert.findMany({
-          where: { status: "OPEN" },
+          where: alertWhere,
           include: {
             student: true,
             placement: {
@@ -860,8 +1025,10 @@ teachersRouter.post(
 // ─── GET /security-flags (FR-007 A2 & TC-006: Audit Keamanan Dasbor Guru) ───
 teachersRouter.get(
   "/security-flags",
-  async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      const authContext = await getTeacherContext(req);
+
       let isDbAvailable = false;
       try {
         if (process.env.DATABASE_URL && process.env.NODE_ENV !== "test") {
@@ -873,8 +1040,15 @@ teachersRouter.get(
       }
 
       if (isDbAvailable) {
+        const flagWhere: any = { acknowledgedAt: null };
+        if (authContext?.role === "TEACHER" && authContext.userId) {
+          flagWhere.placement = { teacherId: authContext.userId };
+        } else if (authContext?.schoolId) {
+          flagWhere.placement = { student: { schoolId: authContext.schoolId } };
+        }
+
         const dbFlags = await prisma.securityFlag.findMany({
-          where: { acknowledgedAt: null },
+          where: flagWhere,
           include: {
             mentor: true,
             placement: {

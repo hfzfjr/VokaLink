@@ -41,7 +41,7 @@ export function StudentShell({ children, hideSidePanel }: StudentShellProps) {
       <ConnectivityBanner />
 
       {/* 4. MAIN LAYOUT: 1 Col on Mobile (<lg), 2 Col on Desktop (≥lg) */}
-      <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-24 lg:pb-12">
+      <div className="flex-1 w-full max-w-[1680px] mx-auto px-3 sm:px-4 lg:px-6 pt-4 pb-24 lg:pb-12">
         <div className="flex gap-8 items-start">
           {/* Main Content Area */}
           <main className="flex-1 min-w-0">

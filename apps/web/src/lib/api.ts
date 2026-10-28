@@ -36,8 +36,21 @@ export type {
   SecurityFlagItem,
 };
 
-const API_BASE_URL =
-  process.env["NEXT_PUBLIC_API_URL"] || "http://localhost:3001/api/v1";
+export function getApiBaseUrl(): string {
+  if (process.env["NEXT_PUBLIC_API_URL"]) {
+    return process.env["NEXT_PUBLIC_API_URL"];
+  }
+  if (typeof window !== "undefined") {
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    return `${protocol}//${hostname}:3001/api/v1`;
+  }
+  return "http://localhost:3001/api/v1";
+}
+
+const API_BASE_URL = typeof window !== "undefined"
+  ? `${window.location.protocol}//${window.location.hostname}:3001/api/v1`
+  : (process.env["NEXT_PUBLIC_API_URL"] || "http://localhost:3001/api/v1");
 
 export interface MasterDepartmentItem {
   sectorCode: string;
@@ -1121,6 +1134,7 @@ export interface MentorVerifyDetailsResponse {
     jobTitle: string;
     dudiName: string;
     hasDeviceBound: boolean;
+    defaultDeviceToken?: string;
     isLocked: boolean;
     lockedUntil: string | null;
   };
@@ -1229,6 +1243,9 @@ export async function generateVerificationLink(data: {
   token: string;
   verificationUrl: string;
   fullUrl: string;
+  networkUrl?: string;
+  hostIp?: string;
+  mentorDefaultToken?: string;
   waShareUrl: string | null;
   mode: string;
   expiresAt: string;
@@ -1242,6 +1259,23 @@ export async function generateVerificationLink(data: {
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw createSafeApiError(json, "Gagal membuat tautan verifikasi");
   return json;
+}
+
+/** GET /api/v1/network-info */
+export async function fetchNetworkInfo(): Promise<{
+  localIp: string;
+  webUrl: string;
+  apiUrl: string;
+}> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/network-info`);
+    if (res.ok) return await res.json();
+  } catch {}
+  return {
+    localIp: "127.0.0.1",
+    webUrl: "http://localhost:3000",
+    apiUrl: "http://localhost:3001/api/v1",
+  };
 }
 
 /**
@@ -1277,25 +1311,29 @@ export async function fetchTeacherHeatmap(params?: {
   return json;
 }
 
-export async function fetchTeacherDriftAlerts(): Promise<{ alerts: any[] }> {
+export async function fetchTeacherDriftAlerts(token?: string): Promise<{ alerts: any[] }> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
   const res = await fetch(`${API_BASE_URL}/teachers/drift-alerts`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers,
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json.detail || "Gagal memuat daftar peringatan drift");
   return json;
 }
 
-export async function triggerEvaluateDriftAlerts(): Promise<{
+export async function triggerEvaluateDriftAlerts(token?: string): Promise<{
   success: boolean;
   evaluatedCount: number;
   activeAlertsCreatedOrUpdated: number;
   message: string;
 }> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
   const res = await fetch(`${API_BASE_URL}/teachers/drift-alerts/evaluate`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json.detail || "Gagal mengevaluasi algoritma drift");
@@ -1305,10 +1343,12 @@ export async function triggerEvaluateDriftAlerts(): Promise<{
 /**
  * FR-007 A2 & TC-006: Audit Keamanan Dasbor Guru
  */
-export async function fetchSecurityFlags(): Promise<{ flags: SecurityFlagItem[] }> {
+export async function fetchSecurityFlags(token?: string): Promise<{ flags: SecurityFlagItem[] }> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
   const res = await fetch(`${API_BASE_URL}/teachers/security-flags`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers,
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json.detail || "Gagal memuat bendera audit keamanan");
@@ -1316,11 +1356,14 @@ export async function fetchSecurityFlags(): Promise<{ flags: SecurityFlagItem[] 
 }
 
 export async function acknowledgeSecurityFlag(
-  id: string
+  id: string,
+  token?: string
 ): Promise<{ success: boolean; message: string }> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
   const res = await fetch(`${API_BASE_URL}/teachers/security-flags/${id}/acknowledge`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers,
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json.detail || "Gagal menandai bendera audit");

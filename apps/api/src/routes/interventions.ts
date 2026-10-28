@@ -316,13 +316,20 @@ interventionsRouter.post(
           }
         }
 
+        // Resolusi teacherId dari penempatan jika req.user belum terpasang
+        const placement = await tx.placement.findUnique({
+          where: { id: placementId },
+          select: { teacherId: true },
+        });
+        const effectiveTeacherId = req.user?.id || placement?.teacherId || teacherId;
+
         // 1. Simpan InterventionLog
         let intervention = null;
         if (actualAlertId) {
           intervention = await tx.interventionLog.create({
             data: {
               driftAlertId: actualAlertId,
-              teacherId,
+              teacherId: effectiveTeacherId,
               actionType,
               messageSent,
             },

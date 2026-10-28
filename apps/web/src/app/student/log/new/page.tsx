@@ -312,7 +312,7 @@ export default function NewLogPage() {
   const verifiedPercentage = Math.min(100, Math.round((currentTotalJp / TOTAL_TARGET_JP) * 100));
   const sessionJp = attendanceType === "PRESENT" ? convertRealHoursToJp(durationJp) : 0;
   const sessionPercentage = Math.min(100 - verifiedPercentage, Math.round((sessionJp / TOTAL_TARGET_JP) * 100));
-  const projectedPercentage = Math.min(100, Math.round(((currentTotalJp + sessionJp) / TOTAL_TARGET_JP) * 100));
+  const _projectedPercentage = Math.min(100, Math.round(((currentTotalJp + sessionJp) / TOTAL_TARGET_JP) * 100));
 
   // 3. Kalkulasi Jam Kerja Mingguan & Perlindungan K3 Siswa (Student Welfare Protection - BR-013)
   // Perbaikan: Sinkronisasi akurat antara jam tersimpan di minggu ini + durasi aktif
