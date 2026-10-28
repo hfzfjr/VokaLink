@@ -27,6 +27,7 @@ import {
   executeMentorVerification,
   type MentorVerifyDetailsResponse,
 } from "@/lib/api";
+import { sanitizeErrorMessage } from "@/lib/error-formatter";
 
 function getMockVerificationData(): MentorVerifyDetailsResponse {
   return {
@@ -215,7 +216,7 @@ export default function MentorVerificationPage() {
         console.warn("Device check warning:", checkErr);
       }
     } catch (err: any) {
-      setErrorMessage(err.message || "Tautan verifikasi tidak valid atau telah kedaluwarsa.");
+      setErrorMessage(sanitizeErrorMessage(err, "Tautan verifikasi tidak valid atau telah kedaluwarsa."));
       setErrorCode(err.code || "LOAD_ERROR");
     } finally {
       setIsLoading(false);
@@ -294,7 +295,7 @@ export default function MentorVerificationPage() {
       } else if (err.code === "DEVICE_MISMATCH") {
         setPinError("Perangkat tidak dikenali. Persetujuan ditolak demi keamanan data.");
       } else {
-        setPinError(err.message || "PIN tidak sesuai. Silakan coba lagi.");
+        setPinError(sanitizeErrorMessage(err, "PIN tidak sesuai. Silakan coba lagi."));
       }
       setPin("");
     } finally {
@@ -335,7 +336,7 @@ export default function MentorVerificationPage() {
       setSuccessResult(result);
       setShowRejectModal(false);
     } catch (err: any) {
-      alert(err.message || "Gagal memproses penolakan logbook");
+      alert(sanitizeErrorMessage(err, "Gagal memproses penolakan logbook"));
     } finally {
       setIsSubmitting(false);
     }

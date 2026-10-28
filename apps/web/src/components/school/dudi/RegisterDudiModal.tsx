@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { X, Building2, Plus, AlertCircle, Check } from "lucide-react";
+import { sanitizeErrorMessage } from "@/lib/error-formatter";
 
 export interface AvailableJobCard {
   id: string;
@@ -107,7 +108,7 @@ export function RegisterDudiModal({
       setMentorWa("");
       onClose();
     } catch (err: any) {
-      setError(err.message || "Gagal mendaftarkan mitra DUDI.");
+      setError(sanitizeErrorMessage(err, "Gagal mendaftarkan mitra DUDI."));
     } finally {
       setSubmitting(false);
     }

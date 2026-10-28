@@ -10,6 +10,7 @@ import { DepartmentReadinessCard, type DepartmentItem } from "@/components/schoo
 import { PriorityMonitoringCard, type PriorityStudentItem } from "@/components/school/dashboard/PriorityMonitoringCard";
 import { SchoolWidgetPanel } from "@/components/school/SchoolWidgetPanel";
 import { AlertCircle, RefreshCw, WifiOff } from "lucide-react";
+import { sanitizeErrorMessage } from "@/lib/error-formatter";
 
 interface SchoolDashboardData {
   school: {
@@ -68,7 +69,7 @@ export default function SchoolDashboardPage() {
         setDepartments(result.departments);
       }
     } catch (err: any) {
-      setError(err.message || "Gagal memuat data dasbor sekolah dari database.");
+      setError(sanitizeErrorMessage(err, "Gagal memuat data dasbor sekolah dari database."));
     } finally {
       setLoading(false);
     }

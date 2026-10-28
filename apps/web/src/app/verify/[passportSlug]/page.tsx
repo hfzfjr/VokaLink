@@ -20,6 +20,7 @@ import Link from "next/link";
 import { Disclosure } from "@/components/ui/Disclosure";
 import VokaIcon from "@/components/common/VokaIcon";
 import { fetchPublicPassport, type PublicPassportResponse } from "@/lib/api";
+import { sanitizeErrorMessage } from "@/lib/error-formatter";
 
 interface PageProps {
   params: Promise<{ passportSlug: string }>;
@@ -42,8 +43,7 @@ export default function PublicPassportVerifyPage({ params }: PageProps) {
         const res = await fetchPublicPassport(passportSlug);
         setData(res);
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Paspor tidak ditemukan";
-        setError(msg);
+        setError(sanitizeErrorMessage(err, "Paspor kompetensi tidak ditemukan atau tautan tidak valid."));
       } finally {
         setIsLoading(false);
       }

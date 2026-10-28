@@ -19,6 +19,7 @@ import { ActivePlacementsTable } from "@/components/school/placements/ActivePlac
 import { SingleAssignModal } from "@/components/school/placements/SingleAssignModal";
 import { Pagination } from "@/components/common/Pagination";
 import { AlertCircle, CheckCircle2, WifiOff } from "lucide-react";
+import { sanitizeErrorMessage } from "@/lib/error-formatter";
 
 const PLACEMENT_PAGE_LIMIT = 10;
 
@@ -134,7 +135,7 @@ export default function SmartPlacementPage() {
       setTotalActiveCount(activeRes.totalActiveCount);
       setActivePagination(activeRes.pagination);
     } catch (err: any) {
-      setErrorMsg(err.message || "Gagal memuat data penempatan dari database.");
+      setErrorMsg(sanitizeErrorMessage(err, "Gagal memuat data penempatan dari database."));
     } finally {
       setLoading(false);
     }

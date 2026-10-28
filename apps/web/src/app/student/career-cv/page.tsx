@@ -32,6 +32,7 @@ import { fetchStudentCv, updateStudentPassport, type StudentCvResponse } from "@
 import { QrCodeView } from "@/components/ui/QrCodeView";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/lib/use-auth";
+import { sanitizeErrorMessage } from "@/lib/error-formatter";
 import CareerCvLoading from "./loading";
 
 export interface EditableExperience {
@@ -257,7 +258,7 @@ export default function CareerCvPage() {
       setBioSummary(data.summaryBio || "");
       initManualFields(data);
     } catch (err: any) {
-      setError(err.message || "Gagal memuat CV ATS dari server database.");
+      setError(sanitizeErrorMessage(err, "Gagal memuat CV ATS dari server database."));
       setCvData(null);
     } finally {
       const elapsed = Date.now() - startTime;

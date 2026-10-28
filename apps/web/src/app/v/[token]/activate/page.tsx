@@ -18,6 +18,7 @@ import {
   fetchActivationDetails,
   activateMentorDevice,
 } from "@/lib/api";
+import { sanitizeErrorMessage } from "@/lib/error-formatter";
 
 export default function MentorActivationPage() {
   const params = useParams();
@@ -127,7 +128,7 @@ export default function MentorActivationPage() {
 
       setStep("SUCCESS");
     } catch (err: any) {
-      setErrorMsg(err.message || "Gagal mengaktifkan perangkat verifikator.");
+      setErrorMsg(sanitizeErrorMessage(err, "Gagal mengaktifkan perangkat verifikator."));
     } finally {
       setSubmitting(false);
     }

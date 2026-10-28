@@ -20,6 +20,7 @@ import { AddMentorModal } from "@/components/school/dudi/AddMentorModal";
 import { ResetDeviceModal } from "@/components/school/dudi/ResetDeviceModal";
 import { Pagination } from "@/components/common/Pagination";
 import { AlertCircle, CheckCircle2, WifiOff } from "lucide-react";
+import { sanitizeErrorMessage } from "@/lib/error-formatter";
 
 const DUDI_PAGE_LIMIT = 8;
 
@@ -151,7 +152,7 @@ export default function DudiDirectoryPage() {
       setCitiesList(res.cities);
       setPagination(res.pagination);
     } catch (err: any) {
-      setErrorMsg(err.message || "Gagal memuat direktori mitra DUDI.");
+      setErrorMsg(sanitizeErrorMessage(err, "Gagal memuat direktori mitra DUDI."));
     } finally {
       setLoading(false);
     }
@@ -228,7 +229,7 @@ export default function DudiDirectoryPage() {
       setSuccessMsg(`Ikatan perangkat untuk ${resetMentor.name} berhasil direset!`);
       await loadPartners();
     } catch (err: any) {
-      setErrorMsg(err.message || "Gagal mereset perangkat mentor.");
+      setErrorMsg(sanitizeErrorMessage(err, "Gagal mereset perangkat mentor."));
     } finally {
       setResetting(false);
     }

@@ -16,6 +16,17 @@ import type {
   DudiQualityMetricItem,
   SecurityFlagItem,
 } from "@vokalink/shared";
+import { sanitizeErrorMessage } from "./error-formatter";
+
+export function createSafeApiError(json: any, fallbackMessage: string): Error {
+  const rawMsg = json?.detail || json?.title || json?.message || fallbackMessage;
+  const safeMsg = sanitizeErrorMessage(rawMsg, fallbackMessage);
+  const err = new Error(safeMsg);
+  if (json?.code) (err as any).code = json.code;
+  if (json?.status) (err as any).status = json.status;
+  if (json?.errors) (err as any).errors = json.errors;
+  return err;
+}
 
 export type {
   EndorsementDetailResponse,
@@ -198,9 +209,9 @@ export async function fetchCurrentSchool(
     },
   });
 
-  const json = await res.json();
+  const json = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(json.detail || "Gagal memuat profil sekolah");
+    throw createSafeApiError(json, "Gagal memuat profil sekolah");
   }
   return json.data;
 }
@@ -428,8 +439,8 @@ export async function fetchDudiPartnersPaginated(
   const res = await fetch(`${API_BASE_URL}/dudi?${query.toString()}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.detail || "Gagal memuat direktori DUDI");
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw createSafeApiError(json, "Gagal memuat direktori DUDI");
   const data: DudiPartnerItem[] = json.data || [];
   return {
     data,
@@ -655,8 +666,8 @@ export async function fetchPlacementCandidates(
   const res = await fetch(`${API_BASE_URL}/schools/${schoolId}/placements/candidates${query}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.detail || "Gagal memuat kandidat penempatan siswa");
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw createSafeApiError(json, "Gagal memuat kandidat penempatan siswa");
   return json.data;
 }
 
@@ -687,8 +698,8 @@ export async function fetchPlacementsPaginated(
   const res = await fetch(`${API_BASE_URL}/schools/${schoolId}/placements${query}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.detail || "Gagal memuat daftar penempatan");
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw createSafeApiError(json, "Gagal memuat daftar penempatan");
   const data: PlacementRecordItem[] = json.data || [];
   return {
     data,
@@ -843,8 +854,8 @@ export async function fetchEraporData(
   const res = await fetch(`${API_BASE_URL}/schools/${schoolId}/erapor${query}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.detail || "Gagal memuat rekap e-Rapor");
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw createSafeApiError(json, "Gagal memuat rekap e-Rapor");
   return json.data;
 }
 
@@ -864,7 +875,7 @@ export async function downloadEraporCsv(
   });
   if (!res.ok) {
     const json = await res.json().catch(() => ({}));
-    throw new Error(json.detail || "Gagal mengunduh berkas CSV e-Rapor");
+    throw createSafeApiError(json, "Gagal mengunduh berkas CSV e-Rapor");
   }
   return await res.blob();
 }
@@ -983,8 +994,8 @@ export interface PublicPassportResponse {
 export async function fetchStudentCv(studentId?: string): Promise<StudentCvResponse> {
   const query = studentId ? `?studentId=${encodeURIComponent(studentId)}` : "";
   const res = await fetch(`${API_BASE_URL}/students/me/cv${query}`);
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.detail || "Gagal memuat data CV ATS siswa");
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw createSafeApiError(json, "Gagal memuat data CV ATS siswa");
   return json;
 }
 
@@ -1003,16 +1014,16 @@ export async function updateStudentPassport(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.detail || "Gagal memperbarui paspor kompetensi");
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw createSafeApiError(json, "Gagal memperbarui paspor kompetensi");
   return json;
 }
 
 /** GET /passports/:slug */
 export async function fetchPublicPassport(slug: string): Promise<PublicPassportResponse> {
   const res = await fetch(`${API_BASE_URL}/passports/${encodeURIComponent(slug)}`);
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.detail || "Paspor kompetensi tidak ditemukan");
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw createSafeApiError(json, "Paspor kompetensi tidak ditemukan");
   return json;
 }
 
@@ -1165,8 +1176,8 @@ export async function fetchMentorVerifyDetails(
   token: string
 ): Promise<MentorVerifyDetailsResponse> {
   const res = await fetch(`${API_BASE_URL}/verify/mentor/${encodeURIComponent(token)}`);
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.detail || "Gagal memuat data verifikasi mentor");
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw createSafeApiError(json, "Gagal memuat data verifikasi mentor");
   return json;
 }
 
@@ -1183,8 +1194,8 @@ export async function checkMentorDevice(
       body: JSON.stringify({ deviceToken }),
     }
   );
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.detail || "Gagal memeriksa status perangkat");
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw createSafeApiError(json, "Gagal memeriksa status perangkat");
   return json;
 }
 
@@ -1204,8 +1215,8 @@ export async function executeMentorVerification(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.detail || "Gagal memproses verifikasi logbook");
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw createSafeApiError(json, "Gagal memproses verifikasi logbook");
   return json;
 }
 
@@ -1228,8 +1239,8 @@ export async function generateVerificationLink(data: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.detail || "Gagal membuat tautan verifikasi");
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw createSafeApiError(json, "Gagal membuat tautan verifikasi");
   return json;
 }
 

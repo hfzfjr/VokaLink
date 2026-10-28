@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { X, UserCheck, AlertCircle, Check } from "lucide-react";
+import { sanitizeErrorMessage } from "@/lib/error-formatter";
 import type { PlacementCandidateStudent, PlacementCandidateData } from "@/lib/api";
 
 interface SingleAssignModalProps {
@@ -65,7 +66,7 @@ export function SingleAssignModal({
       });
       onClose();
     } catch (err: any) {
-      setError(err.message || "Gagal menyimpan penempatan siswa.");
+      setError(sanitizeErrorMessage(err, "Gagal menyimpan penempatan siswa."));
     } finally {
       setSubmitting(false);
     }

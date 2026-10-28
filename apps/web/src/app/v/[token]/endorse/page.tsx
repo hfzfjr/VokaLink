@@ -21,6 +21,7 @@ import {
   submitEndorsement,
   type EndorsementDetailResponse,
 } from "@/lib/api";
+import { sanitizeErrorMessage } from "@/lib/error-formatter";
 
 interface PageProps {
   params: Promise<{ token: string }>;
@@ -62,7 +63,7 @@ export default function MentorEndorsementPage({ params }: PageProps) {
         }
       }
     } catch (err: any) {
-      setErrorMessage(err.message || "Gagal memuat formulir endorsement siswa");
+      setErrorMessage(sanitizeErrorMessage(err, "Gagal memuat formulir endorsement siswa"));
     } finally {
       setIsLoading(false);
     }
@@ -122,7 +123,7 @@ export default function MentorEndorsementPage({ params }: PageProps) {
 
       setSuccessResult(res.endorsement);
     } catch (err: any) {
-      setSubmitError(err.message || "Gagal menerbitkan pengesahan endorsement");
+      setSubmitError(sanitizeErrorMessage(err, "Gagal menerbitkan pengesahan endorsement"));
     } finally {
       setIsSubmitting(false);
     }

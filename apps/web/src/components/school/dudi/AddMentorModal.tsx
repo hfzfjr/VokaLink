@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { X, Plus, Users, AlertCircle } from "lucide-react";
+import { sanitizeErrorMessage } from "@/lib/error-formatter";
 
 interface AddMentorModalProps {
   isOpen: boolean;
@@ -50,7 +51,7 @@ export function AddMentorModal({
       setWhatsappNumber("");
       onClose();
     } catch (err: any) {
-      setError(err.message || "Gagal menambahkan mentor.");
+      setError(sanitizeErrorMessage(err, "Gagal menambahkan mentor."));
     } finally {
       setSubmitting(false);
     }

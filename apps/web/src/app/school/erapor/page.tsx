@@ -14,7 +14,8 @@ import { EraporFilterToolbar } from "@/components/school/erapor/EraporFilterTool
 import { EraporDataTable } from "@/components/school/erapor/EraporDataTable";
 import { GradeOverrideModal } from "@/components/school/erapor/GradeOverrideModal";
 import { Pagination } from "@/components/common/Pagination";
-import { AlertCircle, CheckCircle2, WifiOff } from "lucide-react";
+import { AlertCircle, CheckCircle2, WifiOff, RefreshCw } from "lucide-react";
+import { sanitizeErrorMessage } from "@/lib/error-formatter";
 
 const ERAPOR_PAGE_LIMIT = 10;
 
@@ -103,7 +104,7 @@ export default function EraporPage() {
       );
       setData(res);
     } catch (err: any) {
-      setErrorMsg(err.message || "Gagal memuat rekapitulasi e-Rapor dari database.");
+      setErrorMsg(sanitizeErrorMessage(err, "Gagal memuat rekapitulasi e-Rapor dari database."));
     } finally {
       setLoading(false);
     }
@@ -126,7 +127,7 @@ export default function EraporPage() {
       );
       setSuccessMsg("Berkas CSV resmi e-Rapor Dapodik berhasil diunduh!");
     } catch (err: any) {
-      setErrorMsg(err.message || "Gagal mengunduh berkas CSV e-Rapor.");
+      setErrorMsg(sanitizeErrorMessage(err, "Gagal mengunduh berkas CSV e-Rapor."));
     } finally {
       setDownloadingCsv(false);
     }
@@ -175,18 +176,28 @@ export default function EraporPage() {
 
       {/* Error Notification */}
       {errorMsg && (
-        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-center justify-between text-xs font-semibold shadow-2xs">
-          <div className="flex items-center gap-2">
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-semibold shadow-2xs">
+          <div className="flex items-center gap-2.5">
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
             <span>{errorMsg}</span>
           </div>
-          <button
-            type="button"
-            onClick={() => setErrorMsg(null)}
-            className="text-rose-700 hover:text-rose-900 text-xs font-bold cursor-pointer"
-          >
-            Tutup
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={loadData}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-600 text-white text-[11px] font-bold hover:bg-rose-700 transition cursor-pointer"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span>Coba Lagi</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setErrorMsg(null)}
+              className="px-2.5 py-1.5 rounded-full text-rose-700 hover:bg-rose-100/60 text-[11px] font-bold transition cursor-pointer"
+            >
+              Tutup
+            </button>
+          </div>
         </div>
       )}
 
