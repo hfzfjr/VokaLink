@@ -22,8 +22,9 @@ interface PriorityMonitoringCardProps {
 
 export function PriorityMonitoringCard({ students }: PriorityMonitoringCardProps) {
   return (
-    <div className="bg-white rounded-3xl border border-slate-200/80 shadow-2xs p-5 sm:p-6 space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+    <div className="bg-white rounded-3xl border border-slate-200/80 shadow-2xs overflow-hidden">
+      {/* Header Card dengan full-bleed border */}
+      <div className="p-5 sm:p-6 pb-4 sm:pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100">
         <div>
           <h2 className="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
             <Clock className="w-4 h-4 text-sky-500" />
@@ -35,14 +36,14 @@ export function PriorityMonitoringCard({ students }: PriorityMonitoringCardProps
         </div>
         <Link
           href="/school/erapor"
-          className="inline-flex items-center gap-1 text-xs font-bold text-sky-600 hover:text-sky-700 transition self-start sm:self-auto"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sky-50 hover:bg-sky-100 text-sky-700 text-xs font-bold transition self-start sm:self-auto border border-sky-200/60"
         >
           <span>Semua Rekap Siswa</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="p-5 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-3">
         {students.map((student) => (
           <div
             key={student.id}

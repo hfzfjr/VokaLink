@@ -332,14 +332,14 @@ export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
               <div
                 key={module.id}
                 className={cn(
-                  "bg-white rounded-2xl p-4 sm:p-5 border transition-all duration-200 flex flex-col justify-between space-y-3.5 relative shadow-2xs group active:scale-[0.99]",
+                  "bg-white rounded-2xl border transition-all duration-200 flex flex-col justify-between overflow-hidden relative shadow-2xs group active:scale-[0.99]",
                   isExpanded
                     ? "border-slate-300 shadow-xs"
                     : "border-slate-200/70 hover:border-slate-300 hover:shadow-xs"
                 )}
               >
                 {/* Header: Icon, Title, SKKNI Code & Level Badge */}
-                <div className="space-y-2.5">
+                <div className="p-4 sm:p-5 pb-3.5 space-y-2.5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <div
@@ -425,8 +425,8 @@ export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
                   </div>
                 </div>
 
-                {/* Footer: Clean Expandable Syllabus */}
-                <div className="pt-2.5 mt-2.5 border-t border-slate-100 space-y-2">
+                {/* Footer: Clean Expandable Syllabus (Full-Bleed Divider) */}
+                <div className="border-t border-slate-100 bg-slate-50/40 p-4 sm:p-5 py-3 space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-[11px] text-slate-400 font-normal">
                       Standar Kompetensi Kerja (SKKNI)
@@ -449,7 +449,7 @@ export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
 
                   {/* Expandable Clean Syllabus Description */}
                   {isExpanded && (
-                    <div className="pt-2 animate-in fade-in duration-200 text-xs text-slate-600 leading-relaxed font-normal bg-slate-50/70 p-3 rounded-xl border border-slate-200/60">
+                    <div className="pt-2 animate-in fade-in duration-200 text-xs text-slate-600 leading-relaxed font-normal bg-white p-3 rounded-xl border border-slate-200/80">
                       <p className="font-semibold text-slate-800 mb-1">Deskripsi Silabus SKKNI:</p>
                       <p>{module.description}</p>
                     </div>
