@@ -7,6 +7,22 @@
   html {
     scroll-padding-top: 5rem;
     scrollbar-gutter: stable; /* Mencegah layout shift: ruang scrollbar selalu stabil & fixed */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* 
+   * Standar Apple WebKit: Cegah auto-zoom pada iPhone / Mobile
+   * WebKit otomatis melakukan zoom jika input/select/textarea memiliki font-size < 16px pada saat fokus.
+   * Aturan ini mengunci font-size 16px pada layar mobile (<= 768px) sehingga auto-zoom TIDAK PERNAH terpicu,
+   * sekaligus menjaga ukuran compact (text-xs / text-sm) pada layar desktop (> 768px).
+   */
+  @media screen and (max-width: 768px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="hidden"]),
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
   }
 
   /* Smooth scrolling alami dengan pertimbangan aksesibilitas (prefers-reduced-motion) */
