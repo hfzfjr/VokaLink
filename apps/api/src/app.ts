@@ -17,20 +17,49 @@ import { authRouter } from "./routes/auth.js";
 import { errorHandler } from "./middlewares/error-handler.js";
 import { zeroLoginRateLimiter } from "./middlewares/rate-limiter.js";
 
+import os from "node:os";
+
+function getLocalIPv4(): string | null {
+  const nets = os.networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name] || []) {
+      if (net.family === "IPv4" && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return null;
+}
+
 export function createApp(): Express {
   const app = express();
 
   // Basic security headers
   app.use(helmet());
 
-  // Strict CORS policy
+  // Strict CORS policy (supporting local network IP for mobile device QR testing)
   const rawOrigins = process.env["APP_ORIGINS"] || "http://localhost:3000";
   const allowedOrigins = rawOrigins.split(",").map((o) => o.trim());
+
+  const isLocalOrPrivateNetwork = (origin: string): boolean => {
+    try {
+      const { hostname } = new URL(origin);
+      return (
+        hostname === "localhost" ||
+        hostname === "127.0.0.1" ||
+        hostname.startsWith("10.") ||
+        hostname.startsWith("192.168.") ||
+        /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname)
+      );
+    } catch {
+      return false;
+    }
+  };
 
   app.use(
     cors({
       origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (!origin || allowedOrigins.includes(origin) || isLocalOrPrivateNetwork(origin)) {
           callback(null, true);
         } else {
           callback(new Error(`Origin ${origin} not allowed by CORS`));
@@ -50,6 +79,16 @@ export function createApp(): Express {
       version: "1.0.0",
       status: "running",
       documentation: "/docs",
+    });
+  });
+
+  // Local Network IP helper for mobile device QR scanning
+  app.get(["/api/network-info", "/api/v1/network-info"], (_req, res) => {
+    const localIp = getLocalIPv4() || "127.0.0.1";
+    res.json({
+      localIp,
+      webUrl: `http://${localIp}:3000`,
+      apiUrl: `http://${localIp}:3001/api/v1`,
     });
   });
 

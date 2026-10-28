@@ -6,7 +6,6 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/use-auth";
 import {
-  Flame,
   Home,
   Users,
   ShieldAlert,

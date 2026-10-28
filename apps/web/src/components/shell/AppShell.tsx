@@ -220,7 +220,7 @@ export function AppShell({
         {/* 4. MAIN WORKSPACE AREA */}
         <div className="flex-1 flex flex-col min-w-0 bg-canvas">
           {/* Top Bar Responsif (Mobile Header + Desktop Breadcrumb Bar) */}
-          <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-3 sm:px-4 lg:px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
               {/* Mobile Hamburger Button */}
               <button
@@ -260,7 +260,7 @@ export function AppShell({
           </header>
 
           {/* Main Children Workspace Content */}
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+          <main className="flex-1 px-3 sm:px-4 lg:px-6 py-4 md:py-6 max-w-[1680px] w-full mx-auto">
             {children}
           </main>
         </div>

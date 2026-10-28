@@ -11,10 +11,13 @@ import {
   Building2,
   CalendarCheck,
   ArrowLeft,
+  Smartphone,
+  Laptop,
 } from "lucide-react";
 import { generateVerificationLink, fetchStudentLogContext } from "@/lib/api";
 import { QrCodeView } from "@/components/ui/QrCodeView";
 import { db } from "@/lib/pwa/db";
+import { cn } from "@/lib/cn";
 
 function WhatsAppIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
@@ -29,15 +32,18 @@ export default function VerifyRequestPage() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [studentName, setStudentName] = useState("Andi Pratama");
-  const [mentorName, setMentorName] = useState("Rizky Firmansyah");
-  const [dudiName, setDudiName] = useState("PT Nusantara Tech");
-  const [dudiCity, setDudiCity] = useState("Surabaya");
-  const [mentorPhone, setMentorPhone] = useState("081388881001");
+  const [mentorName, setMentorName] = useState("Rahmat Hidayat Siregar, S.T");
+  const [dudiName, setDudiName] = useState("PT Telkom Indonesia Witel Sumut");
+  const [dudiCity, setDudiCity] = useState("Medan");
+  const [mentorPhone, setMentorPhone] = useState("6281260001001");
+  const [qrTargetMode, setQrTargetMode] = useState<"MOBILE" | "LOCAL">("MOBILE");
 
   const [activeLinkData, setActiveLinkData] = useState<{
     token: string;
     verificationUrl: string;
     fullUrl: string;
+    networkUrl?: string;
+    hostIp?: string;
     waShareUrl?: string | null;
     expiresAt: string;
     pendingCount?: number;
@@ -64,7 +70,7 @@ export default function VerifyRequestPage() {
       }
 
       const placementId =
-        placement?.id || "3ffec674-ad55-482a-a566-9dff84ab71be";
+        placement?.id || "af9cde1d-0509-45b4-adb3-1936cd296b97";
 
       if (student?.fullName) setStudentName(student.fullName);
       if (placement?.mentorName) setMentorName(placement.mentorName);
@@ -93,23 +99,31 @@ export default function VerifyRequestPage() {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
 
-  const effectiveVerificationUrl = activeLinkData?.fullUrl
+  const localVerificationUrl = activeLinkData?.fullUrl
     ? activeLinkData.fullUrl
     : `${origin}${activeLinkData?.verificationUrl || "/v/mock-demo-token-123"}`;
 
-  const pendingDays = activeLinkData?.pendingCount ?? 5;
+  const mobileVerificationUrl = activeLinkData?.networkUrl
+    ? activeLinkData.networkUrl
+    : activeLinkData?.hostIp
+      ? `http://${activeLinkData.hostIp}:3000${activeLinkData?.verificationUrl || "/v/mock-demo-token-123"}`
+      : localVerificationUrl;
+
+  const effectiveVerificationUrl =
+    qrTargetMode === "MOBILE" ? mobileVerificationUrl : localVerificationUrl;
+
+  const pendingDays = activeLinkData?.pendingCount ?? 2;
   const totalHours = pendingDays * 8;
 
   // Draf pesan santun otomatis saat tombol WhatsApp ditekan
-  const politeMessage = `Selamat sore Bapak/Ibu ${mentorName}, mohon izin mengganggu waktunya sebentar. Saya ${studentName} (siswa PKL RPL SMK VokaLink di ${dudiName}). Mengingat kesibukan Bapak/Ibu, izin mengirimkan tautan rekap jurnal ${
-    pendingDays > 1 ? `borongan (${pendingDays} hari kerja)` : "hari ini"
-  } untuk diverifikasi melalui 1 kali input PIN: ${effectiveVerificationUrl}\n\nTerima kasih banyak atas bimbingan dan arahannya, Pak/Bu 🙏`;
+  const politeMessage = `Selamat sore Bapak/Ibu ${mentorName}, mohon izin mengganggu waktunya sebentar. Saya ${studentName} (siswa PKL di ${dudiName}). Mengingat kesibukan Bapak/Ibu, izin mengirimkan tautan rekap jurnal ${pendingDays > 1 ? `borongan (${pendingDays} hari kerja)` : "hari ini"
+    } untuk diverifikasi melalui 1 kali input PIN: ${effectiveVerificationUrl}\n\nTerima kasih banyak atas bimbingan dan arahannya, Pak/Bu 🙏`;
 
   const waDeepLink = activeLinkData?.waShareUrl
     ? activeLinkData.waShareUrl
     : `https://wa.me/${mentorPhone.replace(/^0/, "62")}?text=${encodeURIComponent(
-        politeMessage
-      )}`;
+      politeMessage
+    )}`;
 
   const handleCopyLink = () => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
@@ -167,7 +181,37 @@ export default function VerifyRequestPage() {
           <span>{pendingDays} Hari Kerja ({totalHours} Jam) Menunggu Pengesahan</span>
         </div>
 
-        {/* ─── 3. KODE QR DENGAN QUIET ZONE BERSIH & PRESISI ─── */}
+        {/* ─── 3. TOGGLE TARGET SCAN: HP (Wi-Fi) VS BROWSER INI ─── */}
+        <div className="flex items-center justify-center p-1 bg-slate-100 rounded-xl max-w-xs mx-auto border border-slate-200/80 text-[11px] font-semibold">
+          <button
+            type="button"
+            onClick={() => setQrTargetMode("MOBILE")}
+            className={cn(
+              "flex-1 py-1.5 px-3 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer",
+              qrTargetMode === "MOBILE"
+                ? "bg-white text-emerald-700 shadow-2xs font-bold"
+                : "text-slate-500 hover:text-slate-700"
+            )}
+          >
+            <Smartphone className="w-3.5 h-3.5" />
+            <span>Kamera HP (Wi-Fi)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setQrTargetMode("LOCAL")}
+            className={cn(
+              "flex-1 py-1.5 px-3 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer",
+              qrTargetMode === "LOCAL"
+                ? "bg-white text-slate-800 shadow-2xs font-bold"
+                : "text-slate-500 hover:text-slate-700"
+            )}
+          >
+            <Laptop className="w-3.5 h-3.5" />
+            <span>Browser Ini</span>
+          </button>
+        </div>
+
+        {/* ─── 4. KODE QR DENGAN QUIET ZONE BERSIH & PRESISI ─── */}
         <div className="flex flex-col items-center justify-center">
           <div className="p-2 sm:p-2.5 bg-white rounded-2xl border border-slate-200/90 shadow-2xs inline-block">
             {isLoading ? (
@@ -184,13 +228,17 @@ export default function VerifyRequestPage() {
             )}
           </div>
 
-          <div className="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-50 border border-slate-200/70 text-[10px] font-medium text-slate-500 shadow-2xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Segel Kriptografis HMAC-SHA256 Siap Dipindai</span>
+          <div className="mt-1.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/70 text-[10.5px] font-medium text-slate-600 shadow-2xs max-w-xs truncate">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <span className="truncate">
+              {qrTargetMode === "MOBILE"
+                ? `Siap scan via Kamera HP · Wi-Fi IP: ${activeLinkData?.hostIp || "10.66.3.126"}`
+                : "URL localhost siap disimulasikan di laptop"}
+            </span>
           </div>
         </div>
 
-        {/* ─── 4. TOMBOL AKSI UTAMA DALAM SATU BARIS RINGKAS ─── */}
+        {/* ─── 5. TOMBOL AKSI UTAMA DALAM SATU BARIS RINGKAS ─── */}
         <div className="flex items-center gap-2 max-w-sm mx-auto w-full pt-0.5">
           <a
             href={waDeepLink}
@@ -221,7 +269,7 @@ export default function VerifyRequestPage() {
           </button>
         </div>
 
-        {/* ─── 5. FOOTNOTE KEAMANAN & DEMO JURI ─── */}
+        {/* ─── 6. FOOTNOTE KEAMANAN & DEMO JURI ─── */}
         <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10.5px] text-slate-500">
           <div className="flex items-center gap-1 min-w-0 truncate">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
@@ -231,12 +279,12 @@ export default function VerifyRequestPage() {
           </div>
 
           <Link
-            href={activeLinkData?.verificationUrl || "/v/mock-demo-token-123"}
+            href={effectiveVerificationUrl}
             target="_blank"
             className="inline-flex items-center gap-1 font-semibold text-sky-600 hover:text-sky-700 hover:underline shrink-0 transition ml-2"
-            title="Buka simulasi tampilan mentor di browser ini"
+            title="Buka tampilan mentor di tab baru"
           >
-            <span>Simulasi Mentor</span>
+            <span>Buka Halaman</span>
             <ExternalLink className="w-3 h-3" />
           </Link>
         </div>

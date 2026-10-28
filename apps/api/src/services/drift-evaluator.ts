@@ -96,8 +96,13 @@ export async function evaluateDriftForAllPlacements(): Promise<DriftEvaluationRe
           }
         }
 
-        // PRD FR-005 (A2): Presensi Sakit/Izin tidak memengaruhi rasio deviasi kompetensi
-        if (is14d && log.attendanceType !== "SICK" && log.attendanceType !== "PERMIT") {
+        // PRD FR-005 (A2): Presensi Sakit/Izin dan log revisi tidak memengaruhi rasio deviasi kompetensi
+        if (
+          is14d &&
+          log.status !== "REVISION_REQUIRED" &&
+          log.attendanceType !== "SICK" &&
+          log.attendanceType !== "PERMIT"
+        ) {
           totalJp14d += item.durationJp;
           if (item.jobCard?.isNonCompetency || item.nonCompetencyCategory) {
             nonCompJp14d += item.durationJp;
@@ -182,7 +187,11 @@ export async function evaluateDriftForAllPlacements(): Promise<DriftEvaluationRe
             jp,
           }));
 
-    const daysSincePklStart = p.dailyLogs.length;
+    // Hitung hari kalender riil sejak penempatan dimulai (bukan jumlah log)
+    const daysSincePklStart = Math.max(
+      1,
+      Math.floor((now.getTime() - new Date(p.createdAt).getTime()) / (24 * 60 * 60 * 1000))
+    );
     const monotonyRes = detectSkillMonotony({
       daysSincePklStart,
       totalCumulativeJp,

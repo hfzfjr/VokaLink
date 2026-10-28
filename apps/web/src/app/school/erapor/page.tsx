@@ -343,13 +343,13 @@ export default function EraporPage() {
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
                   <tr>
-                    <th className="px-5 py-3.5">Siswa & NISN</th>
-                    <th className="px-4 py-3.5">Tempat PKL (DUDI)</th>
-                    <th className="px-4 py-3.5 text-center">Jam Terverifikasi</th>
-                    <th className="px-4 py-3.5 text-center">Sikap Mentor (20%)</th>
-                    <th className="px-4 py-3.5 text-center">Nilai Akhir PKL</th>
-                    <th className="px-5 py-3.5">Deskripsi Capaian e-Rapor</th>
-                    <th className="px-4 py-3.5 text-center">Aksi</th>
+                    <th className="px-3 sm:px-3.5 py-3">Siswa &amp; NISN</th>
+                    <th className="px-3 sm:px-3.5 py-3">Tempat PKL (DUDI)</th>
+                    <th className="px-3 sm:px-3.5 py-3 text-center">Jam Terverifikasi</th>
+                    <th className="px-3 sm:px-3.5 py-3 text-center">Sikap Mentor (20%)</th>
+                    <th className="px-3 sm:px-3.5 py-3 text-center">Nilai Akhir PKL</th>
+                    <th className="px-3 sm:px-3.5 py-3">Deskripsi Capaian e-Rapor</th>
+                    <th className="px-3 sm:px-3.5 py-3 text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -364,7 +364,7 @@ export default function EraporPage() {
                     return (
                       <tr key={r.placementId} className="hover:bg-slate-50/60 transition">
                         {/* Siswa */}
-                        <td className="px-5 py-4">
+                        <td className="px-3 sm:px-3.5 py-3">
                           <div className="space-y-0.5">
                             <span className="font-extrabold text-slate-900 block text-xs sm:text-sm">
                               {r.student.fullName}
@@ -379,7 +379,7 @@ export default function EraporPage() {
                         </td>
 
                         {/* DUDI */}
-                        <td className="px-4 py-4">
+                        <td className="px-3 sm:px-3.5 py-3">
                           <div className="space-y-0.5">
                             <span className="font-bold text-slate-800 block text-xs">
                               {r.dudiPartner.name}
@@ -391,7 +391,7 @@ export default function EraporPage() {
                         </td>
 
                         {/* Total Jam */}
-                        <td className="px-4 py-4 text-center">
+                        <td className="px-3 sm:px-3.5 py-3 text-center">
                           <span className="font-extrabold text-slate-800 font-mono text-xs block">
                             {r.totalVerifiedJp} JP
                           </span>
@@ -403,7 +403,7 @@ export default function EraporPage() {
                         </td>
 
                         {/* Sikap Mentor */}
-                        <td className="px-4 py-4 text-center font-mono">
+                        <td className="px-3 sm:px-3.5 py-3 text-center font-mono">
                           {r.isAttitudeIncluded ? (
                             <span className="font-bold text-slate-800">{r.attitudeScore}</span>
                           ) : (
@@ -414,7 +414,7 @@ export default function EraporPage() {
                         </td>
 
                         {/* Nilai Akhir */}
-                        <td className="px-4 py-4 text-center">
+                        <td className="px-3 sm:px-3.5 py-3 text-center">
                           <div
                             className={`inline-block px-3 py-1.5 rounded-2xl border font-black text-sm font-mono ${gradeColor}`}
                           >
@@ -423,7 +423,7 @@ export default function EraporPage() {
                         </td>
 
                         {/* Deskripsi Capaian */}
-                        <td className="px-5 py-4 max-w-md">
+                        <td className="px-3 sm:px-3.5 py-3 max-w-md">
                           <div className="space-y-1.5 text-[11px] leading-relaxed">
                             <div>
                               <strong className="text-emerald-700 block font-bold text-[10px] uppercase tracking-wide">
@@ -445,11 +445,11 @@ export default function EraporPage() {
                         </td>
 
                         {/* Aksi Override A1 */}
-                        <td className="px-4 py-4 text-center">
+                        <td className="px-3 sm:px-3.5 py-3 text-center">
                           <button
                             onClick={() => handleOpenDetailModal(r)}
                             className="p-2 text-slate-500 hover:text-emerald-700 hover:bg-slate-100 rounded-xl transition"
-                            title="Rincian Nilai & Penyesuaian Guru"
+                            title="Rincian Nilai &amp; Penyesuaian Guru"
                           >
                             <Edit3 className="w-4 h-4" />
                           </button>
