@@ -64,31 +64,33 @@ export function PlacementFilterBar({
       </div>
 
       {/* Search & Department Filters */}
-      <div className="flex items-center gap-2.5 w-full md:w-auto">
-        <div className="relative flex-1 min-w-0 md:w-64">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 w-full md:w-auto">
+        <div className="relative flex-1 w-full min-w-0 md:w-64">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             placeholder="Cari nama atau NISN siswa..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full h-10 pl-9 pr-3.5 rounded-xl bg-white border border-slate-200 text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 truncate"
+            className="w-full h-10 pl-9 pr-3.5 rounded-xl bg-white border border-slate-200 text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs truncate"
           />
         </div>
 
         {departments.length > 0 && (
-          <select
-            value={selectedDeptId}
-            onChange={(e) => onDeptChange(e.target.value)}
-            className="h-10 px-3 sm:px-3.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shrink-0 cursor-pointer w-[125px] sm:w-44 md:w-auto max-w-[40%] sm:max-w-none truncate"
-          >
-            <option value="ALL">Semua Jurusan</option>
-            {departments.map((dept) => (
-              <option key={dept.id} value={dept.id}>
-                [{dept.sectorCode}] {dept.name}
-              </option>
-            ))}
-          </select>
+          <div className="w-full sm:w-auto shrink-0 min-w-0">
+            <select
+              value={selectedDeptId}
+              onChange={(e) => onDeptChange(e.target.value)}
+              className="w-full sm:w-auto max-w-full h-10 px-3.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer truncate shadow-2xs"
+            >
+              <option value="ALL">Semua Jurusan</option>
+              {departments.map((dept) => (
+                <option key={dept.id} value={dept.id}>
+                  [{dept.sectorCode}] {dept.name}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
       </div>
     </div>
