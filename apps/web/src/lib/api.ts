@@ -193,8 +193,19 @@ export async function fetchDemoSandboxData(): Promise<DemoSandboxData> {
   return json.data;
 }
 
-export async function fetchCurrentSchool(token: string) {
-  const res = await fetch(`${API_BASE_URL}/schools/current`, {
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+export async function fetchCurrentSchool(
+  token: string,
+  options?: { light?: boolean }
+) {
+  const query = options?.light ? "?light=true" : "";
+  const res = await fetch(`${API_BASE_URL}/schools/current${query}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -400,22 +411,49 @@ export interface DudiDetailData extends DudiPartnerItem {
   }>;
 }
 
+export interface DudiPartnersPaginatedResponse {
+  data: DudiPartnerItem[];
+  cities: string[];
+  pagination: PaginationMeta;
+}
+
 /** GET /dudi — Direktori mitra terfederasi */
 export async function fetchDudiPartners(
-  params?: { search?: string; city?: string; sectorCategory?: string },
+  params?: { search?: string; city?: string; sectorCategory?: string; page?: number; limit?: number },
   token?: string
 ): Promise<DudiPartnerItem[]> {
+  const res = await fetchDudiPartnersPaginated(params, token);
+  return res.data;
+}
+
+/** GET /dudi — Direktori mitra terfederasi dengan metadata pagination */
+export async function fetchDudiPartnersPaginated(
+  params?: { search?: string; city?: string; sectorCategory?: string; page?: number; limit?: number },
+  token?: string
+): Promise<DudiPartnersPaginatedResponse> {
   const query = new URLSearchParams();
   if (params?.search) query.set("search", params.search);
   if (params?.city) query.set("city", params.city);
   if (params?.sectorCategory) query.set("sectorCategory", params.sectorCategory);
+  if (params?.page) query.set("page", String(params.page));
+  if (params?.limit) query.set("limit", String(params.limit));
 
   const res = await fetch(`${API_BASE_URL}/dudi?${query.toString()}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json.detail || "Gagal memuat direktori DUDI");
-  return json.data;
+  const data: DudiPartnerItem[] = json.data || [];
+  return {
+    data,
+    cities: json.cities || Array.from(new Set(data.map((p) => p.city).filter(Boolean))),
+    pagination: json.pagination || {
+      page: params?.page ?? 1,
+      limit: params?.limit ?? 8,
+      totalItems: data.length,
+      totalPages: 1,
+    },
+  };
 }
 
 /** GET /dudi/:id — Detail DUDI + job cards yang dicentang */
@@ -563,6 +601,14 @@ export interface PlacementCandidateData {
     remainingQuota: number;
     mentors: Array<{ id: string; fullName: string; jobTitle: string; isBound: boolean }>;
   }>;
+  totalUnplacedCount?: number;
+  pagination?: PaginationMeta;
+}
+
+export interface PlacementsPaginatedResponse {
+  data: PlacementRecordItem[];
+  totalActiveCount: number;
+  pagination: PaginationMeta;
 }
 
 export interface PlacementRecordItem {
@@ -604,10 +650,21 @@ export interface PlacementRecordItem {
 /** GET /schools/:schoolId/placements/candidates */
 export async function fetchPlacementCandidates(
   schoolId: string,
-  departmentId?: string,
+  paramsOrDeptId?:
+    | string
+    | { departmentId?: string; search?: string; page?: number; limit?: number },
   token?: string
 ): Promise<PlacementCandidateData> {
-  const query = departmentId ? `?departmentId=${departmentId}` : "";
+  const q = new URLSearchParams();
+  if (typeof paramsOrDeptId === "string") {
+    if (paramsOrDeptId) q.set("departmentId", paramsOrDeptId);
+  } else if (paramsOrDeptId) {
+    if (paramsOrDeptId.departmentId) q.set("departmentId", paramsOrDeptId.departmentId);
+    if (paramsOrDeptId.search) q.set("search", paramsOrDeptId.search);
+    if (paramsOrDeptId.page) q.set("page", String(paramsOrDeptId.page));
+    if (paramsOrDeptId.limit) q.set("limit", String(paramsOrDeptId.limit));
+  }
+  const query = q.toString() ? `?${q.toString()}` : "";
   const res = await fetch(`${API_BASE_URL}/schools/${schoolId}/placements/candidates${query}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
@@ -619,12 +676,25 @@ export async function fetchPlacementCandidates(
 /** GET /schools/:schoolId/placements */
 export async function fetchPlacements(
   schoolId: string,
-  params?: { departmentId?: string; status?: string },
+  params?: { departmentId?: string; status?: string; search?: string; page?: number; limit?: number },
   token?: string
 ): Promise<PlacementRecordItem[]> {
+  const res = await fetchPlacementsPaginated(schoolId, params, token);
+  return res.data;
+}
+
+/** GET /schools/:schoolId/placements dengan metadata pagination */
+export async function fetchPlacementsPaginated(
+  schoolId: string,
+  params?: { departmentId?: string; status?: string; search?: string; page?: number; limit?: number },
+  token?: string
+): Promise<PlacementsPaginatedResponse> {
   const q = new URLSearchParams();
   if (params?.departmentId) q.set("departmentId", params.departmentId);
   if (params?.status) q.set("status", params.status);
+  if (params?.search) q.set("search", params.search);
+  if (params?.page) q.set("page", String(params.page));
+  if (params?.limit) q.set("limit", String(params.limit));
   const query = q.toString() ? `?${q.toString()}` : "";
 
   const res = await fetch(`${API_BASE_URL}/schools/${schoolId}/placements${query}`, {
@@ -632,7 +702,17 @@ export async function fetchPlacements(
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json.detail || "Gagal memuat daftar penempatan");
-  return json.data;
+  const data: PlacementRecordItem[] = json.data || [];
+  return {
+    data,
+    totalActiveCount: typeof json.totalActiveCount === "number" ? json.totalActiveCount : data.length,
+    pagination: json.pagination || {
+      page: params?.page ?? 1,
+      limit: params?.limit ?? 10,
+      totalItems: data.length,
+      totalPages: 1,
+    },
+  };
 }
 
 /** POST /schools/:schoolId/placements */
@@ -750,17 +830,27 @@ export interface EraporSummaryResponse {
   studentsWithPendingLogsCount: number;
   warningMessage: string | null;
   records: EraporStudentRecord[];
+  pagination?: PaginationMeta;
 }
 
 /** GET /schools/:schoolId/erapor (JSON) */
 export async function fetchEraporData(
   schoolId: string,
-  params?: { departmentId?: string; academicPeriodId?: string },
+  params?: {
+    departmentId?: string;
+    academicPeriodId?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  },
   token?: string
 ): Promise<EraporSummaryResponse> {
   const q = new URLSearchParams();
   if (params?.departmentId) q.set("departmentId", params.departmentId);
   if (params?.academicPeriodId) q.set("academicPeriodId", params.academicPeriodId);
+  if (params?.search) q.set("search", params.search);
+  if (params?.page) q.set("page", String(params.page));
+  if (params?.limit) q.set("limit", String(params.limit));
   const query = q.toString() ? `?${q.toString()}` : "";
 
   const res = await fetch(`${API_BASE_URL}/schools/${schoolId}/erapor${query}`, {

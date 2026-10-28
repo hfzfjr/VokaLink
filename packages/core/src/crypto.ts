@@ -1,5 +1,5 @@
 import { createHmac, createHash, scryptSync, timingSafeEqual, randomBytes } from "node:crypto";
-import { canonicalJson } from "./canonical-json.js";
+import { canonicalJson } from "./canonical-json";
 
 /**
  * Encodes string/buffer to base64url format

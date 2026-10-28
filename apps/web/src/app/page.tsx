@@ -296,10 +296,10 @@ export default function Home() {
                   Kemudahan Siswa Magang
                 </span>
                 <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-800 mt-3">
-                  Catat Jurnal & Hadir Tanpa Antrean Kertas
+                  Catat Jurnal Harian Cukup dengan Tap Kartu Tugas
                 </h3>
                 <p className="text-slate-600 text-sm mt-3 leading-relaxed">
-                  Siswa dapat mengisi kegiatan harian dalam 30 detik lewat HP, melampirkan foto bukti pekerjaan terkompresi otomatis, dan melakukan presensi geofence sesuai titik radius kantor mitra.
+                  Siswa cukup memilih kartu pekerjaan sesuai jurusannya dalam 15 detik lewat HP (bekerja 100% offline), melampirkan 1 foto bukti terkompresi otomatis, dan mengunduh CV standar ATS.
                 </p>
 
                 <div className="mt-6 space-y-3.5">
@@ -309,10 +309,10 @@ export default function Home() {
                     </div>
                     <div>
                       <strong className="text-xs sm:text-sm font-bold text-slate-800">
-                        Presensi Geofence Anti-Kecurangan:
+                        Kartu Pekerjaan Bebas-Ketik (Zero-Typing):
                       </strong>
                       <p className="text-xs text-slate-500">
-                        Verifikasi koordinat lokasi & toleransi radius DUDI dengan enkripsi anti-spoofing.
+                        Tidak perlu mengarang narasi panjang; cukup pilih tugas yang dikerjakan dan durasi jam praktik.
                       </p>
                     </div>
                   </div>
@@ -323,10 +323,10 @@ export default function Home() {
                     </div>
                     <div>
                       <strong className="text-xs sm:text-sm font-bold text-slate-800">
-                        Timeline & Akumulasi 792 JP Otomatis:
+                        Tombol Jujur Pelaporan Tugas Non-Jurusan:
                       </strong>
                       <p className="text-xs text-slate-500">
-                        Memantau pemenuhan batas minimal 792 JP intrakurikuler sesuai panduan Kurikulum Merdeka Fase F.
+                        Jalur aman melapor jika ditugaskan di luar keahlian jurusan tanpa mengurangi jam hadir siswa.
                       </p>
                     </div>
                   </div>
@@ -337,10 +337,10 @@ export default function Home() {
                     </div>
                     <div>
                       <strong className="text-xs sm:text-sm font-bold text-slate-800">
-                        Pemberitahuan Langsung Saat Ada Revisi:
+                        Otomatis Jadi CV ATS &amp; Paspor Kompetensi:
                       </strong>
                       <p className="text-xs text-slate-500">
-                        Notifikasi instan jika guru atau mentor memberikan feedback pada lembar laporan jurnal.
+                        Seluruh jam kerja yang disahkan mentor otomatis disusun menjadi resume siap lamar kerja.
                       </p>
                     </div>
                   </div>
@@ -510,10 +510,10 @@ export default function Home() {
                     </div>
                     <div>
                       <strong className="text-xs sm:text-sm font-bold text-slate-800">
-                        Stempel Cepat Zero-Login (&lt; 10 Detik):
+                        Stempel Cepat Tanpa Akun (&lt; 10 Detik):
                       </strong>
                       <p className="text-xs text-slate-500">
-                        Cukup masukkan PIN 4 digit ber-salt scrypt dengan ikatan token perangkat peramban.
+                        Cukup buka tautan WhatsApp atau pindai QR siswa lalu masukkan PIN 4 digit di HP mentor.
                       </p>
                     </div>
                   </div>
@@ -524,10 +524,10 @@ export default function Home() {
                     </div>
                     <div>
                       <strong className="text-xs sm:text-sm font-bold text-slate-800">
-                        Penerbitan Paspor Digital Tersegel Kriptografis:
+                        Pengesahan Portofolio Anti-Pemalsuan:
                       </strong>
                       <p className="text-xs text-slate-500">
-                        Dilengkapi segel HMAC-SHA256 ber-canonical JSON anti-manipulasi yang diakui rekruter.
+                        Setiap kegiatan yang disetujui otomatis disegel secara digital dan dapat diverifikasi oleh HRD.
                       </p>
                     </div>
                   </div>
@@ -538,10 +538,10 @@ export default function Home() {
                     </div>
                     <div>
                       <strong className="text-xs sm:text-sm font-bold text-slate-800">
-                        Talent Scouting Langsung dari Tempat Magang:
+                        Penilaian Etos Kerja 1-Klik di Akhir Magang:
                       </strong>
                       <p className="text-xs text-slate-500">
-                        Perusahaan dapat menandai siswa berprestasi untuk diproyeksikan sebagai karyawan baru.
+                        Berikan skor sikap dan lencana etos kerja unggulan bagi siswa tanpa kuesioner panjang.
                       </p>
                     </div>
                   </div>
@@ -613,12 +613,12 @@ export default function Home() {
               <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-500 flex items-center justify-center text-lg font-extrabold mb-5 group-hover:bg-sky-500 group-hover:text-white transition duration-200">
                 01
               </div>
-              <h3 className="text-lg font-bold text-slate-800 mb-2">Pemetaan & Penempatan</h3>
+              <h3 className="text-lg font-bold text-slate-800 mb-2">Penempatan &amp; Aktivasi DUDI</h3>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Pokja PKL memetakan kuota DUDI mitra dengan Smart Placement Scorer dan mengunci kurikulum kejuruan.
+                Admin sekolah mendaftarkan mitra DUDI, menempatkan siswa, dan mengaktifkan PIN perangkat HP mentor tanpa akun.
               </p>
               <div className="mt-4 pt-3 border-t border-slate-100 flex items-center text-[11px] font-semibold text-sky-600">
-                <span>Smart Placement Scorer</span>
+                <span>Setup Tanpa Akun Mentor</span>
               </div>
             </div>
 
@@ -627,12 +627,12 @@ export default function Home() {
               <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg font-extrabold mb-5 group-hover:bg-emerald-400 group-hover:text-white transition duration-200">
                 02
               </div>
-              <h3 className="text-lg font-bold text-slate-800 mb-2">Pembekalan & Geofence</h3>
+              <h3 className="text-lg font-bold text-slate-800 mb-2">Catat Kartu Tugas Harian</h3>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Aktivasi koordinat kantor mitra, modul K3LH, dan sinkronisasi katalog 150+ kartu pekerjaan SKKNI siap pakai.
+                Siswa memilih kartu pekerjaan harian di HP dalam 15 detik (bisa offline) beserta foto bukti yang dikompresi otomatis.
               </p>
               <div className="mt-4 pt-3 border-t border-slate-100 flex items-center text-[11px] font-semibold text-emerald-600">
-                <span>Aktivasi GPS Radius</span>
+                <span>Zero-Typing &amp; Offline-First</span>
               </div>
             </div>
 
@@ -641,12 +641,12 @@ export default function Home() {
               <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg font-extrabold mb-5 group-hover:bg-amber-400 group-hover:text-white transition duration-200">
                 03
               </div>
-              <h3 className="text-lg font-bold text-slate-800 mb-2">Pelaksanaan & Logbook</h3>
+              <h3 className="text-lg font-bold text-slate-800 mb-2">Validasi Mentor &amp; Pantauan</h3>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Siswa catat tugas bebas-ketik di HP saat offline, kompresi foto WebP 60 KB, dan stempel cepat mentor via WhatsApp.
+                Mentor menyetujui jurnal via QR/WhatsApp dengan PIN 4 digit, sementara Guru memantau matriks capaian &amp; peringatan dini.
               </p>
               <div className="mt-4 pt-3 border-t border-slate-100 flex items-center text-[11px] font-semibold text-amber-600">
-                <span>Stempel WhatsApp &lt; 10 Dtk</span>
+                <span>Stempel &lt; 10 Detik &amp; Heatmap</span>
               </div>
             </div>
 
@@ -655,12 +655,12 @@ export default function Home() {
               <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg font-extrabold mb-5 group-hover:bg-indigo-400 group-hover:text-white transition duration-200">
                 04
               </div>
-              <h3 className="text-lg font-bold text-slate-800 mb-2">e-Rapor & Paspor Ber-QR</h3>
+              <h3 className="text-lg font-bold text-slate-800 mb-2">e-Rapor, CV ATS &amp; Paspor QR</h3>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Guru mengunduh rekap nilai format e-Rapor Dapodik, dan siswa memperoleh portofolio CV ATS berstempel kriptografis.
+                Sekolah mengunduh rekap nilai CSV e-Rapor, dan siswa mendapatkan CV ATS serta Paspor Kompetensi ber-QR untuk HRD.
               </p>
               <div className="mt-4 pt-3 border-t border-slate-100 flex items-center text-[11px] font-semibold text-indigo-600">
-                <span>Paspor Kriptografi Ber-QR</span>
+                <span>Portofolio Terverifikasi</span>
               </div>
             </div>
           </div>

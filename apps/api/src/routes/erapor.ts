@@ -43,7 +43,13 @@ eraporRouter.get(
         );
       }
 
-      const { departmentId, academicPeriodId, format } = parsedQuery.data;
+      const { departmentId, academicPeriodId, format, search, page: rawPage, limit: rawLimit } =
+        parsedQuery.data;
+
+      const page = rawPage ?? 1;
+      const limit = rawLimit ?? 10;
+      const skip = (page - 1) * limit;
+      const isCsv = format === "csv";
 
       // 1. Ambil data sekolah
       const school = await prisma.school.findUnique({
@@ -72,73 +78,105 @@ eraporRouter.get(
         periodId = activePeriod.id;
       }
 
-      // 3. Query penempatan siswa (filter jurusan dan guru jika TEACHER)
-      const placementWhere: any = {
+      // 3. Query penempatan siswa (filter jurusan, guru jika TEACHER, dan search)
+      const basePlacementWhere: any = {
         academicPeriodId: periodId,
         student: { schoolId },
       };
 
       if (departmentId) {
-        placementWhere.student.schoolDepartmentId = departmentId;
+        basePlacementWhere.student.schoolDepartmentId = departmentId;
       }
       if (user.role === "TEACHER") {
-        placementWhere.teacherId = user.id;
+        basePlacementWhere.teacherId = user.id;
       }
 
-      const placements = await prisma.placement.findMany({
-        where: placementWhere,
-        include: {
-          student: {
-            select: {
-              id: true,
-              fullName: true,
-              identityNumber: true,
-              schoolDepartment: {
+      const q = search?.trim();
+      const placementWhere: any = q
+        ? {
+            ...basePlacementWhere,
+            OR: [
+              { student: { fullName: { contains: q, mode: "insensitive" } } },
+              { student: { identityNumber: { contains: q, mode: "insensitive" } } },
+              { dudiPartner: { name: { contains: q, mode: "insensitive" } } },
+            ],
+          }
+        : basePlacementWhere;
+
+      const hasPlacementCountFn = typeof prisma.placement.count === "function";
+
+      const [placements, totalItemsRaw, totalAllStudentsRaw, pendingStudentsRaw] =
+        await Promise.all([
+          prisma.placement.findMany({
+            where: placementWhere,
+            include: {
+              student: {
                 select: {
                   id: true,
-                  name: true,
-                  sectorCode: true,
-                  cpElements: {
-                    select: { id: true, code: true, title: true, targetJp: true },
-                    orderBy: { sortOrder: "asc" },
+                  fullName: true,
+                  identityNumber: true,
+                  schoolDepartment: {
+                    select: {
+                      id: true,
+                      name: true,
+                      sectorCode: true,
+                      cpElements: {
+                        select: { id: true, code: true, title: true, targetJp: true },
+                        orderBy: { sortOrder: "asc" },
+                      },
+                    },
                   },
                 },
               },
-            },
-          },
-          dudiPartner: {
-            select: { id: true, name: true, city: true },
-          },
-          teacher: {
-            select: { id: true, fullName: true, identityNumber: true },
-          },
-          endorsement: {
-            select: { attitudeScore: true, endorsementQuote: true },
-          },
-          dailyLogs: {
-            select: {
-              id: true,
-              status: true,
-              items: {
+              dudiPartner: {
+                select: { id: true, name: true, city: true },
+              },
+              teacher: {
+                select: { id: true, fullName: true, identityNumber: true },
+              },
+              endorsement: {
+                select: { attitudeScore: true, endorsementQuote: true },
+              },
+              dailyLogs: {
                 select: {
-                  jobCardId: true,
-                  durationJp: true,
-                  autonomyLevel: true,
-                  jobCard: {
+                  id: true,
+                  status: true,
+                  items: {
                     select: {
-                      id: true,
-                      title: true,
-                      cpElementId: true,
-                      isNonCompetency: true,
+                      jobCardId: true,
+                      durationJp: true,
+                      autonomyLevel: true,
+                      jobCard: {
+                        select: {
+                          id: true,
+                          title: true,
+                          cpElementId: true,
+                          isNonCompetency: true,
+                        },
+                      },
                     },
                   },
                 },
               },
             },
-          },
-        },
-        orderBy: { student: { fullName: "asc" } },
-      });
+            orderBy: { student: { fullName: "asc" } },
+            ...(isCsv ? {} : { skip, take: limit }),
+          }),
+          !isCsv && hasPlacementCountFn
+            ? prisma.placement.count({ where: placementWhere })
+            : Promise.resolve(null),
+          !isCsv && hasPlacementCountFn
+            ? prisma.placement.count({ where: basePlacementWhere })
+            : Promise.resolve(null),
+          !isCsv && hasPlacementCountFn
+            ? prisma.placement.count({
+                where: {
+                  ...basePlacementWhere,
+                  dailyLogs: { some: { status: "PENDING_VERIFICATION" } },
+                },
+              })
+            : Promise.resolve(null),
+        ]);
 
       // 4. Hitung Nilai e-Rapor per Siswa sesuai BR-009
       let totalStudentsWithPendingLogs = 0;
@@ -320,16 +358,31 @@ eraporRouter.get(
       }
 
       // 6. Respon JSON default
+      const totalItems =
+        typeof totalItemsRaw === "number" ? totalItemsRaw : studentResults.length;
+      const totalStudentsCount =
+        typeof totalAllStudentsRaw === "number" ? totalAllStudentsRaw : totalItems;
+      const pendingLogsStudentsCount =
+        typeof pendingStudentsRaw === "number"
+          ? pendingStudentsRaw
+          : totalStudentsWithPendingLogs;
+
       res.json({
         data: {
           school: { id: school.id, name: school.name },
-          totalStudents: studentResults.length,
-          studentsWithPendingLogsCount: totalStudentsWithPendingLogs,
+          totalStudents: totalStudentsCount,
+          studentsWithPendingLogsCount: pendingLogsStudentsCount,
           warningMessage:
-            totalStudentsWithPendingLogs > 0
-              ? `Terdapat ${totalStudentsWithPendingLogs} siswa yang masih memiliki jurnal belum divalidasi mentor. Selesaikan validasi terlebih dahulu agar nilai optimal.`
+            pendingLogsStudentsCount > 0
+              ? `Terdapat ${pendingLogsStudentsCount} siswa yang masih memiliki jurnal belum divalidasi mentor. Selesaikan validasi terlebih dahulu agar nilai optimal.`
               : null,
           records: studentResults,
+          pagination: {
+            page,
+            limit,
+            totalItems,
+            totalPages: Math.max(1, Math.ceil(totalItems / limit)),
+          },
         },
       });
     } catch (err) {

@@ -78,22 +78,16 @@ VokaLink menghadirkan ekosistem digital terpadu yang menghubungkan seluruh peman
 
 ---
 
-## ✨ Fitur Unggulan & Inovasi Kunci
+## ✨ Fitur Unggulan & Inovasi Kunci (Core Loop)
 
 | ID Fitur | Modul & Nama Fitur | Deskripsi Singkat & Manfaat |
 |---|---|---|
-| **FR-001** | Multi-Tenant Onboarding & Sandbox | Pendaftaran mandiri sekolah baru, registrasi jurusan, dan isolasi data multi-tenant ketat lewat *Prisma Tenant Guard Extension*. |
-| **FR-002** | Master Kurikulum & 89 Job Cards | Matriks Capaian Pembelajaran 6 jurusan (PPLG, TJKT, DKV, TKR, AKL, Kuliner) tepat 792 JP dan penguncian alokasi (*Curriculum Lock*). |
-| **FR-003** | Assisted DUDI Onboarding & Device Binding | Direktori mitra terfederasi lintas sekolah, aktivasi perangkat mentor tanpa akun via tautan kriptografis bertenggat 72 jam. |
-| **FR-004** | Smart Placement Scorer | Rekomendasi penempatan siswa otomatis menggunakan algoritma spasial murni *Haversine Distance* berbobot 70:30 (relevansi vs jarak). |
-| **FR-005** | Zero-Typing Logger & Tombol Jujur | Pengisian kartu logbook tanpa ketik manual, slider durasi (maks 12 JP/hari), dan pemisahan jujur aktivitas non-kompetensi (BR-004). |
-| **FR-006** | PWA Offline-First & Two-Phase Sync | Penyimpanan instan di Dexie.js lokal, kompresi foto WebP Canvas < 60 KB, dan *idempotent batch synchronization* saat koneksi pulih. |
-| **FR-007** | Zero-Login Verification | Persetujuan logbook mentor < 10 detik via QR/WhatsApp, diamankan *Device Token + Salted Scrypt PIN + Server Pepper* dan segel HMAC-SHA256. |
-| **FR-008** | Live Heatmap & Drift Anomaly Detection | Matriks live 2D capaian siswa dan deteksi 3 pola deviasi (*Non-Competency Overload*, *Skill Monotony*, *Approval Dormancy*). |
-| **FR-009** | Intervensi WhatsApp Cerdas & Rotasi Mitra | Generator draf pesan WhatsApp personal berbasis data drift, log intervensi guru, dan fasilitas rotasi mitra tanpa mereset jam terbang siswa. |
-| **FR-010** | Soft Skills Endorsement & Audit Kemitraan | Validasi 5 lencana etos kerja & auto-quote A1 dari mentor, serta indeks komposit mutu kemitraan DUDI sekolah (50% relevansi, 30% respon, 20% CP). |
-| **FR-011** | Generator Nilai e-Rapor Otomatis | Konversi jam terverifikasi ke formula e-Rapor Kurikulum Merdeka (60% aspek teknis + 40% aspek sikap) dan ekspor CSV format Dapodik. |
-| **FR-012** | CV ATS Google XYZ & Paspor Publik Ber-QR | Pembuatan CV format A4 print-ready hanya dari data `VERIFIED`, QR Code verifikasi publik, dan verifikasi integritas stempel kriptografi. |
+| **FR-001 & 002** | Multi-Tenant Onboarding & Pre-Loaded Job Cards | Pendaftaran mandiri sekolah baru dengan isolasi data multi-tenant (*Prisma Tenant Guard*) serta aktivasi otomatis kurikulum 792 JP & 89 Kartu Pekerjaan (*Job Cards*) siap pakai untuk 6 jurusan. |
+| **FR-003 & 004** | Direktori Mitra DUDI, Device Binding & Penempatan Siswa | Direktori tempat magang, aktivasi perangkat HP mentor tanpa akun via QR/WhatsApp + PIN 4 digit, serta penempatan siswa ke DUDI dan Guru Pembimbing. |
+| **FR-005 & 006** | Zero-Typing Logger, Tombol Jujur & Offline Sync | Pencatatan kegiatan harian bebas-ketik (*tap kartu kerja*), opsi aman pelaporan tugas non-jurusan ("Tombol Jujur"), kompresi foto WebP otomatis (< 60 KB), dan sinkronisasi luring via IndexedDB. |
+| **FR-007** | Zero-Login Mentor Verification (< 10 Detik) | Persetujuan jurnal siswa tanpa registrasi akun/password via QR atau link WhatsApp, diamankan *Device Token + PIN 4-digit* dan segel kriptografi HMAC-SHA256. |
+| **FR-008 & 009** | Live Competency Heatmap, Drift Alert & Intervensi WA | Tabel matriks ketercapaian kompetensi siswa bagi Guru Pembimbing, deteksi dini penyimpangan penugasan (*Competency Drift*), dan kontak cepat ke WhatsApp mentor. |
+| **FR-010, 011 & 012** | Endorsement Etos Kerja, e-Rapor CSV & Paspor QR HRD | Penilaian sikap akhir oleh mentor, ekspor nilai akhir format CSV e-Rapor SMK, pembuatan CV standar ATS, dan halaman publik Paspor Kompetensi ber-QR anti-manipulasi. |
 
 ---
 
@@ -105,19 +99,19 @@ Kunjungi halaman masuk di **`http://localhost:3000/login`** dan pilih salah satu
 
 1. 🏛️ **Admin Pokja PKL (SMK Demo)**  
    *Rute:* `/school/dashboard`  
-   *Fitur:* Monitoring penempatan, direktori kurikulum 792 JP, indeks mutu kemitraan DUDI, ekspor e-Rapor.
+   *Fitur:* Ringkasan operasional sekolah, manajemen mitra DUDI & aktivasi mentor, penempatan siswa ke DUDI, dan ekspor nilai e-Rapor.
 2. 👨‍🏫 **Guru Pembimbing (Budi Santoso)**  
    *Rute:* `/teacher/heatmap`  
-   *Fitur:* Matriks live heatmap 35 siswa binaan, visualisasi drift alert (merah/kuning), generator pesan intervensi WhatsApp.
+   *Fitur:* Matriks live heatmap siswa binaan, peringatan dini penyimpangan tugas (*drift alert*), dan koordinasi cepat ke WhatsApp mentor.
 3. 👨‍🎓 **Siswa PKL (Andi Pratama — RPL)**  
    *Rute:* `/student/home`  
-   *Fitur:* Progres jam pelajaran, pengisian kartu tugas instan `/student/log/new`, simulasi offline PWA, unduh CV ATS `/student/career-cv`.
+   *Fitur:* Progres jam PKL, pengisian kartu tugas instan `/student/log/new` (offline-first), minta validasi mentor, dan unduh CV ATS `/student/career-cv`.
 4. 🏢 **Mentor DUDI Zero-Login (PT Sentra Solusi)**  
-   *Rute:* `/v/demo-token-123/activate` atau `/v/demo-token-123/endorse`  
-   *Fitur:* Simulasi aktivasi perangkat, stempel persetujuan harian tanpa login, pengisian skor sikap & lencana etos kerja.
+   *Rute:* `/v/demo-token-123` atau `/v/demo-token-123/endorse`  
+   *Fitur:* Persetujuan jurnal siswa tanpa login (< 10 detik) dengan PIN 4 digit, serta pengisian skor sikap & lencana etos kerja akhir PKL.
 5. 🌐 **Verifikasi Paspor Publik (Perekrut / HRD)**  
    *Rute:* `/verify/andi-pratama-rpl-2026`  
-   *Fitur:* Halaman publik paspor kompetensi ber-QR, bukti segel kriptografis HMAC-SHA256, verifikasi status autentikasi.
+   *Fitur:* Sertifikat publik Paspor Kompetensi ber-QR, bukti segel kriptografis HMAC-SHA256, dan rincian kompetensi serta lencana etos kerja terverifikasi.
 
 ---
 

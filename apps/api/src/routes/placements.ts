@@ -39,7 +39,21 @@ placementsRouter.get(
       const user = req.user!;
       verifySchoolTenant(user, schoolId);
 
-      const { departmentId } = req.query as { departmentId?: string };
+      const {
+        departmentId,
+        search,
+        page: rawPage,
+        limit: rawLimit,
+      } = req.query as {
+        departmentId?: string;
+        search?: string;
+        page?: string;
+        limit?: string;
+      };
+
+      const page = Math.max(1, parseInt(rawPage || "1", 10) || 1);
+      const limit = Math.min(50, Math.max(1, parseInt(rawLimit || "10", 10) || 10));
+      const skip = (page - 1) * limit;
 
       // 1. Ambil data sekolah untuk koordinat fallback
       const school = await prisma.school.findUnique({
@@ -62,14 +76,34 @@ placementsRouter.get(
 
       const targetTotalJp = activePeriod?.targetTotalJp ?? 792;
 
-      // 3. Ambil daftar siswa di sekolah (dan filter jurusan bila ada)
-      const studentWhere: any = {
+      // 3. Ambil daftar siswa di sekolah yang BELUM memiliki penempatan aktif di periode ini (dan filter jurusan/search bila ada)
+      const baseStudentWhere: any = {
         schoolId,
         role: "STUDENT",
+        studentPlacements: {
+          none: {
+            status: "ACTIVE",
+            ...(activePeriod ? { academicPeriodId: activePeriod.id } : {}),
+          },
+        },
       };
       if (departmentId) {
-        studentWhere.schoolDepartmentId = departmentId;
+        baseStudentWhere.schoolDepartmentId = departmentId;
       }
+
+      const q = search?.trim();
+      const studentWhere: any = q
+        ? {
+            ...baseStudentWhere,
+            OR: [
+              { fullName: { contains: q, mode: "insensitive" } },
+              { identityNumber: { contains: q, mode: "insensitive" } },
+              { schoolDepartment: { name: { contains: q, mode: "insensitive" } } },
+            ],
+          }
+        : baseStudentWhere;
+
+      const hasUserCountFn = typeof prisma.userProfile.count === "function";
 
       const students = await prisma.userProfile.findMany({
         where: studentWhere,
@@ -93,6 +127,8 @@ placementsRouter.get(
           },
         },
         orderBy: { fullName: "asc" },
+        skip,
+        take: limit,
       });
 
       // 4. Ambil semua guru pembimbing di sekolah ini
@@ -102,34 +138,44 @@ placementsRouter.get(
         orderBy: { fullName: "asc" },
       });
 
-      // 5. Ambil semua DUDI beserta capabilities & placement aktif
-      const dudis = await prisma.dudiPartner.findMany({
-        include: {
-          capabilities: {
-            include: {
-              jobCard: {
-                select: {
-                  id: true,
-                  title: true,
-                  cpElementId: true,
-                  isNonCompetency: true,
+      // 5. Ambil semua DUDI beserta capabilities & placement aktif + hitung total kandidat
+      const [dudis, totalItemsRaw, totalUnplacedRaw] = await Promise.all([
+        prisma.dudiPartner.findMany({
+          include: {
+            capabilities: {
+              include: {
+                jobCard: {
+                  select: {
+                    id: true,
+                    title: true,
+                    cpElementId: true,
+                    isNonCompetency: true,
+                  },
                 },
               },
             },
-          },
-          placements: {
-            where: {
-              status: "ACTIVE",
-              ...(activePeriod ? { academicPeriodId: activePeriod.id } : {}),
+            placements: {
+              where: {
+                status: "ACTIVE",
+                ...(activePeriod ? { academicPeriodId: activePeriod.id } : {}),
+              },
+              select: { id: true },
             },
-            select: { id: true },
+            mentors: {
+              select: { id: true, fullName: true, jobTitle: true, tokenBoundAt: true },
+            },
           },
-          mentors: {
-            select: { id: true, fullName: true, jobTitle: true, tokenBoundAt: true },
-          },
-        },
-        orderBy: { name: "asc" },
-      });
+          orderBy: { name: "asc" },
+        }),
+        hasUserCountFn ? prisma.userProfile.count({ where: studentWhere }) : Promise.resolve(null),
+        hasUserCountFn && q
+          ? prisma.userProfile.count({ where: baseStudentWhere })
+          : Promise.resolve(null),
+      ]);
+
+      const totalItems = typeof totalItemsRaw === "number" ? totalItemsRaw : students.length;
+      const totalUnplacedCount =
+        typeof totalUnplacedRaw === "number" ? totalUnplacedRaw : totalItems;
 
       // Format DUDI candidates list
       const formattedDudis = dudis.map((d) => {
@@ -223,6 +269,13 @@ placementsRouter.get(
           students: candidateStudents,
           teachers,
           dudis: formattedDudis,
+          totalUnplacedCount,
+          pagination: {
+            page,
+            limit,
+            totalItems,
+            totalPages: Math.max(1, Math.ceil(totalItems / limit)),
+          },
         },
       });
     } catch (err) {
@@ -245,65 +298,104 @@ placementsRouter.get(
       const user = req.user!;
       verifySchoolTenant(user, schoolId);
 
-      const { departmentId, status } = req.query as {
+      const {
+        departmentId,
+        status,
+        search,
+        page: rawPage,
+        limit: rawLimit,
+      } = req.query as {
         departmentId?: string;
         status?: string;
+        search?: string;
+        page?: string;
+        limit?: string;
       };
 
-      const whereClause: any = {
+      const page = Math.max(1, parseInt(rawPage || "1", 10) || 1);
+      const limit = Math.min(50, Math.max(1, parseInt(rawLimit || "10", 10) || 10));
+      const skip = (page - 1) * limit;
+
+      const baseWhereClause: any = {
         student: { schoolId },
       };
 
       if (departmentId) {
-        whereClause.student.schoolDepartmentId = departmentId;
+        baseWhereClause.student.schoolDepartmentId = departmentId;
       }
       if (status) {
-        whereClause.status = status;
+        baseWhereClause.status = status;
       }
 
       // Jika role TEACHER, batasi hanya menampilkan siswa bimbingannya kecuali admin
       if (user.role === "TEACHER") {
-        whereClause.teacherId = user.id;
+        baseWhereClause.teacherId = user.id;
       }
 
-      const placements = await prisma.placement.findMany({
-        where: whereClause,
-        include: {
-          student: {
-            select: {
-              id: true,
-              fullName: true,
-              identityNumber: true,
-              whatsappNumber: true,
-              schoolDepartment: { select: { id: true, name: true } },
+      const q = search?.trim();
+      const whereClause: any = q
+        ? {
+            ...baseWhereClause,
+            OR: [
+              { student: { fullName: { contains: q, mode: "insensitive" } } },
+              { student: { identityNumber: { contains: q, mode: "insensitive" } } },
+              { dudiPartner: { name: { contains: q, mode: "insensitive" } } },
+            ],
+          }
+        : baseWhereClause;
+
+      const hasPlacementCountFn = typeof prisma.placement.count === "function";
+
+      const [placements, totalItemsRaw, totalActiveRaw] = await Promise.all([
+        prisma.placement.findMany({
+          where: whereClause,
+          include: {
+            student: {
+              select: {
+                id: true,
+                fullName: true,
+                identityNumber: true,
+                whatsappNumber: true,
+                schoolDepartment: { select: { id: true, name: true } },
+              },
+            },
+            teacher: {
+              select: { id: true, fullName: true, identityNumber: true },
+            },
+            dudiPartner: {
+              select: {
+                id: true,
+                name: true,
+                sectorCategory: true,
+                address: true,
+                city: true,
+                latitude: true,
+                longitude: true,
+              },
+            },
+            dudiMentor: {
+              select: { id: true, fullName: true, jobTitle: true, tokenBoundAt: true },
+            },
+            academicPeriod: {
+              select: { id: true, name: true },
+            },
+            _count: {
+              select: { dailyLogs: true },
             },
           },
-          teacher: {
-            select: { id: true, fullName: true, identityNumber: true },
-          },
-          dudiPartner: {
-            select: {
-              id: true,
-              name: true,
-              sectorCategory: true,
-              address: true,
-              city: true,
-              latitude: true,
-              longitude: true,
-            },
-          },
-          dudiMentor: {
-            select: { id: true, fullName: true, jobTitle: true, tokenBoundAt: true },
-          },
-          academicPeriod: {
-            select: { id: true, name: true },
-          },
-          _count: {
-            select: { dailyLogs: true },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      });
+          orderBy: { createdAt: "desc" },
+          skip,
+          take: limit,
+        }),
+        hasPlacementCountFn ? prisma.placement.count({ where: whereClause }) : Promise.resolve(null),
+        hasPlacementCountFn && q
+          ? prisma.placement.count({ where: baseWhereClause })
+          : Promise.resolve(null),
+      ]);
+
+      const totalItems = typeof totalItemsRaw === "number" ? totalItemsRaw : placements.length;
+      const totalActiveCount =
+        typeof totalActiveRaw === "number" ? totalActiveRaw : totalItems;
 
       res.json({
         data: placements.map((p) => ({
@@ -337,6 +429,13 @@ placementsRouter.get(
           logsCount: p._count.dailyLogs,
           createdAt: p.createdAt.toISOString(),
         })),
+        totalActiveCount,
+        pagination: {
+          page,
+          limit,
+          totalItems,
+          totalPages: Math.max(1, Math.ceil(totalItems / limit)),
+        },
       });
     } catch (err) {
       next(err);

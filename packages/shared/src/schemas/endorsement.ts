@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PIN_LENGTH, MAX_ENDORSEMENT_BADGES } from "../constants/index.js";
+import { PIN_LENGTH, MAX_ENDORSEMENT_BADGES } from "../constants/index";
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────

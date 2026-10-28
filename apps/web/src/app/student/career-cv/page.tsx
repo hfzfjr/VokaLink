@@ -113,7 +113,7 @@ const DEFAULT_COMPLIANCE =
   "SKKNI Bidang Rekayasa Perangkat Lunak / Kejuruan Vokasi, Standar SOP Mandiri & K3 Industri.";
 
 const DEFAULT_VALIDITY =
-  "100% tervalidasi mentor industri melalui tanda tangan digital & PIN resmi (BR-010).";
+  "100% tervalidasi mentor industri melalui tanda tangan digital & PIN resmi.";
 
 export default function CareerCvPage() {
   const { user } = useAuth();
@@ -125,12 +125,6 @@ export default function CareerCvPage() {
   const [bioSummary, setBioSummary] = useState("");
   const [isSavingBio, setIsSavingBio] = useState(false);
   const [bioSaveSuccess, setBioSaveSuccess] = useState(false);
-
-  // Skill Passport Privacy Visibility state (PRD FR-012 A1)
-  const [showPhotos, setShowPhotos] = useState(true);
-  const [showGrades, setShowGrades] = useState(true);
-  const [isUpdatingPrivacy, setIsUpdatingPrivacy] = useState(false);
-  const [privacySaved, setPrivacySaved] = useState(false);
 
   // Share link state
   const [copiedLink, setCopiedLink] = useState(false);
@@ -262,10 +256,6 @@ export default function CareerCvPage() {
       setCvData(data);
       setBioSummary(data.summaryBio || "");
       initManualFields(data);
-      if (data.visibility) {
-        setShowPhotos(data.visibility.showPhotos ?? true);
-        setShowGrades(data.visibility.showGrades ?? true);
-      }
     } catch (err: any) {
       setError(err.message || "Gagal memuat CV ATS dari server database.");
       setCvData(null);
@@ -502,30 +492,6 @@ export default function CareerCvPage() {
     );
   };
 
-  const handleTogglePrivacy = async (field: "showPhotos" | "showGrades", value: boolean) => {
-    const nextPhotos = field === "showPhotos" ? value : showPhotos;
-    const nextGrades = field === "showGrades" ? value : showGrades;
-
-    if (field === "showPhotos") setShowPhotos(value);
-    if (field === "showGrades") setShowGrades(value);
-
-    setIsUpdatingPrivacy(true);
-    try {
-      await updateStudentPassport({
-        visibility: {
-          showPhotos: nextPhotos,
-          showGrades: nextGrades,
-        },
-      });
-      setPrivacySaved(true);
-      setTimeout(() => setPrivacySaved(false), 2000);
-    } catch {
-      console.info("Perubahan privasi disimpan secara lokal");
-    } finally {
-      setIsUpdatingPrivacy(false);
-    }
-  };
-
   const handlePrintPdf = () => {
     if (typeof window !== "undefined") {
       window.print();
@@ -559,17 +525,17 @@ export default function CareerCvPage() {
     );
   }
 
-  // ─── 3. State: Empty Verified Logs (BR-010) ────────────────────────────────
+  // ─── 3. State: Empty Verified Logs ────────────────────────────────
   if (cvData.totalVerifiedJp === 0) {
     return (
       <div className="space-y-6">
         <div className="p-6 bg-amber-50 border border-amber-200 rounded-2xl space-y-3">
           <div className="flex items-center gap-2 text-amber-900 font-bold text-sm">
             <Lock className="w-5 h-5 text-amber-600" />
-            <span>Belum Ada Jam Praktik Terverifikasi (BR-010)</span>
+            <span>Belum Ada Jam Praktik Terverifikasi</span>
           </div>
           <p className="text-xs text-amber-800 leading-relaxed">
-            CV Standar ATS dan Paspor Kompetensi VokaLink dibangun 100% berbasis data faktual yang telah diverifikasi resmi oleh Mentor DUDI melalui PIN perangkat. Mintalah mentor industri Anda untuk memvalidasi entri jurnal harian Anda terlebih dahulu agar klaim keterampilan dan jam kerja otomatis terisi.
+            CV Standar ATS dan Paspor Kompetensi VokaLink dibangun berbasis data faktual yang telah diverifikasi resmi oleh Mentor DUDI melalui PIN perangkat. Mintalah mentor industri Anda untuk memvalidasi entri jurnal harian Anda terlebih dahulu agar klaim keterampilan dan jam kerja otomatis terisi.
           </p>
           <Link
             href="/student/log/history"
@@ -1550,7 +1516,7 @@ export default function CareerCvPage() {
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-semibold text-slate-900 tracking-tight uppercase flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-sky-500" />
-                <span>Klaim Terverifikasi (BR-010)</span>
+                <span>Klaim Terverifikasi</span>
               </h3>
               <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/70 px-2 py-0.5 rounded-full">
                 Faktual DUDI
@@ -1584,7 +1550,7 @@ export default function CareerCvPage() {
             </div>
 
             <p className="text-[11px] text-slate-500 font-normal leading-relaxed">
-              Seluruh durasi, nama DUDI, dan unit kompetensi ditarik otomatis dari jurnal tervalidasi PIN mentor (BR-010).
+              Seluruh durasi, nama DUDI, dan unit kompetensi ditarik otomatis dari jurnal tervalidasi PIN mentor.
             </p>
           </div>
 
@@ -1638,80 +1604,7 @@ export default function CareerCvPage() {
             </div>
           </div>
 
-          {/* Card 3: Pengaturan Privasi Paspor Publik (FR-012) */}
-          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-sky-600" />
-                <h3 className="text-xs font-semibold text-slate-900 tracking-tight">
-                  Privasi Paspor Publik (FR-012)
-                </h3>
-              </div>
-              {privacySaved && (
-                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/70 animate-in fade-in">
-                  Tersimpan!
-                </span>
-              )}
-            </div>
-
-            <div className="space-y-2 pt-0.5">
-              {/* Toggle 1: Foto Bukti */}
-              <div className="p-2.5 rounded-2xl bg-slate-50/70 border border-slate-200/60 flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <span className="text-xs font-semibold text-slate-900 block truncate">Galeri Foto Bukti</span>
-                  <span className="text-[10px] text-slate-500 block truncate">
-                    {showPhotos ? "Foto tampil di audit HRD" : "Foto disembunyikan"}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleTogglePrivacy("showPhotos", !showPhotos)}
-                  disabled={isUpdatingPrivacy}
-                  className={cn(
-                    "w-10 h-5.5 flex items-center rounded-full p-0.5 transition-colors duration-200 cursor-pointer shrink-0 disabled:opacity-60",
-                    showPhotos ? "bg-emerald-600" : "bg-slate-300"
-                  )}
-                  title="Toggle tampilan foto bukti"
-                >
-                  <div
-                    className={cn(
-                      "bg-white w-4.5 h-4.5 rounded-full shadow-2xs transform transition-transform duration-200",
-                      showPhotos ? "translate-x-4.5" : "translate-x-0"
-                    )}
-                  />
-                </button>
-              </div>
-
-              {/* Toggle 2: Nilai Sikap Mentor */}
-              <div className="p-2.5 rounded-2xl bg-slate-50/70 border border-slate-200/60 flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <span className="text-xs font-semibold text-slate-900 block truncate">Nilai Sikap Mentor</span>
-                  <span className="text-[10px] text-slate-500 block truncate">
-                    {showGrades ? "Skor etos kerja tampil" : "Skor sikap disembunyikan"}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleTogglePrivacy("showGrades", !showGrades)}
-                  disabled={isUpdatingPrivacy}
-                  className={cn(
-                    "w-10 h-5.5 flex items-center rounded-full p-0.5 transition-colors duration-200 cursor-pointer shrink-0 disabled:opacity-60",
-                    showGrades ? "bg-emerald-600" : "bg-slate-300"
-                  )}
-                  title="Toggle tampilan nilai sikap"
-                >
-                  <div
-                    className={cn(
-                      "bg-white w-4.5 h-4.5 rounded-full shadow-2xs transform transition-transform duration-200",
-                      showGrades ? "translate-x-4.5" : "translate-x-0"
-                    )}
-                  />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4: Jaminan Standar ATS (Harvard & ADACareer) */}
+          {/* Card 3: Jaminan Standar ATS (Harvard & ADACareer) */}
           <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-2.5">
             <div className="flex items-center gap-1.5 text-slate-900 font-semibold text-xs tracking-tight">
               <FileCheck className="w-3.5 h-3.5 text-emerald-600" />
@@ -1729,7 +1622,7 @@ export default function CareerCvPage() {
               </li>
               <li className="flex items-start gap-1.5">
                 <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                <span>Bebas klaim fiktif karena tersinkron dari validasi PIN mentor (BR-010).</span>
+                <span>Bebas klaim fiktif karena tersinkron dari validasi PIN mentor.</span>
               </li>
             </ul>
           </div>

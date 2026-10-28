@@ -1,8 +1,8 @@
 # PROGRESS — VokaLink
 
 > Papan status hidup. Perbarui setiap malam. Rencana ada di `SPRINT.md`, spesifikasi di `PRD.md`.
-> **Terakhir diperbarui:** 24 Okt 2026 (Hari 4)
-> **Hari sprint saat ini:** 4 dari 10 · **Deadline:** 30 Okt 2026 · **Code freeze:** 28 Okt
+> **Terakhir diperbarui:** 27 Okt 2026 (Hari 7)
+> **Hari sprint saat ini:** 7 dari 10 · **Deadline:** 30 Okt 2026 · **Code freeze:** 28 Okt
 
 Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblokir
 
@@ -93,6 +93,28 @@ Legenda: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai · `[!]` terblo
 Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-12) dan bagian 12.
 
 ## 8. Log Harian
+
+### Hari 7 — Sel 27 Okt 2026
+- Selesai:
+  - **Refactor Penyederhanaan Scope & De-cluttering UI (D-012 — `docs/SCOPE_REFACTOR_PLAN.md`):**
+    - **Tahap 1 (Dokumentasi & README):** Sinkronisasi `README.md`, `docs/BUGS.md` (D-012), dan `docs/SCHOOL_MODULE_PLAN.md` agar fokus pada **Core Loop 5 Peran** tanpa fitur sekunder berlebihan.
+    - **Tahap 2 (Landing Page `/`):** Menghapus klaim *Presensi Geofence Anti-Kecurangan / Aktivasi GPS Radius* dan menggantinya dengan proposisi nilai faktual (*Zero-Typing Job Cards*, *Tombol Jujur*, *Stempel Digital Mentor Zero-Login*, dan *Otomasi e-Rapor + CV ATS + Paspor QR*). Menghilangkan jargon teknis mentah pada tab switcher peran dan kartu alur kerja.
+    - **Tahap 3 (Auth `/login` & `/register-school`):** Menghapus duplikasi strip demo juri pada `/register-school`, menyederhanakan copywriting Step 2 bahwa Kurikulum 792 JP & Job Cards otomatis aktif dari standar BSKAP, serta merapikan copywriting panel kiri `/login`.
+    - **Tahap 4 (Modul Admin Sekolah `/school/*`):**
+      - Menghapus rute & komponen `/school/curriculum` (Kurikulum 792 JP & 89 Job Cards berjalan 100% otomatis).
+      - Menyederhanakan navigasi `SchoolSidebar` dan `SchoolBottomNav` menjadi **4 Menu Inti**: Dasbor Utama, Direktori DUDI, Penempatan Siswa, dan Rekap e-Rapor.
+      - Menghapus tab sekunder *Audit Indeks Mutu Kemitraan DUDI* (`DudiQualityIndexView.tsx`), modal *Auto-Greedy Batch* (`BatchGreedyModal.tsx`), dan modal *Koordinat GPS Siswa* (`StudentCoordinatesModal.tsx`).
+      - Membersihkan kode spesifikasi internal (`FR-011`, `BR-010`) pada `/school/erapor`.
+    - **Tahap 5 (Modul Siswa `/student/*`):**
+      - Menghapus *Studio Privasi & Blur Foto* (`PhotoPrivacyStudioModal.tsx`) dan kalkulasi/form alasan *K3 Overwork* pada `/student/log/new` (fokus murni pada pilihan shift 4/8/10 jam & kompresi WebP otomatis `< 60 KB`).
+      - Mengganti tag teknis internal (`"Dexie IndexedDB"`, `"Database PostgreSQL"`) pada `/student/home` menjadi `"SOP Industri"`, serta menghapus kartu *Privasi Paspor Publik (FR-012)* dan kode `(BR-010)` pada `/student/career-cv`.
+    - **Tahap 6 (Modul Guru Pembimbing `/teacher/*`):**
+      - Menghapus badge `FR-008`, `FR-009`, `TC-006`, `TC-009`, dan `BR-010` dari `TeacherSidebar.tsx` dan `/teacher/heatmap`.
+      - Menyederhanakan modal intervensi di `/teacher/heatmap` menjadi fokus 1-klik **Hubungi Mentor Industri via WhatsApp** (menghapus tab form *Kunjungan Lapangan* dan *Rotasi Mitra Tengah Semester*).
+    - **Tahap 7 (Mentor `/v/[token]/*` & Publik HRD `/verify/[passportSlug]`):**
+      - Menghapus form penilaian karakter/lencana harian dari `/v/[token]` agar persetujuan jurnal harian mentor murni selesai `< 10 detik` (review kegiatan + foto + 4 digit PIN).
+      - Menyelaraskan halaman endorsement akhir periode `/v/[token]/endorse` ke tema terang bersih (`bg-slate-50`, kartu putih) dan menghapus tombol *Auto-Rekomendasi (A1)* serta kode `FR-010`/`BR-010`.
+      - Menyederhanakan halaman verifikasi publik `/verify/[passportSlug]` dengan menghapus blok *Verifikasi Standar Ganda* dan *Galeri Artefak Foto* agar HRD dapat memvalidasi keaslian dokumen dalam 5 detik.
 
 ### Hari 4 — Sab 24 Okt 2026
 - Selesai:
@@ -273,8 +295,18 @@ Keputusan yang sudah final tercatat di `DESIGN.md` bagian 1 (ADR-01 sampai ADR-1
 - Sedang dikerjakan:
   - Persiapan integrasi akhir, code freeze, dan demo showcase persiapan lomba UINIC 8.0.
 - Blocker:
-  - Tidak ada blocker aktif saat ini. Seluruh lingkup fitur Orang C (FR-007, FR-008, FR-009, FR-010, `/verify/[slug]`) dan hardening selesai 100%.
-- Rencana besok (Hari 3):
+  - Tidak ada blocker aktif saat ini.
+
+### Hari 7 — Sel 27 Okt 2026
+- Selesai:
+  - Refaktor Menyeluruh Portal Pengelola Sekolah (`/school`) & Standarisasi Apple HIG (`docs/SCHOOL_MODULE_PLAN.md`):
+    - Penggantian `AppShell` lama dengan arsitektur modern VokaLink: `SchoolSidebar.tsx` (slim desktop dock 88-92px), `SchoolHeader.tsx` (mobile top bar), `SchoolBottomNav.tsx` (mobile bottom dock), dan `SchoolWidgetPanel.tsx` (desktop right widget panel).
+    - Pemisahan komponen modular ke `apps/web/src/components/school/*` (`dashboard`, `curriculum`, `dudi`, `placements`, `erapor`), memangkas ribuan baris file monolitik menjadi komponen terfokus < 200 baris.
+    - Eliminasi 100% data mock lokal: Menghapus `SAMPLE_JOB_CARDS` hardcode pada registrasi DUDI dan menggantinya dengan query katalog Job Cards nyata dari database sekolah via API.
+    - Eliminasi seluruh fallback UUID hardcode (`0000...0002`), migrasi murni ke sesi dinamis `user.school.id` dan token Bearer.
+    - Clean UI: Menghapus 4 kartu navigasi redundan di dasbor, mengoptimalkan hierarki visual, dan memastikan kepatuhan kontras WCAG AA.
+    - Seluruh pengujian hijau: `pnpm lint`, `pnpm typecheck`, dan `pnpm test` (15 test files, 122 tests) lulus 100%.
+
 ### Hari 4 — Sab 24 Okt 2026
 - Selesai:
   - Rekonstruksi Sistem Presensi Logbook Siswa & Quick Shift Presets (FR-005, D-011):
