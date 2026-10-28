@@ -21,6 +21,7 @@ import { Disclosure } from "@/components/ui/Disclosure";
 import VokaIcon from "@/components/common/VokaIcon";
 import { fetchPublicPassport, type PublicPassportResponse } from "@/lib/api";
 import { sanitizeErrorMessage } from "@/lib/error-formatter";
+import { SkeletonRect } from "@/components/ui/Skeleton";
 
 interface PageProps {
   params: Promise<{ passportSlug: string }>;
@@ -63,16 +64,16 @@ export default function PublicPassportVerifyPage({ params }: PageProps) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-canvas py-10 px-4 sm:px-6">
-        <div className="max-w-3xl mx-auto space-y-6 animate-pulse">
-          <div className="h-16 bg-slate-200 rounded-3xl w-full" />
-          <div className="h-48 bg-slate-200 rounded-3xl w-full" />
+        <div className="max-w-3xl mx-auto space-y-6">
+          <SkeletonRect className="h-16 rounded-3xl w-full" />
+          <SkeletonRect className="h-48 rounded-3xl w-full" />
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="h-24 bg-slate-200 rounded-2xl" />
-            <div className="h-24 bg-slate-200 rounded-2xl" />
-            <div className="h-24 bg-slate-200 rounded-2xl" />
-            <div className="h-24 bg-slate-200 rounded-2xl" />
+            <SkeletonRect className="h-24 rounded-2xl" />
+            <SkeletonRect className="h-24 rounded-2xl" />
+            <SkeletonRect className="h-24 rounded-2xl" />
+            <SkeletonRect className="h-24 rounded-2xl" />
           </div>
-          <div className="h-64 bg-slate-200 rounded-3xl w-full" />
+          <SkeletonRect className="h-64 rounded-3xl w-full" />
         </div>
       </div>
     );

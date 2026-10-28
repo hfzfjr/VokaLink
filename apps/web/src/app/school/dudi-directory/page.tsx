@@ -19,6 +19,7 @@ import { MentorQrActivationModal } from "@/components/school/dudi/MentorQrActiva
 import { AddMentorModal } from "@/components/school/dudi/AddMentorModal";
 import { ResetDeviceModal } from "@/components/school/dudi/ResetDeviceModal";
 import { Pagination } from "@/components/common/Pagination";
+import { SkeletonRect } from "@/components/ui/Skeleton";
 import { AlertCircle, CheckCircle2, WifiOff } from "lucide-react";
 import { sanitizeErrorMessage } from "@/lib/error-formatter";
 
@@ -321,7 +322,7 @@ export default function DudiDirectoryPage() {
       {loading ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-48 rounded-3xl bg-slate-200 animate-pulse" />
+            <SkeletonRect key={i} className="h-48 rounded-3xl" />
           ))}
         </div>
       ) : (

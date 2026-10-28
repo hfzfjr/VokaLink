@@ -85,6 +85,36 @@ body {
     linear-gradient(to bottom, rgba(203, 213, 225, 0.28) 1px, transparent 1px);
 }
 
+/* ─── Ultra-Smooth Shimmer Loading Animation (Apple/Stripe Style) ─── */
+@keyframes skeleton-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: #f1f5f9; /* slate-100 */
+}
+
+.skeleton-shimmer::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.65) 50%,
+    transparent 100%
+  );
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
 /* Floating micro animations */
 @keyframes floatSlow {
   0%, 100% { transform: translateY(0px); }

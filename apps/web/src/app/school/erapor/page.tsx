@@ -14,6 +14,7 @@ import { EraporFilterToolbar } from "@/components/school/erapor/EraporFilterTool
 import { EraporDataTable } from "@/components/school/erapor/EraporDataTable";
 import { GradeOverrideModal } from "@/components/school/erapor/GradeOverrideModal";
 import { Pagination } from "@/components/common/Pagination";
+import { SkeletonRect } from "@/components/ui/Skeleton";
 import { AlertCircle, CheckCircle2, WifiOff, RefreshCw } from "lucide-react";
 import { sanitizeErrorMessage } from "@/lib/error-formatter";
 
@@ -226,7 +227,7 @@ export default function EraporPage() {
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-32 rounded-3xl bg-slate-200 animate-pulse" />
+            <SkeletonRect key={i} className="h-32 rounded-3xl" />
           ))}
         </div>
       ) : (

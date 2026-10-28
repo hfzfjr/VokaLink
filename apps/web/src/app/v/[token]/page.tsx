@@ -28,6 +28,7 @@ import {
   type MentorVerifyDetailsResponse,
 } from "@/lib/api";
 import { sanitizeErrorMessage } from "@/lib/error-formatter";
+import { SkeletonRect } from "@/components/ui/Skeleton";
 
 function getMockVerificationData(): MentorVerifyDetailsResponse {
   return {
@@ -381,16 +382,16 @@ export default function MentorVerificationPage() {
   if (isLoading || (!data && !errorMessage)) {
     return (
       <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
-        <div className="h-12 bg-slate-200 rounded-2xl w-full max-w-md animate-pulse"></div>
+        <SkeletonRect className="h-12 rounded-2xl w-full max-w-md" />
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-5 xl:col-span-4 space-y-4">
-            <div className="h-44 bg-slate-200 rounded-2xl animate-pulse"></div>
-            <div className="h-32 bg-slate-200 rounded-2xl animate-pulse"></div>
-            <div className="h-28 bg-slate-200 rounded-2xl animate-pulse"></div>
+            <SkeletonRect className="h-44 rounded-2xl" />
+            <SkeletonRect className="h-32 rounded-2xl" />
+            <SkeletonRect className="h-28 rounded-2xl" />
           </div>
           <div className="lg:col-span-7 xl:col-span-8 space-y-4">
-            <div className="h-56 bg-slate-200 rounded-2xl animate-pulse"></div>
-            <div className="h-56 bg-slate-200 rounded-2xl animate-pulse"></div>
+            <SkeletonRect className="h-56 rounded-2xl" />
+            <SkeletonRect className="h-56 rounded-2xl" />
           </div>
         </div>
       </div>
