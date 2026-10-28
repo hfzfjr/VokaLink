@@ -12,7 +12,7 @@ import {
   QrCode,
   Award,
   HelpCircle,
-  ArrowLeft,
+  LogOut,
   Settings,
   X,
   User,
@@ -289,7 +289,7 @@ export function StudentSidebar() {
               </span>
             </div>
           </Link>
-          <div className="w-full h-px bg-slate-200/80 my-2.5" />
+          <div className="-mx-3 w-[calc(100%+24px)] h-px bg-slate-200/80 my-2.5" />
         </div>
 
         {/* Center: Main Navigation Stack (Fixed Icon Positions) */}
@@ -360,7 +360,7 @@ export function StudentSidebar() {
 
         {/* Bottom: Settings, Help & Exit (Fixed Icon Positions) */}
         <div className="flex flex-col gap-1.5 w-full">
-          <div className="w-full h-px bg-slate-200/80 my-1" />
+          <div className="-mx-3 w-[calc(100%+24px)] h-px bg-slate-200/80 my-1.5" />
 
           {/* Settings Trigger */}
           <button
@@ -431,10 +431,10 @@ export function StudentSidebar() {
             }}
             title="Keluar dari Akun Siswa"
             aria-label="Keluar dari Akun Siswa"
-            className="w-full h-12 rounded-2xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center overflow-hidden transition-colors duration-150 cursor-pointer group text-left"
+            className="w-full h-12 rounded-2xl text-rose-600 hover:text-rose-700 hover:bg-rose-50 flex items-center overflow-hidden transition-colors duration-150 cursor-pointer group text-left"
           >
             <div className="w-12 h-12 shrink-0 flex items-center justify-center">
-              <ArrowLeft className="w-5 h-5 text-slate-500 group-hover:text-rose-600" />
+              <LogOut className="w-5 h-5 text-rose-600 group-hover:text-rose-700 transition-colors" />
             </div>
             <div
               className={cn(
@@ -442,10 +442,10 @@ export function StudentSidebar() {
                 isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
               )}
             >
-              <p className="text-xs font-semibold text-rose-600 truncate leading-tight whitespace-nowrap">
+              <p className="text-xs font-semibold text-rose-600 group-hover:text-rose-700 transition-colors truncate leading-tight whitespace-nowrap">
                 Keluar Akun
               </p>
-              <p className="text-[10px] text-slate-400 truncate leading-tight mt-0.5 whitespace-nowrap">
+              <p className="text-[10px] text-slate-400 group-hover:text-rose-400 transition-colors truncate leading-tight mt-0.5 whitespace-nowrap">
                 Halaman Masuk
               </p>
             </div>

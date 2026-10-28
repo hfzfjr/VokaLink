@@ -13,9 +13,9 @@ import {
   Settings,
   HelpCircle,
   X,
-  School,
   Check,
   Save,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import VokaIcon from "@/components/common/VokaIcon";
@@ -163,7 +163,7 @@ export function SchoolSidebar() {
               </span>
             </div>
           </Link>
-          <div className="w-full h-px bg-slate-200/80 my-2.5" />
+          <div className="-mx-3 w-[calc(100%+24px)] h-px bg-slate-200/80 my-2.5" />
         </div>
 
         {/* Navigation Items (Center Stack) */}
@@ -248,7 +248,7 @@ export function SchoolSidebar() {
 
         {/* Bottom Actions: Settings, Help, Profile */}
         <div className="flex flex-col gap-1.5 w-full">
-          <div className="w-full h-px bg-slate-200/80 my-1" />
+          <div className="-mx-3 w-[calc(100%+24px)] h-px bg-slate-200/80 my-1" />
 
           {/* Settings Trigger */}
           <button
@@ -312,15 +312,19 @@ export function SchoolSidebar() {
             </div>
           </button>
 
-          {/* User Profile Mini Trigger */}
-          <div
-            className="w-full h-12 rounded-2xl flex items-center overflow-hidden bg-slate-50/80 border border-slate-200/60"
-            title={!isExpanded ? `${schoolProfile.adminName} (NPSN: ${schoolProfile.npsn})` : undefined}
+          {/* Keluar Akun Button */}
+          <button
+            type="button"
+            onClick={async () => {
+              await logout();
+              router.push("/login");
+            }}
+            title="Keluar dari Akun Sekolah"
+            aria-label="Keluar dari Akun Sekolah"
+            className="w-full h-12 rounded-2xl text-rose-600 hover:text-rose-700 hover:bg-rose-50 flex items-center overflow-hidden transition-colors duration-150 cursor-pointer group text-left"
           >
             <div className="w-12 h-12 shrink-0 flex items-center justify-center">
-              <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-700 border border-sky-100 flex items-center justify-center shrink-0 shadow-2xs">
-                <School className="w-4 h-4" />
-              </div>
+              <LogOut className="w-5 h-5 text-rose-600 group-hover:text-rose-700 transition-colors" />
             </div>
             <div
               className={cn(
@@ -328,14 +332,14 @@ export function SchoolSidebar() {
                 isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
               )}
             >
-              <p className="text-xs font-bold text-slate-900 truncate leading-tight whitespace-nowrap">
-                {schoolProfile.adminName}
+              <p className="text-xs font-semibold text-rose-600 group-hover:text-rose-700 transition-colors truncate leading-tight whitespace-nowrap">
+                Keluar Akun
               </p>
-              <p className="text-[10px] text-slate-400 font-mono truncate leading-tight mt-0.5 whitespace-nowrap">
-                NPSN: {schoolProfile.npsn}
+              <p className="text-[10px] text-slate-400 group-hover:text-rose-400 transition-colors truncate leading-tight mt-0.5 whitespace-nowrap">
+                Halaman Masuk
               </p>
             </div>
-          </div>
+          </button>
         </div>
       </aside>
 
@@ -492,35 +496,22 @@ export function SchoolSidebar() {
               </div>
 
               {/* Footer */}
-              <div className="px-6 py-3.5 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between">
+              <div className="px-6 py-3.5 bg-slate-50/70 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowSettingsModal(false);
-                    logout();
-                    router.push("/login");
-                  }}
-                  className="px-3.5 py-1.5 rounded-xl text-rose-600 hover:bg-rose-50 text-xs font-bold transition cursor-pointer"
+                  onClick={() => setShowSettingsModal(false)}
+                  className="px-4 py-2 rounded-full border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-100 transition cursor-pointer"
                 >
-                  Keluar dari Akun
+                  Tutup
                 </button>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowSettingsModal(false)}
-                    className="px-4 py-1.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-100 transition cursor-pointer"
-                  >
-                    Tutup
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveSettings}
-                    className="px-4 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition flex items-center gap-1.5 shadow-xs cursor-pointer"
-                  >
-                    {isSaved ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Save className="w-3.5 h-3.5" />}
-                    <span>{isSaved ? "Tersimpan!" : "Simpan Perubahan"}</span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveSettings}
+                  className="px-5 py-2 rounded-full bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                >
+                  {isSaved ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Save className="w-3.5 h-3.5" />}
+                  <span>{isSaved ? "Tersimpan!" : "Simpan Perubahan"}</span>
+                </button>
               </div>
             </div>
           </div>,

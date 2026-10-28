@@ -9,7 +9,9 @@ import { SchoolKpiGrid } from "@/components/school/dashboard/SchoolKpiGrid";
 import { DepartmentReadinessCard, type DepartmentItem } from "@/components/school/dashboard/DepartmentReadinessCard";
 import { PriorityMonitoringCard, type PriorityStudentItem } from "@/components/school/dashboard/PriorityMonitoringCard";
 import { SchoolWidgetPanel } from "@/components/school/SchoolWidgetPanel";
+import { SkeletonRect } from "@/components/ui/Skeleton";
 import { AlertCircle, RefreshCw, WifiOff } from "lucide-react";
+import { sanitizeErrorMessage } from "@/lib/error-formatter";
 
 interface SchoolDashboardData {
   school: {
@@ -68,7 +70,7 @@ export default function SchoolDashboardPage() {
         setDepartments(result.departments);
       }
     } catch (err: any) {
-      setError(err.message || "Gagal memuat data dasbor sekolah dari database.");
+      setError(sanitizeErrorMessage(err, "Gagal memuat data dasbor sekolah dari database."));
     } finally {
       setLoading(false);
     }
@@ -130,11 +132,11 @@ export default function SchoolDashboardPage() {
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="h-24 rounded-3xl bg-slate-200 animate-pulse" />
+                    <SkeletonRect key={i} className="h-24 rounded-3xl" />
                   ))}
                 </div>
-                <div className="h-64 rounded-3xl bg-slate-200 animate-pulse" />
-                <div className="h-48 rounded-3xl bg-slate-200 animate-pulse" />
+                <SkeletonRect className="h-64 rounded-3xl" />
+                <SkeletonRect className="h-48 rounded-3xl" />
               </>
             ) : (
               <>
@@ -153,8 +155,8 @@ export default function SchoolDashboardPage() {
           {/* Desktop Right Summary Widget Panel */}
           {loading || !data ? (
             <div className="w-full lg:w-[320px] xl:w-[340px] 2xl:w-[360px] shrink-0 space-y-4">
-              <div className="h-36 rounded-3xl bg-slate-200 animate-pulse" />
-              <div className="h-44 rounded-3xl bg-slate-200 animate-pulse" />
+              <SkeletonRect className="h-36 rounded-3xl" />
+              <SkeletonRect className="h-44 rounded-3xl" />
             </div>
           ) : (
             <SchoolWidgetPanel

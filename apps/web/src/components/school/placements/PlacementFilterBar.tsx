@@ -27,9 +27,9 @@ export function PlacementFilterBar({
   activeCount,
 }: PlacementFilterBarProps) {
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-      {/* Tabs Switcher (Full width grid on mobile, inline on desktop) */}
-      <div className="w-full md:w-auto grid grid-cols-2 md:flex items-center gap-1 bg-slate-100/80 p-1 rounded-2xl shrink-0">
+    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+      {/* Tabs Switcher (Full width on mobile/tablet, inline on desktop) */}
+      <div className="w-full xl:w-auto grid grid-cols-2 sm:flex items-center gap-1 bg-slate-100/80 p-1 rounded-2xl shrink-0">
         <button
           type="button"
           onClick={() => onTabChange("RECOMMENDATIONS")}
@@ -64,31 +64,33 @@ export function PlacementFilterBar({
       </div>
 
       {/* Search & Department Filters */}
-      <div className="flex items-center gap-2.5 w-full md:w-auto">
-        <div className="relative flex-1 min-w-0 md:w-64">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 w-full xl:w-auto">
+        <div className="relative flex-1 w-full min-w-0 sm:w-60 md:w-64">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             placeholder="Cari nama atau NISN siswa..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full h-10 pl-9 pr-3.5 rounded-xl bg-white border border-slate-200 text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 truncate"
+            className="w-full h-10 pl-9 pr-3.5 rounded-xl bg-white border border-slate-200 text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs truncate"
           />
         </div>
 
         {departments.length > 0 && (
-          <select
-            value={selectedDeptId}
-            onChange={(e) => onDeptChange(e.target.value)}
-            className="h-10 px-3 sm:px-3.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shrink-0 cursor-pointer w-[125px] sm:w-44 md:w-auto max-w-[40%] sm:max-w-none truncate"
-          >
-            <option value="ALL">Semua Jurusan</option>
-            {departments.map((dept) => (
-              <option key={dept.id} value={dept.id}>
-                [{dept.sectorCode}] {dept.name}
-              </option>
-            ))}
-          </select>
+          <div className="w-full sm:w-auto shrink-0 min-w-0">
+            <select
+              value={selectedDeptId}
+              onChange={(e) => onDeptChange(e.target.value)}
+              className="w-full sm:w-auto max-w-full sm:max-w-[240px] md:max-w-[260px] h-10 px-3.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer truncate shadow-2xs"
+            >
+              <option value="ALL">Semua Jurusan</option>
+              {departments.map((dept) => (
+                <option key={dept.id} value={dept.id}>
+                  [{dept.sectorCode}] {dept.name}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
       </div>
     </div>

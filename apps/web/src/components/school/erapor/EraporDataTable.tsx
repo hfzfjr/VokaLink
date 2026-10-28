@@ -48,10 +48,10 @@ export function EraporDataTable({ records, onOpenDetail }: EraporDataTableProps)
         return (
           <div
             key={r.placementId}
-            className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-slate-300 transition"
+            className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:border-slate-300 transition"
           >
             {/* Col 1: Student & DUDI Info (Fixed width on desktop for straight vertical alignment) */}
-            <div className="space-y-1.5 min-w-0 md:w-[320px] lg:w-[350px] shrink-0">
+            <div className="space-y-1.5 min-w-0 lg:w-[320px] xl:w-[350px] shrink-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-bold text-sm sm:text-[15px] text-slate-900 truncate">
                   {r.student.fullName}
@@ -99,20 +99,28 @@ export function EraporDataTable({ records, onOpenDetail }: EraporDataTableProps)
               </div>
             </div>
 
-            {/* Col 3: Nilai Akhir & Detail Trigger (Fixed width on desktop) */}
-            <div className="flex items-center justify-between md:justify-end gap-3.5 pt-2 md:pt-0 border-t md:border-0 border-slate-100 shrink-0 md:w-[255px]">
-              <div className="flex flex-col items-center text-center">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Nilai Akhir
-                </span>
-                <div className="flex items-center justify-center gap-2 mt-1">
-                  <span className="text-lg font-black text-slate-900 tabular-nums leading-none">
+            {/* Col 3: Nilai Akhir & Detail Trigger (Fixed width on desktop, flexible on mobile/tablet) */}
+            <div className="flex items-center justify-between lg:justify-end gap-3.5 pt-2 lg:pt-0 shrink-0 lg:w-[260px]">
+              <div className="flex items-center gap-3.5 sm:gap-4 text-center">
+                {/* Nilai Akhir */}
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block leading-none">
+                    Nilai Akhir
+                  </span>
+                  <span className="text-base sm:text-lg font-black text-slate-900 tabular-nums mt-1.5 leading-none">
                     {grade}
                   </span>
+                </div>
+
+                {/* Predikat */}
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block leading-none">
+                    Predikat
+                  </span>
                   <span
-                    className={`inline-flex items-center justify-center text-center whitespace-nowrap px-2.5 py-1 rounded-lg font-bold text-xs border leading-none ${predicateBadgeClass}`}
+                    className={`mt-1.5 inline-flex items-center justify-center text-center whitespace-nowrap px-2.5 py-1 rounded-full font-bold text-xs border leading-none ${predicateBadgeClass}`}
                   >
-                    {hasVerifiedJp ? `Predikat ${predicate}` : "Belum Dinilai"}
+                    {hasVerifiedJp ? predicate : "Belum Dinilai"}
                   </span>
                 </div>
               </div>
@@ -120,7 +128,7 @@ export function EraporDataTable({ records, onOpenDetail }: EraporDataTableProps)
               <button
                 type="button"
                 onClick={() => onOpenDetail(r)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition cursor-pointer shrink-0"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition cursor-pointer shrink-0 shadow-2xs"
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>Rincian</span>

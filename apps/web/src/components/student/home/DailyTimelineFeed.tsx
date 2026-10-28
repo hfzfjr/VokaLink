@@ -370,7 +370,7 @@ export function DailyTimelineFeed({
                 </div>
 
                 {/* Bagian Kanan: Jam, Status / QR Button & Chevron */}
-                <div className="flex items-center justify-between sm:justify-end gap-3.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                <div className="flex items-center justify-between sm:justify-end gap-3.5 shrink-0">
                   <div className="text-left sm:text-right">
                     <span className="font-semibold text-xs sm:text-sm text-slate-900 block leading-tight">
                       {task.durationJp} Jam Kerja
@@ -421,9 +421,9 @@ export function DailyTimelineFeed({
               <div
                 key={task.id}
                 onClick={() => onSelectTask(task)}
-                className="bg-white rounded-2xl p-4 sm:p-4.5 border border-slate-200/70 hover:border-slate-300 hover:shadow-xs transition-all duration-150 cursor-pointer group active:scale-[0.99] flex flex-col justify-between space-y-3.5 relative shadow-2xs"
+                className="bg-white rounded-2xl border border-slate-200/70 hover:border-slate-300 hover:shadow-xs transition-all duration-150 cursor-pointer group active:scale-[0.99] flex flex-col justify-between overflow-hidden relative shadow-2xs"
               >
-                <div className="space-y-2.5">
+                <div className="p-4 sm:p-4.5 pb-3 space-y-2.5">
                   {/* Header: Date, Duration, and Status / Action */}
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 min-w-0">
@@ -450,7 +450,7 @@ export function DailyTimelineFeed({
                             e.stopPropagation();
                             onOpenQrModal();
                           }}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 hover:border-sky-300 active:scale-95 border border-sky-200/80 text-[10.5px] font-semibold transition cursor-pointer shadow-2xs"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 hover:bg-sky-100 hover:border-sky-300 active:scale-95 border border-sky-200/80 text-[10.5px] font-semibold transition cursor-pointer shadow-2xs"
                           title="Tampilkan QR Verifikasi Mentor"
                         >
                           <QrCode className="w-3 h-3 text-sky-600" />
@@ -476,8 +476,8 @@ export function DailyTimelineFeed({
                   </h3>
                 </div>
 
-                {/* Footer: Autonomy Pill & Mentor / Sync Trail */}
-                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                {/* Footer: Autonomy Pill & Mentor / Sync Trail (Full-Bleed Divider touching edges) */}
+                <div className="border-t border-slate-100 bg-slate-50/40 px-4 sm:px-4.5 py-2.5 flex items-center justify-between text-xs">
                   <span
                     className={cn(
                       "text-[10px] font-medium px-2 py-0.5 rounded-md border",

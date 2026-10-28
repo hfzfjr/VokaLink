@@ -59,10 +59,10 @@ export function ActivePlacementsTable({
       {placements.map((p) => (
         <div
           key={p.id}
-          className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-slate-300 transition"
+          className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:border-slate-300 transition"
         >
           {/* Siswa & Jurusan (Fixed width on desktop for consistent vertical alignment) */}
-          <div className="space-y-1.5 min-w-0 md:w-[320px] lg:w-[350px] shrink-0">
+          <div className="space-y-1.5 min-w-0 lg:w-[320px] xl:w-[350px] shrink-0">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="font-bold text-sm sm:text-[15px] text-slate-900 truncate">

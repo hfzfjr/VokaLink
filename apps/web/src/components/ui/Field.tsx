@@ -31,7 +31,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     <input
       ref={ref}
       className={cn(
-        "h-12 w-full rounded-lg border bg-white px-3 text-sm text-ink-900",
+        "h-12 w-full rounded-lg border bg-white px-3 text-base md:text-sm text-ink-900",
         "placeholder:text-ink-300 transition-colors duration-150",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-safety-500 focus-visible:ring-offset-2",
         error
@@ -55,7 +55,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     <textarea
       ref={ref}
       className={cn(
-        "min-h-[88px] w-full rounded-lg border bg-white px-3 py-3 text-sm text-ink-900 resize-y",
+        "min-h-[88px] w-full rounded-lg border bg-white px-3 py-3 text-base md:text-sm text-ink-900 resize-y",
         "placeholder:text-ink-300 transition-colors duration-150",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-safety-500 focus-visible:ring-offset-2",
         error
@@ -79,7 +79,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     <select
       ref={ref}
       className={cn(
-        "h-12 w-full rounded-lg border bg-white px-3 text-sm text-ink-900 appearance-none",
+        "h-12 w-full rounded-lg border bg-white px-3 text-base md:text-sm text-ink-900 appearance-none",
         "transition-colors duration-150",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-safety-500 focus-visible:ring-offset-2",
         error

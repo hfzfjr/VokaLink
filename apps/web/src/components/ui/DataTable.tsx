@@ -1,6 +1,7 @@
 "use client";
 import * as React from "react";
 import { cn } from "@/lib/cn";
+import { SkeletonRect } from "./Skeleton";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 export interface Column<T> {
@@ -93,8 +94,8 @@ export function DataTable<T>({
         <div className="md:hidden space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="rounded-xl border border-line bg-white p-4 space-y-2">
-              <div className="h-4 w-2/3 rounded bg-ink-100 animate-pulse" />
-              <div className="h-3 w-1/2 rounded bg-ink-100 animate-pulse" />
+              <SkeletonRect className="h-4 w-2/3 rounded" />
+              <SkeletonRect className="h-3 w-1/2 rounded" />
             </div>
           ))}
         </div>
@@ -115,7 +116,7 @@ export function DataTable<T>({
                 <tr key={i}>
                   {columns.map((col) => (
                     <td key={String(col.key)} className="px-4 py-3">
-                      <div className="h-4 rounded bg-ink-100 animate-pulse" />
+                      <SkeletonRect className="h-4 rounded" />
                     </td>
                   ))}
                 </tr>
