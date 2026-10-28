@@ -61,7 +61,7 @@ export function SmartDateSelector({
   minDate,
   maxDate,
   offlineLogs = [],
-  stepNumber = 2,
+  _stepNumber = 2,
   className,
 }: SmartDateSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);

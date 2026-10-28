@@ -8,7 +8,6 @@ import {
   ExternalLink,
   ShieldCheck,
   RefreshCw,
-  Building2,
   CalendarCheck,
   ArrowLeft,
   Smartphone,
@@ -34,7 +33,7 @@ export default function VerifyRequestPage() {
   const [studentName, setStudentName] = useState("Andi Pratama");
   const [mentorName, setMentorName] = useState("Rahmat Hidayat Siregar, S.T");
   const [dudiName, setDudiName] = useState("PT Telkom Indonesia Witel Sumut");
-  const [dudiCity, setDudiCity] = useState("Medan");
+  const [_dudiCity, _setDudiCity] = useState("Medan");
   const [mentorPhone, setMentorPhone] = useState("6281260001001");
   const [qrTargetMode, setQrTargetMode] = useState<"MOBILE" | "LOCAL">("MOBILE");
 

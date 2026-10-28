@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/use-auth";
 import VokaIcon from "@/components/common/VokaIcon";
-import { User, LogOut, X, Building2, ShieldCheck } from "lucide-react";
+import { LogOut, X, Building2, ShieldCheck } from "lucide-react";
 
 export function SchoolHeader() {
   const { user, logout } = useAuth();
