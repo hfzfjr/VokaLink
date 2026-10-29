@@ -1098,10 +1098,12 @@ export default function MentorVerificationPage() {
 
             {/* Template Alasan Cepat */}
             <div className="space-y-1.5">
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Pilihan Cepat:</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase">Pilihan Cepat Catatan Pembimbing:</p>
               <div className="flex flex-wrap gap-1.5">
                 {[
-                  "Durasi jam kerja tidak sesuai",
+                  "Kartu tugas tidak sesuai pekerjaan riil",
+                  "Harap ubah ke Tugas Non-Teknis (Tombol Jujur)",
+                  "Durasi jam kerja tidak sesuai aktivitas",
                   "Foto bukan pekerjaan yang dimaksud",
                   "Tugas belum diselesaikan tuntas",
                 ].map((txt) => (
@@ -1109,7 +1111,7 @@ export default function MentorVerificationPage() {
                     key={txt}
                     type="button"
                     onClick={() => setRejectionReason(txt)}
-                    className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer"
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer transition active:scale-95"
                   >
                     {txt}
                   </button>

@@ -94,7 +94,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="task-detail-title"
-        className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in-0 duration-150"
+        className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in-0 duration-150"
         style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
         onClick={onClose}
       >
@@ -268,7 +268,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
           role="dialog"
           aria-modal="true"
           onClick={() => setIsLightboxOpen(false)}
-          className="fixed inset-0 z-[1000] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 cursor-zoom-out select-none animate-in fade-in-0 duration-150"
+          className="fixed inset-0 z-[1000] bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 sm:p-8 cursor-zoom-out select-none animate-in fade-in-0 duration-150"
           style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
         >
           <button

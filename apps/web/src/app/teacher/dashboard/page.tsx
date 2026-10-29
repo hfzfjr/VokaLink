@@ -3606,7 +3606,7 @@ function HeatmapContent() {
         createPortal(
           <div
             onClick={() => setSelectedStudent(null)}
-            className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in-0 duration-150"
+            className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in-0 duration-150"
           >
             <div
               onClick={(e) => e.stopPropagation()}
@@ -3746,7 +3746,7 @@ function HeatmapContent() {
               setInterventionStudent(null);
               setInterventionSuccessMsg(null);
             }}
-            className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto animate-in fade-in-0 duration-150"
+            className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto animate-in fade-in-0 duration-150"
           >
             <div
               onClick={(e) => e.stopPropagation()}

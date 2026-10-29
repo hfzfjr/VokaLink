@@ -10,13 +10,10 @@ import {
   RefreshCw,
   CalendarCheck,
   ArrowLeft,
-  Smartphone,
-  Laptop,
 } from "lucide-react";
-import { generateVerificationLink, fetchStudentLogContext } from "@/lib/api";
+import { generateVerificationLink, fetchStudentLogContext, getPublicAppUrl } from "@/lib/api";
 import { QrCodeView } from "@/components/ui/QrCodeView";
 import { db } from "@/lib/pwa/db";
-import { cn } from "@/lib/cn";
 
 function WhatsAppIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
@@ -34,7 +31,22 @@ export default function VerifyRequestPage() {
   const [mentorName, setMentorName] = useState("Rahmat Hidayat Siregar, S.T");
   const [dudiName, setDudiName] = useState("PT Telkom Indonesia Witel Sumut");
   const [mentorPhone, setMentorPhone] = useState("6281260001001");
-  const [qrTargetMode, setQrTargetMode] = useState<"MOBILE" | "LOCAL">("MOBILE");
+  const [qrSize, setQrSize] = useState(175);
+
+  useEffect(() => {
+    const updateSize = () => {
+      if (typeof window !== "undefined") {
+        if (window.innerHeight < 700 || window.innerWidth < 640) {
+          setQrSize(150);
+        } else {
+          setQrSize(175);
+        }
+      }
+    };
+    updateSize();
+    window.addEventListener("resize", updateSize);
+    return () => window.removeEventListener("resize", updateSize);
+  }, []);
 
   const [activeLinkData, setActiveLinkData] = useState<{
     token: string;
@@ -93,34 +105,27 @@ export default function VerifyRequestPage() {
     loadVerificationData();
   }, [loadVerificationData]);
 
-  const origin =
-    typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+  const publicBaseUrl = getPublicAppUrl();
 
-  const localVerificationUrl = activeLinkData?.fullUrl
-    ? activeLinkData.fullUrl
-    : `${origin}${activeLinkData?.verificationUrl || "/v/mock-demo-token-123"}`;
+  // Relative path ke halaman verifikasi mentor: /v/[token]
+  const verificationPath =
+    activeLinkData?.verificationUrl ||
+    (activeLinkData?.token ? `/v/${activeLinkData.token}` : "/v/mock-demo-token-123");
 
-  const mobileVerificationUrl = activeLinkData?.networkUrl
-    ? activeLinkData.networkUrl
-    : activeLinkData?.hostIp
-      ? `http://${activeLinkData.hostIp}:3000${activeLinkData?.verificationUrl || "/v/mock-demo-token-123"}`
-      : localVerificationUrl;
-
-  const effectiveVerificationUrl =
-    qrTargetMode === "MOBILE" ? mobileVerificationUrl : localVerificationUrl;
+  // Selalu gunakan domain Vercel yang sudah dideploy (https://vokalink.vercel.app), bukan localhost!
+  const effectiveVerificationUrl = `${publicBaseUrl}${verificationPath}`;
 
   const pendingDays = activeLinkData?.pendingCount ?? 2;
   const totalHours = pendingDays * 8;
 
-  // Draf pesan santun otomatis saat tombol WhatsApp ditekan
-  const politeMessage = `Selamat sore Bapak/Ibu ${mentorName}, mohon izin mengganggu waktunya sebentar. Saya ${studentName} (siswa PKL di ${dudiName}). Mengingat kesibukan Bapak/Ibu, izin mengirimkan tautan rekap jurnal ${pendingDays > 1 ? `borongan (${pendingDays} hari kerja)` : "hari ini"
-    } untuk diverifikasi melalui 1 kali input PIN: ${effectiveVerificationUrl}\n\nTerima kasih banyak atas bimbingan dan arahannya, Pak/Bu 🙏`;
+  // Draf pesan santun otomatis saat tombol WhatsApp ditekan (selalu menggunakan domain aktif)
+  const politeMessage = `Selamat sore Bapak/Ibu ${mentorName}, mohon izin mengganggu waktunya sebentar. Saya ${studentName} (siswa PKL di ${dudiName}). Mengingat kesibukan Bapak/Ibu, izin mengirimkan tautan rekap jurnal ${
+    pendingDays > 1 ? `borongan (${pendingDays} hari kerja)` : "hari ini"
+  } untuk diverifikasi melalui 1 kali input PIN: ${effectiveVerificationUrl}\n\nTerima kasih banyak atas bimbingan dan arahannya, Pak/Bu 🙏`;
 
-  const waDeepLink = activeLinkData?.waShareUrl
-    ? activeLinkData.waShareUrl
-    : `https://wa.me/${mentorPhone.replace(/^0/, "62")}?text=${encodeURIComponent(
-      politeMessage
-    )}`;
+  const waDeepLink = `https://wa.me/${mentorPhone.replace(/^0/, "62")}?text=${encodeURIComponent(
+    politeMessage
+  )}`;
 
   const handleCopyLink = () => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
@@ -131,117 +136,89 @@ export default function VerifyRequestPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto font-sans animate-in fade-in duration-150">
-      <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-card text-center space-y-3">
+    <div className="max-w-lg sm:max-w-xl mx-auto font-sans animate-in fade-in duration-150">
+      <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-card text-center space-y-2.5 sm:space-y-3">
         {/* ─── 1. HEADER & IDENTITAS MENTOR (SATU BARIS TERPADU) ─── */}
         <div className="flex items-center justify-between gap-2.5 pb-2.5 border-b border-slate-100 text-left">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="hidden md:flex items-center gap-2.5 min-w-0">
             <Link
               href="/student/log/history"
-              className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition active:scale-95 shrink-0"
+              className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition active:scale-95 shrink-0"
               title="Kembali ke Riwayat"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
+              <ArrowLeft className="w-4 h-4" />
             </Link>
             <div className="min-w-0">
               <h1 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight leading-tight truncate">
                 Minta Validasi Mentor
               </h1>
-              <p className="text-[10.5px] text-slate-400 font-normal truncate">
+              <p className="text-[10.5px] sm:text-xs text-slate-400 font-normal truncate">
                 Pindai QR langsung atau kirim via WA
               </p>
             </div>
           </div>
 
-          {/* Chip Profil Mentor Ringkas */}
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-slate-50 border border-slate-200/70 shrink-0">
-            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex items-center justify-center font-bold text-[10px] shrink-0 shadow-2xs">
-              {mentorName.slice(0, 2).toUpperCase()}
-            </div>
-            <div className="text-left hidden xs:block sm:block max-w-[120px]">
-              <div className="flex items-center gap-1">
-                <span className="text-[11px] font-bold text-slate-900 leading-none truncate block">
-                  {mentorName}
-                </span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" title="Mentor Aktif" />
+          {/* Chip Profil Mentor Ringkas (Full width di mobile, rapi & informatif) */}
+          <div className="flex items-center justify-between md:justify-start gap-2.5 px-3 py-1.5 rounded-2xl bg-slate-50 border border-slate-200/70 w-full md:w-auto">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                {mentorName.slice(0, 2).toUpperCase()}
               </div>
-              <span className="text-[9.5px] text-slate-400 font-normal truncate block mt-0.5">
-                {dudiName}
-              </span>
+              <div className="text-left min-w-0">
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-bold text-slate-900 leading-none truncate block">
+                    {mentorName}
+                  </span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" title="Mentor Aktif" />
+                </div>
+                <span className="text-[10px] text-slate-400 font-normal truncate block mt-0.5">
+                  {dudiName}
+                </span>
+              </div>
             </div>
+            <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full shrink-0">
+              Mentor Industri
+            </span>
           </div>
         </div>
 
         {/* ─── 2. INFO REKAP BORONGAN ─── */}
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-200/70 text-xs font-bold mx-auto">
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-200/70 text-xs sm:text-[13px] font-bold mx-auto">
           <CalendarCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
           <span>{pendingDays} Hari Kerja ({totalHours} Jam) Menunggu Pengesahan</span>
         </div>
 
-        {/* ─── 3. TOGGLE TARGET SCAN: HP (Wi-Fi) VS BROWSER INI ─── */}
-        <div className="flex items-center justify-center p-1 bg-slate-100 rounded-xl max-w-xs mx-auto border border-slate-200/80 text-[11px] font-semibold">
-          <button
-            type="button"
-            onClick={() => setQrTargetMode("MOBILE")}
-            className={cn(
-              "flex-1 py-1.5 px-3 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer",
-              qrTargetMode === "MOBILE"
-                ? "bg-white text-emerald-700 shadow-2xs font-bold"
-                : "text-slate-500 hover:text-slate-700"
-            )}
-          >
-            <Smartphone className="w-3.5 h-3.5" />
-            <span>Kamera HP (Wi-Fi)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setQrTargetMode("LOCAL")}
-            className={cn(
-              "flex-1 py-1.5 px-3 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer",
-              qrTargetMode === "LOCAL"
-                ? "bg-white text-slate-800 shadow-2xs font-bold"
-                : "text-slate-500 hover:text-slate-700"
-            )}
-          >
-            <Laptop className="w-3.5 h-3.5" />
-            <span>Browser Ini</span>
-          </button>
-        </div>
-
-        {/* ─── 4. KODE QR DENGAN QUIET ZONE BERSIH & PRESISI ─── */}
-        <div className="flex flex-col items-center justify-center">
-          <div className="p-2 sm:p-2.5 bg-white rounded-2xl border border-slate-200/90 shadow-2xs inline-block">
+        {/* ─── 3. KODE QR DENGAN QUIET ZONE BERSIH & PRESISI (LEBIH BESAR) ─── */}
+        <div className="flex flex-col items-center justify-center pt-1">
+          <div className="p-2.5 sm:p-3 bg-white rounded-2xl border border-slate-200/90 shadow-2xs inline-block">
             {isLoading ? (
-              <div className="w-36 h-36 flex flex-col items-center justify-center gap-2 text-slate-400">
+              <div
+                className="flex flex-col items-center justify-center gap-2 text-slate-400"
+                style={{ width: qrSize, height: qrSize }}
+              >
                 <RefreshCw className="w-5 h-5 animate-spin text-emerald-500" />
                 <span className="text-[11px] font-medium">Membangkitkan segel QR...</span>
               </div>
             ) : (
               <QrCodeView
                 value={effectiveVerificationUrl}
-                size={146}
+                size={qrSize}
                 className="mx-auto"
               />
             )}
           </div>
-
-          <div className="mt-1.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200/70 text-[10.5px] font-medium text-slate-600 shadow-2xs max-w-xs truncate">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-            <span className="truncate">
-              {qrTargetMode === "MOBILE"
-                ? `Siap scan via Kamera HP · Wi-Fi IP: ${activeLinkData?.hostIp || "10.66.3.126"}`
-                : "URL localhost siap disimulasikan di laptop"}
-            </span>
-          </div>
+          <p className="text-[11px] sm:text-xs text-slate-400 font-medium mt-1.5">
+            Arahkan kamera smartphone mentor ke kode QR di atas
+          </p>
         </div>
 
-        {/* ─── 5. TOMBOL AKSI UTAMA DALAM SATU BARIS RINGKAS ─── */}
-        <div className="flex items-center gap-2 max-w-sm mx-auto w-full pt-0.5">
+        {/* ─── 4. TOMBOL AKSI UTAMA DALAM SATU BARIS ─── */}
+        <div className="flex items-center gap-2 max-w-md mx-auto w-full pt-1">
           <a
             href={waDeepLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 h-10 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs shadow-emerald-600/20 transition cursor-pointer whitespace-nowrap"
+            className="flex-1 min-h-[44px] h-11 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-xs shadow-emerald-600/20 transition cursor-pointer whitespace-nowrap"
           >
             <WhatsAppIcon className="w-4 h-4 fill-white shrink-0" />
             <span>Kirim ke WhatsApp</span>
@@ -250,7 +227,7 @@ export default function VerifyRequestPage() {
           <button
             type="button"
             onClick={handleCopyLink}
-            className="h-10 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition border border-slate-200/80 cursor-pointer shadow-2xs shrink-0 whitespace-nowrap"
+            className="min-h-[44px] h-11 px-3.5 sm:px-4 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5 transition border border-slate-200/80 cursor-pointer shadow-2xs shrink-0 whitespace-nowrap"
           >
             {copiedLink ? (
               <>
@@ -266,8 +243,8 @@ export default function VerifyRequestPage() {
           </button>
         </div>
 
-        {/* ─── 6. FOOTNOTE KEAMANAN & DEMO JURI ─── */}
-        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10.5px] text-slate-500">
+        {/* ─── 5. FOOTNOTE KEAMANAN & DEMO JURI ─── */}
+        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10.5px] sm:text-[11px] text-slate-500">
           <div className="flex items-center gap-1 min-w-0 truncate">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
             <span className="truncate">

@@ -14,6 +14,18 @@ export const generateEndorsementLinkSchema = z.object({
 
 export type GenerateEndorsementLinkInput = z.infer<typeof generateEndorsementLinkSchema>;
 
+export const aspectRatingsSchema = z.object({
+  discipline: z.number().min(1).max(4).optional(),
+  teamwork: z.number().min(1).max(4).optional(),
+  responsibility: z.number().min(1).max(4).optional(),
+  initiative: z.number().min(1).max(4).optional(),
+  workEthics: z.number().min(1).max(4).optional(),
+  technicalSkills: z.number().min(1).max(4).optional(),
+  workQuality: z.number().min(1).max(4).optional(),
+  workSpeed: z.number().min(1).max(4).optional(),
+  occupationalSafetyK3: z.number().min(1).max(4).optional(),
+}).optional();
+
 export const endorsementSubmitSchema = z.object({
   attitudeScore: z
     .number()
@@ -28,6 +40,7 @@ export const endorsementSubmitSchema = z.object({
     .string()
     .max(300, "Kutipan testimoni maksimal 300 karakter")
     .optional(),
+  aspectRatings: aspectRatingsSchema,
   deviceToken: z
     .string()
     .min(16, "Device token tidak valid"),

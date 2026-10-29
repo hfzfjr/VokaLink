@@ -357,6 +357,8 @@ async function main() {
       },
     });
 
+    const activeJcIdsInSeed = new Set<string>();
+
     // Upsert CpElements dan JobCards
     for (const cp of deptCurr.cpElements) {
       const cpId = deterministicUuid(
@@ -384,6 +386,7 @@ async function main() {
         const jcId = deterministicUuid(
           `jc-${cpId}-${jc.title.slice(0, 30)}`
         );
+        activeJcIdsInSeed.add(jcId);
 
         await prisma.jobCard.upsert({
           where: { id: jcId },
@@ -410,6 +413,7 @@ async function main() {
       const ncId = deterministicUuid(
         `nc-jc-${schoolDeptId}-${nc.title.slice(0, 30)}`
       );
+      activeJcIdsInSeed.add(ncId);
 
       await prisma.jobCard.upsert({
         where: { id: ncId },
@@ -428,6 +432,16 @@ async function main() {
         },
       });
     }
+
+    // Bersihkan kartu lama yang tidak lagi dipakai di kurikulum payung
+    await prisma.jobCard.deleteMany({
+      where: {
+        schoolDepartmentId: schoolDeptId,
+        id: { notIn: Array.from(activeJcIdsInSeed) },
+        dailyLogItems: { none: {} },
+        capabilities: { none: {} },
+      },
+    });
   }
 
   // Hitung total

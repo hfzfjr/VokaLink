@@ -59,7 +59,7 @@ export function StudentHeader() {
               href="/student/home"
               title="Kembali ke Beranda Siswa"
               aria-label="Kembali ke Beranda Siswa"
-              className="w-8.5 h-8.5 min-w-[34px] rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-slate-700 transition cursor-pointer shrink-0 border border-slate-200/60"
+              className="w-9 h-9 min-w-[36px] rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-slate-700 transition cursor-pointer shrink-0 border border-slate-200/60"
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>

@@ -241,7 +241,10 @@ export default function DudiDirectoryPage() {
     whatsappNumber: string;
     mentorId: string;
   }) => {
-    const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+    const origin =
+      typeof window !== "undefined" && window.location.origin && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1"
+        ? window.location.origin
+        : (process.env["NEXT_PUBLIC_APP_URL"] || "https://vokalink.vercel.app");
     const dummyToken = `demo_token_${mentor.mentorId.slice(0, 8)}`;
     const url = `${origin}/v/${dummyToken}/activate`;
     const message = encodeURIComponent(

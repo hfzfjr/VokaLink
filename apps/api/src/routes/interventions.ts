@@ -64,7 +64,8 @@ interventionsRouter.post(
       let dormantCount = 7;
       let zeroJpElements: string[] = ["Basis Data Relasional", "Cloud Pipeline"];
       let recommendedJobCards: string[] = ["Database Query & Migration", "CI/CD Setup"];
-      let magicLinkUrl = "http://localhost:3000/v/mock-demo-token-123";
+      const webAppOrigin = process.env["APP_ORIGIN"] || "https://vokalink.vercel.app";
+      let magicLinkUrl = `${webAppOrigin}/v/mock-demo-token-123`;
 
       if (isDbAvailable) {
         // Query data siswa & sekolah
@@ -175,7 +176,7 @@ interventionsRouter.post(
 
           if (placement.dudiMentor) {
             const mentorSub = placement.dudiMentor.id ? placement.dudiMentor.id.slice(0, 8) : "demo";
-            magicLinkUrl = `http://localhost:3000/v/mentor-${mentorSub}`;
+            magicLinkUrl = `${webAppOrigin}/v/mentor-${mentorSub}`;
           }
 
           // Identifikasi elemen CP yang masih 0 JP

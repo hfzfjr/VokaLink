@@ -135,7 +135,7 @@ export function PwaInstallPrompt({ className, forceShowForDemo = false }: PwaIns
             role="dialog"
             aria-modal="true"
             onClick={closeIOSGuide}
-            className="fixed inset-0 z-[999] bg-slate-900/50 backdrop-blur-md flex items-end sm:items-center justify-center p-3 sm:p-4 animate-in fade-in-0 duration-150"
+            className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-xs flex items-end sm:items-center justify-center p-3 sm:p-4 animate-in fade-in-0 duration-150"
           >
             <div
               onClick={(e) => e.stopPropagation()}

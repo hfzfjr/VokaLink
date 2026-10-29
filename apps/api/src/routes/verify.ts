@@ -1,20 +1,7 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import crypto from "node:crypto";
-import os from "node:os";
 import { prisma } from "../lib/prisma.js";
 import { AppError } from "../middlewares/error-handler.js";
-
-function getLocalIPv4(): string | null {
-  const nets = os.networkInterfaces();
-  for (const name of Object.keys(nets)) {
-    for (const net of nets[name] || []) {
-      if (net.family === "IPv4" && !net.internal) {
-        return net.address;
-      }
-    }
-  }
-  return null;
-}
 import {
   parseAndVerifySignedToken,
   createSignedToken,
@@ -738,10 +725,11 @@ verifyRouter.post(
   "/links",
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { placementId, logIds, mode = "QR" } = req.body as {
+      const { placementId, logIds, mode = "QR", origin: clientOrigin } = req.body as {
         placementId: string;
         logIds?: string[];
         mode?: "QR" | "WA_BATCH";
+        origin?: string;
       };
 
       if (!placementId) {
@@ -846,11 +834,21 @@ verifyRouter.post(
       });
 
       const verificationUrl = `/v/${token}`;
-      const origin = process.env["APP_ORIGIN"] || "http://localhost:3000";
-      const fullUrl = `${origin}${verificationUrl}`;
+      const headerOrigin = req.get("origin") || req.get("referer");
+      let detectedOrigin = "";
+      if (headerOrigin) {
+        try {
+          detectedOrigin = new URL(headerOrigin).origin;
+        } catch {}
+      }
 
-      const localIp = getLocalIPv4();
-      const networkUrl = localIp ? `http://${localIp}:3000${verificationUrl}` : fullUrl;
+      const origin =
+        clientOrigin ||
+        detectedOrigin ||
+        process.env["APP_ORIGIN"] ||
+        "http://localhost:3000";
+      const fullUrl = `${origin}${verificationUrl}`;
+      const networkUrl = fullUrl;
 
       // Teks pesan otomatis WhatsApp ramah dan informatif dengan nomor 628... (FR-009)
       const waMessageText = `Halo Bapak/Ibu ${mentor.fullName} (${mentor.jobTitle}),\n\nSaya ${placement.student.fullName} (Siswa Magang SMK di ${placement.dudiPartner.name}) bermaksud meminta validasi jurnal Praktik Kerja Lapangan untuk ${actualLogIds.length} hari kegiatan yang telah saya selesaikan.\n\nMohon berkenan memvalidasi melalui tautan aman VokaLink berikut:\n${fullUrl}\n\nTerima kasih banyak atas bimbingan dan waktu Bapak/Ibu.`;
@@ -864,7 +862,7 @@ verifyRouter.post(
         verificationUrl,
         fullUrl,
         networkUrl,
-        hostIp: localIp || "127.0.0.1",
+        hostIp: origin,
         mentorDefaultToken: "device-token-mentor-0",
         waShareUrl,
         mode,

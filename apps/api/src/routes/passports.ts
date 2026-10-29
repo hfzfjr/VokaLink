@@ -256,13 +256,21 @@ passportsRouter.get(
             school: true,
             schoolDepartment: {
               include: {
-                jobCards: true,
+                jobCards: {
+                  include: {
+                    cpElement: true,
+                  },
+                },
               },
             },
             studentPlacements: {
               where: { status: "ACTIVE" },
               include: {
-                dudiPartner: true,
+                dudiPartner: {
+                  include: {
+                    capabilities: true,
+                  },
+                },
                 dudiMentor: true,
               },
             },
@@ -276,13 +284,21 @@ passportsRouter.get(
             school: true,
             schoolDepartment: {
               include: {
-                jobCards: true,
+                jobCards: {
+                  include: {
+                    cpElement: true,
+                  },
+                },
               },
             },
             studentPlacements: {
               where: { status: "ACTIVE" },
               include: {
-                dudiPartner: true,
+                dudiPartner: {
+                  include: {
+                    capabilities: true,
+                  },
+                },
                 dudiMentor: true,
               },
             },
@@ -299,6 +315,22 @@ passportsRouter.get(
       const allJobCards = student.schoolDepartment?.jobCards || [];
       const technicalJobCards = allJobCards.filter((jc) => !jc.isNonCompetency);
       const nonCompetencyJobCard = allJobCards.find((jc) => jc.isNonCompetency) || null;
+
+      const supportedJobCardIdSet = new Set(
+        activePlacement?.dudiPartner?.capabilities?.map((c) => c.jobCardId) || []
+      );
+
+      const formatCleanCategory = (rawTitle?: string | null) => {
+        if (!rawTitle) return "Kompetensi Kejuruan";
+        if (rawTitle.includes("—")) {
+          return rawTitle.split("—")[1]?.trim() || rawTitle;
+        }
+        return rawTitle
+          .replace(/Pengembangan\s+/gi, "")
+          .replace(/Pemrograman\s+Dasar\s+dan\s+/gi, "")
+          .replace(/Administrasi\s+dan\s+/gi, "")
+          .trim();
+      };
 
       res.status(200).json({
         student: {
@@ -318,13 +350,18 @@ passportsRouter.get(
               mentorName: activePlacement.dudiMentor?.fullName || "Pembimbing Lapangan",
             }
           : null,
-        jobCards: technicalJobCards.map((jc) => ({
-          id: jc.id,
-          title: jc.title,
-          tools: jc.toolsAndSoftware,
-          skkni: jc.skkniUnitCode,
-          category: jc.toolsAndSoftware[0] || "Kompetensi Kejuruan",
-        })),
+        jobCards: technicalJobCards.map((jc) => {
+          const isDudiSupported = supportedJobCardIdSet.has(jc.id);
+          const cleanCategory = formatCleanCategory(jc.cpElement?.title);
+          return {
+            id: jc.id,
+            title: jc.title,
+            tools: jc.toolsAndSoftware,
+            skkni: jc.skkniUnitCode,
+            category: cleanCategory,
+            isDudiSupported,
+          };
+        }),
         nonCompetencyJobCard: nonCompetencyJobCard
           ? {
               id: nonCompetencyJobCard.id,

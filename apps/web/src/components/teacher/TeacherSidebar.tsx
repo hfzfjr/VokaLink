@@ -338,7 +338,7 @@ export function TeacherSidebar() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-in fade-in-0 duration-150"
+          className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in-0 duration-150"
           style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
         >
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200/80 animate-in zoom-in-95 duration-150 space-y-5">
@@ -535,7 +535,7 @@ export function TeacherSidebar() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-in fade-in-0 duration-150"
+          className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in-0 duration-150"
           style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
         >
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200/80 animate-in zoom-in-95 duration-150 space-y-4">

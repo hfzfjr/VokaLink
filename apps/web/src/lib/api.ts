@@ -32,14 +32,25 @@ export function getApiBaseUrl(): string {
   if (typeof window !== "undefined") {
     const protocol = window.location.protocol;
     const hostname = window.location.hostname;
-    return `${protocol}//${hostname}:3001/api/v1`;
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return `${protocol}//${hostname}:3001/api/v1`;
+    }
+    return `${window.location.origin}/api/v1`;
   }
   return "http://localhost:3001/api/v1";
 }
 
-const API_BASE_URL = typeof window !== "undefined"
-  ? `${window.location.protocol}//${window.location.hostname}:3001/api/v1`
-  : (process.env["NEXT_PUBLIC_API_URL"] || "http://localhost:3001/api/v1");
+export function getPublicAppUrl(): string {
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    if (hostname !== "localhost" && hostname !== "127.0.0.1" && !hostname.startsWith("192.168.")) {
+      return window.location.origin;
+    }
+  }
+  return process.env["NEXT_PUBLIC_APP_URL"] || "https://vokalink.vercel.app";
+}
+
+const API_BASE_URL = getApiBaseUrl();
 
 export interface MasterDepartmentItem {
   sectorCode: string;
@@ -1051,6 +1062,7 @@ export interface StudentLogContextResponse {
     tools: string[];
     skkni?: string | null;
     category: string;
+    isDudiSupported?: boolean;
   }>;
   nonCompetencyJobCard: {
     id: string;
@@ -1228,6 +1240,7 @@ export async function generateVerificationLink(data: {
   placementId: string;
   logIds?: string[];
   mode?: "QR" | "WA_BATCH";
+  origin?: string;
 }): Promise<{
   token: string;
   verificationUrl: string;
@@ -1240,10 +1253,12 @@ export async function generateVerificationLink(data: {
   expiresAt: string;
   pendingCount: number;
 }> {
+  const currentOrigin =
+    data.origin || (typeof window !== "undefined" ? window.location.origin : undefined);
   const res = await fetch(`${API_BASE_URL}/verify/links`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: JSON.stringify({ ...data, origin: currentOrigin }),
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json.detail || "Gagal membuat tautan verifikasi");

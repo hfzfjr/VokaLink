@@ -28,7 +28,7 @@ import {
   Wrench,
 } from "lucide-react";
 import Link from "next/link";
-import { fetchStudentCv, updateStudentPassport, type StudentCvResponse } from "@/lib/api";
+import { fetchStudentCv, updateStudentPassport, getPublicAppUrl, type StudentCvResponse } from "@/lib/api";
 import { QrCodeView } from "@/components/ui/QrCodeView";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/lib/use-auth";
@@ -272,11 +272,11 @@ export default function CareerCvPage() {
     loadCv();
   }, [loadCv]);
 
+  const fullVerificationUrl = cvData ? `${getPublicAppUrl()}${cvData.verificationUrl}` : "";
+
   const handleCopyLink = () => {
-    if (!cvData) return;
-    const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
-    const fullUrl = `${origin}${cvData.verificationUrl}`;
-    navigator.clipboard?.writeText(fullUrl);
+    if (!fullVerificationUrl) return;
+    navigator.clipboard?.writeText(fullVerificationUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
   };
@@ -840,7 +840,7 @@ export default function CareerCvPage() {
                 )}
 
                 <p className="text-[10px] text-slate-500 font-mono pt-0.5 break-all">
-                  Paspor Kompetensi &amp; Audit Publik: https://vokalink.id{verificationUrl}
+                  Paspor Kompetensi &amp; Audit Publik: {fullVerificationUrl}
                 </p>
               </div>
 
@@ -848,11 +848,7 @@ export default function CareerCvPage() {
               <div className="text-center shrink-0">
                 <div className="w-[82px] h-[82px] bg-white border border-slate-900 rounded-lg flex flex-col items-center justify-center p-1 shadow-2xs">
                   <QrCodeView
-                    value={
-                      typeof window !== "undefined"
-                        ? `${window.location.origin}${verificationUrl}`
-                        : `https://vokalink.id${verificationUrl}`
-                    }
+                    value={fullVerificationUrl}
                     size={52}
                     errorCorrectionLevel="M"
                   />
@@ -1496,9 +1492,9 @@ export default function CareerCvPage() {
                 </span>
               </div>
               <div className="flex items-center gap-3 min-w-0 shrink-0">
-                <span className="break-all">Audit: https://vokalink.id{verificationUrl}</span>
+                <span className="break-all">Audit: {fullVerificationUrl}</span>
                 <Link
-                  href={verificationUrl}
+                  href={fullVerificationUrl || verificationUrl}
                   target="_blank"
                   className="text-sky-600 font-sans font-medium hover:underline inline-flex items-center gap-0.5 no-print print:hidden shrink-0"
                 >
