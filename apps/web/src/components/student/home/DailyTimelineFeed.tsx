@@ -12,6 +12,7 @@ import {
   Calendar,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   Inbox,
   LayoutList,
   LayoutGrid,
@@ -26,36 +27,6 @@ interface DailyTimelineFeedProps {
   onOpenQrModal: () => void;
 }
 
-/**
- * Parser tanggal aman untuk kartu & list squircle badge
- */
-function parseTaskDateParts(dateStr: string) {
-  if (!dateStr) return { day: "--", month: "", weekday: "" };
-  const trimmed = dateStr.trim();
-  const tokens = trimmed.split(/\s+/);
-  if (tokens.length >= 2 && tokens[0] && tokens[1] && !isNaN(Number(tokens[0]))) {
-    return {
-      day: tokens[0].padStart(2, "0"),
-      month: tokens[1].slice(0, 3).toUpperCase(),
-      weekday: "",
-    };
-  }
-  if (trimmed.includes("-")) {
-    const parts = trimmed.split("-");
-    if (parts.length === 3) {
-      const d = new Date(trimmed + "T00:00:00");
-      if (!isNaN(d.getTime())) {
-        return {
-          day: String(d.getDate()).padStart(2, "0"),
-          month: d.toLocaleDateString("id-ID", { month: "short" }).replace(".", "").toUpperCase(),
-          weekday: d.toLocaleDateString("id-ID", { weekday: "short" }).replace(".", ""),
-        };
-      }
-    }
-  }
-  return { day: trimmed.slice(0, 5), month: "", weekday: "" };
-}
-
 export function DailyTimelineFeed({
   tasks,
   onSelectTask,
@@ -63,11 +34,35 @@ export function DailyTimelineFeed({
 }: DailyTimelineFeedProps) {
   const [statusFilter, setStatusFilter] = useState<"ALL" | "IN_REVIEW" | "VERIFIED">("ALL");
   const [monthFilter, setMonthFilter] = useState<string>("ALL");
+  const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
+  const monthDropdownRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [feedLayout, setFeedLayout] = useState<"GRID" | "LIST">("GRID");
   const PAGE_SIZE = 6;
   const [currentPage, setCurrentPage] = useState<number>(1);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Close custom month dropdown on outside click or Escape
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (monthDropdownRef.current && !monthDropdownRef.current.contains(e.target as Node)) {
+        setIsMonthDropdownOpen(false);
+      }
+    }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setIsMonthDropdownOpen(false);
+      }
+    }
+    if (isMonthDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMonthDropdownOpen]);
 
   // Ekstrak daftar bulan yang tersedia dari data jurnal
   const availableMonths = useMemo(() => {
@@ -88,6 +83,13 @@ export function DailyTimelineFeed({
       .sort((a, b) => (a[0] < b[0] ? 1 : -1))
       .map(([key, label]) => ({ key, label }));
   }, [tasks]);
+
+  // Label periode bulan yang sedang aktif
+  const currentMonthLabel = useMemo(() => {
+    if (monthFilter === "ALL") return "Semua Bulan";
+    const found = availableMonths.find((m) => m.key === monthFilter);
+    return found ? found.label : monthFilter;
+  }, [monthFilter, availableMonths]);
 
   // Filter tasks berdasarkan status, bulan, dan pencarian kata kunci
   const filteredTasks = useMemo(() => {
@@ -155,63 +157,174 @@ export function DailyTimelineFeed({
 
   return (
     <div ref={containerRef} className="space-y-4 pt-1 pb-6 animate-in fade-in duration-200">
-      {/* ─── Control Bar: Status chips (sekunder) | Bulan, Cari & List/Grid ─── */}
+      {/* ─── Control Bar: Status chips | Bulan, Cari & List/Grid Switcher ─── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
-        {/* Status chips ringan — warna biru VokaLink saat aktif, bersih tanpa dot */}
-        <div className="flex items-center gap-1 w-full md:w-auto overflow-x-auto scrollbar-none">
-          {(
-            [
-              { key: "ALL", label: "Semua", count: tasks.length },
-              { key: "VERIFIED", label: "Sah", count: verifiedCount },
-              { key: "IN_REVIEW", label: "Menunggu", count: pendingCount },
-            ] as const
-          ).map((chip) => {
-            const active = statusFilter === chip.key;
-            return (
-              <button
-                key={chip.key}
-                type="button"
-                onClick={() => setStatusFilter(chip.key)}
-                aria-pressed={active}
-                className={cn(
-                  "h-8 px-3 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer",
-                  active
-                    ? "bg-sky-500 text-white shadow-xs font-semibold"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                )}
-              >
-                <span>{chip.label}</span>
-                <span className={cn("tabular-nums text-[11px]", active ? "text-white/80 font-medium" : "text-slate-400")}>
-                  {chip.count}
-                </span>
-              </button>
-            );
-          })}
+        {/* Baris 1: Status Chips Segmented Control (Pill-shaped) + Mobile View Switcher */}
+        <div className="flex items-center justify-between w-full md:w-auto gap-2">
+          <div className="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-full border border-slate-200/70 text-xs font-semibold overflow-x-auto scrollbar-none">
+            {(
+              [
+                { key: "ALL", label: "Semua", count: tasks.length },
+                { key: "VERIFIED", label: "Sah", count: verifiedCount },
+                { key: "IN_REVIEW", label: "Menunggu", count: pendingCount },
+              ] as const
+            ).map((chip) => {
+              const active = statusFilter === chip.key;
+              return (
+                <button
+                  key={chip.key}
+                  type="button"
+                  onClick={() => setStatusFilter(chip.key)}
+                  aria-pressed={active}
+                  className={cn(
+                    "h-7 sm:h-7.5 px-3 rounded-full text-xs transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5",
+                    active
+                      ? "bg-white text-slate-900 shadow-2xs font-bold"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
+                  )}
+                >
+                  <span>{chip.label}</span>
+                  <span
+                    className={cn(
+                      "tabular-nums text-[10.5px] px-1.5 py-0.2 rounded-full font-semibold",
+                      active
+                        ? "bg-slate-100 text-slate-700"
+                        : "text-slate-400"
+                    )}
+                  >
+                    {chip.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Mobile-Only View Switcher (List vs Grid) di samping kanan chips */}
+          <div className="flex md:hidden items-center bg-slate-200/60 p-0.5 rounded-full border border-slate-200 shrink-0">
+            <button
+              type="button"
+              onClick={() => setFeedLayout("LIST")}
+              aria-label="Tampilan Baris Rapi (List View)"
+              title="Tampilan Baris Rapi"
+              className={cn(
+                "p-1.5 rounded-full transition-all cursor-pointer",
+                feedLayout === "LIST"
+                  ? "bg-white text-slate-900 shadow-2xs"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              <LayoutList className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setFeedLayout("GRID")}
+              aria-label="Tampilan Kartu (Grid View)"
+              title="Tampilan Kartu Visual"
+              className={cn(
+                "p-1.5 rounded-full transition-all cursor-pointer",
+                feedLayout === "GRID"
+                  ? "bg-white text-slate-900 shadow-2xs"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
-        {/* Filter Bulan + Search Bar + View Mode Switcher (List vs Grid) */}
+        {/* Baris 2 di mobile (atau samping kanan di desktop): Filter Bulan + Search Bar + Desktop View Switcher */}
         <div className="flex items-center gap-2 w-full md:w-auto">
-          {/* Quick Month Filter Selector (If > 1 months exist) */}
+          {/* Quick Month Filter Custom Popover Dropdown */}
           {availableMonths.length > 1 && (
-            <div className="relative shrink-0">
-              <select
-                aria-label="Pilih Periode Bulan Jurnal"
-                value={monthFilter}
-                onChange={(e) => setMonthFilter(e.target.value)}
-                className="h-8 pl-7 pr-3 rounded-full bg-white border border-slate-200/90 text-[11px] font-medium text-slate-700 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs cursor-pointer appearance-none"
+            <div ref={monthDropdownRef} className="relative shrink-0">
+              <button
+                type="button"
+                aria-haspopup="listbox"
+                aria-expanded={isMonthDropdownOpen}
+                onClick={() => setIsMonthDropdownOpen((prev) => !prev)}
+                className={cn(
+                  "h-8 px-3 rounded-full bg-white border text-[11px] font-semibold flex items-center justify-between gap-1.5 transition-all duration-150 cursor-pointer shadow-2xs select-none",
+                  isMonthDropdownOpen
+                    ? "border-sky-500 ring-2 ring-sky-500/20 text-sky-700 bg-sky-50/30 shadow-xs"
+                    : "border-slate-200/90 text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                )}
               >
-                <option value="ALL">Semua Bulan</option>
-                {availableMonths.map((m) => (
-                  <option key={m.key} value={m.key}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-              <CalendarDays className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <CalendarDays
+                  className={cn(
+                    "w-3.5 h-3.5 shrink-0 transition-colors",
+                    isMonthDropdownOpen ? "text-sky-600" : "text-slate-400"
+                  )}
+                />
+                <span className="truncate max-w-[85px] sm:max-w-none">{currentMonthLabel}</span>
+                <ChevronDown
+                  className={cn(
+                    "w-3 h-3 text-slate-400 shrink-0 transition-transform duration-200",
+                    isMonthDropdownOpen && "rotate-180 text-sky-600"
+                  )}
+                />
+              </button>
+
+              {/* Popover Menu Floating Card */}
+              {isMonthDropdownOpen && (
+                <div
+                  role="listbox"
+                  className="absolute left-0 top-full mt-1.5 z-50 min-w-[170px] bg-white rounded-2xl border border-slate-200/90 shadow-xl p-1.5 space-y-0.5 animate-in fade-in-0 zoom-in-95 duration-150"
+                >
+                  <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                    Periode Jurnal
+                  </div>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={monthFilter === "ALL"}
+                    onClick={() => {
+                      setMonthFilter("ALL");
+                      setIsMonthDropdownOpen(false);
+                    }}
+                    className={cn(
+                      "w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs transition cursor-pointer text-left",
+                      monthFilter === "ALL"
+                        ? "bg-sky-50 text-sky-700 font-semibold"
+                        : "text-slate-700 hover:bg-slate-50 hover:text-slate-900 font-medium"
+                    )}
+                  >
+                    <span>Semua Bulan</span>
+                    {monthFilter === "ALL" && (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-sky-600 stroke-[2.5] shrink-0" />
+                    )}
+                  </button>
+                  {availableMonths.map((m) => {
+                    const isSelected = monthFilter === m.key;
+                    return (
+                      <button
+                        key={m.key}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={() => {
+                          setMonthFilter(m.key);
+                          setIsMonthDropdownOpen(false);
+                        }}
+                        className={cn(
+                          "w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs transition cursor-pointer text-left",
+                          isSelected
+                            ? "bg-sky-50 text-sky-700 font-semibold"
+                            : "text-slate-700 hover:bg-slate-50 hover:text-slate-900 font-medium"
+                        )}
+                      >
+                        <span>{m.label}</span>
+                        {isSelected && (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-sky-600 stroke-[2.5] shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
-          {/* Pill Search Input */}
+          {/* Pill Search Input — Luas dan fleksibel di mobile */}
           <div className="relative flex-1 sm:w-56 md:w-60">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
@@ -232,8 +345,8 @@ export function DailyTimelineFeed({
             )}
           </div>
 
-          {/* View Switcher: LIST vs GRID Toggle */}
-          <div className="flex items-center bg-slate-200/60 p-0.5 rounded-full border border-slate-200 shrink-0">
+          {/* Desktop-Only View Switcher (Tampilan Baris vs Kartu) */}
+          <div className="hidden md:flex items-center bg-slate-200/60 p-0.5 rounded-full border border-slate-200 shrink-0">
             <button
               type="button"
               onClick={() => setFeedLayout("LIST")}
@@ -299,40 +412,66 @@ export function DailyTimelineFeed({
         <div className="space-y-3 animate-in fade-in duration-150">
           {paginatedTasks.map((task) => {
             const isVerified = task.status === "verified";
-            const { day, month, weekday } = parseTaskDateParts(task.date);
 
             return (
               <div
                 key={task.id}
                 onClick={() => onSelectTask(task)}
-                className="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 group cursor-pointer"
+                className="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 group cursor-pointer"
               >
-                {/* Bagian Kiri: Date Squircle Badge + Info Utama */}
-                <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                  {/* Modern Calendar Tile Date Badge - Vivid Sky Ribbon */}
-                  <div className="w-12 sm:w-13 h-13 sm:h-14 rounded-2xl bg-white border border-slate-200/90 flex flex-col items-center justify-between text-center shrink-0 shadow-2xs group-hover:border-sky-300 group-hover:shadow-xs transition-all overflow-hidden select-none">
-                    <div className="w-full bg-sky-600 group-hover:bg-sky-500 py-0.5 border-b border-sky-700/20 transition-colors">
-                      <span className="text-[9.5px] font-bold text-white tracking-wider uppercase leading-none block">
-                        {month || "LOG"}
+                {/* ─── Baris 1 di Mobile: Date Badge (Kiri) + Status Pill / QR PIN (Kanan) ─── */}
+                <div className="flex items-center justify-between sm:hidden w-full gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100/90 text-xs font-semibold text-slate-700 border border-slate-200/70 group-hover:bg-sky-50 group-hover:text-sky-700 transition-colors">
+                    <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                    <span>{task.date}</span>
+                  </span>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {isVerified ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[11px] font-semibold">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
+                        <span>Sah</span>
                       </span>
-                    </div>
-                    <span className="text-base sm:text-lg font-black text-slate-900 leading-none py-0.5 tracking-tight font-sans">
-                      {day}
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenQrModal();
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-[11px] font-semibold shadow-2xs transition cursor-pointer"
+                        title="Buka QR Verifikasi Mentor"
+                      >
+                        <QrCode className="w-3 h-3" />
+                        <span>QR PIN</span>
+                      </button>
+                    )}
+                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-sky-500 transition-transform" />
+                  </div>
+                </div>
+
+                {/* ─── Bagian Kiri: Date Badge (Desktop) + Info Utama ─── */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4 min-w-0 flex-1">
+                  {/* Sleek Minimalist Date Badge (Desktop-only) */}
+                  <div className="hidden sm:flex shrink-0 items-center sm:w-38">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100/90 text-xs font-semibold text-slate-700 border border-slate-200/70 group-hover:bg-sky-50 group-hover:text-sky-700 group-hover:border-sky-200 transition-colors whitespace-nowrap">
+                      <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                      <span>{task.date}</span>
                     </span>
-                    <div className="w-full pb-1">
-                      <span className="text-[9.5px] font-medium text-slate-400 capitalize leading-none block">
-                        {weekday || "Hari"}
-                      </span>
-                    </div>
                   </div>
 
                   {/* Judul & Detail */}
                   <div className="min-w-0 flex-1 space-y-1">
-                    <h3 className="font-semibold text-xs sm:text-sm text-slate-900 group-hover:text-sky-600 transition-colors truncate">
+                    <h3 className="font-semibold text-xs sm:text-sm text-slate-900 group-hover:text-sky-600 transition-colors line-clamp-2 leading-snug">
                       {task.title}
                     </h3>
 
                     <div className="flex items-center gap-1.5 flex-wrap text-slate-500 text-xs">
+                      {/* Jam di mobile tampil sebagai badge kecil */}
+                      <span className="sm:hidden px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 font-semibold text-[10px]">
+                        {task.durationJp} Jam Kerja
+                      </span>
+
                       {/* Tag Khusus Non-Kompetensi (BR-004) */}
                       {task.category.toLowerCase().includes("non-kompetensi") && (
                         <>
@@ -340,7 +479,6 @@ export function DailyTimelineFeed({
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
                             <span>Non-Kompetensi</span>
                           </span>
-                          <span className="text-slate-300">·</span>
                         </>
                       )}
 
@@ -369,9 +507,9 @@ export function DailyTimelineFeed({
                   </div>
                 </div>
 
-                {/* Bagian Kanan: Jam, Status / QR Button & Chevron */}
-                <div className="flex items-center justify-between sm:justify-end gap-3.5 shrink-0">
-                  <div className="text-left sm:text-right">
+                {/* ─── Bagian Kanan (Desktop): Jam, Status / QR Button & Chevron ─── */}
+                <div className="hidden sm:flex items-center justify-end gap-3.5 shrink-0">
+                  <div className="text-right">
                     <span className="font-semibold text-xs sm:text-sm text-slate-900 block leading-tight">
                       {task.durationJp} Jam Kerja
                     </span>

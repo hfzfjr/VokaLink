@@ -62,17 +62,8 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
         return;
       }
 
-      // Fallback sample photos by category
       if (active) {
-        if (task.category.includes("Web") || task.title.includes("API") || task.title.includes("Express")) {
-          setPhotoUrl("https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80");
-        } else if (task.category.includes("Basis Data") || task.title.includes("Database")) {
-          setPhotoUrl("https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=800&q=80");
-        } else if (task.title.includes("UI") || task.title.includes("PWA")) {
-          setPhotoUrl("https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=800&q=80");
-        } else {
-          setPhotoUrl("https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=800&q=80");
-        }
+        setPhotoUrl(null);
       }
     }
 
@@ -94,7 +85,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="task-detail-title"
-        className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in-0 duration-150"
+        className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in-0 duration-150"
         style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
         onClick={onClose}
       >
@@ -133,7 +124,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
           </div>
 
           {/* Bukti Foto Terlampir & Lightbox Zoomable */}
-          {photoUrl && (
+          {photoUrl ? (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-semibold text-slate-700 flex items-center gap-1.5">
@@ -166,6 +157,11 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                   <span>Perbesar Layar Penuh</span>
                 </div>
               </div>
+            </div>
+          ) : (
+            <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/60 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
+              <ImageIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span>Tidak ada lampiran foto untuk aktivitas ini</span>
             </div>
           )}
 
@@ -268,7 +264,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
           role="dialog"
           aria-modal="true"
           onClick={() => setIsLightboxOpen(false)}
-          className="fixed inset-0 z-[1000] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 cursor-zoom-out select-none animate-in fade-in-0 duration-150"
+          className="fixed inset-0 z-[1000] bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 sm:p-8 cursor-zoom-out select-none animate-in fade-in-0 duration-150"
           style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
         >
           <button

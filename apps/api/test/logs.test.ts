@@ -266,6 +266,35 @@ describe("Log Sync & Validation Engine (FR-005, FR-006 & DESIGN.md §7.3)", () =
       expect(res.body.mimeType).toBe("image/webp");
     });
 
+    it("menolak unggahan foto jika hash identik dengan foto logbook sebelumnya (anti-fraud duplikasi)", async () => {
+      const clientUuid = crypto.randomUUID();
+      const webpBuffer = Buffer.from([
+        0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50, 0x01,
+      ]);
+      const validSha256 = crypto.createHash("sha256").update(webpBuffer).digest("hex");
+
+      vi.mocked(prisma.dailyLog.findUnique).mockResolvedValueOnce({
+        id: "log-123",
+        status: "PENDING_VERIFICATION",
+        studentId: "student-1",
+      } as any);
+
+      vi.mocked(prisma.dailyLog.findFirst).mockResolvedValueOnce({
+        id: "log-old-456",
+        logDate: new Date("2026-10-18"),
+      } as any);
+
+      const res = await request(app)
+        .put(`/api/v1/logs/${clientUuid}/evidence`)
+        .set("Content-Type", "image/webp")
+        .set("X-Content-SHA256", validSha256)
+        .send(webpBuffer);
+
+      expect(res.status).toBe(409);
+      expect(res.body.code).toBe("DUPLICATE_PHOTO");
+      expect(res.body.detail).toContain("sudah pernah diunggah");
+    });
+
     it("menerima batch sync multi-job card dengan alokasi durasi yang valid", async () => {
       const clientUuid = crypto.randomUUID();
       const placementUuid = crypto.randomUUID();

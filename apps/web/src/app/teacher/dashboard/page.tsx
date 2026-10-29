@@ -1341,24 +1341,24 @@ function HeatmapContent() {
         {/* ─── 4. SECONDARY CONTROL BAR: Status Chips | Search, DUDI & Counter ─── */}
         {viewMode !== "security" && viewMode !== "overview" && (
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
-            {/* Status chips ringan */}
-            <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+            {/* Status chips segmented control — gaya Apple Segmented pill */}
+            <div className="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-full border border-slate-200/70 text-xs font-semibold overflow-x-auto scrollbar-none">
               <button
                 type="button"
                 onClick={() => setStatusFilter("ALL")}
                 aria-pressed={statusFilter === "ALL"}
                 className={cn(
-                  "h-8 px-3 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer",
+                  "h-7 sm:h-7.5 px-3 rounded-full text-xs transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5",
                   statusFilter === "ALL"
-                    ? "bg-sky-500 text-white shadow-xs font-semibold"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    ? "bg-white text-slate-900 shadow-2xs font-bold"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
                 )}
               >
                 <span>Semua</span>
                 <span
                   className={cn(
-                    "tabular-nums text-[11px]",
-                    statusFilter === "ALL" ? "text-white/80 font-medium" : "text-slate-400"
+                    "tabular-nums text-[10.5px] px-1.5 py-0.2 rounded-full font-semibold",
+                    statusFilter === "ALL" ? "bg-slate-100 text-slate-700" : "text-slate-400"
                   )}
                 >
                   {data?.students?.length || 0}
@@ -1370,23 +1370,23 @@ function HeatmapContent() {
                 onClick={() => setStatusFilter("DRIFT")}
                 aria-pressed={statusFilter === "DRIFT"}
                 className={cn(
-                  "h-8 px-3 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer",
+                  "h-7 sm:h-7.5 px-3 rounded-full text-xs transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5",
                   statusFilter === "DRIFT"
-                    ? "bg-rose-500 text-white shadow-xs font-semibold"
-                    : "text-slate-600 hover:bg-rose-50 hover:text-rose-700"
+                    ? "bg-white text-rose-700 shadow-2xs font-bold"
+                    : "text-slate-600 hover:text-rose-700 hover:bg-white/40 font-medium"
                 )}
               >
                 <span
                   className={cn(
                     "w-1.5 h-1.5 rounded-full shrink-0",
-                    statusFilter === "DRIFT" ? "bg-white" : "bg-rose-500"
+                    statusFilter === "DRIFT" ? "bg-rose-500 animate-pulse" : "bg-rose-400"
                   )}
                 />
                 <span>Drift</span>
                 <span
                   className={cn(
-                    "tabular-nums text-[11px]",
-                    statusFilter === "DRIFT" ? "text-white/80 font-medium" : "text-slate-400"
+                    "tabular-nums text-[10.5px] px-1.5 py-0.2 rounded-full font-semibold",
+                    statusFilter === "DRIFT" ? "bg-rose-50 text-rose-700 font-bold" : "text-slate-400"
                   )}
                 >
                   {summary.studentsWithDrift}
@@ -1398,23 +1398,23 @@ function HeatmapContent() {
                 onClick={() => setStatusFilter("ACHIEVED")}
                 aria-pressed={statusFilter === "ACHIEVED"}
                 className={cn(
-                  "h-8 px-3 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer",
+                  "h-7 sm:h-7.5 px-3 rounded-full text-xs transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5",
                   statusFilter === "ACHIEVED"
-                    ? "bg-emerald-600 text-white shadow-xs font-semibold"
-                    : "text-slate-600 hover:bg-emerald-50 hover:text-emerald-700"
+                    ? "bg-white text-emerald-800 shadow-2xs font-bold"
+                    : "text-slate-600 hover:text-emerald-700 hover:bg-white/40 font-medium"
                 )}
               >
                 <span
                   className={cn(
                     "w-1.5 h-1.5 rounded-full shrink-0",
-                    statusFilter === "ACHIEVED" ? "bg-white" : "bg-emerald-500"
+                    statusFilter === "ACHIEVED" ? "bg-emerald-500" : "bg-emerald-400"
                   )}
                 />
                 <span>Tuntas</span>
                 <span
                   className={cn(
-                    "tabular-nums text-[11px]",
-                    statusFilter === "ACHIEVED" ? "text-white/80 font-medium" : "text-slate-400"
+                    "tabular-nums text-[10.5px] px-1.5 py-0.2 rounded-full font-semibold",
+                    statusFilter === "ACHIEVED" ? "bg-emerald-50 text-emerald-700 font-bold" : "text-slate-400"
                   )}
                 >
                   {totalAchievedCount}
@@ -3606,7 +3606,7 @@ function HeatmapContent() {
         createPortal(
           <div
             onClick={() => setSelectedStudent(null)}
-            className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in-0 duration-150"
+            className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in-0 duration-150"
           >
             <div
               onClick={(e) => e.stopPropagation()}
@@ -3746,7 +3746,7 @@ function HeatmapContent() {
               setInterventionStudent(null);
               setInterventionSuccessMsg(null);
             }}
-            className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto animate-in fade-in-0 duration-150"
+            className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto animate-in fade-in-0 duration-150"
           >
             <div
               onClick={(e) => e.stopPropagation()}

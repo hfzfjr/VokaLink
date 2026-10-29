@@ -16,9 +16,23 @@ export interface CompressedPhotoResult {
 
 export async function computeSha256(blob: Blob): Promise<string> {
   const buffer = await blob.arrayBuffer();
-  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  if (typeof window !== "undefined" && window.crypto?.subtle) {
+    const hashBuffer = await window.crypto.subtle.digest("SHA-256", buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+  // Fallback 64-char hash untuk non-secure context (e.g. pengujian HP via IP lokal HTTP)
+  const uint8 = new Uint8Array(buffer);
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < uint8.length; i++) {
+    h1 = Math.imul(h1 ^ uint8[i]!, 2654435761);
+    h2 = Math.imul(h2 ^ uint8[i]!, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  const hexPart = (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
+  return hexPart.padStart(64, "0");
 }
 
 export interface BlurArea {
@@ -38,20 +52,20 @@ export interface CompressPhotoOptions {
 export async function compressEvidencePhoto(
   file: File | Blob,
   optionsOrMaxDimension: number | CompressPhotoOptions = 800,
-  legacyQuality = 0.65
+  legacyQuality = 0.55
 ): Promise<CompressedPhotoResult> {
   const options: CompressPhotoOptions =
     typeof optionsOrMaxDimension === "number"
       ? { maxDimension: optionsOrMaxDimension, webpQuality: legacyQuality }
       : {
           maxDimension: optionsOrMaxDimension.maxDimension ?? 800,
-          webpQuality: optionsOrMaxDimension.webpQuality ?? 0.65,
+          webpQuality: optionsOrMaxDimension.webpQuality ?? 0.55,
           applyPrivacyBlur: optionsOrMaxDimension.applyPrivacyBlur ?? false,
           blurArea: optionsOrMaxDimension.blurArea,
         };
 
   const maxDimension = options.maxDimension ?? 800;
-  const webpQuality = options.webpQuality ?? 0.65;
+  const webpQuality = options.webpQuality ?? 0.55;
   const originalSizeBytes = file.size;
 
   // 1. Load image into HTMLImageElement

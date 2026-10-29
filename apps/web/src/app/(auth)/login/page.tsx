@@ -92,7 +92,7 @@ function LoginForm() {
       const origin =
         typeof window !== "undefined" && window.location.origin
           ? window.location.origin
-          : "http://localhost:3000";
+          : (process.env["NEXT_PUBLIC_APP_URL"] || "https://vokalink.vercel.app");
       const redirectTo = `${origin}/auth/callback`;
 
       const { error } = await supabase.auth.signInWithOAuth({

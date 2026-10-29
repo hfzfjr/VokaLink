@@ -164,20 +164,20 @@ export function SmartDateSelector({
       )}
     >
       {/* Label Header Apple HIG Style */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
         <label
           htmlFor="smart-date-trigger"
-          className="text-[11px] font-medium text-slate-500 uppercase tracking-widest flex items-center gap-1.5"
+          className="text-[11px] font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1.5"
         >
-          <Calendar className="w-3.5 h-3.5 text-sky-600" />
-          <span>Tanggal Pelaksanaan Kegiatan</span>
+          <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+          <span>Tanggal Kegiatan</span>
         </label>
-        <span className="text-xs text-slate-400 font-medium">
+        <span className="text-[11px] sm:text-xs text-slate-400 font-medium shrink-0">
           Maks. H-3 (72 Jam)
         </span>
       </div>
 
-      {/* Trigger Button: Ramping, Kompak (~42px) & Berisi Informasi Lengkap */}
+      {/* Trigger Button: Ramping, Kompak (~46px) & Bebas Terpotong di Mobile */}
       <button
         id="smart-date-trigger"
         type="button"
@@ -186,14 +186,14 @@ export function SmartDateSelector({
         aria-haspopup="listbox"
         onClick={() => setIsOpen((prev) => !prev)}
         className={cn(
-          "w-full flex items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl bg-white border text-left transition-all duration-150 shadow-2xs group cursor-pointer select-none min-h-[44px]",
+          "w-full flex items-center justify-between gap-2.5 px-3 sm:px-3.5 py-2.5 rounded-xl bg-white border text-left transition-all duration-150 shadow-2xs group cursor-pointer select-none min-h-[46px]",
           isOpen
             ? "border-sky-500 ring-2 ring-sky-500/20 shadow-xs"
             : "border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/50"
         )}
       >
         {/* Kiri: Ikon & Detail Tanggal Terpilih */}
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <div
             className={cn(
               "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors",
@@ -205,26 +205,20 @@ export function SmartDateSelector({
             {isBackdate ? <Clock className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
           </div>
 
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs sm:text-sm font-semibold text-slate-900 leading-tight">
-                {activeItem ? activeItem.title : selectedDate}
-              </span>
-              <span className="text-xs text-slate-500 font-normal">·</span>
-              <span className="text-xs text-slate-700 font-medium truncate">
-                {activeItem ? activeItem.fullFormatted : selectedDate}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-xs sm:text-sm font-semibold text-slate-900 leading-tight truncate">
+                {activeItem ? activeItem.title : "Hari Ini"} · {activeItem ? `${activeItem.dayName}, ${activeItem.dayNum} ${activeItem.monthShort}` : selectedDate}
               </span>
             </div>
-            <p className="text-xs text-slate-600 leading-none mt-0.5 truncate font-normal">
-              {isBackdate
-                ? "Pengisian susulan diverifikasi resmi via PIN mentor"
-                : "Pencatatan langsung hari berjalan"}
+            <p className="text-[11px] text-slate-500 mt-0.5 truncate font-normal">
+              {activeItem ? activeItem.fullFormatted : selectedDate} {isBackdate ? "· Batas H-3" : "· Tepat Waktu"}
             </p>
           </div>
         </div>
 
         {/* Kanan: Badge Status & Panah Dropdown */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {activeItem?.hasSick ? (
             <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-50 text-rose-700 border border-rose-200/70 text-xs font-medium">
               <HeartPulse className="w-3.5 h-3.5 text-rose-600" />
@@ -241,11 +235,11 @@ export function SmartDateSelector({
               <span>{activeItem.totalJp} JP Lengkap</span>
             </span>
           ) : isBackdate ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium">
+            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium">
               <span>Susulan</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-slate-600 border border-slate-200 text-xs font-medium">
+            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-slate-600 border border-slate-200 text-xs font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
               <span>Tepat Waktu</span>
             </span>
@@ -253,7 +247,7 @@ export function SmartDateSelector({
 
           <ChevronDown
             className={cn(
-              "w-4 h-4 text-slate-500 transition-transform duration-200",
+              "w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-transform duration-200 shrink-0",
               isOpen && "rotate-180 text-sky-600"
             )}
           />

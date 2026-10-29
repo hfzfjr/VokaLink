@@ -4,6 +4,7 @@ import { StudentHeader } from "@/components/student/StudentHeader";
 import { StudentSidebar } from "@/components/student/StudentSidebar";
 import { BottomNav } from "@/components/student/BottomNav";
 import { PwaInstallPrompt } from "@/components/student/PwaInstallPrompt";
+import { ConnectivityBanner } from "@/components/student/ConnectivityBanner";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 
 export const metadata: Metadata = {
@@ -40,6 +41,9 @@ export default function StudentLayout({
 
         {/* 4. Main Content Container */}
         <div className="flex-1 min-w-0 flex flex-col print:block print:w-full print:p-0 print:m-0">
+          <div className="no-print print:hidden">
+            <ConnectivityBanner />
+          </div>
           <main
             id="main-content"
             className="flex-1 w-full max-w-[1680px] mx-auto px-3 sm:px-4 lg:px-6 py-4 md:py-6 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:pb-10 print:p-0 print:m-0 print:max-w-none print:w-full"

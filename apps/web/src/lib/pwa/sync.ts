@@ -7,10 +7,9 @@
  */
 
 import { db } from "@/lib/pwa/db";
+import { getApiBaseUrl } from "@/lib/api";
 
-const API_BASE_URL = typeof window !== "undefined"
-  ? `${window.location.protocol}//${window.location.hostname}:3001/api/v1`
-  : (process.env["NEXT_PUBLIC_API_URL"] || "http://localhost:3001/api/v1");
+const API_BASE_URL = getApiBaseUrl();
 
 export interface SyncEngineResult {
   success: boolean;
@@ -81,10 +80,20 @@ export async function executeTwoPhaseSync(
           const photo = await db.photos.get(log.clientLogUuid);
 
           // Susun items kompetensi atau non-kompetensi (jaminan setiap item minimal 1 JP)
-          const jcIds =
-            log.jobCardIds && log.jobCardIds.length > 0
-              ? log.jobCardIds
-              : ["85544774-bbd3-43d8-bcdc-ee38c800ef98"]; // Fallback UUID non-kompetensi resmi DUDI
+          let jcIds = log.jobCardIds && log.jobCardIds.length > 0 ? log.jobCardIds : [];
+          if (jcIds.length === 0) {
+            try {
+              const cached = await db.refData.get("student_log_context");
+              const ctxData = cached?.data as any;
+              const firstJc = ctxData?.jobCards?.[0]?.id || ctxData?.nonCompetencyJobCard?.id;
+              if (firstJc) {
+                jcIds = [firstJc];
+              }
+            } catch {}
+          }
+          if (jcIds.length === 0) {
+            jcIds = ["00000000-0000-0000-0000-000000000037"]; // Fallback UUID non-kompetensi resmi kurikulum
+          }
 
           const maxPossibleItems = Math.max(1, Math.min(jcIds.length, log.durationJp));
           const activeJcIds = jcIds.slice(0, maxPossibleItems);

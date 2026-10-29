@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   Calendar,
   CalendarDays,
+  Check,
   CheckCircle2,
   Clock,
   QrCode,
@@ -15,6 +16,7 @@ import {
   X,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   ShieldCheck,
   Image as ImageIcon,
   Trash2,
@@ -27,6 +29,8 @@ import {
   LayoutGrid,
   Sparkles,
   Maximize2,
+  AlertTriangle,
+  Edit3,
 } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { convertRealHoursToJp, TOTAL_TARGET_JP } from "@vokalink/shared";
@@ -38,6 +42,7 @@ import {
 } from "@/lib/api";
 import { MentorQrModal } from "@/components/student/home/MentorQrModal";
 import { useSyncManager } from "@/lib/pwa/hooks/useSyncManager";
+import { useAuth } from "@/lib/use-auth";
 import { cn } from "@/lib/cn";
 import { SkeletonRect } from "@/components/ui/Skeleton";
 import HistoryLoading from "./loading";
@@ -50,7 +55,7 @@ interface LogEntry {
   autonomy: "Mandiri" | "Terbimbing" | "Observasi";
   autonomyScore: number;
   skkniCode?: string;
-  status: "VERIFIED" | "PENDING_VERIFICATION";
+  status: "VERIFIED" | "PENDING_VERIFICATION" | "REVISION_REQUIRED";
   attendanceType?: "PRESENT" | "SICK" | "PERMIT";
   verifiedAt?: string | null;
   mentor: string;
@@ -59,13 +64,28 @@ interface LogEntry {
   isNonCompetency?: boolean;
   nonCompetencyCategory?: string;
   notes?: string;
+  rejectionReason?: string;
   syncState?: "queued" | "meta_synced" | "synced" | "verified" | "revision_required" | "failed";
   isLocalOnly?: boolean;
 }
 
+function formatCategoryLabel(cat?: string | null): string {
+  if (!cat) return "Operasional";
+  const map: Record<string, string> = {
+    ADMIN_UMUM: "Administrasi & Dokumen",
+    GUDANG_LOGISTIK: "Gudang & Logistik",
+    PELAYANAN_TOKO: "Pelayanan Toko / Kasir",
+    KURIR_DISTRIBUSI: "Kurir & Distribusi",
+    LAINNYA: "Operasional Umum",
+  };
+  return map[cat] || cat.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function formatDateIndo(dateStr: string): string {
+  if (!dateStr) return "-";
   try {
-    const d = new Date(dateStr + "T00:00:00");
+    const cleanDate = dateStr.slice(0, 10);
+    const d = new Date(cleanDate + "T00:00:00");
     if (isNaN(d.getTime())) return dateStr;
     return d.toLocaleDateString("id-ID", {
       weekday: "short",
@@ -79,8 +99,10 @@ function formatDateIndo(dateStr: string): string {
 }
 
 function parseDateParts(dateStr: string) {
+  if (!dateStr) return { day: "--", month: "---", weekday: "---" };
   try {
-    const d = new Date(dateStr + "T00:00:00");
+    const cleanDate = dateStr.slice(0, 10);
+    const d = new Date(cleanDate + "T00:00:00");
     if (isNaN(d.getTime())) return { day: "--", month: "---", weekday: "---" };
     const day = String(d.getDate()).padStart(2, "0");
     const month = d.toLocaleDateString("id-ID", { month: "short" }).replace(".", "");
@@ -92,8 +114,33 @@ function parseDateParts(dateStr: string) {
 }
 
 export default function LogHistoryPage() {
+  const { user, token } = useAuth();
   const [filter, setFilter] = useState<"ALL" | "PENDING" | "VERIFIED" | "NON_COMPETENCY">("ALL");
   const [monthFilter, setMonthFilter] = useState<string>("ALL");
+  const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
+  const monthDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close custom month dropdown on outside click or Escape
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (monthDropdownRef.current && !monthDropdownRef.current.contains(e.target as Node)) {
+        setIsMonthDropdownOpen(false);
+      }
+    }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setIsMonthDropdownOpen(false);
+      }
+    }
+    if (isMonthDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMonthDropdownOpen]);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"LIST" | "GRID">("LIST");
   const PAGE_SIZE = 6;
@@ -135,109 +182,154 @@ export default function LogHistoryPage() {
   const { isOnline, pendingCount, isSyncing, syncNow } = useSyncManager();
 
   const [serverLogs, setServerLogs] = useState<LogEntry[]>([]);
-
   const [isLoading, setIsLoading] = useState(true);
 
   // Load placement context and live database logs
+  const loadPlacementAndLogs = React.useCallback(async () => {
+    let activePlacementId = "3ffec674-ad55-482a-a566-9dff84ab71be";
+    let activeMentorName = placementInfo.mentorName;
+
+    try {
+      const cacheKey = user?.id ? `student_log_context_${user.id}` : "student_log_context";
+      const cached = (await db.refData.get(cacheKey)) || (await db.refData.get("student_log_context"));
+      if (cached && cached.data) {
+        const data = cached.data as StudentLogContextResponse;
+        if (data.activePlacement) {
+          activePlacementId = data.activePlacement.id;
+          activeMentorName = data.activePlacement.mentorName || activeMentorName;
+          setPlacementInfo({
+            dudiName: data.activePlacement.dudiName,
+            dudiCity: data.activePlacement.dudiCity,
+            mentorName: data.activePlacement.mentorName,
+          });
+        }
+      }
+
+      if (typeof navigator !== "undefined" && navigator.onLine) {
+        const fresh = await fetchStudentLogContext(user?.id, token || undefined);
+        if (fresh && fresh.activePlacement) {
+          activePlacementId = fresh.activePlacement.id;
+          activeMentorName = fresh.activePlacement.mentorName || activeMentorName;
+          setPlacementInfo({
+            dudiName: fresh.activePlacement.dudiName,
+            dudiCity: fresh.activePlacement.dudiCity,
+            mentorName: fresh.activePlacement.mentorName,
+          });
+        }
+
+        // Tarik riwayat resmi dari database PostgreSQL
+        try {
+          const dbLogs = await fetchStudentLogs(activePlacementId);
+          if (Array.isArray(dbLogs)) {
+            const mapped: LogEntry[] = dbLogs.map((sl) => {
+              const firstItem = sl.items?.[0];
+              const durationJp = sl.items?.reduce((acc, it) => acc + it.durationJp, 0) || 8;
+              const autonomyLevel = firstItem?.autonomyLevel || 3;
+              const isNonCompetency = Boolean(
+                firstItem?.jobCard?.isNonCompetency || firstItem?.nonCompetencyCategory
+              );
+              return {
+                id: sl.clientLogUuid || sl.id,
+                date: (sl.logDate || "").slice(0, 10),
+                title:
+                  firstItem?.jobCard?.title ||
+                  sl.shortNote ||
+                  (isNonCompetency ? `Bantuan Operasional (${formatCategoryLabel(firstItem?.nonCompetencyCategory)})` : "Pencatatan Jurnal Praktik"),
+                durationJp,
+                autonomy:
+                  autonomyLevel === 3
+                    ? "Mandiri"
+                    : autonomyLevel === 2
+                    ? "Terbimbing"
+                    : "Observasi",
+                autonomyScore:
+                  autonomyLevel === 3 ? 100 : autonomyLevel === 2 ? 88 : 75,
+                skkniCode: isNonCompetency
+                  ? undefined
+                  : firstItem?.jobCard?.skkniUnitCode || "J.620100.020.02",
+                status:
+                  sl.status === "VERIFIED"
+                    ? "VERIFIED"
+                    : sl.status === "REVISION_REQUIRED"
+                    ? "REVISION_REQUIRED"
+                    : "PENDING_VERIFICATION",
+                attendanceType: sl.attendanceType || "PRESENT",
+                verifiedAt: sl.verifiedAt
+                  ? formatDateIndo(sl.verifiedAt.slice(0, 10))
+                  : null,
+                mentor: activeMentorName || "Rizky Firmansyah",
+                hasPhoto: Boolean(sl.evidenceWebpUrl),
+                samplePhotoUrl: sl.evidenceWebpUrl || undefined,
+                isNonCompetency,
+                nonCompetencyCategory: firstItem?.nonCompetencyCategory || undefined,
+                notes: sl.shortNote || undefined,
+                rejectionReason: sl.rejectionReason || undefined,
+                syncState:
+                  sl.status === "VERIFIED"
+                    ? "verified"
+                    : sl.status === "REVISION_REQUIRED"
+                    ? "revision_required"
+                    : "synced",
+                isLocalOnly: false,
+              };
+            });
+            setServerLogs(mapped);
+
+            // Perbarui status log Dexie lokal bila di server sudah TERVERIFIKASI atau REVISI
+            try {
+              for (const sl of dbLogs) {
+                if (sl.clientLogUuid) {
+                  const local = await db.logs.get(sl.clientLogUuid);
+                  if (sl.status === "VERIFIED" && local && local.state !== "verified") {
+                    await db.logs.update(sl.clientLogUuid, {
+                      state: "verified",
+                      verifiedAt: sl.verifiedAt || new Date().toISOString(),
+                    });
+                  } else if (sl.status === "REVISION_REQUIRED" && local && local.state !== "revision_required") {
+                    await db.logs.update(sl.clientLogUuid, {
+                      state: "revision_required",
+                      lastError: sl.rejectionReason || "Mentor meminta revisi",
+                    });
+                  }
+                }
+              }
+            } catch {}
+          }
+        } catch (logErr) {
+          console.warn("Koneksi riwayat log server offline fallback:", logErr);
+        }
+      }
+    } catch {
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id, token, placementInfo.mentorName]);
+
   useEffect(() => {
     let isMounted = true;
     const startTime = Date.now();
-    async function loadPlacementAndLogs() {
-      try {
-        let activePlacementId = "3ffec674-ad55-482a-a566-9dff84ab71be";
-        let activeMentorName = placementInfo.mentorName;
-        const cached = await db.refData.get("student_log_context");
-        if (cached && cached.data && isMounted) {
-          const data = cached.data as StudentLogContextResponse;
-          if (data.activePlacement) {
-            activePlacementId = data.activePlacement.id;
-            activeMentorName = data.activePlacement.mentorName || activeMentorName;
-            setPlacementInfo({
-              dudiName: data.activePlacement.dudiName,
-              dudiCity: data.activePlacement.dudiCity,
-              mentorName: data.activePlacement.mentorName,
-            });
-          }
-        }
-        if (typeof navigator !== "undefined" && navigator.onLine) {
-          const fresh = await fetchStudentLogContext();
-          if (fresh && fresh.activePlacement && isMounted) {
-            activePlacementId = fresh.activePlacement.id;
-            activeMentorName = fresh.activePlacement.mentorName || activeMentorName;
-            setPlacementInfo({
-              dudiName: fresh.activePlacement.dudiName,
-              dudiCity: fresh.activePlacement.dudiCity,
-              mentorName: fresh.activePlacement.mentorName,
-            });
-          }
-
-          // Tarik riwayat resmi dari database PostgreSQL
-          try {
-            const dbLogs = await fetchStudentLogs(activePlacementId);
-            if (isMounted && Array.isArray(dbLogs)) {
-              const mapped: LogEntry[] = dbLogs.map((sl) => {
-                const firstItem = sl.items?.[0];
-                const durationJp = sl.items?.reduce((acc, it) => acc + it.durationJp, 0) || 8;
-                const autonomyLevel = firstItem?.autonomyLevel || 3;
-                const isNonCompetency = Boolean(
-                  firstItem?.jobCard?.isNonCompetency || firstItem?.nonCompetencyCategory
-                );
-                return {
-                  id: sl.clientLogUuid,
-                  date: sl.logDate,
-                  title:
-                    firstItem?.jobCard?.title ||
-                    sl.shortNote ||
-                    "Pencatatan Jurnal Praktik",
-                  durationJp,
-                  autonomy:
-                    autonomyLevel === 3
-                      ? "Mandiri"
-                      : autonomyLevel === 2
-                      ? "Terbimbing"
-                      : "Observasi",
-                  autonomyScore:
-                    autonomyLevel === 3 ? 100 : autonomyLevel === 2 ? 88 : 75,
-                  skkniCode: isNonCompetency
-                    ? undefined
-                    : firstItem?.jobCard?.skkniUnitCode || "J.620100.020.02",
-                  status: sl.status === "VERIFIED" ? "VERIFIED" : "PENDING_VERIFICATION",
-                  attendanceType: sl.attendanceType || "PRESENT",
-                  verifiedAt: sl.verifiedAt
-                    ? formatDateIndo(sl.verifiedAt.slice(0, 10))
-                    : null,
-                  mentor: activeMentorName || "Rizky Firmansyah",
-                  hasPhoto: Boolean(sl.evidenceWebpUrl),
-                  samplePhotoUrl: sl.evidenceWebpUrl || undefined,
-                  isNonCompetency,
-                  nonCompetencyCategory: firstItem?.nonCompetencyCategory || undefined,
-                  notes: sl.shortNote || undefined,
-                  syncState: sl.status === "VERIFIED" ? "verified" : "synced",
-                  isLocalOnly: false,
-                };
-              });
-              setServerLogs(mapped);
-            }
-          } catch (logErr) {
-            console.warn("Koneksi riwayat log server offline fallback:", logErr);
-          }
-        }
-      } catch {
-      } finally {
-        if (isMounted) {
-          const elapsed = Date.now() - startTime;
-          const delay = Math.max(0, 300 - elapsed);
-          setTimeout(() => {
-            if (isMounted) setIsLoading(false);
-          }, delay);
-        }
+    loadPlacementAndLogs().finally(() => {
+      if (isMounted) {
+        const elapsed = Date.now() - startTime;
+        const delay = Math.max(0, 300 - elapsed);
+        setTimeout(() => {
+          if (isMounted) setIsLoading(false);
+        }, delay);
       }
-    }
-    loadPlacementAndLogs();
+    });
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [loadPlacementAndLogs]);
+
+  // Re-fetch saat sinkronisasi selesai
+  const prevSyncingRef = useRef(isSyncing);
+  useEffect(() => {
+    if (prevSyncingRef.current && !isSyncing && isOnline) {
+      loadPlacementAndLogs();
+    }
+    prevSyncingRef.current = isSyncing;
+  }, [isSyncing, isOnline, loadPlacementAndLogs]);
 
   // 1. Reactive Query dari IndexedDB lokal
   const offlineLogs = useLiveQuery(() => db.logs.toArray(), []) || [];
@@ -248,44 +340,90 @@ export default function LogHistoryPage() {
   }, [offlinePhotos]);
 
   const convertedOfflineLogs: LogEntry[] = useMemo(() => {
-    return offlineLogs.map((ol) => ({
-      id: ol.clientLogUuid,
-      date: ol.logDate,
-      title:
-        ol.jobCardTitle ||
-        (ol.isNonCompetency
-          ? `Bantuan Operasional (${ol.nonCompetencyCategory || "Non-Jurusan"})`
-          : ol.jobCardIds[0] === "00000000-0000-0000-0000-000000000033" || ol.jobCardIds[0] === "jc-2"
-          ? "Perancangan Skema Basis Data Relasional & Audit Log"
-          : ol.jobCardIds[0] === "00000000-0000-0000-0000-000000000032" || ol.jobCardIds[0] === "jc-3"
-          ? "Slicing Antarmuka Responsif Mobile-First Web"
-          : ol.jobCardIds[0] === "00000000-0000-0000-0000-000000000035" || ol.jobCardIds[0] === "jc-4"
-          ? "Pengujian Mutu Perangkat Lunak & Alur Logbook"
-          : "Implementasi Alur Autentikasi Pengguna & Keamanan Sistem"),
-      durationJp: ol.durationJp,
-      autonomy: ol.autonomyLevel === 3 ? "Mandiri" : ol.autonomyLevel === 2 ? "Terbimbing" : "Observasi",
-      autonomyScore: ol.autonomyLevel === 3 ? 100 : ol.autonomyLevel === 2 ? 88 : 75,
-      skkniCode: ol.isNonCompetency ? undefined : "J.620100.009.01",
-      status: ol.state === "verified" ? "VERIFIED" : "PENDING_VERIFICATION",
-      attendanceType: ol.attendanceType || "PRESENT",
-      verifiedAt: ol.verifiedAt || null,
-      mentor: placementInfo.mentorName || "Rizky Firmansyah",
-      hasPhoto: photoUuidSet.has(ol.clientLogUuid),
-      isNonCompetency: ol.isNonCompetency,
-      nonCompetencyCategory: ol.nonCompetencyCategory,
-      notes: ol.shortNote,
-      syncState: ol.state,
-      isLocalOnly: true,
-    }));
+    return offlineLogs.map((ol) => {
+      const firstJobCardId = ol.jobCardIds?.[0];
+      const isNonComp = Boolean(ol.isNonCompetency);
+      return {
+        id: ol.clientLogUuid,
+        date: (ol.logDate || "").slice(0, 10),
+        title:
+          ol.jobCardTitle ||
+          (isNonComp
+            ? `Bantuan Operasional (${formatCategoryLabel(ol.nonCompetencyCategory)})`
+            : firstJobCardId === "00000000-0000-0000-0000-000000000033" || firstJobCardId === "jc-2"
+            ? "Perancangan Skema Basis Data Relasional & Audit Log"
+            : firstJobCardId === "00000000-0000-0000-0000-000000000032" || firstJobCardId === "jc-3"
+            ? "Slicing Antarmuka Responsif Mobile-First Web"
+            : firstJobCardId === "00000000-0000-0000-0000-000000000035" || firstJobCardId === "jc-4"
+            ? "Pengujian Mutu Perangkat Lunak & Alur Logbook"
+            : "Implementasi Alur Autentikasi Pengguna & Keamanan Sistem"),
+        durationJp: ol.durationJp,
+        autonomy: ol.autonomyLevel === 3 ? "Mandiri" : ol.autonomyLevel === 2 ? "Terbimbing" : "Observasi",
+        autonomyScore: ol.autonomyLevel === 3 ? 100 : ol.autonomyLevel === 2 ? 88 : 75,
+        skkniCode: isNonComp ? undefined : "J.620100.009.01",
+        status:
+          ol.state === "verified"
+            ? "VERIFIED"
+            : ol.state === "revision_required"
+            ? "REVISION_REQUIRED"
+            : "PENDING_VERIFICATION",
+        attendanceType: ol.attendanceType || "PRESENT",
+        verifiedAt: ol.verifiedAt ? formatDateIndo(ol.verifiedAt.slice(0, 10)) : null,
+        mentor: placementInfo.mentorName || "Rizky Firmansyah",
+        hasPhoto: photoUuidSet.has(ol.clientLogUuid),
+        isNonCompetency: isNonComp,
+        nonCompetencyCategory: ol.nonCompetencyCategory,
+        notes: ol.shortNote,
+        rejectionReason: ol.lastError,
+        syncState: ol.state,
+        isLocalOnly: true,
+      };
+    });
   }, [offlineLogs, photoUuidSet, placementInfo.mentorName]);
 
-  // Gabungkan entri offline lokal dengan data resmi database (atau sampel demo jika belum termuat)
+  // Gabungkan entri offline lokal dengan data resmi database secara cerdas & deduplikasi
   const allLogs = useMemo(() => {
-    const offlineIdSet = new Set(convertedOfflineLogs.map((l) => l.id));
-    const nonDuplicatedServerLogs = serverLogs.filter((sl) => !offlineIdSet.has(sl.id));
+    const offlineMap = new Map(convertedOfflineLogs.map((l) => [l.id, l]));
+    const mergedList: LogEntry[] = [];
+    const processedIds = new Set<string>();
 
-    const combined = [...convertedOfflineLogs, ...nonDuplicatedServerLogs];
-    return combined.sort((a, b) => (a.date < b.date ? 1 : -1));
+    // 1. Proses log server: pertahankan bukti foto lokal atau catatan bila server belum selesai memproses biner
+    for (const sLog of serverLogs) {
+      processedIds.add(sLog.id);
+      const offLog = offlineMap.get(sLog.id);
+      if (offLog) {
+        const isServerVerified = sLog.status === "VERIFIED";
+        mergedList.push({
+          ...sLog,
+          title: sLog.title || offLog.title,
+          hasPhoto: sLog.hasPhoto || offLog.hasPhoto,
+          samplePhotoUrl: sLog.samplePhotoUrl || offLog.samplePhotoUrl,
+          notes: sLog.notes || offLog.notes,
+          rejectionReason: sLog.rejectionReason || offLog.rejectionReason,
+          status: isServerVerified
+            ? "VERIFIED"
+            : sLog.status === "REVISION_REQUIRED"
+            ? "REVISION_REQUIRED"
+            : offLog.status === "VERIFIED"
+            ? "VERIFIED"
+            : sLog.status,
+          verifiedAt: sLog.verifiedAt || offLog.verifiedAt,
+          syncState: isServerVerified ? "verified" : sLog.syncState,
+          isLocalOnly: false,
+        });
+      } else {
+        mergedList.push(sLog);
+      }
+    }
+
+    // 2. Tambahkan log lokal yang belum terkirim ke server (antrean offline)
+    for (const offLog of convertedOfflineLogs) {
+      if (!processedIds.has(offLog.id)) {
+        mergedList.push(offLog);
+      }
+    }
+
+    return mergedList.sort((a, b) => (a.date < b.date ? 1 : -1));
   }, [convertedOfflineLogs, serverLogs]);
 
   // Statistik Real-Time Sesuai Standar 792 JP Intrakurikuler PKL
@@ -295,12 +433,12 @@ export default function LogHistoryPage() {
   );
 
   const totalPendingJp = useMemo(
-    () => allLogs.filter((l) => l.status === "PENDING_VERIFICATION").reduce((acc, curr) => acc + curr.durationJp, 0),
+    () => allLogs.filter((l) => l.status === "PENDING_VERIFICATION" || l.status === "REVISION_REQUIRED").reduce((acc, curr) => acc + curr.durationJp, 0),
     [allLogs]
   );
 
   const pendingCountTotal = useMemo(
-    () => allLogs.filter((l) => l.status === "PENDING_VERIFICATION").length,
+    () => allLogs.filter((l) => l.status === "PENDING_VERIFICATION" || l.status === "REVISION_REQUIRED").length,
     [allLogs]
   );
 
@@ -347,10 +485,11 @@ export default function LogHistoryPage() {
   const availableMonths = useMemo(() => {
     const map = new Map<string, string>();
     allLogs.forEach((log) => {
-      if (log.date && log.date.length >= 7) {
-        const ym = log.date.slice(0, 7);
+      const cleanDate = (log.date || "").slice(0, 10);
+      if (cleanDate.length >= 7) {
+        const ym = cleanDate.slice(0, 7);
         if (!map.has(ym)) {
-          const d = new Date(log.date + "T00:00:00");
+          const d = new Date(cleanDate + "T00:00:00");
           if (!isNaN(d.getTime())) {
             const label = d.toLocaleDateString("id-ID", { month: "short", year: "numeric" });
             map.set(ym, label);
@@ -363,11 +502,18 @@ export default function LogHistoryPage() {
       .map(([key, label]) => ({ key, label }));
   }, [allLogs]);
 
+  // Label periode bulan yang sedang aktif
+  const currentMonthLabel = useMemo(() => {
+    if (monthFilter === "ALL") return "Semua Bulan";
+    const found = availableMonths.find((m) => m.key === monthFilter);
+    return found ? found.label : monthFilter;
+  }, [monthFilter, availableMonths]);
+
   // Filter & Pencarian
   const filteredLogs = useMemo(() => {
     return allLogs.filter((log) => {
       if (filter === "VERIFIED" && log.status !== "VERIFIED") return false;
-      if (filter === "PENDING" && log.status !== "PENDING_VERIFICATION") return false;
+      if (filter === "PENDING" && log.status !== "PENDING_VERIFICATION" && log.status !== "REVISION_REQUIRED") return false;
       if (filter === "NON_COMPETENCY" && !log.isNonCompetency) return false;
 
       // Filter Periode Bulan
@@ -428,12 +574,15 @@ export default function LogHistoryPage() {
     const order: string[] = [];
 
     for (const log of paginatedLogs) {
-      const ym = log.date.slice(0, 7); // e.g. "2026-10"
+      const cleanDate = (log.date || "").slice(0, 10);
+      const ym = cleanDate.slice(0, 7); // e.g. "2026-10"
       if (!groups[ym]) {
         let title = ym;
         try {
           const d = new Date(ym + "-01T00:00:00");
-          title = d.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+          if (!isNaN(d.getTime())) {
+            title = d.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+          }
         } catch {}
         groups[ym] = {
           key: ym,
@@ -577,46 +726,48 @@ export default function LogHistoryPage() {
       ───────────────────────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pb-3 border-b border-slate-200/80">
         <div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
+          <div className="flex items-center justify-between sm:justify-start gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
               Riwayat Logbook
             </h1>
             {pendingCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/70 text-[11px] font-medium">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/70 text-[11px] font-medium shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                <span>{pendingCount} Antrean Offline</span>
+                <span>{pendingCount} Offline</span>
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-500 mt-1 font-normal">
+          <p className="text-xs text-slate-500 mt-1 font-normal line-clamp-1 sm:line-clamp-none">
             Arsip aktivitas harian, presensi industri, dan status validasi mentor DUDI
           </p>
         </div>
 
-        {/* Action Buttons: Solid Pill Buttons with generous mobile touch target */}
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
+        {/* Action Buttons: Unified Single-Row Mobile Action Bar */}
+        <div className="flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
           {pendingCount > 0 && (
             <button
               type="button"
               onClick={() => syncNow()}
               disabled={isSyncing || !isOnline}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 h-10 px-3.5 sm:px-4 rounded-full bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-700 text-xs font-semibold border border-slate-200/80 transition disabled:opacity-50 cursor-pointer shadow-2xs whitespace-nowrap"
+              title={isSyncing ? "Menyinkronkan antrean..." : `${pendingCount} antrean offline siap disinkronkan`}
+              className="h-10 px-3 sm:px-4 rounded-xl bg-amber-50 hover:bg-amber-100 active:scale-[0.98] text-amber-800 text-xs font-semibold border border-amber-200/80 transition disabled:opacity-50 cursor-pointer shadow-2xs whitespace-nowrap flex items-center justify-center gap-1.5 shrink-0"
             >
-              <RefreshCw className={cn("w-3.5 h-3.5 text-sky-600 shrink-0", isSyncing && "animate-spin")} />
-              <span>{isSyncing ? "Sinkron..." : "Sinkronkan"}</span>
+              <RefreshCw className={cn("w-3.5 h-3.5 text-amber-600 shrink-0", isSyncing && "animate-spin")} />
+              <span className="sm:hidden font-bold">{pendingCount}</span>
+              <span className="hidden sm:inline">{isSyncing ? "Sinkron..." : `Sinkron (${pendingCount})`}</span>
             </button>
           )}
 
           <button
             type="button"
             onClick={handleOpenVerifyModal}
-            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 h-10 px-3.5 sm:px-4 rounded-full bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white text-xs font-semibold shadow-xs transition cursor-pointer whitespace-nowrap"
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 h-10 px-3.5 sm:px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white text-xs sm:text-sm font-semibold shadow-2xs transition cursor-pointer whitespace-nowrap"
           >
-            <QrCode className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+            <QrCode className="w-4 h-4 text-sky-400 shrink-0" />
             <span className="sm:hidden">Validasi</span>
             <span className="hidden sm:inline">Minta Validasi (QR)</span>
             {pendingCountTotal > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-sky-500 text-white text-[10px] font-bold">
+              <span className="px-1.5 py-0.5 rounded-full bg-sky-500 text-white text-[10px] font-bold leading-none">
                 {pendingCountTotal}
               </span>
             )}
@@ -624,9 +775,9 @@ export default function LogHistoryPage() {
 
           <Link
             href="/student/log/new"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-full bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs font-semibold shadow-xs transition whitespace-nowrap"
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 h-10 px-4 sm:px-5 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs sm:text-sm font-semibold shadow-2xs transition whitespace-nowrap cursor-pointer"
           >
-            <PlusCircle className="w-3.5 h-3.5 shrink-0" />
+            <PlusCircle className="w-4 h-4 shrink-0 stroke-[2.2]" />
             <span>Catat Jurnal</span>
           </Link>
         </div>
@@ -767,166 +918,243 @@ export default function LogHistoryPage() {
           3. APPLE SEGMENTED CONTROL, SEARCH & VIEW SWITCHER (LIST vs GRID)
       ───────────────────────────────────────────────────────────────────────────── */}
       <div ref={listContainerRef} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        {/* Segmented Filter Tabs: Persis Sesuai Beranda Siswa (Landing Feed) */}
+        {/* Baris 1: Segmented Filter Tabs */}
         <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-full border border-slate-200 text-xs font-medium overflow-x-auto w-full sm:w-auto scrollbar-none">
-          {/* 1. Semua Jurnal */}
-          <button
-            type="button"
-            onClick={() => setFilter("ALL")}
-            className={cn(
-              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
-              filter === "ALL"
-                ? "bg-white text-slate-900 font-semibold shadow-xs"
-                : "text-slate-600 hover:text-slate-900 font-medium"
-            )}
-          >
-            <span className="sm:hidden">Semua</span>
-            <span className="hidden sm:inline">Semua Jurnal</span>
-            <span
+            {/* 1. Semua Jurnal */}
+            <button
+              type="button"
+              onClick={() => setFilter("ALL")}
               className={cn(
-                "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
+                "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
                 filter === "ALL"
-                  ? "bg-slate-100 text-slate-800"
-                  : "bg-slate-300/60 text-slate-600"
+                  ? "bg-white text-slate-900 font-semibold shadow-xs"
+                  : "text-slate-600 hover:text-slate-900 font-medium"
               )}
             >
-              {allLogs.length}
-            </span>
-          </button>
-
-          {/* 2. Sah Terverifikasi */}
-          <button
-            type="button"
-            onClick={() => setFilter("VERIFIED")}
-            className={cn(
-              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
-              filter === "VERIFIED"
-                ? "bg-white text-emerald-800 font-semibold shadow-xs"
-                : "text-slate-600 hover:text-slate-900 font-medium"
-            )}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-            <span className="sm:hidden">Sah</span>
-            <span className="hidden sm:inline">Sah Terverifikasi</span>
-            <span
-              className={cn(
-                "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
-                filter === "VERIFIED"
-                  ? "bg-emerald-100 text-emerald-800"
-                  : "bg-slate-300/60 text-slate-600"
-              )}
-            >
-              {verifiedCountTotal}
-            </span>
-          </button>
-
-          {/* 3. Menunggu Validasi */}
-          <button
-            type="button"
-            onClick={() => setFilter("PENDING")}
-            className={cn(
-              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
-              filter === "PENDING"
-                ? "bg-white text-amber-800 font-semibold shadow-xs"
-                : "text-slate-600 hover:text-slate-900 font-medium"
-            )}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-            <span className="sm:hidden">Pending</span>
-            <span className="hidden sm:inline">Menunggu Validasi</span>
-            <span
-              className={cn(
-                "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
-                filter === "PENDING"
-                  ? "bg-amber-100 text-amber-800"
-                  : "bg-slate-300/60 text-slate-600"
-              )}
-            >
-              {pendingCountTotal}
-            </span>
-          </button>
-
-          {/* 4. Non-Kejuruan */}
-          <button
-            type="button"
-            onClick={() => setFilter("NON_COMPETENCY")}
-            className={cn(
-              "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
-              filter === "NON_COMPETENCY"
-                ? "bg-white text-indigo-800 font-semibold shadow-xs"
-                : "text-slate-600 hover:text-slate-900 font-medium"
-            )}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
-            <span className="sm:hidden">Umum</span>
-            <span className="hidden sm:inline">Non-Kejuruan</span>
-            <span
-              className={cn(
-                "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
-                filter === "NON_COMPETENCY"
-                  ? "bg-indigo-100 text-indigo-800"
-                  : "bg-slate-300/60 text-slate-600"
-              )}
-            >
-              {nonCompetencyCountTotal}
-            </span>
-          </button>
-        </div>
-
-        {/* Month Selector + Search Bar + View Switcher (List vs Grid) */}
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          {/* Quick Month Filter Selector (Identik Dashboard) */}
-          {availableMonths.length > 1 && (
-            <div className="relative shrink-0">
-              <select
-                aria-label="Pilih Periode Bulan Jurnal"
-                value={monthFilter}
-                onChange={(e) => setMonthFilter(e.target.value)}
-                className="h-8.5 pl-7.5 pr-3 rounded-full bg-white border border-slate-200/90 text-[11px] font-medium text-slate-700 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs cursor-pointer appearance-none"
+              <span className="sm:hidden">Semua</span>
+              <span className="hidden sm:inline">Semua Jurnal</span>
+              <span
+                className={cn(
+                  "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
+                  filter === "ALL"
+                    ? "bg-slate-100 text-slate-800"
+                    : "bg-slate-300/60 text-slate-600"
+                )}
               >
-                <option value="ALL">Semua Bulan</option>
-                {availableMonths.map((m) => (
-                  <option key={m.key} value={m.key}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-              <CalendarDays className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                {allLogs.length}
+              </span>
+            </button>
+
+            {/* 2. Sah Terverifikasi */}
+            <button
+              type="button"
+              onClick={() => setFilter("VERIFIED")}
+              className={cn(
+                "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
+                filter === "VERIFIED"
+                  ? "bg-white text-emerald-800 font-semibold shadow-xs"
+                  : "text-slate-600 hover:text-slate-900 font-medium"
+              )}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+              <span className="sm:hidden">Sah</span>
+              <span className="hidden sm:inline">Sah Terverifikasi</span>
+              <span
+                className={cn(
+                  "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
+                  filter === "VERIFIED"
+                    ? "bg-emerald-100 text-emerald-800"
+                    : "bg-slate-300/60 text-slate-600"
+                )}
+              >
+                {verifiedCountTotal}
+              </span>
+            </button>
+
+            {/* 3. Menunggu Validasi */}
+            <button
+              type="button"
+              onClick={() => setFilter("PENDING")}
+              className={cn(
+                "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
+                filter === "PENDING"
+                  ? "bg-white text-amber-800 font-semibold shadow-xs"
+                  : "text-slate-600 hover:text-slate-900 font-medium"
+              )}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+              <span className="sm:hidden">Pending</span>
+              <span className="hidden sm:inline">Menunggu Validasi</span>
+              <span
+                className={cn(
+                  "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
+                  filter === "PENDING"
+                    ? "bg-amber-100 text-amber-800"
+                    : "bg-slate-300/60 text-slate-600"
+                )}
+              >
+                {pendingCountTotal}
+              </span>
+            </button>
+
+            {/* 4. Non-Kejuruan */}
+            <button
+              type="button"
+              onClick={() => setFilter("NON_COMPETENCY")}
+              className={cn(
+                "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
+                filter === "NON_COMPETENCY"
+                  ? "bg-white text-indigo-800 font-semibold shadow-xs"
+                  : "text-slate-600 hover:text-slate-900 font-medium"
+              )}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+              <span className="sm:hidden">Umum</span>
+              <span className="hidden sm:inline">Non-Kejuruan</span>
+              <span
+                className={cn(
+                  "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
+                  filter === "NON_COMPETENCY"
+                    ? "bg-indigo-100 text-indigo-800"
+                    : "bg-slate-300/60 text-slate-600"
+                )}
+              >
+                {nonCompetencyCountTotal}
+              </span>
+            </button>
+          </div>
+
+        {/* Baris 2: Month Selector + Search Bar + Desktop View Switcher */}
+        <div className="flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
+          {/* Quick Month Filter Custom Popover Dropdown */}
+          {availableMonths.length >= 1 && (
+            <div ref={monthDropdownRef} className="relative shrink-0">
+              <button
+                type="button"
+                aria-haspopup="listbox"
+                aria-expanded={isMonthDropdownOpen}
+                onClick={() => setIsMonthDropdownOpen((prev) => !prev)}
+                className={cn(
+                  "h-10 px-3 sm:px-4 rounded-full bg-white border text-xs font-semibold flex items-center justify-between gap-2 transition-all duration-150 cursor-pointer shadow-2xs select-none",
+                  isMonthDropdownOpen
+                    ? "border-sky-500 ring-2 ring-sky-500/20 text-sky-700 bg-sky-50/30 shadow-xs"
+                    : "border-slate-200/90 text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                )}
+              >
+                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                  <CalendarDays
+                    className={cn(
+                      "w-4 h-4 shrink-0 transition-colors",
+                      isMonthDropdownOpen ? "text-sky-600" : "text-slate-400"
+                    )}
+                  />
+                  <span className="truncate max-w-[85px] sm:max-w-none">{currentMonthLabel}</span>
+                </div>
+                <ChevronDown
+                  className={cn(
+                    "w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200",
+                    isMonthDropdownOpen && "rotate-180 text-sky-600"
+                  )}
+                />
+              </button>
+
+              {/* Popover Menu Floating Card */}
+              {isMonthDropdownOpen && (
+                <div
+                  role="listbox"
+                  className="absolute left-0 top-full mt-1.5 z-50 min-w-[190px] sm:min-w-[210px] bg-white/98 backdrop-blur-xs rounded-2xl border border-slate-200/90 shadow-xl p-1.5 space-y-0.5 animate-in fade-in-0 zoom-in-95 duration-150"
+                >
+                  <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                    Periode Jurnal
+                  </div>
+
+                  {/* Opsi: Semua Bulan */}
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={monthFilter === "ALL"}
+                    onClick={() => {
+                      setMonthFilter("ALL");
+                      setIsMonthDropdownOpen(false);
+                    }}
+                    className={cn(
+                      "w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition cursor-pointer text-left",
+                      monthFilter === "ALL"
+                        ? "bg-sky-50 text-sky-700 font-semibold"
+                        : "text-slate-700 hover:bg-slate-50 hover:text-slate-900 font-medium"
+                    )}
+                  >
+                    <span>Semua Bulan</span>
+                    {monthFilter === "ALL" && (
+                      <Check className="w-3.5 h-3.5 text-sky-600 stroke-[2.5] shrink-0" />
+                    )}
+                  </button>
+
+                  {/* Opsi: Tiap Bulan dari Riwayat */}
+                  {availableMonths.map((m) => {
+                    const isSelected = monthFilter === m.key;
+                    return (
+                      <button
+                        key={m.key}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={() => {
+                          setMonthFilter(m.key);
+                          setIsMonthDropdownOpen(false);
+                        }}
+                        className={cn(
+                          "w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition cursor-pointer text-left",
+                          isSelected
+                            ? "bg-sky-50 text-sky-700 font-semibold"
+                            : "text-slate-700 hover:bg-slate-50 hover:text-slate-900 font-medium"
+                        )}
+                      >
+                        <span>{m.label}</span>
+                        {isSelected && (
+                          <Check className="w-3.5 h-3.5 text-sky-600 stroke-[2.5] shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
-          {/* Pill Search Bar */}
-          <div className="relative flex-1 sm:w-60">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          {/* Pill Search Bar — Luas di mobile */}
+          <div className="relative flex-1 sm:w-64">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Cari tugas, SKKNI, catatan..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-8 py-1.5 rounded-full bg-white border border-slate-200/90 text-xs text-slate-900 placeholder:text-slate-400 font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs"
+              style={{ paddingLeft: "40px", paddingRight: "36px" }}
+              className="w-full h-10 rounded-full bg-white border border-slate-200/90 text-xs text-slate-900 placeholder:text-slate-400 font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
 
-          {/* View Mode Switcher Toggle */}
-          <div className="flex items-center bg-slate-200/60 p-0.5 rounded-full border border-slate-200 shrink-0">
+          {/* View Mode Switcher Toggle (Mobile & Desktop) */}
+          <div className="flex items-center h-10 bg-slate-200/60 p-1 rounded-full border border-slate-200 shrink-0">
             <button
               type="button"
               onClick={() => setViewMode("LIST")}
               aria-label="Tampilan Baris Rapi (List View)"
               title="Tampilan Baris Rapi"
               className={cn(
-                "p-1.5 rounded-full transition-all cursor-pointer",
+                "h-8 px-2.5 rounded-full transition-all cursor-pointer flex items-center justify-center",
                 viewMode === "LIST"
-                  ? "bg-white text-slate-900 shadow-2xs"
+                  ? "bg-white text-slate-900 shadow-2xs font-semibold"
                   : "text-slate-500 hover:text-slate-800"
               )}
             >
@@ -938,9 +1166,9 @@ export default function LogHistoryPage() {
               aria-label="Tampilan Kartu (Grid View)"
               title="Tampilan Kartu Visual"
               className={cn(
-                "p-1.5 rounded-full transition-all cursor-pointer",
+                "h-8 px-2.5 rounded-full transition-all cursor-pointer flex items-center justify-center",
                 viewMode === "GRID"
-                  ? "bg-white text-slate-900 shadow-2xs"
+                  ? "bg-white text-slate-900 shadow-2xs font-semibold"
                   : "text-slate-500 hover:text-slate-800"
               )}
             >
@@ -974,7 +1202,6 @@ export default function LogHistoryPage() {
                   {group.logs.map((log) => {
                     const isVerified = log.status === "VERIFIED";
                     const isSickOrPermit = log.attendanceType === "SICK" || log.attendanceType === "PERMIT";
-                    const { day, month, weekday } = parseDateParts(log.date);
 
                     return (
                       <div
@@ -988,36 +1215,71 @@ export default function LogHistoryPage() {
                             setSelectedLogDetail(log);
                           }
                         }}
-                        className="group flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:p-4 hover:bg-slate-50/80 focus:bg-slate-50/80 focus:outline-none transition-colors duration-150 cursor-pointer select-none gap-3"
+                        className="group flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:py-3.5 sm:px-5 hover:bg-slate-50/80 focus:bg-slate-50/80 focus:outline-none transition-colors duration-150 cursor-pointer select-none gap-2.5 sm:gap-4"
                       >
-                        {/* Bagian Kiri: Date Badge + Info Utama */}
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          {/* Modern Calendar Tile Date Badge - Option 1: Vivid Sky Ribbon */}
-                          <div className="w-12 sm:w-13 h-13 sm:h-14 rounded-2xl bg-white border border-slate-200/90 flex flex-col items-center justify-between text-center shrink-0 shadow-2xs group-hover:border-sky-300 group-hover:shadow-xs transition-all overflow-hidden select-none">
-                            <div className="w-full bg-sky-600 group-hover:bg-sky-500 py-0.5 border-b border-sky-700/20 transition-colors">
-                              <span className="text-[9.5px] font-bold text-white tracking-wider uppercase leading-none block">
-                                {month}
-                              </span>
-                            </div>
-                            <span className="text-base sm:text-lg font-black text-slate-900 leading-none py-0.5 tracking-tight font-sans">
-                              {day}
+                        {/* ─── Baris 1 di Mobile: Date Badge (Kiri) + Status Pill (Kanan) ─── */}
+                        <div className="flex items-center justify-between sm:hidden w-full gap-2">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100/90 text-xs font-semibold text-slate-700 border border-slate-200/70 group-hover:bg-sky-50 group-hover:text-sky-700 transition-colors">
+                            <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                            <span>{formatDateIndo(log.date)}</span>
+                          </span>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border shrink-0",
+                                isVerified
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
+                                  : log.status === "REVISION_REQUIRED"
+                                  ? "bg-rose-50 text-rose-700 border-rose-200/80"
+                                  : log.syncState === "queued"
+                                  ? "bg-amber-50 text-amber-800 border-amber-200/80"
+                                  : "bg-amber-50 text-amber-700 border-amber-200/80"
+                              )}
+                            >
+                              {isVerified ? (
+                                <>
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
+                                  <span>Sah</span>
+                                </>
+                              ) : log.status === "REVISION_REQUIRED" ? (
+                                <>
+                                  <AlertTriangle className="w-3 h-3 text-rose-600" />
+                                  <span>Perlu Revisi</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Clock className="w-3 h-3 text-amber-600" />
+                                  <span>Menunggu PIN</span>
+                                </>
+                              )}
                             </span>
-                            <div className="w-full pb-1">
-                              <span className="text-[9.5px] font-medium text-slate-400 capitalize leading-none block">
-                                {weekday}
-                              </span>
-                            </div>
+                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-sky-500 transition-transform" />
+                          </div>
+                        </div>
+
+                        {/* ─── Konten Tengah: Date (Desktop) + Judul + Metadata Chips ─── */}
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4 min-w-0 flex-1">
+                          {/* Desktop-Only Date Badge */}
+                          <div className="hidden sm:flex shrink-0 items-center sm:w-38">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100/90 text-xs font-semibold text-slate-700 border border-slate-200/70 group-hover:bg-sky-50 group-hover:text-sky-700 group-hover:border-sky-200 transition-colors whitespace-nowrap">
+                              <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                              <span>{formatDateIndo(log.date)}</span>
+                            </span>
                           </div>
 
-                          {/* Judul & Detail */}
+                          {/* Judul & Detail Chips */}
                           <div className="min-w-0 flex-1 space-y-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-semibold text-xs sm:text-sm text-slate-900 group-hover:text-sky-600 transition-colors truncate">
-                                {log.title}
-                              </h3>
-                            </div>
+                            <h3 className="font-semibold text-xs sm:text-sm text-slate-900 group-hover:text-sky-600 transition-colors line-clamp-2 leading-snug">
+                              {log.title}
+                            </h3>
 
                             <div className="flex items-center gap-1.5 flex-wrap text-slate-500 text-xs">
+                              {/* Jam di mobile tampil sebagai badge kecil yang rapi */}
+                              <span className="sm:hidden px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 font-semibold text-[10px]">
+                                {log.durationJp} Jam ({convertRealHoursToJp(log.durationJp).toFixed(1)} JP)
+                              </span>
+
                               {isSickOrPermit ? (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200/70 text-[10px] font-medium">
                                   <HeartPulse className="w-2.5 h-2.5" />
@@ -1025,7 +1287,7 @@ export default function LogHistoryPage() {
                                 </span>
                               ) : log.isNonCompetency ? (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/70 text-[10px] font-medium">
-                                  <span>Non-Kejuruan: {log.nonCompetencyCategory || "Operasional"}</span>
+                                  <span>Non-Kejuruan: {formatCategoryLabel(log.nonCompetencyCategory)}</span>
                                 </span>
                               ) : (
                                 <>
@@ -1063,9 +1325,9 @@ export default function LogHistoryPage() {
                           </div>
                         </div>
 
-                        {/* Bagian Kanan: Jam, Status Badge & Chevron */}
-                        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                          <div className="text-left sm:text-right">
+                        {/* ─── Bagian Kanan (Desktop): Jam, Status Badge & Chevron ─── */}
+                        <div className="hidden sm:flex items-center justify-end gap-3 shrink-0">
+                          <div className="text-right">
                             <span className="font-semibold text-xs sm:text-sm text-slate-900 block leading-tight">
                               {log.durationJp} Jam Kerja
                             </span>
@@ -1079,6 +1341,8 @@ export default function LogHistoryPage() {
                               "inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border",
                               isVerified
                                 ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
+                                : log.status === "REVISION_REQUIRED"
+                                ? "bg-rose-50 text-rose-700 border-rose-200/80"
                                 : log.syncState === "queued"
                                 ? "bg-amber-50 text-amber-800 border-amber-200/80"
                                 : "bg-amber-50 text-amber-700 border-amber-200/80"
@@ -1088,6 +1352,11 @@ export default function LogHistoryPage() {
                               <>
                                 <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
                                 <span>Terverifikasi</span>
+                              </>
+                            ) : log.status === "REVISION_REQUIRED" ? (
+                              <>
+                                <AlertTriangle className="w-3 h-3 text-rose-600" />
+                                <span>Perlu Revisi</span>
                               </>
                             ) : (
                               <>
@@ -1107,135 +1376,138 @@ export default function LogHistoryPage() {
             ))}
           </div>
         ) : (
-          /* ─── TAMPILAN B: NOTION MINIMALIST BENTO CARDS ─── */
-          <div className="space-y-6">
-            {groupedLogs.map((group) => (
-              <div key={group.key} className="space-y-2.5">
-                {/* Sub-header Bulan & Total Jam */}
-                <div className="flex items-center justify-between px-1">
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    {group.title}
-                  </span>
-                  <span className="text-xs text-slate-500 font-medium">
-                    Total {group.totalHours} Jam ({group.totalJp.toFixed(1)} JP)
-                  </span>
-                </div>
+          /* ─── TAMPILAN B: UNIFIED NOTION-STYLE BENTO CARDS (RAPI, PENUH & SERAGAM) ─── */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-4.5">
+            {paginatedLogs.map((log) => {
+              const isVerified = log.status === "VERIFIED";
+              const isSickOrPermit = log.attendanceType === "SICK" || log.attendanceType === "PERMIT";
+              const { day, month } = parseDateParts(log.date);
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
-                  {group.logs.map((log) => {
-                    const isVerified = log.status === "VERIFIED";
-                    const isSickOrPermit = log.attendanceType === "SICK" || log.attendanceType === "PERMIT";
-
-                    return (
-                      <div
-                        key={log.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setSelectedLogDetail(log)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            setSelectedLogDetail(log);
-                          }
-                        }}
-                        className="bg-white rounded-2xl p-4 sm:p-4.5 border border-slate-200/70 hover:border-slate-300 hover:shadow-xs transition-all duration-150 cursor-pointer group active:scale-[0.99] flex flex-col justify-between space-y-3.5 relative shadow-2xs focus:outline-none focus:ring-2 focus:ring-sky-500/20"
-                      >
-                        <div className="space-y-2.5">
-                          {/* Header */}
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <span className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                                <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-                                <span>{formatDateIndo(log.date)}</span>
-                              </span>
-                              <span className="text-slate-300">·</span>
-                              <span className="px-1.5 py-0.5 rounded-md bg-slate-100 font-semibold text-[10px] text-slate-700 font-mono">
-                                {log.durationJp} Jam
-                              </span>
-                            </div>
-
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-medium border",
-                                isVerified
-                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
-                                  : "bg-amber-50 text-amber-700 border-amber-200/70"
-                              )}
-                            >
-                              {isVerified ? (
-                                <>
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
-                                  <span>Sah</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Clock className="w-3 h-3 text-amber-600" />
-                                  <span>Menunggu PIN</span>
-                                </>
-                              )}
-                            </span>
-                          </div>
-
-                          {/* Chips Metadata (Notion Tag Style) */}
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {isSickOrPermit ? (
-                              <span className="text-[10px] font-medium text-rose-700 bg-rose-50 border border-rose-200/70 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                <HeartPulse className="w-3 h-3" />
-                                {log.attendanceType === "SICK" ? "Sakit" : "Izin Resmi"}
-                              </span>
-                            ) : log.isNonCompetency ? (
-                              <span className="text-[10px] font-medium text-amber-800 bg-amber-50 border border-amber-200/70 px-2 py-0.5 rounded-md">
-                                Non-Kejuruan: {log.nonCompetencyCategory || "Operasional"}
-                              </span>
-                            ) : (
-                              <>
-                                <span
-                                  className={cn(
-                                    "text-[10px] font-medium px-2 py-0.5 rounded-md border",
-                                    log.autonomy === "Mandiri"
-                                      ? "bg-slate-50 text-slate-700 border-slate-200/70"
-                                      : "bg-sky-50/60 text-sky-700 border-sky-200/60"
-                                  )}
-                                >
-                                  {log.autonomy}
-                                </span>
-
-                                {log.skkniCode && (
-                                  <span className="text-[10px] font-medium text-slate-600 bg-slate-50 border border-slate-200/70 px-2 py-0.5 rounded-md font-mono">
-                                    {log.skkniCode}
-                                  </span>
-                                )}
-                              </>
-                            )}
-
-                            {log.hasPhoto && (
-                              <span className="text-[10px] font-medium text-slate-600 bg-slate-50 px-2 py-0.5 rounded-md flex items-center gap-1 border border-slate-200/60">
-                                <ImageIcon className="w-3 h-3 text-slate-400" />
-                                <span>Foto WebP</span>
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Judul */}
-                          <h3 className="text-[13.5px] sm:text-sm font-semibold text-slate-900 group-hover:text-sky-600 transition-colors leading-snug line-clamp-2">
-                            {log.title}
-                          </h3>
-                        </div>
-
-                        {/* Footer */}
-                        <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
-                          <span className="text-slate-500 font-normal text-[11px] truncate max-w-[160px] flex items-center gap-1.5">
-                            <UserCheck className="w-3.5 h-3.5 text-slate-400" />
-                            <span>{log.mentor}</span>
+              return (
+                <div
+                  key={log.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedLogDetail(log)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedLogDetail(log);
+                    }
+                  }}
+                  className="group relative bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-200/80 hover:border-sky-300 hover:shadow-card transition-all duration-200 cursor-pointer active:scale-[0.99] flex flex-col justify-between shadow-2xs focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+                >
+                  <div className="space-y-3">
+                    {/* Header Kartu: Tanggal + Status */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-9 h-9 rounded-xl bg-sky-50 border border-sky-100 text-sky-700 flex flex-col items-center justify-center shrink-0 shadow-2xs font-sans">
+                          <span className="text-[9px] font-bold uppercase leading-none text-sky-600 tracking-wider">
+                            {month}
                           </span>
-                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-sky-500 group-hover:translate-x-0.5 transition" />
+                          <span className="text-xs font-black leading-none text-slate-900 mt-0.5">
+                            {day}
+                          </span>
+                        </span>
+                        <div className="min-w-0">
+                          <span className="text-xs font-semibold text-slate-900 block truncate leading-tight">
+                            {formatDateIndo(log.date)}
+                          </span>
+                          <span className="text-[11px] text-slate-500 font-normal">
+                            {log.durationJp} Jam Kerja (≈ {convertRealHoursToJp(log.durationJp).toFixed(1)} JP)
+                          </span>
                         </div>
                       </div>
-                    );
-                  })}
+
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-semibold border shrink-0 whitespace-nowrap",
+                          isVerified
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
+                            : log.status === "REVISION_REQUIRED"
+                            ? "bg-rose-50 text-rose-700 border-rose-200/80"
+                            : "bg-amber-50 text-amber-700 border-amber-200/80"
+                        )}
+                      >
+                        {isVerified ? (
+                          <>
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
+                            <span>Sah</span>
+                          </>
+                        ) : log.status === "REVISION_REQUIRED" ? (
+                          <>
+                            <AlertTriangle className="w-3 h-3 text-rose-600" />
+                            <span>Perlu Revisi</span>
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="w-3 h-3 text-amber-600" />
+                            <span>Menunggu PIN</span>
+                          </>
+                        )}
+                      </span>
+                    </div>
+
+                    {/* Judul Aktivitas: Selalu 2 baris agar tinggi kartu seragam */}
+                    <h3 className="text-sm font-semibold text-slate-900 group-hover:text-sky-600 transition-colors leading-snug line-clamp-2 min-h-[40px]">
+                      {log.title}
+                    </h3>
+
+                    {/* Chips Metadata: Kemandirian, SKKNI, Foto */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {isSickOrPermit ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-medium bg-rose-50 text-rose-700 border border-rose-200/70">
+                          <HeartPulse className="w-3 h-3" />
+                          <span>{log.attendanceType === "SICK" ? "Sakit" : "Izin Resmi"}</span>
+                        </span>
+                      ) : log.isNonCompetency ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-medium bg-amber-50 text-amber-800 border border-amber-200/70">
+                          <span>Non-Kejuruan: {formatCategoryLabel(log.nonCompetencyCategory)}</span>
+                        </span>
+                      ) : (
+                        <>
+                          <span
+                            className={cn(
+                              "px-2.5 py-0.5 rounded-full text-[10.5px] font-medium border",
+                              log.autonomy === "Mandiri"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
+                                : "bg-sky-50 text-sky-700 border-sky-200/70"
+                            )}
+                          >
+                            {log.autonomy}
+                          </span>
+
+                          {log.skkniCode && (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-mono text-slate-500 bg-slate-50 border border-slate-200/80">
+                              {log.skkniCode}
+                            </span>
+                          )}
+                        </>
+                      )}
+
+                      {log.hasPhoto && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200/60">
+                          <ImageIcon className="w-2.5 h-2.5 text-slate-400" />
+                          <span>Foto</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Footer: Mentor + Link Detail */}
+                  <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <span className="text-slate-500 font-normal text-[11px] truncate max-w-[180px] flex items-center gap-1.5">
+                      <UserCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">{log.mentor}</span>
+                    </span>
+                    <span className="text-[11px] font-semibold text-slate-400 group-hover:text-sky-600 transition-colors flex items-center gap-0.5 shrink-0">
+                      <span>Detail</span>
+                      <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -1315,7 +1587,7 @@ export default function LogHistoryPage() {
             Silakan sesuaikan filter status atau gunakan kata kunci pencarian lain untuk menemukan catatan aktivitas Anda.
           </p>
         </div>
-        <div className="flex items-center justify-center gap-2 pt-1">
+        <div className="flex items-center justify-center gap-2.5 pt-1">
           <button
             type="button"
             onClick={() => {
@@ -1323,18 +1595,19 @@ export default function LogHistoryPage() {
               setMonthFilter("ALL");
               setSearchQuery("");
             }}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200/80 transition cursor-pointer active:scale-95"
+            className="inline-flex items-center justify-center h-10 px-5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-semibold border border-slate-200/80 transition cursor-pointer active:scale-95"
           >
             Reset Filter
           </button>
-            <Link
-              href="/student/log/new"
-              className="inline-flex items-center gap-1.5 px-4.5 py-2 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold transition active:scale-95 shadow-xs"
-            >
-              <PlusCircle className="w-3.5 h-3.5" />
-              <span>Catat Jurnal</span>
-            </Link>
-          </div>
+          <Link
+            href="/student/log/new"
+            style={{ paddingLeft: "24px", paddingRight: "24px" }}
+            className="inline-flex items-center justify-center gap-2 h-10 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-xs sm:text-sm font-semibold transition active:scale-95 shadow-xs cursor-pointer"
+          >
+            <PlusCircle className="w-4 h-4 shrink-0" />
+            <span>Catat Jurnal</span>
+          </Link>
+        </div>
         </div>
       )}
 
@@ -1353,7 +1626,7 @@ export default function LogHistoryPage() {
           role="dialog"
           aria-modal="true"
           onClick={() => setSelectedLogDetail(null)}
-          className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in-0 duration-150"
+          className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in-0 duration-150"
           style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
         >
           <div
@@ -1392,9 +1665,15 @@ export default function LogHistoryPage() {
                   {selectedLogDetail.status === "VERIFIED" ? "Terverifikasi (Segel Digital Valid)" : "Menunggu Validasi PIN"}
                 </span>
 
-                {selectedLogDetail.skkniCode && (
+                {selectedLogDetail.skkniCode && !selectedLogDetail.isNonCompetency && (
                   <span className="px-3 py-0.5 rounded-full text-[10px] font-medium bg-sky-50 text-sky-700 border border-sky-200/70 font-mono">
                     SKKNI {selectedLogDetail.skkniCode}
+                  </span>
+                )}
+
+                {selectedLogDetail.isNonCompetency && (
+                  <span className="px-3 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-800 border border-amber-200/70">
+                    Non-Kejuruan: {formatCategoryLabel(selectedLogDetail.nonCompetencyCategory)}
                   </span>
                 )}
               </div>
@@ -1488,6 +1767,8 @@ export default function LogHistoryPage() {
                 <span className="font-semibold text-slate-800">
                   {selectedLogDetail.attendanceType === "SICK" || selectedLogDetail.attendanceType === "PERMIT"
                     ? "Dispensasi Medis / Resmi"
+                    : selectedLogDetail.isNonCompetency
+                    ? `Bantuan Operasional (${formatCategoryLabel(selectedLogDetail.nonCompetencyCategory)})`
                     : `${selectedLogDetail.autonomy} Sesuai SOP (Skor ${selectedLogDetail.autonomyScore})`}
                 </span>
               </div>
@@ -1495,10 +1776,15 @@ export default function LogHistoryPage() {
               <div className="flex items-center justify-between py-1">
                 <span className="text-slate-500 font-normal">Status Verifikasi:</span>
                 <span className="font-semibold text-slate-800">
-                  {selectedLogDetail.verifiedAt ? (
+                  {selectedLogDetail.status === "VERIFIED" && selectedLogDetail.verifiedAt ? (
                     <span className="text-emerald-700 flex items-center gap-1">
                       <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                       <span>{selectedLogDetail.verifiedAt}</span>
+                    </span>
+                  ) : selectedLogDetail.status === "REVISION_REQUIRED" ? (
+                    <span className="text-rose-700 flex items-center gap-1 font-semibold">
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Perlu Revisi (Ditolak Mentor)</span>
                     </span>
                   ) : (
                     <span className="text-amber-700">Menunggu validasi PIN mentor</span>
@@ -1506,6 +1792,19 @@ export default function LogHistoryPage() {
                 </span>
               </div>
             </div>
+
+            {/* Catatan Alasan Revisi dari Mentor */}
+            {selectedLogDetail.status === "REVISION_REQUIRED" && (
+              <div className="space-y-1.5 p-3.5 rounded-2xl bg-rose-50 border border-rose-200/80">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-rose-700">
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Catatan Perbaikan dari Mentor:</span>
+                </div>
+                <p className="text-xs text-rose-900 leading-relaxed font-normal">
+                  &quot;{selectedLogDetail.rejectionReason || "Mentor meminta perbaikan pada rincian aktivitas atau dokumentasi foto bukti pelaksanaan tugas."}&quot;
+                </p>
+              </div>
+            )}
 
             {/* Catatan Aktivitas Siswa */}
             {selectedLogDetail.notes && (
@@ -1519,6 +1818,16 @@ export default function LogHistoryPage() {
 
             {/* Actions: Pill-shaped Buttons */}
             <div className="space-y-2 pt-1">
+              {selectedLogDetail.status === "REVISION_REQUIRED" && (
+                <Link
+                  href="/student/log/new"
+                  className="w-full py-2.5 rounded-full bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Tulis Ulang & Ajukan Revisi</span>
+                </Link>
+              )}
+
               {selectedLogDetail.status === "PENDING_VERIFICATION" && (
                 <button
                   type="button"
@@ -1574,7 +1883,7 @@ export default function LogHistoryPage() {
           role="dialog"
           aria-modal="true"
           onClick={() => setLightboxPhotoUrl(null)}
-          className="fixed inset-0 z-[1000] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 cursor-zoom-out select-none animate-in fade-in-0 duration-150"
+          className="fixed inset-0 z-[1000] bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 sm:p-8 cursor-zoom-out select-none animate-in fade-in-0 duration-150"
           style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
         >
           {/* Tombol Tutup Bulat Minimalis di Pojok Kanan Atas */}
@@ -1585,7 +1894,7 @@ export default function LogHistoryPage() {
               setLightboxPhotoUrl(null);
             }}
             aria-label="Tutup Foto"
-            className="fixed top-4 right-4 sm:top-6 sm:right-6 w-10 h-10 rounded-full bg-slate-900/60 hover:bg-slate-900/80 active:scale-95 text-white/90 hover:text-white border border-white/20 backdrop-blur-md flex items-center justify-center transition cursor-pointer z-10 shadow-xl"
+            className="fixed top-4 right-4 sm:top-6 sm:right-6 w-10 h-10 rounded-full bg-slate-900/60 hover:bg-slate-900/80 active:scale-95 text-white/90 hover:text-white border border-white/20 backdrop-blur-xs flex items-center justify-center transition cursor-pointer z-10 shadow-xl"
             title="Tutup (Esc)"
           >
             <X className="w-5 h-5 stroke-[2.5]" />

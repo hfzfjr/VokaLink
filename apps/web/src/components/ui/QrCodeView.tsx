@@ -29,7 +29,7 @@ export function QrCodeView({
 
     QRCode.toString(value, {
       type: "svg",
-      margin: 1,
+      margin: 2,
       width: size,
       errorCorrectionLevel,
       color: {

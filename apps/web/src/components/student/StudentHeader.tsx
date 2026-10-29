@@ -1,33 +1,17 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, Sparkles, Download } from "lucide-react";
-import { cn } from "@/lib/cn";
-import { usePwaInstall } from "@/hooks/usePwaInstall";
+import { ArrowLeft, Settings } from "lucide-react";
 import { useAuth } from "@/lib/use-auth";
 import VokaIcon from "@/components/common/VokaIcon";
+import { StudentSettingsModal } from "./StudentSettingsModal";
 
 export function StudentHeader() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const [isOnline, setIsOnline] = useState(true);
-  const { isInstallable, isInstalled, promptInstall } = usePwaInstall();
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setIsOnline(navigator.onLine);
-      const handleOnline = () => setIsOnline(true);
-      const handleOffline = () => setIsOnline(false);
-      window.addEventListener("online", handleOnline);
-      window.addEventListener("offline", handleOffline);
-      return () => {
-        window.removeEventListener("online", handleOnline);
-        window.removeEventListener("offline", handleOffline);
-      };
-    }
-  }, []);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   const isHome = pathname === "/student" || pathname === "/student/home";
 
@@ -44,94 +28,88 @@ export function StudentHeader() {
     if (pathname?.includes("/student/career-cv")) {
       return { title: "CV ATS & Paspor", subtitle: "Portofolio Kompetensi" };
     }
-    return { title: "VokaLink", subtitle: "Target 792 JP" };
+    return { title: "VokaLink", subtitle: "" };
   };
 
   const pageInfo = getPageInfo();
 
   return (
-    <header className="md:hidden sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 pt-[env(safe-area-inset-top,0px)] shadow-2xs transition-all">
-      <div className="px-4 py-2.5 flex items-center justify-between gap-3">
-        {/* Left Section: Contextual Back on subpages, VokaIcon on Home */}
-        <div className="flex items-center gap-2.5 min-w-0">
-          {!isHome ? (
-            <Link
-              href="/student/home"
-              title="Kembali ke Beranda Siswa"
-              aria-label="Kembali ke Beranda Siswa"
-              className="w-8.5 h-8.5 min-w-[34px] rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-slate-700 transition cursor-pointer shrink-0 border border-slate-200/60"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-          ) : (
-            <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 p-1.5 flex items-center justify-center shrink-0 shadow-2xs">
-              <VokaIcon className="w-full h-full object-contain" />
-            </div>
-          )}
+    <>
+      <header className="md:hidden sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 pt-[env(safe-area-inset-top,0px)] shadow-2xs transition-all">
+        <div className="px-4 py-2.5 flex items-center justify-between gap-3">
+          {/* Left Section: Back on subpages, Brand Logo on Home */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            {!isHome ? (
+              <Link
+                href="/student/home"
+                title="Kembali ke Beranda Siswa"
+                aria-label="Kembali ke Beranda Siswa"
+                className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-slate-700 transition cursor-pointer shrink-0 border border-slate-200/60"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Link>
+            ) : (
+              <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/90 p-1 flex items-center justify-center shrink-0 shadow-2xs">
+                <VokaIcon className="w-full h-full object-contain" />
+              </div>
+            )}
 
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <h1 className="font-bold text-sm tracking-tight text-slate-900 leading-none truncate">
-                {pageInfo.title}
-              </h1>
-              {isHome && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-100 font-semibold leading-none tracking-wide">
-                  SISWA
+            <div className="min-w-0">
+              {isHome ? (
+                <span className="font-extrabold text-base tracking-tight text-slate-900 leading-none">
+                  VokaLink
                 </span>
+              ) : (
+                <div className="min-w-0">
+                  <h1 className="font-bold text-sm tracking-tight text-slate-900 leading-tight truncate">
+                    {pageInfo.title}
+                  </h1>
+                  <p className="text-[10.5px] text-slate-500 font-normal leading-tight truncate mt-0.5">
+                    {pageInfo.subtitle}
+                  </p>
+                </div>
               )}
             </div>
-            <div className="flex items-center gap-1.5 mt-1">
-              <span className="text-[10.5px] text-slate-500 font-normal leading-none truncate">
-                {pageInfo.subtitle}
-              </span>
-              <span className="text-slate-300 text-[10px]">·</span>
-              <span className="inline-flex items-center gap-1 text-[10px] font-medium leading-none">
-                <span
-                  className={cn(
-                    "w-1.5 h-1.5 rounded-full",
-                    isOnline ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
-                  )}
-                />
-                <span className={isOnline ? "text-emerald-700 font-medium" : "text-amber-700 font-medium"}>
-                  {isOnline ? "Online" : "Offline"}
-                </span>
-              </span>
-            </div>
           </div>
-        </div>
 
-        {/* Right Section: Install Button, Badge & Avatar */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {isInstallable && !isInstalled && (
+          {/* Right Section: Settings Button & User Avatar */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Tombol Pengaturan (Settings) */}
             <button
               type="button"
-              onClick={promptInstall}
-              title="Pasang VokaLink ke Layar Utama"
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200/80 text-[10.5px] font-bold shadow-2xs transition active:scale-95 cursor-pointer"
+              onClick={() => setShowSettingsModal(true)}
+              title="Pengaturan Akun & Sistem"
+              aria-label="Pengaturan Akun & Sistem"
+              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-600 hover:text-slate-900 flex items-center justify-center transition border border-slate-200/80 cursor-pointer shadow-2xs shrink-0"
             >
-              <Download className="w-3 h-3 stroke-[2.5]" />
-              <span className="hidden xs:inline">Pasang</span>
+              <Settings className="w-4 h-4" />
             </button>
-          )}
 
-          <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100/90 border border-slate-200/70 text-[11px] font-semibold text-slate-700 shadow-2xs">
-            <Sparkles className="w-3 h-3 text-amber-500 shrink-0" />
-            <span className="whitespace-nowrap">{user?.department?.sectorCode || "RPL"}</span>
-          </div>
-
-          <div className="w-8 h-8 rounded-xl bg-slate-900 text-white font-bold text-[11px] flex items-center justify-center shadow-xs shrink-0 select-none">
-            {user?.fullName
-              ? user.fullName
-                  .split(" ")
-                  .map((n) => n[0])
-                  .slice(0, 2)
-                  .join("")
-                  .toUpperCase()
-              : "AP"}
+            {/* Avatar Pengguna */}
+            <Link
+              href="/student/career-cv"
+              title="Lihat Profil & Portofolio Siswa"
+              className="w-8 h-8 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center shadow-xs shrink-0 select-none ring-2 ring-white hover:ring-sky-200 transition cursor-pointer"
+            >
+              {user?.fullName
+                ? user.fullName
+                    .split(" ")
+                    .map((n) => n[0])
+                    .slice(0, 2)
+                    .join("")
+                    .toUpperCase()
+                : "AP"}
+            </Link>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* Modal Pengaturan Siswa */}
+      <StudentSettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+      />
+    </>
   );
 }
 

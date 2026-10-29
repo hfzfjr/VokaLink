@@ -183,20 +183,20 @@ export function SmartShiftSelector({
       )}
     >
       {/* ─── LABEL HEADER APPLE HIG STYLE ─── */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
         <label
           htmlFor="smart-shift-trigger"
-          className="text-[11px] font-medium text-slate-500 uppercase tracking-widest flex items-center gap-1.5"
+          className="text-[11px] font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1.5"
         >
-          <Clock className="w-3.5 h-3.5 text-sky-600" />
-          <span>Jam Kerja Industri (Shift Presensi)</span>
+          <Clock className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+          <span>Jam Kerja Industri</span>
         </label>
-        <span className="text-xs font-medium text-slate-500">
+        <span className="text-[11px] sm:text-xs font-medium text-slate-500 shrink-0">
           Ekuivalen: <strong className="text-sky-700 font-semibold">≈ {equivalentJp} JP</strong>
         </span>
       </div>
 
-      {/* ─── TRIGGER BUTTON RAMPING (~42px) KONSISTEN DENGAN TANGGAL ─── */}
+      {/* ─── TRIGGER BUTTON RAMPING (~46px) BEBAS TERHIMPIT DI MOBILE ─── */}
       <button
         id="smart-shift-trigger"
         type="button"
@@ -205,14 +205,14 @@ export function SmartShiftSelector({
         aria-haspopup="listbox"
         onClick={() => setIsOpen((prev) => !prev)}
         className={cn(
-          "w-full flex items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl bg-white border text-left transition-all duration-150 shadow-2xs group cursor-pointer select-none min-h-[44px]",
+          "w-full flex items-center justify-between gap-2.5 px-3 sm:px-3.5 py-2.5 rounded-xl bg-white border text-left transition-all duration-150 shadow-2xs group cursor-pointer select-none min-h-[46px]",
           isOpen
             ? "border-sky-500 ring-2 ring-sky-500/20 shadow-xs"
             : "border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/50"
         )}
       >
         {/* Kiri: Ikon & Detail Shift Terpilih */}
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <div
             className={cn(
               "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors",
@@ -230,42 +230,42 @@ export function SmartShiftSelector({
             )}
           </div>
 
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs sm:text-sm font-semibold text-slate-900 leading-tight">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-xs sm:text-sm font-semibold text-slate-900 leading-tight whitespace-nowrap">
                 {durationJp} Jam Kerja
               </span>
-              <span className="text-xs text-slate-500 font-normal">·</span>
+              <span className="text-xs text-slate-400 font-normal">·</span>
               <span className="text-xs text-slate-700 font-medium truncate">
                 {currentShiftMeta.title}
               </span>
             </div>
-            <p className="text-xs text-slate-600 leading-none mt-0.5 truncate font-normal">
+            <p className="text-[11px] text-slate-500 mt-0.5 truncate font-normal">
               {currentShiftMeta.subtitle}
             </p>
           </div>
         </div>
 
         {/* Kanan: Badge Status & Panah Dropdown */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {isOvertime ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium">
+            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium">
               <span>Lembur</span>
             </span>
           ) : durationJp === 8 ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-slate-600 border border-slate-200 text-xs font-medium">
+            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-slate-600 border border-slate-200 text-xs font-medium">
               <Check className="w-3 h-3 stroke-[2.5] text-slate-500" />
               <span>Standar Baku</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200/70 text-xs font-medium">
+            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200/70 text-xs font-medium">
               <span>{currentShiftMeta.badge}</span>
             </span>
           )}
 
           <ChevronDown
             className={cn(
-              "w-4 h-4 text-slate-500 transition-transform duration-200",
+              "w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-transform duration-200 shrink-0",
               isOpen && "rotate-180 text-sky-600"
             )}
           />

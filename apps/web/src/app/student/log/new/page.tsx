@@ -25,9 +25,6 @@ import {
   AlertTriangle,
   Paintbrush,
   RotateCcw,
-  Package,
-  Truck,
-  Store,
 } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -45,7 +42,7 @@ import { cn } from "@/lib/cn";
 import { MentorQrModal } from "@/components/student/home/MentorQrModal";
 import { SmartDateSelector } from "@/components/student/log/SmartDateSelector";
 import { SmartShiftSelector } from "@/components/student/log/SmartShiftSelector";
-import { SkeletonRect, SkeletonText } from "@/components/ui/Skeleton";
+import { SkeletonRect } from "@/components/ui/Skeleton";
 
 interface JobCardItem {
   id: string;
@@ -53,6 +50,7 @@ interface JobCardItem {
   tools: string[];
   skkni?: string | null;
   category: string;
+  isDudiSupported?: boolean;
 }
 
 const DEFAULT_JOB_CARDS: JobCardItem[] = [
@@ -95,7 +93,7 @@ const DEFAULT_JOB_CARDS: JobCardItem[] = [
 
 const DEFAULT_NON_COMPETENCY_JC = {
   id: "85544774-bbd3-43d8-bcdc-ee38c800ef98",
-  title: "Bantuan administrasi dan operasional kantor IT",
+  title: "Tugas Operasional Umum",
 };
 
 const DEFAULT_PLACEMENT_ID = "3ffec674-ad55-482a-a566-9dff84ab71be";
@@ -135,11 +133,16 @@ function getLocalIsoDate(d: Date = new Date()): string {
 
 export default function NewLogPage() {
   const today = getLocalIsoDate(new Date());
-  const minDate = getLocalIsoDate(new Date(Date.now() - 3 * 24 * 60 * 60 * 1000));
+  const minDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 3);
+    return getLocalIsoDate(d);
+  }, []);
   const [selectedDate, setSelectedDate] = useState(today);
   const [attendanceType, setAttendanceType] = useState<"PRESENT" | "SICK" | "PERMIT">("PRESENT");
   const [isNonCompetency, setIsNonCompetency] = useState(false);
   const [nonCompetencyCategory, setNonCompetencyCategory] = useState("ADMIN_UMUM");
+  const [nonCompetencyCustomText, setNonCompetencyCustomText] = useState("");
   const [durationJp, setDurationJp] = useState(8);
   const [overtimeReason, setOvertimeReason] = useState("Rilis / Deployment Sistem");
   const [autonomyLevel, setAutonomyLevel] = useState<1 | 2 | 3>(3);
@@ -155,10 +158,18 @@ export default function NewLogPage() {
     dudiCity: string;
     mentorName: string;
   } | null>(null);
+  const [serverLogs, setServerLogs] = useState<
+    Array<{
+      id: string;
+      logDate: string;
+      durationJp: number;
+      attendanceType: "PRESENT" | "SICK" | "PERMIT";
+      status: string;
+    }>
+  >([]);
 
-  // Search & Filter state for Job Cards
+  // Search state for Job Cards
   const [jobCardSearch, setJobCardSearch] = useState("");
-  const [jobCardCategory, setJobCardCategory] = useState("ALL");
 
   // Photo state (Client-side WebP Compression < 150 KB)
   const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
@@ -171,6 +182,7 @@ export default function NewLogPage() {
 
   // 3-Step Wizard Navigation State (Apple HIG)
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [isStepTransitioning, setIsStepTransitioning] = useState(false);
 
   // Multi-Job Cards state (1 to 3 job cards per daily log, PRD FR-005)
   const [selectedJobCardIds, setSelectedJobCardIds] = useState<string[]>([]);
@@ -189,26 +201,11 @@ export default function NewLogPage() {
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const modalSuccessRef = useRef<HTMLDivElement>(null);
-  const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
     return () => {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
-  }, []);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setIsOnline(navigator.onLine);
-      const handleOnline = () => setIsOnline(true);
-      const handleOffline = () => setIsOnline(false);
-      window.addEventListener("online", handleOnline);
-      window.addEventListener("offline", handleOffline);
-      return () => {
-        window.removeEventListener("online", handleOnline);
-        window.removeEventListener("offline", handleOffline);
-      };
-    }
   }, []);
 
   const previousActiveElement = useRef<HTMLElement | null>(null);
@@ -285,13 +282,36 @@ export default function NewLogPage() {
     if (formError) setFormError(null);
   }, [attendanceType, selectedJobCardIds, durationJp, compressedPhoto, selectedDate]);
 
-  // 1. Reactive Dexie Query untuk mendeteksi log yang sudah ada & pencegahan duplikasi (BR-001/002)
+  // 1. Reactive Dexie Query & Server Log Merging untuk pencegahan duplikasi (BR-001/002/003)
   const offlineLogs = useLiveQuery(() => db.logs.toArray(), []) || [];
+
+  const allExistingLogs = useMemo(() => {
+    const offlineIds = new Set(offlineLogs.map((l) => l.clientLogUuid));
+    const nonDupServer = serverLogs.filter((sl) => !offlineIds.has(sl.id));
+    return [
+      ...offlineLogs.map((ol) => ({
+        id: ol.clientLogUuid,
+        clientLogUuid: ol.clientLogUuid,
+        logDate: (ol.logDate || "").slice(0, 10),
+        durationJp: ol.durationJp,
+        attendanceType: (ol.attendanceType || "PRESENT") as "PRESENT" | "SICK" | "PERMIT",
+        isVerified: ol.state === "verified",
+      })),
+      ...nonDupServer.map((sl) => ({
+        id: sl.id,
+        clientLogUuid: sl.id,
+        logDate: sl.logDate,
+        durationJp: sl.durationJp,
+        attendanceType: sl.attendanceType,
+        isVerified: sl.status === "VERIFIED",
+      })),
+    ];
+  }, [offlineLogs, serverLogs]);
 
   // Hitung akumulasi jam pada tanggal terpilih
   const logsForSelectedDate = useMemo(
-    () => offlineLogs.filter((l) => l.logDate === selectedDate),
-    [offlineLogs, selectedDate]
+    () => allExistingLogs.filter((l) => l.logDate === selectedDate),
+    [allExistingLogs, selectedDate]
   );
 
   const existingDailyJp = useMemo(
@@ -301,15 +321,20 @@ export default function NewLogPage() {
 
   const remainingDailyQuota = Math.max(0, MAX_DAILY_JP - existingDailyJp);
   const isDailyLimitReached = existingDailyJp >= MAX_DAILY_JP;
+  const hasLogForSelectedDate = logsForSelectedDate.length > 0;
   const hasExistingSickOrPermit = logsForSelectedDate.some(
     (l) => l.attendanceType === "SICK" || l.attendanceType === "PERMIT"
   );
 
   // 2. Kalkulasi Dampak Progres Terhadap Target 792 JP murni dari Database (Kelompok 1.2, 1.6 & 3.16)
-  const [serverVerifiedJp, setServerVerifiedJp] = useState<number | null>(null);
-  const offlineVerifiedJp = offlineLogs.filter((l) => l.state === "verified").reduce((acc, curr) => acc + curr.durationJp, 0);
-  const hasVerifiedData = serverVerifiedJp !== null || offlineVerifiedJp > 0;
-  const currentTotalJp = (serverVerifiedJp ?? 0) + offlineVerifiedJp;
+  const [serverVerifiedHours, setServerVerifiedHours] = useState<number | null>(null);
+  const offlineVerifiedHours = useMemo(
+    () => offlineLogs.filter((l) => l.state === "verified").reduce((acc, curr) => acc + curr.durationJp, 0),
+    [offlineLogs]
+  );
+  const totalVerifiedHours = (serverVerifiedHours ?? 0) + offlineVerifiedHours;
+  const hasVerifiedData = totalVerifiedHours > 0 || serverVerifiedHours !== null;
+  const currentTotalJp = useMemo(() => convertRealHoursToJp(totalVerifiedHours), [totalVerifiedHours]);
   const verifiedPercentage = Math.min(100, Math.round((currentTotalJp / TOTAL_TARGET_JP) * 100));
   const sessionJp = attendanceType === "PRESENT" ? convertRealHoursToJp(durationJp) : 0;
   const sessionPercentage = Math.min(100 - verifiedPercentage, Math.round((sessionJp / TOTAL_TARGET_JP) * 100));
@@ -329,8 +354,8 @@ export default function NewLogPage() {
     sunday.setDate(monday.getDate() + 6);
     sunday.setHours(23, 59, 59, 999);
 
-    const weekLogs = offlineLogs.filter((l) => {
-      const d = new Date(l.logDate);
+    const weekLogs = allExistingLogs.filter((l) => {
+      const d = new Date(l.logDate + "T00:00:00");
       return d >= monday && d <= sunday && l.attendanceType === "PRESENT";
     });
 
@@ -355,7 +380,7 @@ export default function NewLogPage() {
       isWarningOverwork,
       isNormal: !isCriticalOverwork && !isWarningOverwork,
     };
-  }, [offlineLogs, selectedDate, attendanceType, durationJp]);
+  }, [allExistingLogs, selectedDate, attendanceType, durationJp]);
 
   // Track apakah siswa pernah mengubah durasi jam secara manual
   const hasUserManuallyChangedDuration = useRef(false);
@@ -511,9 +536,9 @@ export default function NewLogPage() {
           if (data.nonCompetencyJobCard) setNonCompetencyJobCard(data.nonCompetencyJobCard);
         }
 
-        const cachedVerified = await db.refData.get("student_server_verified_jp");
+        const cachedVerified = await db.refData.get("student_server_verified_hours");
         if (cachedVerified && typeof cachedVerified.data === "number" && isMounted) {
-          setServerVerifiedJp(cachedVerified.data);
+          setServerVerifiedHours(cachedVerified.data);
         }
 
         if (typeof navigator !== "undefined" && navigator.onLine) {
@@ -524,13 +549,21 @@ export default function NewLogPage() {
               try {
                 const dbLogs = await fetchStudentLogs(fresh.activePlacement.id);
                 if (Array.isArray(dbLogs) && isMounted) {
-                  const verifiedJp = dbLogs
+                  const mapped = dbLogs.map((l) => ({
+                    id: l.clientLogUuid || l.id,
+                    logDate: (l.logDate || "").slice(0, 10),
+                    durationJp: l.items?.reduce((s, it) => s + it.durationJp, 0) || 8,
+                    attendanceType: (l.attendanceType || "PRESENT") as "PRESENT" | "SICK" | "PERMIT",
+                    status: l.status,
+                  }));
+                  setServerLogs(mapped);
+                  const verifiedHours = mapped
                     .filter((l) => l.status === "VERIFIED")
-                    .reduce((sum, l) => sum + (l.items?.reduce((s, it) => s + it.durationJp, 0) || 8), 0);
-                  setServerVerifiedJp(verifiedJp);
+                    .reduce((sum, l) => sum + l.durationJp, 0);
+                  setServerVerifiedHours(verifiedHours);
                   await db.refData.put({
-                    key: "student_server_verified_jp",
-                    data: verifiedJp,
+                    key: "student_server_verified_hours",
+                    data: verifiedHours,
                     cachedAt: Date.now(),
                   });
                 }
@@ -602,28 +635,24 @@ export default function NewLogPage() {
     }
   };
 
-  // Kategori unik dari jobCards untuk pill filter dinamis (A. Bug 1)
-  const uniqueCategories = useMemo(() => {
-    const cats = Array.from(new Set(jobCards.map((c) => c.category).filter(Boolean)));
-    return ["ALL", ...cats];
-  }, [jobCards]);
-
-  // Filtered Job Cards based on search and category
+  // Filtered Job Cards based on search only (tanpa kategorisasi)
   const filteredJobCards = useMemo(() => {
-    return jobCards.filter((card) => {
-      if (jobCardCategory !== "ALL" && card.category !== jobCardCategory) {
-        return false;
-      }
-      if (jobCardSearch.trim()) {
-        const query = jobCardSearch.toLowerCase();
-        const matchTitle = card.title.toLowerCase().includes(query);
-        const matchTools = card.tools.some((t) => t.toLowerCase().includes(query));
-        const matchSkkni = card.skkni?.toLowerCase().includes(query) ?? false;
-        return matchTitle || matchTools || matchSkkni;
-      }
-      return true;
-    });
-  }, [jobCards, jobCardCategory, jobCardSearch]);
+    return jobCards
+      .filter((card) => {
+        if (jobCardSearch.trim()) {
+          const query = jobCardSearch.toLowerCase();
+          const matchTitle = card.title.toLowerCase().includes(query);
+          const matchTools = card.tools.some((t) => t.toLowerCase().includes(query));
+          return matchTitle || matchTools;
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        if (a.isDudiSupported && !b.isDudiSupported) return -1;
+        if (!a.isDudiSupported && b.isDudiSupported) return 1;
+        return 0;
+      });
+  }, [jobCards, jobCardSearch]);
 
 
   // Detail kartu yang dipilih untuk modal sukses & ringkasan (E.6)
@@ -635,6 +664,7 @@ export default function NewLogPage() {
     try {
       setIsCompressingPhoto(true);
       const result = await compressEvidencePhoto(file);
+
       setCompressedPhoto(result);
       if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
       const url = URL.createObjectURL(result.blob);
@@ -880,6 +910,17 @@ export default function NewLogPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Guard 0: Form HANYA boleh disubmit pada Langkah 3 (Bukti & Catatan)
+    if (step !== 3) {
+      console.warn("[VokaLink] Mencegah submit prematur: Form belum mencapai Langkah 3 (saat ini langkah " + step + ")");
+      return;
+    }
+
+    // Guard 0.1: Mencegah double submit atau submit saat animasi transisi langkah
+    if (isSubmitting || isStepTransitioning) {
+      return;
+    }
+
     const isSickOrPermit = attendanceType === "SICK" || attendanceType === "PERMIT";
 
     // Guard 1: Sakit / Izin sudah ada pada tanggal ini
@@ -938,7 +979,9 @@ export default function NewLogPage() {
             : "Presensi Izin Resmi (Dispensasi / Keperluan)";
       } else if (isNonCompetency) {
         targetJobCardIds = [nonCompCard.id];
-        targetJobCardTitle = `Bantuan Operasional (${nonCompetencyCategory})`;
+        targetJobCardTitle = nonCompetencyCustomText.trim()
+          ? `Tugas Operasional: ${nonCompetencyCustomText.trim()}`
+          : "Tugas Operasional Umum";
       } else {
         const chosenCards = jobCards.filter((j) => selectedJobCardIds.includes(j.id));
         targetJobCardIds = chosenCards.length > 0 ? chosenCards.map((c) => c.id) : [DEFAULT_JOB_CARDS[0]!.id];
@@ -952,7 +995,10 @@ export default function NewLogPage() {
       const primaryCardId = targetJobCardIds[0];
       const primaryAutonomy = (primaryCardId ? cardAutonomyMap[primaryCardId] : undefined) ?? autonomyLevel;
 
-      let finalShortNote = shortNote.trim();
+      let finalShortNote = (shortNote.trim() || nonCompetencyCustomText.trim());
+      if (isNonCompetency && nonCompetencyCustomText.trim() && shortNote.trim() && !shortNote.trim().includes(nonCompetencyCustomText.trim())) {
+        finalShortNote = `${nonCompetencyCustomText.trim()} — ${shortNote.trim()}`;
+      }
       if (!isSickOrPermit && durationJp >= 9 && overtimeReason && !finalShortNote.includes(overtimeReason)) {
         finalShortNote = finalShortNote
           ? `[Lembur Proyek: ${overtimeReason}] ${finalShortNote}`
@@ -1008,6 +1054,7 @@ export default function NewLogPage() {
     setSelectedDate(today);
     setAttendanceType("PRESENT");
     setIsNonCompetency(false);
+    setNonCompetencyCustomText("");
     setSelectedJobCardIds([]);
     const todayDate = new Date(today);
     const todayDay = isNaN(todayDate.getTime()) ? 1 : todayDate.getDay();
@@ -1017,7 +1064,6 @@ export default function NewLogPage() {
     setCardAutonomyMap({});
     setShortNote("");
     setJobCardSearch("");
-    setJobCardCategory("ALL");
     setStep(1);
     handleRemovePhoto();
   };
@@ -1026,6 +1072,7 @@ export default function NewLogPage() {
 
   // Wizard Step Navigation Guards
   const isStep1Disabled =
+    hasLogForSelectedDate ||
     (hasExistingSickOrPermit && attendanceType === "PRESENT") ||
     (isSickOrPermit && existingDailyJp > 0) ||
     (!isSickOrPermit && isDailyLimitReached) ||
@@ -1033,8 +1080,15 @@ export default function NewLogPage() {
 
   const isStep2Disabled = !isNonCompetency && selectedJobCardIds.length === 0;
 
-  const handleNextStep = () => {
+  const handleNextStep = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+
     if (step === 1) {
+      if (hasLogForSelectedDate) {
+        showError(`Tanggal ${selectedDate} sudah tercatat jurnal (${existingDailyJp} Jam). Sesuai aturan BR-002, maksimal 1 laporan kehadiran per tanggal kalender.`);
+        return;
+      }
       if (hasExistingSickOrPermit && attendanceType === "PRESENT") {
         showError(`Tanggal ${selectedDate} sudah tercatat presensi Sakit/Izin resmi.`);
         return;
@@ -1052,10 +1106,14 @@ export default function NewLogPage() {
           showError(`Melebihi sisa kuota hari ini (${remainingDailyQuota} jam lagi).`);
           return;
         }
+        setIsStepTransitioning(true);
         setStep(2);
+        setTimeout(() => setIsStepTransitioning(false), 350);
       } else {
         // Sakit / Izin lewati langkah 2, langsung ke step 3
+        setIsStepTransitioning(true);
         setStep(3);
+        setTimeout(() => setIsStepTransitioning(false), 350);
       }
       if (typeof window !== "undefined") {
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1065,21 +1123,30 @@ export default function NewLogPage() {
         showError("Harap pilih minimal 1 tugas pekerjaan yang Anda selesaikan hari ini.");
         return;
       }
+      setIsStepTransitioning(true);
       setStep(3);
+      setTimeout(() => setIsStepTransitioning(false), 350);
       if (typeof window !== "undefined") {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     }
   };
 
-  const handlePrevStep = () => {
+  const handlePrevStep = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+
     if (step === 3) {
+      setIsStepTransitioning(true);
       setStep(isSickOrPermit ? 1 : 2);
+      setTimeout(() => setIsStepTransitioning(false), 350);
       if (typeof window !== "undefined") {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     } else if (step === 2) {
+      setIsStepTransitioning(true);
       setStep(1);
+      setTimeout(() => setIsStepTransitioning(false), 350);
       if (typeof window !== "undefined") {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
@@ -1089,6 +1156,8 @@ export default function NewLogPage() {
   // Ekstrak submitDisabled, disabledReason, dan submitLabel (Kelompok 1.5, 2.8, 2.15)
   const submitDisabled =
     isSubmitting ||
+    isStepTransitioning ||
+    hasLogForSelectedDate ||
     (attendanceType === "SICK" && !compressedPhoto) ||
     (isSickOrPermit && existingDailyJp > 0) ||
     (!isSickOrPermit && isDailyLimitReached) ||
@@ -1098,19 +1167,21 @@ export default function NewLogPage() {
 
   const disabledReason = isSubmitting
     ? "Sedang menyimpan jurnal..."
-    : attendanceType === "SICK" && !compressedPhoto
-      ? "Lampirkan foto surat dokter"
-      : hasExistingSickOrPermit
-        ? "Sudah ada presensi sakit/izin hari ini"
-        : isSickOrPermit && existingDailyJp > 0
-          ? "Sudah ada jam hadir yang tercatat"
-          : !isSickOrPermit && isDailyLimitReached
-            ? `Batas maksimal ${MAX_DAILY_JP} jam harian sudah tercapai`
-            : !isSickOrPermit && durationJp > remainingDailyQuota && existingDailyJp > 0
-              ? `Melebihi sisa kuota hari ini (${remainingDailyQuota} Jam tersisa)`
-              : !isSickOrPermit && !isNonCompetency && selectedJobCardIds.length === 0
-                ? "Pilih minimal 1 kartu pekerjaan"
-                : null;
+    : hasLogForSelectedDate
+      ? `Jurnal tanggal ini sudah tercatat (BR-002: Maks 1 log/hari)`
+      : attendanceType === "SICK" && !compressedPhoto
+        ? "Lampirkan foto surat dokter"
+        : hasExistingSickOrPermit
+          ? "Sudah ada presensi sakit/izin hari ini"
+          : isSickOrPermit && existingDailyJp > 0
+            ? "Sudah ada jam hadir yang tercatat"
+            : !isSickOrPermit && isDailyLimitReached
+              ? `Batas maksimal ${MAX_DAILY_JP} jam harian sudah tercapai`
+              : !isSickOrPermit && durationJp > remainingDailyQuota && existingDailyJp > 0
+                ? `Melebihi sisa kuota hari ini (${remainingDailyQuota} Jam tersisa)`
+                : !isSickOrPermit && !isNonCompetency && selectedJobCardIds.length === 0
+                  ? "Pilih minimal 1 kartu pekerjaan"
+                  : null;
 
   const submitLabel = isSubmitting
     ? "Menyimpan Jurnal..."
@@ -1131,27 +1202,41 @@ export default function NewLogPage() {
     }
     if (step === 2) {
       if (isNonCompetency) {
-        return "Tugas Non-Teknis";
+        return nonCompetencyCustomText.trim()
+          ? `Operasional: ${nonCompetencyCustomText.trim().slice(0, 24)}${nonCompetencyCustomText.trim().length > 24 ? "..." : ""}`
+          : "Tugas Operasional Umum";
       }
-      return `${selectedJobCardIds.length} dari 3 tugas dipilih`;
+      if (selectedJobCardIds.length === 0) {
+        return "Pilih minimal 1 tugas";
+      }
+      return `${selectedJobCardIds.length} dari 3 tugas dipilih (${durationJp} JP)`;
     }
     // step === 3
     if (attendanceType === "SICK") {
       return compressedPhoto ? "Surat dokter terlampir" : "Wajib foto surat dokter";
     }
-    return compressedPhoto ? "Foto terlampir" : "Opsional";
-  }, [step, formattedStickyDate, durationJp, attendanceType, isNonCompetency, selectedJobCardIds.length, compressedPhoto]);
+    if (attendanceType === "PERMIT") {
+      return compressedPhoto ? "Surat izin terlampir" : "Wajib foto surat izin";
+    }
+    return compressedPhoto ? "Foto terlampir" : "Foto bukti opsional";
+  }, [step, formattedStickyDate, durationJp, attendanceType, isNonCompetency, nonCompetencyCustomText, selectedJobCardIds.length, compressedPhoto]);
 
   return (
     <form
       onSubmit={handleSubmit}
+      onKeyDown={(e) => {
+        // Mencegah penekanan tombol Enter pada input teks memicu submit form secara tidak sengaja
+        if (e.key === "Enter" && (e.target as HTMLElement).tagName !== "TEXTAREA") {
+          e.preventDefault();
+        }
+      }}
       className="w-full pb-20 md:pb-12 lg:pb-4"
     >
       {/* ─────────────────────────────────────────────────────────────────────────────
           UNIFIED WORKSPACE CANVAS (FULL-WIDTH PARITY WITH PORTAL PAGES)
           Sequential Reading Order: Header -> Presence -> Date -> Shift/K3 -> Cards/SOP -> Photo -> Note -> Submit
       ───────────────────────────────────────────────────────────────────────────── */}
-      <section className="w-full bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-7 border border-slate-200/80 shadow-card flex flex-col">
+      <section className="w-full bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-6 lg:p-7 border border-slate-200/80 shadow-card flex flex-col">
         <div>
           {/* ─── Header: Apple Minimalist Canvas Header ─── */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-slate-200/70">
@@ -1219,27 +1304,27 @@ export default function NewLogPage() {
               <SkeletonRect className="w-28 h-6 rounded-xl" />
             </div>
           ) : (
-            <div className="mt-3.5 p-3.5 sm:px-4 sm:py-2.5 rounded-2xl bg-slate-50/80 border border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0 shadow-2xs">
+            <div className="mt-3.5 p-3 sm:px-4 sm:py-3 rounded-2xl bg-slate-50/70 border border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0 shadow-2xs">
                   <Building2 className="w-4 h-4" />
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-slate-900 text-xs sm:text-sm">
                       {activePlacement?.dudiName || (isDemoMode ? "PT Nusantara Tech" : "Mitra Industri PKL")}
                     </span>
-                    <span className="px-2 py-0.5 rounded-full text-slate-500 border border-slate-200 text-[11px] font-medium bg-white">
+                    <span className="px-2 py-0.5 rounded-full text-slate-600 border border-slate-200 text-[10.5px] font-medium bg-white shrink-0">
                       Mitra Terdaftar
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5 font-normal truncate">
+                  <p className="text-xs text-slate-500 mt-0.5 font-normal leading-relaxed">
                     Pembimbing: <span className="font-semibold text-slate-700">{activePlacement?.mentorName || (isDemoMode ? "Rizky Firmansyah (Engineering Lead)" : "Mentor Industri Lapangan")}</span>
                   </p>
                 </div>
               </div>
 
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200/80 text-slate-700 text-xs font-medium shrink-0 self-start sm:self-auto shadow-2xs">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200/80 text-emerald-700 text-xs font-semibold shrink-0 self-start sm:self-auto shadow-2xs">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Verifikasi PIN Mentor</span>
               </div>
@@ -1248,11 +1333,11 @@ export default function NewLogPage() {
 
           {/* ─── Horizontal Stepper (Apple HIG / Modern SaaS) ─── */}
           <nav aria-label="Alur Pengisian Jurnal" className="mt-4 pb-2 border-b border-slate-100">
-            <ol className="grid grid-cols-3 gap-2 sm:gap-3">
+            <ol className="grid grid-cols-3 gap-1.5 sm:gap-3">
               {[
-                { s: 1, title: "1. Kehadiran & Jam", short: "1. Kehadiran" },
-                { s: 2, title: "2. Pilih Tugas", short: "2. Tugas" },
-                { s: 3, title: "3. Bukti & Catatan", short: "3. Bukti" },
+                { s: 1, title: "1. Kehadiran & Jam", short: "Presensi" },
+                { s: 2, title: "2. Pilih Tugas", short: "Tugas" },
+                { s: 3, title: "3. Bukti & Catatan", short: "Bukti" },
               ].map((item) => {
                 const isCompleted = item.s < step;
                 const isActive = item.s === step;
@@ -1261,7 +1346,7 @@ export default function NewLogPage() {
                   <li
                     key={item.s}
                     className={cn(
-                      "flex items-center gap-2 p-2.5 sm:px-3.5 sm:py-2.5 rounded-xl border text-xs transition-all",
+                      "flex items-center justify-center sm:justify-start gap-1 sm:gap-2.5 px-1.5 py-2 sm:px-3.5 sm:py-2.5 rounded-xl border text-xs transition-all min-h-[42px] sm:min-h-[44px]",
                       isActive
                         ? "bg-sky-50/70 border-sky-300 text-sky-950 font-semibold shadow-2xs"
                         : isCompleted
@@ -1271,7 +1356,7 @@ export default function NewLogPage() {
                   >
                     <span
                       className={cn(
-                        "w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 transition-all",
+                        "w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-[11px] font-bold shrink-0 transition-all",
                         isActive
                           ? "bg-sky-500 text-white shadow-2xs"
                           : isCompleted
@@ -1282,7 +1367,7 @@ export default function NewLogPage() {
                       {isCompleted ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : item.s}
                     </span>
                     <span className="truncate hidden sm:inline">{item.title}</span>
-                    <span className="truncate sm:hidden">{item.short}</span>
+                    <span className="sm:hidden text-[11px] font-semibold whitespace-nowrap">{item.short}</span>
                   </li>
                 );
               })}
@@ -1294,7 +1379,7 @@ export default function NewLogPage() {
               Presensi kehadiran, SmartDateSelector, dan SmartShiftSelector (bila Hadir)
           ───────────────────────────────────────────────────────────────────────── */}
           {step === 1 && (
-            <div className="pt-4 space-y-4 animate-in fade-in duration-200">
+            <div className="pt-4 space-y-3.5 sm:space-y-4 animate-in fade-in duration-200">
               {/* ─── DRAFT RECOVERY BANNER (Kelompok 1.3: draftFoundOnMount) ─── */}
               {draftFoundOnMount && (
                 <div className="p-3.5 rounded-2xl bg-sky-50/80 border border-sky-200/80 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sky-950 animate-in fade-in motion-reduce:animate-none">
@@ -1339,38 +1424,52 @@ export default function NewLogPage() {
                 </div>
               )}
 
+              {/* ─── BR-002: MAKSIMAL 1 LAPORAN PER TANGGAL KALENDER ─── */}
+              {hasLogForSelectedDate && !hasExistingSickOrPermit && (
+                <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80 text-xs flex items-center gap-3 text-amber-900 animate-in fade-in motion-reduce:animate-none">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold">Jurnal Tanggal Ini Sudah Pernah Dicatat</p>
+                    <p className="text-xs text-amber-800 mt-0.5 font-normal">
+                      Tanggal {selectedDate} sudah memiliki catatan jurnal ({existingDailyJp} Jam). Sesuai aturan baku BR-002, seorang siswa hanya dapat menginput maksimal 1 laporan kehadiran per tanggal kalender. Silakan pilih tanggal lain atau periksa riwayat logbook Anda.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* ─── Row 1: Status Presensi & Tanggal Pelaksanaan (Berdampingan seimbang di Desktop) ─── */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 sm:gap-4 items-stretch">
                 {/* 1. Status Kehadiran (Apple Segmented Control dalam container card rapi) */}
-                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-3">
+                <div className="bg-slate-50/60 border border-slate-200/70 rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between space-y-3">
                   <div className="space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-medium text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <UserCheck className="w-3.5 h-3.5 text-sky-600" />
-                        <span>Status Kehadiran Hari Ini</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                        <UserCheck className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        <span>Status Kehadiran</span>
                       </span>
-                      <span className="text-xs text-slate-400 font-medium">
+                      <span className="text-[11px] text-slate-400 font-medium shrink-0">
                         Presensi PKL
                       </span>
                     </div>
 
                     {/* Segmented Control iOS Style with aria-pressed */}
-                    <div className="bg-slate-100 p-1 rounded-xl grid grid-cols-3 gap-1">
+                    <div className="bg-slate-100/90 p-1 rounded-xl grid grid-cols-3 gap-1 shadow-inner">
                       <button
                         type="button"
                         aria-pressed={attendanceType === "PRESENT"}
                         onClick={() => setAttendanceType("PRESENT")}
                         className={cn(
-                          "min-h-[48px] py-2 px-2.5 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 flex items-center justify-center gap-1.5",
+                          "min-h-[44px] py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 flex items-center justify-center gap-1.5",
                           attendanceType === "PRESENT"
-                            ? "bg-white text-sky-600 shadow-sm font-semibold border border-sky-100/70"
+                            ? "bg-white text-sky-700 shadow-2xs font-semibold border border-sky-100/80"
                             : "text-slate-600 hover:text-slate-900"
                         )}
                       >
                         {attendanceType === "PRESENT" && (
                           <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0" />
                         )}
-                        <span className="whitespace-nowrap">Hadir Praktik</span>
+                        <span className="sm:hidden font-semibold">Hadir</span>
+                        <span className="hidden sm:inline whitespace-nowrap">Hadir Praktik</span>
                       </button>
 
                       <button
@@ -1381,16 +1480,16 @@ export default function NewLogPage() {
                           setIsNonCompetency(false);
                         }}
                         className={cn(
-                          "min-h-[48px] py-2 px-2.5 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 flex items-center justify-center gap-1.5",
+                          "min-h-[44px] py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 flex items-center justify-center gap-1.5",
                           attendanceType === "SICK"
-                            ? "bg-white text-rose-600 shadow-sm font-semibold border border-rose-100/70"
+                            ? "bg-white text-rose-700 shadow-2xs font-semibold border border-rose-100/80"
                             : "text-slate-600 hover:text-rose-600"
                         )}
                       >
                         {attendanceType === "SICK" && (
                           <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
                         )}
-                        <span className="whitespace-nowrap">Sakit</span>
+                        <span className="font-semibold">Sakit</span>
                       </button>
 
                       <button
@@ -1401,16 +1500,17 @@ export default function NewLogPage() {
                           setIsNonCompetency(false);
                         }}
                         className={cn(
-                          "min-h-[48px] py-2 px-2.5 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 flex items-center justify-center gap-1.5",
+                          "min-h-[44px] py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 flex items-center justify-center gap-1.5",
                           attendanceType === "PERMIT"
-                            ? "bg-white text-amber-700 shadow-sm font-semibold border border-amber-100/70"
+                            ? "bg-white text-amber-800 shadow-2xs font-semibold border border-amber-100/80"
                             : "text-slate-600 hover:text-slate-900"
                         )}
                       >
                         {attendanceType === "PERMIT" && (
                           <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
                         )}
-                        <span className="whitespace-nowrap">Izin Resmi</span>
+                        <span className="sm:hidden font-semibold">Izin</span>
+                        <span className="hidden sm:inline whitespace-nowrap">Izin Resmi</span>
                       </button>
                     </div>
 
@@ -1437,17 +1537,25 @@ export default function NewLogPage() {
                         </p>
                       </div>
                     )}
+
+                    {/* Info baris jika Hadir Praktik */}
+                    {attendanceType === "PRESENT" && (
+                      <p className="text-xs text-slate-600 flex items-center gap-1.5 font-normal leading-snug animate-in fade-in motion-reduce:animate-none">
+                        <Check className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        <span>Presensi aktif &bull; Mengisi kartu pekerjaan dan jam praktik hari ini.</span>
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 {/* 2. Tanggal Pelaksanaan Kegiatan (BR-003: H to H-3) */}
-                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-3">
+                <div className="bg-slate-50/60 border border-slate-200/70 rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between space-y-3">
                   <SmartDateSelector
                     selectedDate={selectedDate}
                     onSelectDate={(newDate) => setSelectedDate(newDate)}
                     minDate={minDate}
                     maxDate={today}
-                    offlineLogs={offlineLogs}
+                    offlineLogs={allExistingLogs}
                     className="py-0 border-b-0 h-full flex flex-col justify-between"
                   />
                 </div>
@@ -1456,7 +1564,7 @@ export default function NewLogPage() {
               {/* 3. Durasi Jam Kerja Industri (Shift Presensi - hanya jika Hadir) */}
               {!isSickOrPermit && (
                 <div className="space-y-4">
-                  <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5">
+                  <div className="bg-slate-50/60 border border-slate-200/70 rounded-2xl p-3.5 sm:p-5">
                     <SmartShiftSelector
                       durationJp={durationJp}
                       onChangeDuration={(newVal) => {
@@ -1529,201 +1637,123 @@ export default function NewLogPage() {
                     )}
                   >
                     <Sparkles className={cn("w-3.5 h-3.5", isNonCompetency ? "text-amber-400" : "text-slate-500")} />
-                    <span>{isNonCompetency ? "Kembali ke Kartu Kejuruan" : "Tugas Non-Teknis"}</span>
+                    <span>{isNonCompetency ? "Kembali ke Kartu Kejuruan" : "Tugas Operasional Umum"}</span>
                   </button>
                 </div>
               </div>
 
               {isNonCompetency ? (
-                /* Bantuan Operasional Non-RPL (Palet Netral/Slate) */
-                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-4 animate-in fade-in motion-reduce:animate-none duration-200">
+                /* Bantuan Operasional Non-RPL (Palet Netral/Slate) - Fleksibel & Bebas */
+                <div className="bg-slate-50/60 border border-slate-200/70 rounded-2xl p-3.5 sm:p-5 space-y-4 animate-in fade-in motion-reduce:animate-none duration-200">
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-700 border border-slate-200/80 flex items-center justify-center shrink-0 shadow-2xs">
                       <Sparkles className="w-5 h-5 text-slate-600" />
                     </div>
                     <div className="space-y-0.5">
                       <h3 className="text-sm sm:text-base font-semibold text-slate-900">
-                        Pelaporan Tugas Operasional Umum (Non-Teknis)
+                        Pelaporan Tugas Operasional Umum
                       </h3>
                       <p className="text-xs text-slate-600 font-normal leading-relaxed">
-                        Bila hari ini Anda ditugaskan membantu administrasi kantor, merapikan inventaris gudang, pengiriman kurir, atau kasir toko, laporkan secara apa adanya.
+                        Bila hari ini Anda membantu tugas pendukung atau operasional umum di luar materi kejuruan, ceritakan apa adanya.
                       </p>
                     </div>
                   </div>
 
-                  <div className="bg-transparent border-0 pl-0 py-1 text-xs text-slate-600 flex items-start sm:items-center gap-2">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5 sm:mt-0" />
-                    <p className="leading-relaxed">
-                      <strong className="font-medium text-slate-800">Hak Kehadiran Terjamin 100%:</strong>{" "}
-                      <span>
-                        Jam kehadiran PKL tetap dihitung penuh dan nilai rapor tidak akan dikurangi. Data ini membantu guru pembimbing memantau kesesuaian pembelajaran Anda di DUDI.
-                      </span>
-                    </p>
-                  </div>
-
+                  {/* Input Rincian Tugas Bebas */}
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-slate-700 block">
-                      Pilih Kategori Tugas Operasional:
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-                      {[
-                        {
-                          id: "ADMIN_UMUM",
-                          label: "Administrasi Dokumen",
-                          desc: "Fotokopi, arsip faktur, input data",
-                          icon: FileText,
-                        },
-                        {
-                          id: "KEBERSIHAN_GUDANG",
-                          label: "Gudang & Inventaris",
-                          desc: "Pengecekan stok, penataan barang",
-                          icon: Package,
-                        },
-                        {
-                          id: "KURIR",
-                          label: "Kurir & Distribusi",
-                          desc: "Pengantaran dokumen/logistik",
-                          icon: Truck,
-                        },
-                        {
-                          id: "JAGA_TOKO",
-                          label: "Kasir & Layanan Toko",
-                          desc: "Pelayanan transaksi & operasional",
-                          icon: Store,
-                        },
-                      ].map((cat) => {
-                        const IconComp = cat.icon;
-                        const isCatActive = nonCompetencyCategory === cat.id;
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="non-comp-custom-text" className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-slate-600" />
+                        <span>Apa tugas atau bantuan yang Anda kerjakan hari ini?</span>
+                      </label>
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        {nonCompetencyCustomText.length}/150
+                      </span>
+                    </div>
 
-                        return (
-                          <button
-                            key={cat.id}
-                            type="button"
-                            aria-pressed={isCatActive}
-                            onClick={() => setNonCompetencyCategory(cat.id)}
-                            className={cn(
-                              "p-3.5 rounded-2xl text-left transition-all duration-150 cursor-pointer flex flex-col justify-between relative group active:scale-[0.98] min-h-[90px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500",
-                              isCatActive
-                                ? "bg-slate-900 text-white shadow-xs"
-                                : "bg-white shadow-sm hover:shadow border border-slate-100"
-                            )}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <div
-                                className={cn(
-                                  "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border transition-colors",
-                                  isCatActive
-                                    ? "bg-white/20 text-white border-white/30 shadow-2xs"
-                                    : "bg-slate-100 text-slate-600 border-slate-200/60"
-                                )}
-                              >
-                                <IconComp className="w-4 h-4" />
-                              </div>
-                              <div
-                                className={cn(
-                                  "w-4 h-4 rounded-full flex items-center justify-center transition-all",
-                                  isCatActive
-                                    ? "bg-sky-400 text-slate-950"
-                                    : "border border-slate-300 bg-white"
-                                )}
-                              >
-                                {isCatActive && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                              </div>
-                            </div>
-                            <div>
-                              <p
-                                className={cn(
-                                  "text-xs font-semibold leading-tight",
-                                  isCatActive ? "text-white" : "text-slate-900"
-                                )}
-                              >
-                                {cat.label}
-                              </p>
-                              <p
-                                className={cn(
-                                  "text-xs font-normal mt-0.5 leading-snug",
-                                  isCatActive ? "text-slate-300" : "text-slate-500"
-                                )}
-                              >
-                                {cat.desc}
-                              </p>
-                            </div>
-                          </button>
-                        );
-                      })}
+                    <div className="relative">
+                      <input
+                        id="non-comp-custom-text"
+                        type="text"
+                        value={nonCompetencyCustomText}
+                        onChange={(e) => {
+                          const val = e.target.value.slice(0, 150);
+                          setNonCompetencyCustomText(val);
+                          setShortNote(val);
+                        }}
+                        placeholder="Contoh: Merapikan arsip berkas, bantu inventaris, antar dokumen, melayani tamu, dll."
+                        className="w-full min-h-[44px] py-2.5 pl-3.5 pr-10 rounded-xl bg-white border border-slate-200 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-2xs"
+                      />
+                      {nonCompetencyCustomText && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNonCompetencyCustomText("");
+                            setShortNote("");
+                          }}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-600 rounded-full cursor-pointer"
+                          aria-label="Hapus rincian tugas"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
               ) : (
-                /* Kartu Pekerjaan Teknis Kejuruan: List Vertikal Satu Kolom */
-                <div className="space-y-3">
-                  {/* Category Filter Pills & Search (Sticky top-0 di dalam area scroll) */}
-                  <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-md py-3 border-b border-slate-100 flex flex-col sm:flex-row gap-2.5 sm:items-center justify-between">
-                    {/* Search Input di sebelah kiri/atas */}
-                    <div className="relative w-full sm:w-64 shrink-0">
-                      <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type="search"
-                        aria-label="Cari tugas pekerjaan atau kompetensi"
-                        value={jobCardSearch}
-                        onChange={(e) => setJobCardSearch(e.target.value)}
-                        placeholder="Cari tugas pekerjaan..."
-                        className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 min-h-[38px]"
-                      />
-                    </div>
-
-                    {/* Deretan Pill Kategori (Horizontal scroll tanpa wrap yang berantakan) */}
-                    <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-nowrap pb-1 sm:pb-0">
-                      {uniqueCategories.map((cat) => (
-                        <button
-                          key={cat}
-                          type="button"
-                          aria-pressed={jobCardCategory === cat}
-                          onClick={() => setJobCardCategory(cat)}
-                          className={cn(
-                            "min-h-[36px] px-3.5 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer active:scale-95 shrink-0 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500",
-                            jobCardCategory === cat
-                              ? "bg-slate-900 text-white shadow-2xs"
-                              : "bg-white text-slate-700 border border-slate-200/80 hover:bg-slate-100"
-                          )}
-                        >
-                          {cat === "ALL" ? "Semua Kategori" : cat}
-                        </button>
-                      ))}
-                    </div>
+                /* Kartu Pekerjaan Teknis Kejuruan: Mobile-First, Ramping, & Nyaman Disentuh */
+                <div className="space-y-2.5">
+                  {/* Full-width Thumb-friendly Search Bar with Clear Button */}
+                  <div className="relative w-full">
+                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    <input
+                      type="search"
+                      aria-label="Cari tugas pekerjaan"
+                      value={jobCardSearch}
+                      onChange={(e) => setJobCardSearch(e.target.value)}
+                      placeholder="Cari tugas kejuruan..."
+                      className="w-full pl-10 pr-9 min-h-[44px] py-2.5 rounded-xl bg-white border border-slate-200 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-2xs"
+                    />
+                    {jobCardSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setJobCardSearch("")}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-600 rounded-full cursor-pointer"
+                        aria-label="Hapus pencarian"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
 
                   {/* Card Limit Warning Message */}
                   {cardLimitError && (
                     <div
                       role="alert"
-                      className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 flex items-center gap-2 animate-in fade-in motion-reduce:animate-none"
+                      className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center gap-2 animate-in fade-in motion-reduce:animate-none"
                     >
-                      <AlertTriangle className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                       <span>{cardLimitError}</span>
                     </div>
                   )}
 
-                  {/* Empty State with Reset Filter */}
+                  {/* Empty State */}
                   {filteredJobCards.length === 0 ? (
-                    <div className="p-8 text-center bg-white rounded-2xl shadow-sm space-y-3 border border-slate-100">
-                      <p className="text-xs sm:text-sm text-slate-600">
-                        Tidak ada tugas yang cocok. Coba kata kunci lain.
+                    <div className="p-6 text-center bg-white rounded-2xl shadow-2xs space-y-2 border border-slate-100">
+                      <p className="text-xs text-slate-500">
+                        Tidak ada tugas yang cocok dengan pencarian &quot;{jobCardSearch}&quot;.
                       </p>
                       <button
                         type="button"
-                        onClick={() => {
-                          setJobCardSearch("");
-                          setJobCardCategory("ALL");
-                        }}
-                        className="min-h-[40px] px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold transition active:scale-95 cursor-pointer shadow-2xs"
+                        onClick={() => setJobCardSearch("")}
+                        className="min-h-[38px] px-3.5 py-1.5 rounded-lg bg-sky-500 text-white text-xs font-semibold transition active:scale-95 cursor-pointer shadow-2xs"
                       >
-                        Reset filter
+                        Tampilkan Semua
                       </button>
                     </div>
                   ) : (
-                    /* List Vertikal Satu Kolom (Posisi stabil menggunakan filteredJobCards tanpa layout shift) */
-                    <div className="flex flex-col gap-2.5 pt-1">
+                    /* Grid 2-Kolom Desktop & 1-Kolom Mobile: Rapi, Seimbang, & Bebas Scrollbar Terpotong */
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
                       {filteredJobCards.map((card) => {
                         const isSelected = selectedJobCardIds.includes(card.id);
                         const orderIndex = selectedJobCardIds.indexOf(card.id);
@@ -1738,114 +1768,89 @@ export default function NewLogPage() {
                               handleToggleJobCard(card.id);
                             }}
                             className={cn(
-                              "p-4 sm:p-5 rounded-2xl bg-white shadow-sm text-left transition-all duration-150 flex flex-col relative border",
+                              "p-3 sm:p-3.5 rounded-2xl border transition-all cursor-pointer select-none flex flex-col justify-between min-h-[64px]",
                               isSelected
-                                ? "bg-sky-50/40 border-sky-300 ring-1 ring-sky-400/80 shadow-sm"
+                                ? "bg-sky-50/70 border-sky-400 ring-2 ring-sky-500/15 shadow-xs"
                                 : isLimitReached
-                                  ? "border-slate-100 opacity-60 cursor-not-allowed"
-                                  : "border-slate-100 hover:bg-slate-50/60 hover:border-slate-200 cursor-pointer"
+                                ? "opacity-40 cursor-not-allowed bg-slate-50/60 border-slate-200"
+                                : "bg-white border-slate-200/90 hover:border-sky-300 hover:bg-slate-50/60 shadow-2xs active:scale-[0.99]"
                             )}
                           >
-                            {/* Susunan Atas: Checkbox 44x44px + Badge Kategori & SKKNI + Judul Tugas */}
-                            <div className="flex items-start gap-3">
-                              {/* Checkbox 44x44px di kiri */}
-                              <button
-                                type="button"
-                                role="checkbox"
-                                aria-checked={isSelected}
-                                aria-disabled={isLimitReached}
-                                aria-label={`Pilih tugas ${card.title}`}
-                                disabled={isLimitReached}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleToggleJobCard(card.id);
-                                }}
+                            <div className="flex items-start gap-2.5 min-w-0">
+                              {/* Checkbox 20x20 */}
+                              <div
                                 className={cn(
-                                  "w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center shrink-0 transition-all cursor-pointer mt-0.5",
+                                  "w-5 h-5 min-w-[20px] rounded-md flex items-center justify-center shrink-0 mt-0.5 transition-all border",
                                   isSelected
-                                    ? "bg-sky-500 text-white shadow-xs"
-                                    : "border-2 border-slate-200 hover:border-slate-400 bg-white"
+                                    ? "bg-sky-500 border-sky-500 text-white shadow-2xs"
+                                    : "border-slate-300 bg-white"
                                 )}
                               >
                                 {isSelected ? (
                                   selectedJobCardIds.length > 1 ? (
-                                    <span className="text-xs font-bold font-mono">#{orderIndex + 1}</span>
+                                    <span className="text-[10px] font-bold font-mono">#{orderIndex + 1}</span>
                                   ) : (
-                                    <Check className="w-5 h-5 stroke-[2.5]" />
+                                    <Check className="w-3.5 h-3.5 stroke-[3]" />
                                   )
                                 ) : null}
-                              </button>
+                              </div>
 
-                              {/* Judul + Badge Kategori & SKKNI di tengah secara utuh */}
+                              {/* Judul Tugas & Info Alat */}
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                                  <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md shrink-0">
-                                    {card.category}
-                                  </span>
-                                  {card.skkni && (
-                                    <span className="text-[11px] font-mono text-slate-500 bg-slate-50 border border-slate-200/60 px-1.5 py-0.5 rounded-md shrink-0">
-                                      {card.skkni}
-                                    </span>
-                                  )}
-                                  {isSelected && (
-                                    <span className="text-[11px] font-semibold text-sky-700 bg-sky-100/80 px-2 py-0.5 rounded-md shrink-0">
-                                      Terpilih
+                                <div className="flex items-start justify-between gap-1.5">
+                                  <p
+                                    className={cn(
+                                      "text-xs sm:text-[13px] leading-snug break-words",
+                                      isSelected ? "text-sky-950 font-semibold" : "text-slate-800 font-medium"
+                                    )}
+                                  >
+                                    {card.title}
+                                  </p>
+
+                                  {card.isDudiSupported && (
+                                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded-md shrink-0">
+                                      ⭐ DUDI
                                     </span>
                                   )}
                                 </div>
-                                <h3
-                                  className={cn(
-                                    "text-xs sm:text-sm font-semibold leading-snug",
-                                    isSelected ? "text-sky-950 font-bold" : "text-slate-800"
-                                  )}
-                                >
-                                  {card.title}
-                                </h3>
+
+                                {card.tools && card.tools.length > 0 && (
+                                  <p className="text-[11px] text-slate-400 font-normal mt-1 truncate">
+                                    {card.tools.slice(0, 3).join(" · ")}
+                                  </p>
+                                )}
                               </div>
                             </div>
 
-                            {/* Bagian Bawah: Pemilih Tingkat Penguasaan SOP (Segmented Pills 1-Tap) */}
+                            {/* Pilihan Tingkat SOP Segaris saat Terpilih */}
                             {isSelected && (
                               <div
-                                className="pt-3 mt-3 border-t border-sky-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+                                className="pt-2 mt-2 border-t border-sky-200/60 space-y-1.5 animate-in fade-in duration-150"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <div className="flex items-center gap-1.5 text-xs">
-                                  <span className="text-slate-500 font-medium">Tingkat Penguasaan:</span>
-                                  <span className="text-sky-700 font-semibold font-mono">
-                                    {AUTONOMY_LEVEL_OPTIONS.find((opt) => opt.level === currentCardAutonomy)?.label}
-                                    <span className="text-slate-400 font-normal"> ({AUTONOMY_LEVEL_OPTIONS.find((opt) => opt.level === currentCardAutonomy)?.badge})</span>
+                                <div className="flex items-center justify-between text-[11px] text-slate-500">
+                                  <span>Tingkat Praktik di DUDI:</span>
+                                  <span className="font-semibold text-sky-700">
+                                    {AUTONOMY_LEVEL_OPTIONS.find((o) => o.level === currentCardAutonomy)?.label}
                                   </span>
                                 </div>
-
-                                {/* 3 Tombol Segmented Pill */}
-                                <div
-                                  role="radiogroup"
-                                  aria-label={`Tingkat penguasaan untuk ${card.title}`}
-                                  className="flex items-center p-1 bg-slate-100/90 rounded-xl gap-1 shrink-0 self-start sm:self-auto"
-                                >
+                                <div className="grid grid-cols-3 gap-1 bg-white/90 p-0.5 rounded-lg border border-sky-200/70">
                                   {AUTONOMY_LEVEL_OPTIONS.map((opt) => {
                                     const isLvlActive = currentCardAutonomy === opt.level;
                                     return (
                                       <button
                                         key={opt.level}
                                         type="button"
-                                        role="radio"
-                                        aria-checked={isLvlActive}
-                                        aria-label={`${opt.label} (${opt.badge})`}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleSetCardAutonomy(card.id, opt.level);
-                                        }}
+                                        onClick={() => handleSetCardAutonomy(card.id, opt.level)}
                                         className={cn(
-                                          "min-h-[36px] px-3 py-1 rounded-lg text-xs font-medium transition cursor-pointer active:scale-95 flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500",
+                                          "min-h-[32px] py-1 px-1 rounded-md text-[11px] font-medium transition cursor-pointer text-center active:scale-95 flex items-center justify-center gap-1",
                                           isLvlActive
-                                            ? "bg-white text-sky-700 font-semibold shadow-xs"
+                                            ? "bg-sky-500 text-white shadow-2xs font-semibold"
                                             : "text-slate-600 hover:text-slate-900"
                                         )}
                                       >
                                         <span>{opt.label}</span>
-                                        {isLvlActive && <Check className="w-3 h-3 text-sky-600 stroke-[2.5]" />}
+                                        {isLvlActive && <Check className="w-3 h-3 stroke-[2.5] text-white shrink-0" />}
                                       </button>
                                     );
                                   })}
@@ -1858,16 +1863,35 @@ export default function NewLogPage() {
                     </div>
                   )}
 
-                  {/* Single-Line Compact Time Allocation Bar */}
+                  {/* Banner Terpadu: Tugas Operasional Umum */}
+                  <div
+                    onClick={() => setIsNonCompetency(true)}
+                    className="p-3 sm:p-3.5 rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 hover:bg-slate-100/70 hover:border-slate-400 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-2xs"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-xl bg-slate-200/80 text-slate-600 flex items-center justify-center shrink-0">
+                        <Sparkles className="w-4 h-4 text-slate-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs sm:text-[13px] font-semibold text-slate-800">
+                          Mengerjakan Tugas Operasional Umum Hari Ini?
+                        </p>
+                        <p className="text-[11px] text-slate-500 truncate">
+                          Bantuan administrasi kantor, penataan gudang, kasir, kurir, dll. (Jam PKL tetap sah 100%)
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-semibold text-sky-600 shrink-0 hover:underline">
+                      Pilih &rarr;
+                    </span>
+                  </div>
+
+                  {/* Summary Bar Singkat */}
                   {selectedJobCardIds.length > 0 && (
-                    <div className="px-4 py-3 bg-white rounded-2xl shadow-sm text-xs flex items-center justify-between border border-slate-200/80 mt-2">
-                      <span className="text-slate-600 font-normal">Alokasi Waktu ({selectedJobCardIds.length} tugas):</span>
+                    <div className="px-3.5 py-2.5 bg-slate-50/80 rounded-xl text-xs flex items-center justify-between border border-slate-200/70">
+                      <span className="text-slate-600">Terpilih: {selectedJobCardIds.length} tugas</span>
                       <span className="font-semibold text-sky-700 text-xs">
-                        {selectedJobCardIds.length === 1
-                          ? `${durationJp} Jam Kerja penuh (Fokus 1 tugas)`
-                          : selectedJobCardIds.length === 2
-                            ? `${Math.ceil(durationJp / 2)} Jam + ${Math.floor(durationJp / 2)} Jam (${durationJp} Jam total)`
-                            : `Dibagi rata ke 3 tugas (${durationJp} Jam total)`}
+                        {durationJp} Jam Kerja ({durationJp >= 8 ? "Full day" : "Setengah hari"})
                       </span>
                     </div>
                   )}
@@ -1884,7 +1908,7 @@ export default function NewLogPage() {
             <div className="pt-3 space-y-4 animate-in fade-in duration-200">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
                 {/* 5. Upload Foto Bukti Praktik & Kuas Sensor Privasi (Sub-card seragam) */}
-                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-3 flex flex-col justify-between h-full">
+                <div className="bg-slate-50/60 border border-slate-200/70 rounded-2xl p-3.5 sm:p-5 space-y-3 flex flex-col justify-between h-full">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
                       <h3 className="text-[11px] font-medium text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
@@ -1956,15 +1980,6 @@ export default function NewLogPage() {
                             <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
-
-                        {/* Info Bar Kompresi WebP */}
-                        <div className="p-3 rounded-xl bg-white border border-slate-200/80 flex items-center justify-between gap-2.5 shadow-2xs">
-                          <span className="inline-flex items-center gap-1 text-slate-700 font-medium bg-slate-100 px-2.5 py-1 rounded-lg text-xs">
-                            <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
-                            <span>{compressedPhoto.savingsText}</span>
-                          </span>
-                          <span className="text-[11px] text-slate-500 font-medium">Siap diverifikasi</span>
-                        </div>
                       </div>
                     ) : (
                       <div className="space-y-2.5">
@@ -2030,7 +2045,7 @@ export default function NewLogPage() {
                 </div>
 
                 {/* 6. Catatan Singkat Aktivitas / Diagnosa Medis (Sub-card seragam) */}
-                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-3 flex flex-col justify-between h-full">
+                <div className="bg-slate-50/60 border border-slate-200/70 rounded-2xl p-3.5 sm:p-5 space-y-3 flex flex-col justify-between h-full">
                   <div className="space-y-3 flex-1 flex flex-col">
                     <div className="flex items-center justify-between mb-1">
                       <label htmlFor="short-note" className="text-[11px] font-medium text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
@@ -2132,10 +2147,11 @@ export default function NewLogPage() {
           )}
 
           {/* ─── Desktop Action Buttons Bar (Satu baris dengan tombol step) ─── */}
-          <div className="hidden lg:flex items-center justify-between gap-3 pt-5 border-t border-slate-100">
+          <div className="hidden lg:flex items-center justify-between gap-3 pt-4">
             <div>
               {step === 1 ? (
                 <Link
+                  key="desktop-cancel-btn"
                   href="/student/home"
                   className="min-h-[44px] py-2.5 px-6 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 transition border border-slate-200/80"
                 >
@@ -2143,6 +2159,7 @@ export default function NewLogPage() {
                 </Link>
               ) : (
                 <button
+                  key="desktop-back-btn"
                   type="button"
                   onClick={handlePrevStep}
                   className="min-h-[44px] py-2.5 px-6 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 transition border border-slate-200/80 cursor-pointer"
@@ -2156,6 +2173,7 @@ export default function NewLogPage() {
             <div className="flex items-center gap-3">
               {step < 3 ? (
                 <button
+                  key="desktop-next-btn"
                   type="button"
                   onClick={handleNextStep}
                   disabled={step === 1 ? isStep1Disabled : isStep2Disabled}
@@ -2173,6 +2191,7 @@ export default function NewLogPage() {
                     </span>
                   )}
                   <button
+                    key="desktop-submit-btn"
                     type="submit"
                     disabled={submitDisabled}
                     className="min-h-[44px] py-2.5 px-8 bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white rounded-full text-xs sm:text-sm font-semibold shadow-pill transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -2185,52 +2204,44 @@ export default function NewLogPage() {
             </div>
           </div>
         </div>
-
-        {/* ─── Bottom Status & Quick Action Footer (Group E.4) ─── */}
-        <div className="pt-5 border-t border-slate-200/70 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600 font-normal">
-          <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                "w-2.5 h-2.5 rounded-full shrink-0",
-                isOnline ? "bg-emerald-500" : "bg-amber-500"
-              )}
-            />
-            <span className="text-xs text-slate-600 font-medium">
-              {isOnline
-                ? "Tersimpan di HP, otomatis terkirim saat online"
-                : "Mode Offline: Tersimpan di HP"}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link
-              href="/student/log/history"
-              className="text-slate-700 hover:text-slate-900 font-semibold text-xs hover:underline flex items-center gap-1 min-h-[36px]"
-            >
-              <span>Lihat Riwayat Jurnal</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        </div>
       </section>
 
       {/* ─────────────────────────────────────────────────────────────────────────────
-          MOBILE STICKY STEP NAVIGATION BAR (Selalu satu baris sesuai Apple HIG)
+          MOBILE STICKY STEP NAVIGATION BAR (Selalu satu baris di dasar layar)
       ───────────────────────────────────────────────────────────────────────────── */}
-      <div className="fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px))] md:bottom-0 left-0 md:left-[88px] lg:left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-4 py-3 lg:hidden shadow-lg">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-4 pt-2.5 pb-[max(env(safe-area-inset-bottom,0px),0.75rem)] lg:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
         <div className="flex items-center justify-between gap-3 min-h-[44px]">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-slate-800 truncate">
-              {stepSummaryText}
+            <p
+              className={cn(
+                "text-xs font-semibold truncate",
+                step === 2 && !isNonCompetency && selectedJobCardIds.length === 0
+                  ? "text-amber-600"
+                  : "text-slate-800"
+              )}
+            >
+              {step === 2 && !isNonCompetency && selectedJobCardIds.length === 0 && (
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 align-middle" />
+              )}
+              <span>{stepSummaryText}</span>
             </p>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {step > 1 && (
+            {step === 1 ? (
+              <Link
+                key="mobile-cancel-btn"
+                href="/student/home"
+                className="min-h-[44px] px-3.5 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium border border-slate-200 active:scale-95 flex items-center justify-center transition"
+              >
+                <span>Batal</span>
+              </Link>
+            ) : (
               <button
+                key="mobile-back-btn"
                 type="button"
                 onClick={handlePrevStep}
-                className="min-h-[44px] px-3.5 py-2 rounded-full bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200 active:scale-95 flex items-center gap-1 cursor-pointer"
+                className="min-h-[44px] px-3.5 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium border border-slate-200 active:scale-95 flex items-center gap-1 cursor-pointer transition"
               >
                 <ChevronLeft className="w-4 h-4" />
                 <span>Kembali</span>
@@ -2239,6 +2250,7 @@ export default function NewLogPage() {
 
             {step < 3 ? (
               <button
+                key="mobile-next-btn"
                 type="button"
                 onClick={handleNextStep}
                 disabled={step === 1 ? isStep1Disabled : isStep2Disabled}
@@ -2249,6 +2261,7 @@ export default function NewLogPage() {
               </button>
             ) : (
               <button
+                key="mobile-submit-btn"
                 type="submit"
                 disabled={submitDisabled}
                 className="min-h-[44px] px-5 py-2 bg-sky-500 hover:bg-sky-600 active:scale-95 text-white rounded-full text-xs font-semibold shadow-pill transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -2281,27 +2294,30 @@ export default function NewLogPage() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-success-title"
-          className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in-0 duration-150 motion-reduce:animate-none"
+          className="fixed inset-0 z-[999] bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in-0 duration-150 motion-reduce:animate-none"
           style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
         >
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-modal border border-slate-200/80 space-y-4 animate-in zoom-in-95 duration-150 motion-reduce:animate-none text-center">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200/70 flex items-center justify-center mx-auto shadow-2xs">
-              <Check className="w-6 h-6 stroke-[3]" />
+          <div className="bg-white rounded-3xl w-full max-w-[440px] sm:max-w-md max-h-[92vh] overflow-y-auto p-5 sm:p-7 shadow-modal border border-slate-200/80 space-y-4 animate-in zoom-in-95 duration-150 motion-reduce:animate-none text-center">
+            {/* Header: Icon, Title & Subtitle */}
+            <div className="space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center mx-auto shadow-2xs">
+                <Check className="w-6 h-6 stroke-[3]" />
+              </div>
+              <div>
+                <h2 id="modal-success-title" className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+                  Jurnal Berhasil Disimpan!
+                </h2>
+                <p className="text-xs text-slate-500 mt-1 font-normal leading-relaxed max-w-xs mx-auto">
+                  Data tersimpan di perangkat offline dan siap diverifikasi oleh mentor industri.
+                </p>
+              </div>
             </div>
 
-            <div>
-              <h2 id="modal-success-title" className="text-lg font-semibold text-slate-900 tracking-tight">
-                Jurnal Berhasil Disimpan!
-              </h2>
-              <p className="text-xs text-slate-600 mt-1 font-normal">
-                Data tersimpan di penyimpanan offline perangkat Anda dan siap diverifikasi oleh mentor industri.
-              </p>
-            </div>
-
-            <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80 text-xs text-slate-600 space-y-2.5 text-left">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600 font-medium">Status Presensi:</span>
-                <span className="font-semibold text-sky-700">
+            {/* Ringkasan Jurnal (Card Lega, Proporsional, & Bersih) */}
+            <div className="p-3.5 sm:p-4 bg-slate-50/70 rounded-2xl border border-slate-200/70 text-xs text-slate-600 space-y-2.5 text-left">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-slate-500 font-medium shrink-0">Status Presensi</span>
+                <span className="font-semibold text-sky-700 text-right">
                   {attendanceType === "PRESENT"
                     ? "Hadir Praktik"
                     : attendanceType === "SICK"
@@ -2309,32 +2325,36 @@ export default function NewLogPage() {
                       : "Izin Resmi"}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600 font-medium">Status Antrean:</span>
-                <span className="font-semibold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200/70 text-xs">
-                  Tersimpan Offline (Siap Sinkron)
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-slate-500 font-medium shrink-0">Penyimpanan</span>
+                <span className="inline-flex items-center gap-1.5 font-medium text-amber-800 bg-amber-50/90 px-2.5 py-0.5 rounded-full border border-amber-200/80 text-[11px] shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                  <span>Offline (Siap Sinkron)</span>
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600 font-medium">Durasi:</span>
-                <span className="font-semibold text-slate-900 font-mono">
-                  {durationJp} Jam Kerja
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-slate-500 font-medium shrink-0">Durasi Praktik</span>
+                <span className="font-semibold text-slate-800 font-mono text-right">
+                  {durationJp} Jam Kerja <span className="text-slate-400 font-sans font-normal">(≈ {convertRealHoursToJp(durationJp).toFixed(1)} JP)</span>
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600 font-medium">Bukti Foto / Surat:</span>
-                <span className="font-semibold text-slate-900">
-                  {compressedPhoto ? `Foto Terlampir (${(compressedPhoto.sizeBytes / 1024).toFixed(1)} KB)` : "Tanpa Foto"}
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-slate-500 font-medium shrink-0">Bukti Lampiran</span>
+                <span className="font-medium text-slate-700 text-right truncate">
+                  {compressedPhoto ? "Foto Terlampir" : "Tanpa Foto"}
                 </span>
               </div>
 
               {/* Daftar Kartu Pekerjaan & Tingkat Per Kartu (Group E.6 & Kelompok 3.17) */}
               {attendanceType === "PRESENT" && !isNonCompetency && selectedJobCardsDetail.length > 0 && (
-                <div className="pt-2 border-t border-slate-200/80 space-y-1.5">
-                  <span className="text-xs font-semibold text-slate-700 block">
-                    Kartu Pekerjaan Terpilih:
-                  </span>
-                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                <div className="pt-2.5 border-t border-slate-200/70 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-slate-700">Kartu Tugas Terpilih</span>
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      {selectedJobCardsDetail.length} Tugas
+                    </span>
+                  </div>
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-0.5">
                     {selectedJobCardsDetail.map((card) => {
                       const level = cardAutonomyMap[card.id] || autonomyLevel;
                       const levelLabel =
@@ -2342,10 +2362,12 @@ export default function NewLogPage() {
                       return (
                         <div
                           key={card.id}
-                          className="p-2 rounded-xl bg-white border border-slate-200 text-xs flex items-center justify-between gap-2"
+                          className="p-2.5 rounded-xl bg-white border border-slate-200/80 text-xs flex items-center justify-between gap-2.5 shadow-2xs"
                         >
-                          <span className="font-medium text-slate-800 truncate">{card.title}</span>
-                          <span className="shrink-0 px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 font-semibold text-xs border border-sky-100">
+                          <span className="font-medium text-slate-800 leading-snug flex-1 min-w-0">
+                            {card.title}
+                          </span>
+                          <span className="shrink-0 px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 font-semibold text-[11px] border border-sky-100">
                             {levelLabel}
                           </span>
                         </div>
@@ -2357,14 +2379,14 @@ export default function NewLogPage() {
             </div>
 
             {/* Instant Mentor Verification Hand-Off Buttons (Pill-shaped) */}
-            <div className="space-y-2 pt-1">
+            <div className="space-y-2.5 pt-0.5">
               <button
                 type="button"
                 onClick={() => setShowQrModal(true)}
-                className="w-full min-h-[44px] py-2.5 px-4 rounded-full bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-2 transition shadow-pill cursor-pointer"
+                className="w-full min-h-[46px] py-2.5 px-4 rounded-xl sm:rounded-full bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow-pill cursor-pointer"
               >
                 <QrCode className="w-4 h-4" />
-                <span>Minta Validasi PIN Mentor Sekarang (QR)</span>
+                <span>Buka QR Validasi PIN Mentor</span>
               </button>
 
               {(() => {
@@ -2376,7 +2398,8 @@ export default function NewLogPage() {
                     : `${durationJp} Jam Kerja`;
 
                 if (isDemoMode) {
-                  const demoVerificationUrl = "https://vokalink.id/v/andi-pratama-rpl-2026";
+                  const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+                  const demoVerificationUrl = `${origin}/v/mock-demo-token-123`;
                   const waMessage = `Halo ${mentorDisplayName}, saya telah mengisi jurnal PKL VokaLink hari ini (${durationJp} Jam Kerja - ${attendanceType === "PRESENT" ? tasksSummary : attendanceType === "SICK" ? "Sakit (Surat Dokter)" : "Izin Resmi"}). Mohon kesediaannya untuk memvalidasi logbook saya melalui tautan berikut: ${demoVerificationUrl}`;
 
                   return (
@@ -2384,7 +2407,7 @@ export default function NewLogPage() {
                       href={`https://wa.me/?text=${encodeURIComponent(waMessage)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full min-h-[44px] py-2.5 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-2 transition shadow-xs"
+                      className="w-full min-h-[44px] py-2.5 px-4 rounded-xl sm:rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-2 transition shadow-xs"
                     >
                       <Share2 className="w-4 h-4" />
                       <span>Kirim Tautan ke WhatsApp Mentor</span>
@@ -2393,26 +2416,26 @@ export default function NewLogPage() {
                 }
 
                 return (
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs text-slate-600 text-left flex items-start gap-2">
+                  <div className="p-3 rounded-2xl bg-sky-50/60 border border-sky-100 text-xs text-slate-600 text-left flex items-start gap-2.5">
                     <Info className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                    <span className="leading-relaxed">
-                      Tautan verifikasi WhatsApp dapat dibagikan setelah jurnal berhasil disinkronkan ke server. Untuk verifikasi langsung di tempat saat ini, silakan tunjukkan kode QR mentor di atas.
-                    </span>
+                    <p className="leading-relaxed text-[11.5px] text-slate-600">
+                      Tunjukkan kode QR di atas untuk validasi tatap muka via PIN mentor. Tautan WhatsApp otomatis aktif saat perangkat Anda kembali online.
+                    </p>
                   </div>
                 );
               })()}
 
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className="grid grid-cols-2 gap-2.5 pt-1">
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="py-2.5 px-3 min-h-[40px] rounded-full bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 font-semibold text-xs transition cursor-pointer border border-slate-200/80"
+                  className="py-2.5 px-3 min-h-[42px] rounded-xl sm:rounded-full bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 font-semibold text-xs transition cursor-pointer border border-slate-200/80"
                 >
-                  Catat Log Lain
+                  Catat Lagi
                 </button>
                 <Link
                   href="/student/log/history"
-                  className="py-2.5 px-3 min-h-[40px] rounded-full bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition shadow-xs"
+                  className="py-2.5 px-3 min-h-[42px] rounded-xl sm:rounded-full bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition shadow-xs"
                 >
                   <span>Lihat Riwayat</span>
                   <ArrowRight className="w-3.5 h-3.5" />

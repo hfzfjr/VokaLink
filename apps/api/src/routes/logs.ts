@@ -327,6 +327,27 @@ logsRouter.put(
         return;
       }
 
+      // 5b. Anti-Fraud Guard: Deteksi duplikasi foto identik (re-upload foto yang sama)
+      const duplicatePhoto = await prisma.dailyLog.findFirst({
+        where: {
+          studentId: log.studentId,
+          evidenceSha256: computedSha256,
+          id: { not: log.id },
+        },
+        select: { id: true, logDate: true },
+      });
+
+      if (duplicatePhoto) {
+        next(
+          new AppError(
+            `Foto ini sudah pernah diunggah untuk jurnal tanggal ${duplicatePhoto.logDate.toISOString().split("T")[0]}. Harap lampirkan foto kegiatan baru hari ini.`,
+            409,
+            "DUPLICATE_PHOTO"
+          )
+        );
+        return;
+      }
+
       // 6. Simpan URL bukti (di storage Supabase atau path bukti)
       const evidenceUrl = `/evidence/${clientLogUuid}.${magicCheck.mimeType === "image/webp" ? "webp" : "jpg"}`;
 

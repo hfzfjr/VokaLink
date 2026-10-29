@@ -12,6 +12,7 @@ import {
   FileBadge,
   GraduationCap,
   RefreshCw,
+  ShieldCheck,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Skeleton from "@/components/ui/Skeleton";
@@ -27,6 +28,20 @@ interface PageProps {
   params: Promise<{ token: string }>;
 }
 
+const NINE_ASPECTS = [
+  // Soft Skills (5 Aspek)
+  { id: "discipline", label: "Kedisiplinan", desc: "Ketepatan waktu kehadiran & jam kerja", group: "Soft Skills" },
+  { id: "teamwork", label: "Kerja Sama", desc: "Komunikasi & koordinasi dalam tim", group: "Soft Skills" },
+  { id: "responsibility", label: "Tanggung Jawab", desc: "Keseriusan menyelesaikan tugas", group: "Soft Skills" },
+  { id: "initiative", label: "Inisiatif & Mandiri", desc: "Proaktif mencari solusi pekerjaan", group: "Soft Skills" },
+  { id: "workEthics", label: "Etika & Sopan Santun", desc: "Kerapian, tutur kata, & 5R/5S", group: "Soft Skills" },
+  // Hard Skills (4 Aspek)
+  { id: "technicalSkills", label: "Keterampilan Kerja", desc: "Penguasaan alat, mesin, atau software", group: "Hard Skills" },
+  { id: "workQuality", label: "Kualitas Hasil Kerja", desc: "Presisi & standar mutu industri", group: "Hard Skills" },
+  { id: "workSpeed", label: "Kecepatan & Ketepatan", desc: "Efisiensi target waktu pengerjaan", group: "Hard Skills" },
+  { id: "occupationalSafetyK3", label: "K3 (Keselamatan Kerja)", desc: "Penerapan prosedur aman & K3LH", group: "Hard Skills" },
+];
+
 export default function MentorEndorsementPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const token = resolvedParams.token;
@@ -41,6 +56,31 @@ export default function MentorEndorsementPage({ params }: PageProps) {
   const [quote, setQuote] = useState<string>("");
   const [pin, setPin] = useState<string>("");
   const [deviceToken, setDeviceToken] = useState<string>("");
+
+  // 9 Aspek Baku Penilaian Lapangan (5 Soft Skills + 4 Hard Skills)
+  const [aspectRatings, setAspectRatings] = useState<Record<string, number>>({
+    discipline: 4,
+    teamwork: 4,
+    responsibility: 4,
+    initiative: 3,
+    workEthics: 4,
+    technicalSkills: 4,
+    workQuality: 4,
+    workSpeed: 3,
+    occupationalSafetyK3: 4,
+  });
+  const [showDetailedAspects, setShowDetailedAspects] = useState(false);
+
+  const handleRatingChange = (aspectId: string, rating: number) => {
+    const updated = { ...aspectRatings, [aspectId]: rating };
+    setAspectRatings(updated);
+
+    // Hitung rata-rata skor numerik (level 1=75, level 2=82, level 3=90, level 4=98)
+    const ratingValues: Record<number, number> = { 1: 75, 2: 82, 3: 90, 4: 98 };
+    const values = Object.values(updated).map((r) => ratingValues[r] ?? 85);
+    const avg = Math.round(values.reduce((sum, v) => sum + v, 0) / values.length);
+    setAttitudeScore(avg);
+  };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successResult, setSuccessResult] = useState<any | null>(null);
@@ -117,6 +157,7 @@ export default function MentorEndorsementPage({ params }: PageProps) {
         attitudeScore,
         selectedBadges,
         endorsementQuote: quote.trim() || undefined,
+        aspectRatings: aspectRatings as any,
         deviceToken: deviceToken || "device-token-secret-valid-12345678",
         pin,
       });
@@ -383,6 +424,113 @@ export default function MentorEndorsementPage({ params }: PageProps) {
                     {p.label}
                   </button>
                 ))}
+              </div>
+
+              {/* Toggle 9 Aspek Baku Penilaian Lapangan */}
+              <div className="pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowDetailedAspects(!showDetailedAspects)}
+                  className="w-full py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold flex items-center justify-between transition cursor-pointer"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-sky-600" />
+                    <span>Rincian 9 Aspek Standar Industri (Soft &amp; Hard Skills)</span>
+                  </span>
+                  <span className="text-[11px] text-sky-700 font-semibold underline">
+                    {showDetailedAspects ? "Sembunyikan" : "Buka Rubrik Detail"}
+                  </span>
+                </button>
+
+                {showDetailedAspects && (
+                  <div className="mt-3 space-y-4 animate-in fade-in duration-200">
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Pilih level pencapaian siswa untuk setiap indikator resmi (1 = Perlu Bimbingan, 2 = Cukup, 3 = Baik, 4 = Sangat Baik). Nilai rata-rata akan otomatis menyelaraskan skor akhir.
+                    </p>
+
+                    {/* Group Soft Skills */}
+                    <div className="space-y-2">
+                      <h4 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider bg-slate-100 px-2.5 py-1 rounded-lg">
+                        1. Aspek Sikap &amp; Perilaku (Soft Skills)
+                      </h4>
+                      <div className="space-y-2">
+                        {NINE_ASPECTS.filter((a) => a.group === "Soft Skills").map((asp) => (
+                          <div
+                            key={asp.id}
+                            className="p-2.5 rounded-xl bg-slate-50/80 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                          >
+                            <div>
+                              <p className="text-xs font-bold text-slate-900">{asp.label}</p>
+                              <p className="text-[10px] text-slate-500">{asp.desc}</p>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              {[
+                                { lvl: 1, label: "1: Bimbingan" },
+                                { lvl: 2, label: "2: Cukup" },
+                                { lvl: 3, label: "3: Baik" },
+                                { lvl: 4, label: "4: Sangat Baik" },
+                              ].map((btn) => (
+                                <button
+                                  key={btn.lvl}
+                                  type="button"
+                                  onClick={() => handleRatingChange(asp.id, btn.lvl)}
+                                  className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition cursor-pointer ${
+                                    aspectRatings[asp.id] === btn.lvl
+                                      ? "bg-sky-600 border-sky-600 text-white shadow-2xs"
+                                      : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100"
+                                  }`}
+                                >
+                                  {btn.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Group Hard Skills */}
+                    <div className="space-y-2">
+                      <h4 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider bg-slate-100 px-2.5 py-1 rounded-lg">
+                        2. Aspek Kemampuan Teknis (Hard Skills)
+                      </h4>
+                      <div className="space-y-2">
+                        {NINE_ASPECTS.filter((a) => a.group === "Hard Skills").map((asp) => (
+                          <div
+                            key={asp.id}
+                            className="p-2.5 rounded-xl bg-slate-50/80 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                          >
+                            <div>
+                              <p className="text-xs font-bold text-slate-900">{asp.label}</p>
+                              <p className="text-[10px] text-slate-500">{asp.desc}</p>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              {[
+                                { lvl: 1, label: "1: Bimbingan" },
+                                { lvl: 2, label: "2: Cukup" },
+                                { lvl: 3, label: "3: Baik" },
+                                { lvl: 4, label: "4: Sangat Baik" },
+                              ].map((btn) => (
+                                <button
+                                  key={btn.lvl}
+                                  type="button"
+                                  onClick={() => handleRatingChange(asp.id, btn.lvl)}
+                                  className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition cursor-pointer ${
+                                    aspectRatings[asp.id] === btn.lvl
+                                      ? "bg-emerald-600 border-emerald-600 text-white shadow-2xs"
+                                      : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100"
+                                  }`}
+                                >
+                                  {btn.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

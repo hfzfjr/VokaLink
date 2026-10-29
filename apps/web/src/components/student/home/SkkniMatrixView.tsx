@@ -208,8 +208,8 @@ export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
     <div className="space-y-4 pt-1 pb-6 animate-in fade-in duration-200">
       {/* ─── Control Bar: Level chips (sekunder) | Cari & List/Grid ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-        {/* Status chips ringan — warna biru VokaLink saat aktif, bersih tanpa dot */}
-        <div className="flex items-center gap-1 w-full sm:w-auto overflow-x-auto scrollbar-none">
+        {/* Status chips segmented control — gaya Apple Segmented pill */}
+        <div className="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-full border border-slate-200/70 text-xs font-semibold overflow-x-auto scrollbar-none w-full sm:w-auto">
           {(
             [
               { key: "ALL", label: "Semua", count: MODULES.length },
@@ -225,14 +225,21 @@ export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
                 onClick={() => setLevelFilter(chip.key)}
                 aria-pressed={active}
                 className={cn(
-                  "h-8 px-3 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer",
+                  "h-7 sm:h-7.5 px-3 rounded-full text-xs transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5",
                   active
-                    ? "bg-sky-500 text-white shadow-xs font-semibold"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    ? "bg-white text-slate-900 shadow-2xs font-bold"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
                 )}
               >
                 <span>{chip.label}</span>
-                <span className={cn("tabular-nums text-[11px]", active ? "text-white/80 font-medium" : "text-slate-400")}>
+                <span
+                  className={cn(
+                    "tabular-nums text-[10.5px] px-1.5 py-0.2 rounded-full font-semibold",
+                    active
+                      ? "bg-slate-100 text-slate-700"
+                      : "text-slate-400"
+                  )}
+                >
                   {chip.count}
                 </span>
               </button>

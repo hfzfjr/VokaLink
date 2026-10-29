@@ -11,7 +11,7 @@ import {
   Building2,
 } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { TOTAL_TARGET_JP } from "@vokalink/shared";
+import { TOTAL_TARGET_JP, convertRealHoursToJp } from "@vokalink/shared";
 import { db } from "@/lib/pwa/db";
 import {
   fetchStudentLogContext,
@@ -29,7 +29,6 @@ import {
   formatLogDate,
 } from "@/components/student/home/types";
 import { DailyTimelineFeed } from "@/components/student/home/DailyTimelineFeed";
-import { SkkniMatrixView } from "@/components/student/home/SkkniMatrixView";
 import { EvidenceGalleryView } from "@/components/student/home/EvidenceGalleryView";
 import { StudentWidgetPanel } from "@/components/student/home/StudentWidgetPanel";
 import { TaskDetailModal } from "@/components/student/home/TaskDetailModal";
@@ -80,8 +79,8 @@ export default function StudentHomePage() {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  // View Mode: Timeline (default) | Matrix | Evidence
-  const [viewMode, setViewMode] = useState<"timeline" | "matrix" | "evidence">("timeline");
+  // View Mode: Timeline (default) | Evidence
+  const [viewMode, setViewMode] = useState<"timeline" | "evidence">("timeline");
   const [selectedTaskModal, setSelectedTaskModal] = useState<KanbanTask | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
@@ -97,11 +96,6 @@ export default function StudentHomePage() {
     const day = String(d.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   }, []);
-
-  // Detect whether student has already logged for today
-  const todayLog = useMemo(() => {
-    return offlineLogs.find((l) => l.logDate === todayStr);
-  }, [offlineLogs, todayStr]);
 
   // 2. Load context from IndexedDB cache or server fallback
   useEffect(() => {
@@ -240,6 +234,7 @@ export default function StudentHomePage() {
       const durationJp = sl.items?.reduce((acc, it) => acc + it.durationJp, 0) || 8;
       const autonomyLevel = firstItem?.autonomyLevel || 3;
       const isVerified = sl.status === "VERIFIED";
+      const isRevision = sl.status === "REVISION_REQUIRED";
       const isInReview = sl.status === "PENDING_VERIFICATION";
       const autonomyLabel =
         autonomyLevel === 3 ? "Mandiri" : autonomyLevel === 2 ? "Terbimbing" : "Observasi";
@@ -269,10 +264,14 @@ export default function StudentHomePage() {
         status: isVerified ? "verified" : isInReview ? "in_review" : "in_progress",
         isoDate: sl.logDate,
         tools: isNonCompetency ? ["SOP Industri"] : ["Logbook PKL", "SOP Industri"],
-        submittedAt: isVerified ? "Sah Terverifikasi" : "Tersinkron (Menunggu PIN)",
+        submittedAt: isVerified
+          ? "Sah Terverifikasi"
+          : isRevision
+          ? "Perlu Revisi (Ditolak Mentor)"
+          : "Tersinkron (Menunggu PIN)",
         mentorSignature: isVerified ? placementInfo?.mentorName || "Mentor Industri" : undefined,
         hmacVerified: isVerified,
-        syncState: isVerified ? "verified" : "synced",
+        syncState: isVerified ? "verified" : isRevision ? "revision_required" : "synced",
         isLocalDexie: false,
         shortNote: sl.shortNote || undefined,
         samplePhotoUrl: sl.evidenceWebpUrl || undefined,
@@ -287,18 +286,46 @@ export default function StudentHomePage() {
     return [...dexieTasks, ...nonDuplicatedServer];
   }, [dexieTasks, serverTasks]);
 
+  // Detect whether student has already logged for today across both offline & server
+  const todayLog = useMemo(() => {
+    // 1. Cek offline Dexie bila baru saja dicatat
+    const offlineToday = offlineLogs.find((l) => (l.logDate || "").slice(0, 10) === todayStr);
+    if (offlineToday) {
+      return {
+        durationJp: offlineToday.durationJp,
+        state: offlineToday.state,
+        jobCardTitle: offlineToday.jobCardTitle,
+      };
+    }
+    // 2. Cek apakah ada di riwayat server database
+    const serverToday = serverLogs.find((sl) => (sl.logDate || "").slice(0, 10) === todayStr);
+    if (serverToday) {
+      const firstItem = serverToday.items?.[0];
+      const duration = serverToday.items?.reduce((acc, it) => acc + it.durationJp, 0) || 8;
+      return {
+        durationJp: duration,
+        state: serverToday.status === "VERIFIED" ? "verified" : "synced",
+        jobCardTitle: firstItem?.jobCard?.title || serverToday.shortNote || "Pencatatan Jurnal Praktik",
+      };
+    }
+    return undefined;
+  }, [offlineLogs, serverLogs, todayStr]);
+
   // Dynamically calculate JP purely from combined real database logs
-  const totalVerifiedJp = useMemo(() => {
+  const totalVerifiedHours = useMemo(() => {
     return allTasks
       .filter((t) => t.status === "verified")
       .reduce((acc, curr) => acc + curr.durationJp, 0);
   }, [allTasks]);
 
-  const totalPendingJp = useMemo(() => {
+  const totalPendingHours = useMemo(() => {
     return allTasks
       .filter((t) => t.status === "in_review" || t.syncState === "queued" || t.syncState === "synced")
       .reduce((acc, curr) => acc + curr.durationJp, 0);
   }, [allTasks]);
+
+  const totalVerifiedJp = useMemo(() => convertRealHoursToJp(totalVerifiedHours), [totalVerifiedHours]);
+  const totalPendingJp = useMemo(() => convertRealHoursToJp(totalPendingHours), [totalPendingHours]);
 
   const progressPercentage = Math.min(100, Math.round((totalVerifiedJp / TOTAL_TARGET_JP) * 100));
 
@@ -509,7 +536,7 @@ export default function StudentHomePage() {
                     className="flex-1 h-11 bg-white hover:bg-sky-50 active:scale-[0.98] text-sky-700 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition"
                   >
                     <PlusCircle className="w-4 h-4 stroke-[2.5]" />
-                    <span>+ Catat Jurnal Sekarang</span>
+                    <span>Catat Jurnal Sekarang</span>
                   </Link>
                   <button
                     type="button"
@@ -556,20 +583,20 @@ export default function StudentHomePage() {
                         {d.jp} <span className="text-[9px] font-normal text-slate-400">JP</span>
                       </span>
                       {isToday ? (
-                        <span className="px-1 py-0.2 rounded-full bg-sky-500 text-white text-[8px] font-bold leading-none">
+                        <span className="px-1.5 py-0.5 rounded-full bg-sky-500 text-white text-[8px] font-bold leading-none whitespace-nowrap">
                           Hari Ini
                         </span>
                       ) : d.status === "verified" ? (
-                        <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[8px] font-bold leading-none">
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[8px] font-bold leading-none whitespace-nowrap">
                           <Check className="w-2 h-2 stroke-[2.5]" />
                           <span>Sah</span>
                         </span>
                       ) : d.status === "in_review" ? (
-                        <span className="px-1 py-0.2 rounded-full bg-amber-50 text-amber-700 border border-amber-200/80 text-[8px] font-bold leading-none">
+                        <span className="px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/80 text-[8px] font-bold leading-none whitespace-nowrap">
                           Pending
                         </span>
                       ) : (
-                        <span className="px-1 py-0.2 rounded-full bg-slate-100 text-slate-400 text-[8px] font-medium leading-none">
+                        <span className="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-400 text-[8px] font-medium leading-none whitespace-nowrap">
                           -
                         </span>
                       )}
@@ -687,9 +714,9 @@ export default function StudentHomePage() {
                 </button>
                 <Link
                   href="/student/log/new"
-                  className="h-10 px-4 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition shadow-xs"
+                  className="h-10 px-5 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs font-semibold flex items-center justify-center gap-2 transition shadow-xs whitespace-nowrap shrink-0"
                 >
-                  <PlusCircle className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <PlusCircle className="w-4 h-4 stroke-[2.5] shrink-0" />
                   <span>Catat Jurnal</span>
                 </Link>
               </div>
@@ -702,13 +729,13 @@ export default function StudentHomePage() {
               Dokumentasi Praktik Industri
             </h2>
 
-            {/* Apple Segmented Control Bar (Mobile-Tuned Labels) */}
-            <div className="grid grid-cols-3 sm:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/70 text-xs font-semibold w-full sm:w-auto">
+            {/* Apple Segmented Control Bar (Timeline vs Galeri Bukti) */}
+            <div className="grid grid-cols-2 sm:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/70 text-xs font-semibold w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => setViewMode("timeline")}
                 className={cn(
-                  "px-2 sm:px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-[11px] sm:text-xs flex items-center justify-center gap-1",
+                  "px-3 sm:px-4 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-xs flex items-center justify-center gap-1",
                   viewMode === "timeline"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
@@ -718,29 +745,15 @@ export default function StudentHomePage() {
               </button>
               <button
                 type="button"
-                onClick={() => setViewMode("matrix")}
-                className={cn(
-                  "px-2 sm:px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-[11px] sm:text-xs flex items-center justify-center gap-1",
-                  viewMode === "matrix"
-                    ? "bg-white text-slate-900 shadow-2xs font-semibold"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
-                )}
-              >
-                <span className="sm:hidden">SKKNI</span>
-                <span className="hidden sm:inline">Matriks SKKNI</span>
-              </button>
-              <button
-                type="button"
                 onClick={() => setViewMode("evidence")}
                 className={cn(
-                  "px-2 sm:px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-[11px] sm:text-xs flex items-center justify-center gap-1",
+                  "px-3 sm:px-4 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-xs flex items-center justify-center gap-1",
                   viewMode === "evidence"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
                 )}
               >
-                <span className="sm:hidden">Galeri</span>
-                <span className="hidden sm:inline">Galeri Bukti</span>
+                <span>Galeri Bukti</span>
               </button>
             </div>
           </div>
@@ -754,9 +767,12 @@ export default function StudentHomePage() {
             />
           )}
 
-          {viewMode === "matrix" && <SkkniMatrixView tasks={allTasks} />}
-
-          {viewMode === "evidence" && <EvidenceGalleryView />}
+          {viewMode === "evidence" && (
+            <EvidenceGalleryView
+              serverLogs={serverLogs}
+              mentorName={placementInfo?.mentorName}
+            />
+          )}
         </div>
       </section>
 
