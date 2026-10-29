@@ -1,13 +1,10 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import {
   ShieldAlert,
   ShieldCheck,
   Sparkles,
-  ExternalLink,
-  Award,
   CheckCircle2,
   Bell,
   Flame,
@@ -49,7 +46,7 @@ export function TeacherWidgetPanel({
   driftCount = 0,
   securityFlagsCount = 0,
   priorityStudents = [],
-  samplePassportSlug,
+  samplePassportSlug: _samplePassportSlug,
   onViewSecurityAudit,
   onOpenNotifications,
 }: TeacherWidgetPanelProps) {
@@ -401,26 +398,6 @@ export function TeacherWidgetPanel({
           </div>
         </div>
       </div>
-
-      {/* ─── 6. Pintasan Paspor Kompetensi Digital Siswa ─── */}
-      <Link
-        href={`/verify/${samplePassportSlug || "andi-pratama-rpl-2026"}`}
-        target="_blank"
-        className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-200/70 shadow-card hover:border-sky-300 transition-colors group"
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
-            <Award className="w-4 h-4" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs font-semibold text-slate-900 group-hover:text-sky-600 transition-colors truncate">
-              Paspor Kompetensi Digital
-            </p>
-            <p className="text-[11px] text-slate-500 truncate">Pratinjau portofolio resmi ber-QR</p>
-          </div>
-        </div>
-        <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-sky-600 transition-colors shrink-0" />
-      </Link>
     </aside>
   );
 }

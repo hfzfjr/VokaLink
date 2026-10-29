@@ -69,21 +69,21 @@ export function MentorNotificationModal({ onClose }: MentorNotificationModalProp
         <div className="space-y-2.5 text-xs">
           <div className="p-3.5 bg-slate-50/70 rounded-xl border border-slate-200/60 space-y-1">
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-slate-900">Jurnal Disetujui Mentor</span>
-              <span className="text-[10px] text-emerald-700 font-semibold font-mono">20 Okt 2026</span>
+              <span className="font-semibold text-slate-900">Validasi Jurnal PKL</span>
+              <span className="text-[10px] text-emerald-700 font-semibold font-mono">Terkini</span>
             </div>
             <p className="text-slate-600 font-normal leading-relaxed">
-              Rizky Firmansyah telah memvalidasi 8 JP untuk &quot;Implementasi Alur Autentikasi Pengguna & Keamanan Sistem&quot; secara sah.
+              Mentor industri memvalidasi jurnal harian dan kehadiran praktik Anda secara sah melalui autentikasi PIN resmi.
             </p>
           </div>
 
           <div className="p-3.5 bg-slate-50/70 rounded-xl border border-slate-200/60 space-y-1">
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-slate-900">Kunjungan Supervisi Guru</span>
-              <span className="text-[10px] text-sky-600 font-semibold font-mono">18 Okt 2026</span>
+              <span className="font-semibold text-slate-900">Koordinasi Bimbingan Sekolah</span>
+              <span className="text-[10px] text-sky-600 font-semibold font-mono">Terjadwal</span>
             </div>
             <p className="text-slate-600 font-normal leading-relaxed">
-              Guru Dra. Siti Rahayu telah mencatat koordinasi bimbingan lapangan dengan mentor industri Anda.
+              Guru pembimbing PKL sekolah memantau ketercapaian jam kompetensi dan keaktifan jurnal industri Anda secara berkala.
             </p>
           </div>
         </div>

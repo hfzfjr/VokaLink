@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import {
   Bell,
   Quote,
@@ -10,8 +9,6 @@ import {
   Flame,
   Check,
   CheckCircle2,
-  Award,
-  ExternalLink,
 } from "lucide-react";
 import type { StudentInfo, KanbanTask } from "./types";
 
@@ -284,7 +281,7 @@ export function StudentWidgetPanel({
 
         <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/60">
           <p className="text-xs text-slate-600 leading-relaxed italic">
-            &quot;{endorsementQuote || "Arsitektur REST API dan struktur basis data sudah sangat modular. Siswa cepat tanggap dalam sprint dan mematuhi standar clean code industri."}&quot;
+            &quot;{endorsementQuote || "Siswa menunjukkan etos kerja yang sangat baik, berdisiplin tinggi, mandiri dalam menyelesaikan tugas harian, dan patuh pada standar operasional industri."}&quot;
           </p>
         </div>
 
@@ -299,26 +296,6 @@ export function StudentWidgetPanel({
           </span>
         </div>
       </div>
-
-      {/* ─── Pintasan Paspor Kompetensi Digital (FR-009) ─── */}
-      <Link
-        href="/verify/andi-pratama-rpl-2026"
-        target="_blank"
-        className="hidden lg:flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-200/70 shadow-card hover:border-sky-300 transition-colors group"
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
-            <Award className="w-4 h-4" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs font-semibold text-slate-900 group-hover:text-sky-600 transition-colors truncate">
-              Paspor Kompetensi Digital
-            </p>
-            <p className="text-[11px] text-slate-500 truncate">Bagikan bukti keterampilan ber-QR</p>
-          </div>
-        </div>
-        <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-sky-600 transition-colors shrink-0" />
-      </Link>
     </aside>
   );
 }

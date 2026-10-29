@@ -181,6 +181,7 @@ export default function NewLogPage() {
 
   // 3-Step Wizard Navigation State (Apple HIG)
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [isStepTransitioning, setIsStepTransitioning] = useState(false);
 
   // Multi-Job Cards state (1 to 3 job cards per daily log, PRD FR-005)
   const [selectedJobCardIds, setSelectedJobCardIds] = useState<string[]>([]);
@@ -319,6 +320,7 @@ export default function NewLogPage() {
 
   const remainingDailyQuota = Math.max(0, MAX_DAILY_JP - existingDailyJp);
   const isDailyLimitReached = existingDailyJp >= MAX_DAILY_JP;
+  const hasLogForSelectedDate = logsForSelectedDate.length > 0;
   const hasExistingSickOrPermit = logsForSelectedDate.some(
     (l) => l.attendanceType === "SICK" || l.attendanceType === "PERMIT"
   );
@@ -907,6 +909,17 @@ export default function NewLogPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Guard 0: Form HANYA boleh disubmit pada Langkah 3 (Bukti & Catatan)
+    if (step !== 3) {
+      console.warn("[VokaLink] Mencegah submit prematur: Form belum mencapai Langkah 3 (saat ini langkah " + step + ")");
+      return;
+    }
+
+    // Guard 0.1: Mencegah double submit atau submit saat animasi transisi langkah
+    if (isSubmitting || isStepTransitioning) {
+      return;
+    }
+
     const isSickOrPermit = attendanceType === "SICK" || attendanceType === "PERMIT";
 
     // Guard 1: Sakit / Izin sudah ada pada tanggal ini
@@ -1058,6 +1071,7 @@ export default function NewLogPage() {
 
   // Wizard Step Navigation Guards
   const isStep1Disabled =
+    hasLogForSelectedDate ||
     (hasExistingSickOrPermit && attendanceType === "PRESENT") ||
     (isSickOrPermit && existingDailyJp > 0) ||
     (!isSickOrPermit && isDailyLimitReached) ||
@@ -1065,8 +1079,15 @@ export default function NewLogPage() {
 
   const isStep2Disabled = !isNonCompetency && selectedJobCardIds.length === 0;
 
-  const handleNextStep = () => {
+  const handleNextStep = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+
     if (step === 1) {
+      if (hasLogForSelectedDate) {
+        showError(`Tanggal ${selectedDate} sudah tercatat jurnal (${existingDailyJp} Jam). Sesuai aturan BR-002, maksimal 1 laporan kehadiran per tanggal kalender.`);
+        return;
+      }
       if (hasExistingSickOrPermit && attendanceType === "PRESENT") {
         showError(`Tanggal ${selectedDate} sudah tercatat presensi Sakit/Izin resmi.`);
         return;
@@ -1084,10 +1105,14 @@ export default function NewLogPage() {
           showError(`Melebihi sisa kuota hari ini (${remainingDailyQuota} jam lagi).`);
           return;
         }
+        setIsStepTransitioning(true);
         setStep(2);
+        setTimeout(() => setIsStepTransitioning(false), 350);
       } else {
         // Sakit / Izin lewati langkah 2, langsung ke step 3
+        setIsStepTransitioning(true);
         setStep(3);
+        setTimeout(() => setIsStepTransitioning(false), 350);
       }
       if (typeof window !== "undefined") {
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1097,21 +1122,30 @@ export default function NewLogPage() {
         showError("Harap pilih minimal 1 tugas pekerjaan yang Anda selesaikan hari ini.");
         return;
       }
+      setIsStepTransitioning(true);
       setStep(3);
+      setTimeout(() => setIsStepTransitioning(false), 350);
       if (typeof window !== "undefined") {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     }
   };
 
-  const handlePrevStep = () => {
+  const handlePrevStep = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+
     if (step === 3) {
+      setIsStepTransitioning(true);
       setStep(isSickOrPermit ? 1 : 2);
+      setTimeout(() => setIsStepTransitioning(false), 350);
       if (typeof window !== "undefined") {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     } else if (step === 2) {
+      setIsStepTransitioning(true);
       setStep(1);
+      setTimeout(() => setIsStepTransitioning(false), 350);
       if (typeof window !== "undefined") {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
@@ -1121,6 +1155,8 @@ export default function NewLogPage() {
   // Ekstrak submitDisabled, disabledReason, dan submitLabel (Kelompok 1.5, 2.8, 2.15)
   const submitDisabled =
     isSubmitting ||
+    isStepTransitioning ||
+    hasLogForSelectedDate ||
     (attendanceType === "SICK" && !compressedPhoto) ||
     (isSickOrPermit && existingDailyJp > 0) ||
     (!isSickOrPermit && isDailyLimitReached) ||
@@ -1130,19 +1166,21 @@ export default function NewLogPage() {
 
   const disabledReason = isSubmitting
     ? "Sedang menyimpan jurnal..."
-    : attendanceType === "SICK" && !compressedPhoto
-      ? "Lampirkan foto surat dokter"
-      : hasExistingSickOrPermit
-        ? "Sudah ada presensi sakit/izin hari ini"
-        : isSickOrPermit && existingDailyJp > 0
-          ? "Sudah ada jam hadir yang tercatat"
-          : !isSickOrPermit && isDailyLimitReached
-            ? `Batas maksimal ${MAX_DAILY_JP} jam harian sudah tercapai`
-            : !isSickOrPermit && durationJp > remainingDailyQuota && existingDailyJp > 0
-              ? `Melebihi sisa kuota hari ini (${remainingDailyQuota} Jam tersisa)`
-              : !isSickOrPermit && !isNonCompetency && selectedJobCardIds.length === 0
-                ? "Pilih minimal 1 kartu pekerjaan"
-                : null;
+    : hasLogForSelectedDate
+      ? `Jurnal tanggal ini sudah tercatat (BR-002: Maks 1 log/hari)`
+      : attendanceType === "SICK" && !compressedPhoto
+        ? "Lampirkan foto surat dokter"
+        : hasExistingSickOrPermit
+          ? "Sudah ada presensi sakit/izin hari ini"
+          : isSickOrPermit && existingDailyJp > 0
+            ? "Sudah ada jam hadir yang tercatat"
+            : !isSickOrPermit && isDailyLimitReached
+              ? `Batas maksimal ${MAX_DAILY_JP} jam harian sudah tercapai`
+              : !isSickOrPermit && durationJp > remainingDailyQuota && existingDailyJp > 0
+                ? `Melebihi sisa kuota hari ini (${remainingDailyQuota} Jam tersisa)`
+                : !isSickOrPermit && !isNonCompetency && selectedJobCardIds.length === 0
+                  ? "Pilih minimal 1 kartu pekerjaan"
+                  : null;
 
   const submitLabel = isSubmitting
     ? "Menyimpan Jurnal..."
@@ -1185,13 +1223,19 @@ export default function NewLogPage() {
   return (
     <form
       onSubmit={handleSubmit}
+      onKeyDown={(e) => {
+        // Mencegah penekanan tombol Enter pada input teks memicu submit form secara tidak sengaja
+        if (e.key === "Enter" && (e.target as HTMLElement).tagName !== "TEXTAREA") {
+          e.preventDefault();
+        }
+      }}
       className="w-full pb-20 md:pb-12 lg:pb-4"
     >
       {/* ─────────────────────────────────────────────────────────────────────────────
           UNIFIED WORKSPACE CANVAS (FULL-WIDTH PARITY WITH PORTAL PAGES)
           Sequential Reading Order: Header -> Presence -> Date -> Shift/K3 -> Cards/SOP -> Photo -> Note -> Submit
       ───────────────────────────────────────────────────────────────────────────── */}
-      <section className="w-full bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-7 border border-slate-200/80 shadow-card flex flex-col">
+      <section className="w-full bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-6 lg:p-7 border border-slate-200/80 shadow-card flex flex-col">
         <div>
           {/* ─── Header: Apple Minimalist Canvas Header ─── */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-slate-200/70">
@@ -1259,27 +1303,27 @@ export default function NewLogPage() {
               <div className="w-28 h-6 bg-slate-200 rounded-xl" />
             </div>
           ) : (
-            <div className="mt-3.5 p-3.5 sm:px-4 sm:py-2.5 rounded-2xl bg-slate-50/80 border border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0 shadow-2xs">
+            <div className="mt-3.5 p-3 sm:px-4 sm:py-3 rounded-2xl bg-slate-50/70 border border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0 shadow-2xs">
                   <Building2 className="w-4 h-4" />
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-slate-900 text-xs sm:text-sm">
                       {activePlacement?.dudiName || (isDemoMode ? "PT Nusantara Tech" : "Mitra Industri PKL")}
                     </span>
-                    <span className="px-2 py-0.5 rounded-full text-slate-500 border border-slate-200 text-[11px] font-medium bg-white">
+                    <span className="px-2 py-0.5 rounded-full text-slate-600 border border-slate-200 text-[10.5px] font-medium bg-white shrink-0">
                       Mitra Terdaftar
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5 font-normal truncate">
+                  <p className="text-xs text-slate-500 mt-0.5 font-normal leading-relaxed">
                     Pembimbing: <span className="font-semibold text-slate-700">{activePlacement?.mentorName || (isDemoMode ? "Rizky Firmansyah (Engineering Lead)" : "Mentor Industri Lapangan")}</span>
                   </p>
                 </div>
               </div>
 
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200/80 text-slate-700 text-xs font-medium shrink-0 self-start sm:self-auto shadow-2xs">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200/80 text-emerald-700 text-xs font-semibold shrink-0 self-start sm:self-auto shadow-2xs">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Verifikasi PIN Mentor</span>
               </div>
@@ -1288,11 +1332,11 @@ export default function NewLogPage() {
 
           {/* ─── Horizontal Stepper (Apple HIG / Modern SaaS) ─── */}
           <nav aria-label="Alur Pengisian Jurnal" className="mt-4 pb-2 border-b border-slate-100">
-            <ol className="grid grid-cols-3 gap-2 sm:gap-3">
+            <ol className="grid grid-cols-3 gap-1.5 sm:gap-3">
               {[
-                { s: 1, title: "1. Kehadiran & Jam", short: "1. Kehadiran" },
-                { s: 2, title: "2. Pilih Tugas", short: "2. Tugas" },
-                { s: 3, title: "3. Bukti & Catatan", short: "3. Bukti" },
+                { s: 1, title: "1. Kehadiran & Jam", short: "Presensi" },
+                { s: 2, title: "2. Pilih Tugas", short: "Tugas" },
+                { s: 3, title: "3. Bukti & Catatan", short: "Bukti" },
               ].map((item) => {
                 const isCompleted = item.s < step;
                 const isActive = item.s === step;
@@ -1301,7 +1345,7 @@ export default function NewLogPage() {
                   <li
                     key={item.s}
                     className={cn(
-                      "flex items-center gap-2 p-2.5 sm:px-3.5 sm:py-2.5 rounded-xl border text-xs transition-all",
+                      "flex items-center justify-center sm:justify-start gap-1 sm:gap-2.5 px-1.5 py-2 sm:px-3.5 sm:py-2.5 rounded-xl border text-xs transition-all min-h-[42px] sm:min-h-[44px]",
                       isActive
                         ? "bg-sky-50/70 border-sky-300 text-sky-950 font-semibold shadow-2xs"
                         : isCompleted
@@ -1311,7 +1355,7 @@ export default function NewLogPage() {
                   >
                     <span
                       className={cn(
-                        "w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 transition-all",
+                        "w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-[11px] font-bold shrink-0 transition-all",
                         isActive
                           ? "bg-sky-500 text-white shadow-2xs"
                           : isCompleted
@@ -1322,7 +1366,7 @@ export default function NewLogPage() {
                       {isCompleted ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : item.s}
                     </span>
                     <span className="truncate hidden sm:inline">{item.title}</span>
-                    <span className="truncate sm:hidden">{item.short}</span>
+                    <span className="sm:hidden text-[11px] font-semibold whitespace-nowrap">{item.short}</span>
                   </li>
                 );
               })}
@@ -1334,7 +1378,7 @@ export default function NewLogPage() {
               Presensi kehadiran, SmartDateSelector, dan SmartShiftSelector (bila Hadir)
           ───────────────────────────────────────────────────────────────────────── */}
           {step === 1 && (
-            <div className="pt-4 space-y-4 animate-in fade-in duration-200">
+            <div className="pt-4 space-y-3.5 sm:space-y-4 animate-in fade-in duration-200">
               {/* ─── DRAFT RECOVERY BANNER (Kelompok 1.3: draftFoundOnMount) ─── */}
               {draftFoundOnMount && (
                 <div className="p-3.5 rounded-2xl bg-sky-50/80 border border-sky-200/80 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sky-950 animate-in fade-in motion-reduce:animate-none">
@@ -1379,38 +1423,52 @@ export default function NewLogPage() {
                 </div>
               )}
 
+              {/* ─── BR-002: MAKSIMAL 1 LAPORAN PER TANGGAL KALENDER ─── */}
+              {hasLogForSelectedDate && !hasExistingSickOrPermit && (
+                <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80 text-xs flex items-center gap-3 text-amber-900 animate-in fade-in motion-reduce:animate-none">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold">Jurnal Tanggal Ini Sudah Pernah Dicatat</p>
+                    <p className="text-xs text-amber-800 mt-0.5 font-normal">
+                      Tanggal {selectedDate} sudah memiliki catatan jurnal ({existingDailyJp} Jam). Sesuai aturan baku BR-002, seorang siswa hanya dapat menginput maksimal 1 laporan kehadiran per tanggal kalender. Silakan pilih tanggal lain atau periksa riwayat logbook Anda.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* ─── Row 1: Status Presensi & Tanggal Pelaksanaan (Berdampingan seimbang di Desktop) ─── */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 sm:gap-4 items-stretch">
                 {/* 1. Status Kehadiran (Apple Segmented Control dalam container card rapi) */}
-                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-3">
+                <div className="bg-slate-50/60 border border-slate-200/70 rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between space-y-3">
                   <div className="space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-medium text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <UserCheck className="w-3.5 h-3.5 text-sky-600" />
-                        <span>Status Kehadiran Hari Ini</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                        <UserCheck className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        <span>Status Kehadiran</span>
                       </span>
-                      <span className="text-xs text-slate-400 font-medium">
+                      <span className="text-[11px] text-slate-400 font-medium shrink-0">
                         Presensi PKL
                       </span>
                     </div>
 
                     {/* Segmented Control iOS Style with aria-pressed */}
-                    <div className="bg-slate-100 p-1 rounded-xl grid grid-cols-3 gap-1">
+                    <div className="bg-slate-100/90 p-1 rounded-xl grid grid-cols-3 gap-1 shadow-inner">
                       <button
                         type="button"
                         aria-pressed={attendanceType === "PRESENT"}
                         onClick={() => setAttendanceType("PRESENT")}
                         className={cn(
-                          "min-h-[48px] py-2 px-2.5 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 flex items-center justify-center gap-1.5",
+                          "min-h-[44px] py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 flex items-center justify-center gap-1.5",
                           attendanceType === "PRESENT"
-                            ? "bg-white text-sky-600 shadow-sm font-semibold border border-sky-100/70"
+                            ? "bg-white text-sky-700 shadow-2xs font-semibold border border-sky-100/80"
                             : "text-slate-600 hover:text-slate-900"
                         )}
                       >
                         {attendanceType === "PRESENT" && (
                           <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0" />
                         )}
-                        <span className="whitespace-nowrap">Hadir Praktik</span>
+                        <span className="sm:hidden font-semibold">Hadir</span>
+                        <span className="hidden sm:inline whitespace-nowrap">Hadir Praktik</span>
                       </button>
 
                       <button
@@ -1421,16 +1479,16 @@ export default function NewLogPage() {
                           setIsNonCompetency(false);
                         }}
                         className={cn(
-                          "min-h-[48px] py-2 px-2.5 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 flex items-center justify-center gap-1.5",
+                          "min-h-[44px] py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 flex items-center justify-center gap-1.5",
                           attendanceType === "SICK"
-                            ? "bg-white text-rose-600 shadow-sm font-semibold border border-rose-100/70"
+                            ? "bg-white text-rose-700 shadow-2xs font-semibold border border-rose-100/80"
                             : "text-slate-600 hover:text-rose-600"
                         )}
                       >
                         {attendanceType === "SICK" && (
                           <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
                         )}
-                        <span className="whitespace-nowrap">Sakit</span>
+                        <span className="font-semibold">Sakit</span>
                       </button>
 
                       <button
@@ -1441,16 +1499,17 @@ export default function NewLogPage() {
                           setIsNonCompetency(false);
                         }}
                         className={cn(
-                          "min-h-[48px] py-2 px-2.5 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 flex items-center justify-center gap-1.5",
+                          "min-h-[44px] py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 flex items-center justify-center gap-1.5",
                           attendanceType === "PERMIT"
-                            ? "bg-white text-amber-700 shadow-sm font-semibold border border-amber-100/70"
+                            ? "bg-white text-amber-800 shadow-2xs font-semibold border border-amber-100/80"
                             : "text-slate-600 hover:text-slate-900"
                         )}
                       >
                         {attendanceType === "PERMIT" && (
                           <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
                         )}
-                        <span className="whitespace-nowrap">Izin Resmi</span>
+                        <span className="sm:hidden font-semibold">Izin</span>
+                        <span className="hidden sm:inline whitespace-nowrap">Izin Resmi</span>
                       </button>
                     </div>
 
@@ -1477,11 +1536,19 @@ export default function NewLogPage() {
                         </p>
                       </div>
                     )}
+
+                    {/* Info baris jika Hadir Praktik */}
+                    {attendanceType === "PRESENT" && (
+                      <p className="text-xs text-slate-600 flex items-center gap-1.5 font-normal leading-snug animate-in fade-in motion-reduce:animate-none">
+                        <Check className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        <span>Presensi aktif &bull; Mengisi kartu pekerjaan dan jam praktik hari ini.</span>
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 {/* 2. Tanggal Pelaksanaan Kegiatan (BR-003: H to H-3) */}
-                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-3">
+                <div className="bg-slate-50/60 border border-slate-200/70 rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between space-y-3">
                   <SmartDateSelector
                     selectedDate={selectedDate}
                     onSelectDate={(newDate) => setSelectedDate(newDate)}
@@ -1496,7 +1563,7 @@ export default function NewLogPage() {
               {/* 3. Durasi Jam Kerja Industri (Shift Presensi - hanya jika Hadir) */}
               {!isSickOrPermit && (
                 <div className="space-y-4">
-                  <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5">
+                  <div className="bg-slate-50/60 border border-slate-200/70 rounded-2xl p-3.5 sm:p-5">
                     <SmartShiftSelector
                       durationJp={durationJp}
                       onChangeDuration={(newVal) => {
@@ -1576,7 +1643,7 @@ export default function NewLogPage() {
 
               {isNonCompetency ? (
                 /* Bantuan Operasional Non-RPL (Palet Netral/Slate) - Fleksibel & Bebas */
-                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-4 animate-in fade-in motion-reduce:animate-none duration-200">
+                <div className="bg-slate-50/60 border border-slate-200/70 rounded-2xl p-3.5 sm:p-5 space-y-4 animate-in fade-in motion-reduce:animate-none duration-200">
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-700 border border-slate-200/80 flex items-center justify-center shrink-0 shadow-2xs">
                       <Sparkles className="w-5 h-5 text-slate-600" />
@@ -1840,7 +1907,7 @@ export default function NewLogPage() {
             <div className="pt-3 space-y-4 animate-in fade-in duration-200">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
                 {/* 5. Upload Foto Bukti Praktik & Kuas Sensor Privasi (Sub-card seragam) */}
-                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-3 flex flex-col justify-between h-full">
+                <div className="bg-slate-50/60 border border-slate-200/70 rounded-2xl p-3.5 sm:p-5 space-y-3 flex flex-col justify-between h-full">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
                       <h3 className="text-[11px] font-medium text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
@@ -1977,7 +2044,7 @@ export default function NewLogPage() {
                 </div>
 
                 {/* 6. Catatan Singkat Aktivitas / Diagnosa Medis (Sub-card seragam) */}
-                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-3 flex flex-col justify-between h-full">
+                <div className="bg-slate-50/60 border border-slate-200/70 rounded-2xl p-3.5 sm:p-5 space-y-3 flex flex-col justify-between h-full">
                   <div className="space-y-3 flex-1 flex flex-col">
                     <div className="flex items-center justify-between mb-1">
                       <label htmlFor="short-note" className="text-[11px] font-medium text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
@@ -2083,6 +2150,7 @@ export default function NewLogPage() {
             <div>
               {step === 1 ? (
                 <Link
+                  key="desktop-cancel-btn"
                   href="/student/home"
                   className="min-h-[44px] py-2.5 px-6 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 transition border border-slate-200/80"
                 >
@@ -2090,6 +2158,7 @@ export default function NewLogPage() {
                 </Link>
               ) : (
                 <button
+                  key="desktop-back-btn"
                   type="button"
                   onClick={handlePrevStep}
                   className="min-h-[44px] py-2.5 px-6 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 transition border border-slate-200/80 cursor-pointer"
@@ -2103,6 +2172,7 @@ export default function NewLogPage() {
             <div className="flex items-center gap-3">
               {step < 3 ? (
                 <button
+                  key="desktop-next-btn"
                   type="button"
                   onClick={handleNextStep}
                   disabled={step === 1 ? isStep1Disabled : isStep2Disabled}
@@ -2120,6 +2190,7 @@ export default function NewLogPage() {
                     </span>
                   )}
                   <button
+                    key="desktop-submit-btn"
                     type="submit"
                     disabled={submitDisabled}
                     className="min-h-[44px] py-2.5 px-8 bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white rounded-full text-xs sm:text-sm font-semibold shadow-pill transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -2158,6 +2229,7 @@ export default function NewLogPage() {
           <div className="flex items-center gap-2 shrink-0">
             {step === 1 ? (
               <Link
+                key="mobile-cancel-btn"
                 href="/student/home"
                 className="min-h-[44px] px-3.5 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium border border-slate-200 active:scale-95 flex items-center justify-center transition"
               >
@@ -2165,6 +2237,7 @@ export default function NewLogPage() {
               </Link>
             ) : (
               <button
+                key="mobile-back-btn"
                 type="button"
                 onClick={handlePrevStep}
                 className="min-h-[44px] px-3.5 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium border border-slate-200 active:scale-95 flex items-center gap-1 cursor-pointer transition"
@@ -2176,6 +2249,7 @@ export default function NewLogPage() {
 
             {step < 3 ? (
               <button
+                key="mobile-next-btn"
                 type="button"
                 onClick={handleNextStep}
                 disabled={step === 1 ? isStep1Disabled : isStep2Disabled}
@@ -2186,6 +2260,7 @@ export default function NewLogPage() {
               </button>
             ) : (
               <button
+                key="mobile-submit-btn"
                 type="submit"
                 disabled={submitDisabled}
                 className="min-h-[44px] px-5 py-2 bg-sky-500 hover:bg-sky-600 active:scale-95 text-white rounded-full text-xs font-semibold shadow-pill transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -2218,27 +2293,30 @@ export default function NewLogPage() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-success-title"
-          className="fixed inset-0 z-[999] bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in-0 duration-150 motion-reduce:animate-none"
+          className="fixed inset-0 z-[999] bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in-0 duration-150 motion-reduce:animate-none"
           style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
         >
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-modal border border-slate-200/80 space-y-4 animate-in zoom-in-95 duration-150 motion-reduce:animate-none text-center">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200/70 flex items-center justify-center mx-auto shadow-2xs">
-              <Check className="w-6 h-6 stroke-[3]" />
+          <div className="bg-white rounded-3xl w-full max-w-[440px] sm:max-w-md max-h-[92vh] overflow-y-auto p-5 sm:p-7 shadow-modal border border-slate-200/80 space-y-4 animate-in zoom-in-95 duration-150 motion-reduce:animate-none text-center">
+            {/* Header: Icon, Title & Subtitle */}
+            <div className="space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center mx-auto shadow-2xs">
+                <Check className="w-6 h-6 stroke-[3]" />
+              </div>
+              <div>
+                <h2 id="modal-success-title" className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+                  Jurnal Berhasil Disimpan!
+                </h2>
+                <p className="text-xs text-slate-500 mt-1 font-normal leading-relaxed max-w-xs mx-auto">
+                  Data tersimpan di perangkat offline dan siap diverifikasi oleh mentor industri.
+                </p>
+              </div>
             </div>
 
-            <div>
-              <h2 id="modal-success-title" className="text-lg font-semibold text-slate-900 tracking-tight">
-                Jurnal Berhasil Disimpan!
-              </h2>
-              <p className="text-xs text-slate-600 mt-1 font-normal">
-                Data tersimpan di penyimpanan offline perangkat Anda dan siap diverifikasi oleh mentor industri.
-              </p>
-            </div>
-
-            <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80 text-xs text-slate-600 space-y-2.5 text-left">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600 font-medium">Status Presensi:</span>
-                <span className="font-semibold text-sky-700">
+            {/* Ringkasan Jurnal (Card Lega, Proporsional, & Bersih) */}
+            <div className="p-3.5 sm:p-4 bg-slate-50/70 rounded-2xl border border-slate-200/70 text-xs text-slate-600 space-y-2.5 text-left">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-slate-500 font-medium shrink-0">Status Presensi</span>
+                <span className="font-semibold text-sky-700 text-right">
                   {attendanceType === "PRESENT"
                     ? "Hadir Praktik"
                     : attendanceType === "SICK"
@@ -2246,32 +2324,36 @@ export default function NewLogPage() {
                       : "Izin Resmi"}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600 font-medium">Status Antrean:</span>
-                <span className="font-semibold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200/70 text-xs">
-                  Tersimpan Offline (Siap Sinkron)
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-slate-500 font-medium shrink-0">Penyimpanan</span>
+                <span className="inline-flex items-center gap-1.5 font-medium text-amber-800 bg-amber-50/90 px-2.5 py-0.5 rounded-full border border-amber-200/80 text-[11px] shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                  <span>Offline (Siap Sinkron)</span>
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600 font-medium">Durasi:</span>
-                <span className="font-semibold text-slate-900 font-mono">
-                  {durationJp} Jam Kerja
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-slate-500 font-medium shrink-0">Durasi Praktik</span>
+                <span className="font-semibold text-slate-800 font-mono text-right">
+                  {durationJp} Jam Kerja <span className="text-slate-400 font-sans font-normal">(≈ {convertRealHoursToJp(durationJp).toFixed(1)} JP)</span>
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600 font-medium">Bukti Foto / Surat:</span>
-                <span className="font-semibold text-slate-900">
-                  {compressedPhoto ? `Foto Terlampir (${(compressedPhoto.sizeBytes / 1024).toFixed(1)} KB)` : "Tanpa Foto"}
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-slate-500 font-medium shrink-0">Bukti Lampiran</span>
+                <span className="font-medium text-slate-700 text-right truncate">
+                  {compressedPhoto ? "Foto Terlampir" : "Tanpa Foto"}
                 </span>
               </div>
 
               {/* Daftar Kartu Pekerjaan & Tingkat Per Kartu (Group E.6 & Kelompok 3.17) */}
               {attendanceType === "PRESENT" && !isNonCompetency && selectedJobCardsDetail.length > 0 && (
-                <div className="pt-2 border-t border-slate-200/80 space-y-1.5">
-                  <span className="text-xs font-semibold text-slate-700 block">
-                    Kartu Pekerjaan Terpilih:
-                  </span>
-                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                <div className="pt-2.5 border-t border-slate-200/70 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-slate-700">Kartu Tugas Terpilih</span>
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      {selectedJobCardsDetail.length} Tugas
+                    </span>
+                  </div>
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-0.5">
                     {selectedJobCardsDetail.map((card) => {
                       const level = cardAutonomyMap[card.id] || autonomyLevel;
                       const levelLabel =
@@ -2279,10 +2361,12 @@ export default function NewLogPage() {
                       return (
                         <div
                           key={card.id}
-                          className="p-2 rounded-xl bg-white border border-slate-200 text-xs flex items-center justify-between gap-2"
+                          className="p-2.5 rounded-xl bg-white border border-slate-200/80 text-xs flex items-center justify-between gap-2.5 shadow-2xs"
                         >
-                          <span className="font-medium text-slate-800 truncate">{card.title}</span>
-                          <span className="shrink-0 px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 font-semibold text-xs border border-sky-100">
+                          <span className="font-medium text-slate-800 leading-snug flex-1 min-w-0">
+                            {card.title}
+                          </span>
+                          <span className="shrink-0 px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 font-semibold text-[11px] border border-sky-100">
                             {levelLabel}
                           </span>
                         </div>
@@ -2294,14 +2378,14 @@ export default function NewLogPage() {
             </div>
 
             {/* Instant Mentor Verification Hand-Off Buttons (Pill-shaped) */}
-            <div className="space-y-2 pt-1">
+            <div className="space-y-2.5 pt-0.5">
               <button
                 type="button"
                 onClick={() => setShowQrModal(true)}
-                className="w-full min-h-[44px] py-2.5 px-4 rounded-full bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-2 transition shadow-pill cursor-pointer"
+                className="w-full min-h-[46px] py-2.5 px-4 rounded-xl sm:rounded-full bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow-pill cursor-pointer"
               >
                 <QrCode className="w-4 h-4" />
-                <span>Minta Validasi PIN Mentor Sekarang (QR)</span>
+                <span>Buka QR Validasi PIN Mentor</span>
               </button>
 
               {(() => {
@@ -2313,7 +2397,8 @@ export default function NewLogPage() {
                     : `${durationJp} Jam Kerja`;
 
                 if (isDemoMode) {
-                  const demoVerificationUrl = "https://vokalink.id/v/andi-pratama-rpl-2026";
+                  const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+                  const demoVerificationUrl = `${origin}/v/mock-demo-token-123`;
                   const waMessage = `Halo ${mentorDisplayName}, saya telah mengisi jurnal PKL VokaLink hari ini (${durationJp} Jam Kerja - ${attendanceType === "PRESENT" ? tasksSummary : attendanceType === "SICK" ? "Sakit (Surat Dokter)" : "Izin Resmi"}). Mohon kesediaannya untuk memvalidasi logbook saya melalui tautan berikut: ${demoVerificationUrl}`;
 
                   return (
@@ -2321,7 +2406,7 @@ export default function NewLogPage() {
                       href={`https://wa.me/?text=${encodeURIComponent(waMessage)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full min-h-[44px] py-2.5 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-2 transition shadow-xs"
+                      className="w-full min-h-[44px] py-2.5 px-4 rounded-xl sm:rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-2 transition shadow-xs"
                     >
                       <Share2 className="w-4 h-4" />
                       <span>Kirim Tautan ke WhatsApp Mentor</span>
@@ -2330,26 +2415,26 @@ export default function NewLogPage() {
                 }
 
                 return (
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs text-slate-600 text-left flex items-start gap-2">
+                  <div className="p-3 rounded-2xl bg-sky-50/60 border border-sky-100 text-xs text-slate-600 text-left flex items-start gap-2.5">
                     <Info className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                    <span className="leading-relaxed">
-                      Tautan verifikasi WhatsApp dapat dibagikan setelah jurnal berhasil disinkronkan ke server. Untuk verifikasi langsung di tempat saat ini, silakan tunjukkan kode QR mentor di atas.
-                    </span>
+                    <p className="leading-relaxed text-[11.5px] text-slate-600">
+                      Tunjukkan kode QR di atas untuk validasi tatap muka via PIN mentor. Tautan WhatsApp otomatis aktif saat perangkat Anda kembali online.
+                    </p>
                   </div>
                 );
               })()}
 
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className="grid grid-cols-2 gap-2.5 pt-1">
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="py-2.5 px-3 min-h-[40px] rounded-full bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 font-semibold text-xs transition cursor-pointer border border-slate-200/80"
+                  className="py-2.5 px-3 min-h-[42px] rounded-xl sm:rounded-full bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 font-semibold text-xs transition cursor-pointer border border-slate-200/80"
                 >
-                  Catat Log Lain
+                  Catat Lagi
                 </button>
                 <Link
                   href="/student/log/history"
-                  className="py-2.5 px-3 min-h-[40px] rounded-full bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition shadow-xs"
+                  className="py-2.5 px-3 min-h-[42px] rounded-xl sm:rounded-full bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition shadow-xs"
                 >
                   <span>Lihat Riwayat</span>
                   <ArrowRight className="w-3.5 h-3.5" />

@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   Settings,
   HelpCircle,
-  ArrowLeft,
+  LogOut,
   X,
   User,
   School,
@@ -314,7 +314,7 @@ export function TeacherSidebar() {
             className="w-full h-12 rounded-2xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center overflow-hidden transition-colors duration-150 cursor-pointer group text-left"
           >
             <div className="w-12 h-12 shrink-0 flex items-center justify-center">
-              <ArrowLeft className="w-5 h-5 text-slate-500 group-hover:text-rose-600" />
+              <LogOut className="w-5 h-5 text-slate-500 group-hover:text-rose-600" />
             </div>
             <div
               className={cn(
@@ -499,19 +499,34 @@ export function TeacherSidebar() {
             )}
 
             {/* Actions */}
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
               <button
                 type="button"
-                onClick={() => setShowSettingsModal(false)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                onClick={async () => {
+                  if (confirm("Apakah Anda yakin ingin keluar dari akun guru ini?")) {
+                    setShowSettingsModal(false);
+                    await logout();
+                    router.push("/login");
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200 transition cursor-pointer"
               >
-                Batal
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Keluar Akun</span>
               </button>
-              <button
-                type="button"
-                onClick={handleSaveSettings}
-                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 active:scale-95 text-white transition cursor-pointer shadow-xs"
-              >
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSettingsModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveSettings}
+                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 active:scale-95 text-white transition cursor-pointer shadow-xs"
+                >
                 {isSaved ? (
                   <>
                     <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -523,7 +538,8 @@ export function TeacherSidebar() {
                     <span>Simpan Pengaturan</span>
                   </>
                 )}
-              </button>
+                </button>
+              </div>
             </div>
           </div>
         </div>,

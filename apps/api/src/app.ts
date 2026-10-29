@@ -17,19 +17,7 @@ import { authRouter } from "./routes/auth.js";
 import { errorHandler } from "./middlewares/error-handler.js";
 import { zeroLoginRateLimiter } from "./middlewares/rate-limiter.js";
 
-import os from "node:os";
-
-function getLocalIPv4(): string | null {
-  const nets = os.networkInterfaces();
-  for (const name of Object.keys(nets)) {
-    for (const net of nets[name] || []) {
-      if (net.family === "IPv4" && !net.internal) {
-        return net.address;
-      }
-    }
-  }
-  return null;
-}
+import { getLocalIPv4 } from "./lib/network.js";
 
 export function createApp(): Express {
   const app = express();

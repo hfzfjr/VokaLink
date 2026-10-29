@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { db, type OfflineLog, type OfflinePhoto } from "@/lib/pwa/db";
 import { useSyncManager } from "@/lib/pwa/hooks/useSyncManager";
+import { computeSha256 } from "@/lib/pwa/photo";
 import { cn } from "@/lib/cn";
 
 interface OfflineQueueModalProps {
@@ -56,7 +57,18 @@ export function OfflineQueueModal({ isOpen, onClose }: OfflineQueueModalProps) {
     try {
       const now = new Date();
       const dateStr = now.toISOString().split("T")[0] ?? "2026-10-26";
-      const uuid = "test-" + Date.now().toString(36) + "-" + Math.random().toString(36).substring(2, 6);
+      const uuid = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : "a0000000-0000-4000-8000-" + Date.now().toString(16).padStart(12, "0");
+
+      // Dapatkan penempatan nyata dari context
+      let realPlacementId = "3ffec674-ad55-482a-a566-9dff84ab71be";
+      let realJobCardId = "00000000-0000-0000-0000-000000000037";
+      try {
+        const cached = await db.refData.get("student_log_context");
+        const ctx = cached?.data as any;
+        if (ctx?.activePlacement?.id) realPlacementId = ctx.activePlacement.id;
+        if (ctx?.jobCards?.[0]?.id) realJobCardId = ctx.jobCards[0].id;
+        else if (ctx?.nonCompetencyJobCard?.id) realJobCardId = ctx.nonCompetencyJobCard.id;
+      } catch {}
 
       // Simulasikan dummy WebP foto 42 KB
       const dummyCanvas = document.createElement("canvas");
@@ -77,13 +89,15 @@ export function OfflineQueueModal({ isOpen, onClose }: OfflineQueueModalProps) {
         async (blob) => {
           if (!blob) return;
 
+          const realSha = await computeSha256(blob);
+
           const newLog: OfflineLog = {
             clientLogUuid: uuid,
-            placementId: "00000000-0000-0000-0000-000000000051",
+            placementId: realPlacementId,
             logDate: dateStr,
             durationJp: 8,
             autonomyLevel: 3,
-            jobCardIds: ["card-test-pwa"],
+            jobCardIds: [realJobCardId],
             jobCardTitle: "Simulasi Uji Skenario Offline PWA (TC-004)",
             isNonCompetency: false,
             shortNote: "Catatan simulasi antrean lokal IndexedDB tanpa koneksi internet.",
@@ -95,7 +109,7 @@ export function OfflineQueueModal({ isOpen, onClose }: OfflineQueueModalProps) {
           const newPhoto: OfflinePhoto = {
             clientLogUuid: uuid,
             blob,
-            sha256: "simulated_sha256_webp_" + Date.now(),
+            sha256: realSha,
             sizeBytes: blob.size,
             mimeType: "image/webp",
             createdAt: now.toISOString(),
@@ -241,7 +255,6 @@ export function OfflineQueueModal({ isOpen, onClose }: OfflineQueueModalProps) {
               ) : (
                 queuedLogs.map((log) => {
                   const photo = photoMap.get(log.clientLogUuid);
-                  const photoSizeKb = photo ? (photo.sizeBytes / 1024).toFixed(1) : null;
 
                   return (
                     <div
@@ -294,7 +307,7 @@ export function OfflineQueueModal({ isOpen, onClose }: OfflineQueueModalProps) {
                         {photo ? (
                           <span className="inline-flex items-center gap-1 font-medium text-slate-600">
                             <ImageIcon className="w-3 h-3 text-sky-600" />
-                            <span>Foto WebP ({photoSizeKb} KB)</span>
+                            <span>Foto Terlampir</span>
                           </span>
                         ) : (
                           <span className="text-slate-400">Tanpa lampiran foto</span>

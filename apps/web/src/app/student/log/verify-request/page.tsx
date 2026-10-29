@@ -11,7 +11,7 @@ import {
   CalendarCheck,
   ArrowLeft,
 } from "lucide-react";
-import { generateVerificationLink, fetchStudentLogContext, getPublicAppUrl } from "@/lib/api";
+import { generateVerificationLink, fetchStudentLogContext } from "@/lib/api";
 import { QrCodeView } from "@/components/ui/QrCodeView";
 import { db } from "@/lib/pwa/db";
 
@@ -58,10 +58,10 @@ export default function VerifyRequestPage() {
     expiresAt: string;
     pendingCount?: number;
   } | null>(null);
-
   const loadVerificationData = useCallback(async () => {
     try {
       setIsLoading(true);
+
       const cached = await db.refData.get("student_log_context");
       let placement = (cached?.data as any)?.activePlacement;
       let student = (cached?.data as any)?.student;
@@ -105,23 +105,30 @@ export default function VerifyRequestPage() {
     loadVerificationData();
   }, [loadVerificationData]);
 
-  const publicBaseUrl = getPublicAppUrl();
+  const [appOrigin, setAppOrigin] = useState<string>("");
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setAppOrigin(window.location.origin);
+    }
+  }, []);
+
+  const vercelAppUrl = (appOrigin || process.env["NEXT_PUBLIC_APP_URL"] || "https://vokalink.vercel.app").replace(/\/$/, "");
 
   // Relative path ke halaman verifikasi mentor: /v/[token]
   const verificationPath =
     activeLinkData?.verificationUrl ||
     (activeLinkData?.token ? `/v/${activeLinkData.token}` : "/v/mock-demo-token-123");
 
-  // Selalu gunakan domain Vercel yang sudah dideploy (https://vokalink.vercel.app), bukan localhost!
-  const effectiveVerificationUrl = `${publicBaseUrl}${verificationPath}`;
+  // URL verifikasi publik untuk dipindai kamera mentor
+  const activeUrl = `${vercelAppUrl}${verificationPath}`;
 
   const pendingDays = activeLinkData?.pendingCount ?? 2;
   const totalHours = pendingDays * 8;
 
-  // Draf pesan santun otomatis saat tombol WhatsApp ditekan (selalu menggunakan domain aktif)
+  // Draf pesan santun otomatis saat tombol WhatsApp ditekan
   const politeMessage = `Selamat sore Bapak/Ibu ${mentorName}, mohon izin mengganggu waktunya sebentar. Saya ${studentName} (siswa PKL di ${dudiName}). Mengingat kesibukan Bapak/Ibu, izin mengirimkan tautan rekap jurnal ${
     pendingDays > 1 ? `borongan (${pendingDays} hari kerja)` : "hari ini"
-  } untuk diverifikasi melalui 1 kali input PIN: ${effectiveVerificationUrl}\n\nTerima kasih banyak atas bimbingan dan arahannya, Pak/Bu 🙏`;
+  } untuk diverifikasi melalui 1 kali input PIN: ${activeUrl}\n\nTerima kasih banyak atas bimbingan dan arahannya, Pak/Bu 🙏`;
 
   const waDeepLink = `https://wa.me/${mentorPhone.replace(/^0/, "62")}?text=${encodeURIComponent(
     politeMessage
@@ -129,7 +136,7 @@ export default function VerifyRequestPage() {
 
   const handleCopyLink = () => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(effectiveVerificationUrl);
+      navigator.clipboard.writeText(activeUrl);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
     }
@@ -201,7 +208,7 @@ export default function VerifyRequestPage() {
               </div>
             ) : (
               <QrCodeView
-                value={effectiveVerificationUrl}
+                value={activeUrl}
                 size={qrSize}
                 className="mx-auto"
               />
@@ -253,7 +260,7 @@ export default function VerifyRequestPage() {
           </div>
 
           <Link
-            href={effectiveVerificationUrl}
+            href={activeUrl}
             target="_blank"
             className="inline-flex items-center gap-1 font-semibold text-sky-600 hover:text-sky-700 hover:underline shrink-0 transition ml-2"
             title="Buka tampilan mentor di tab baru"

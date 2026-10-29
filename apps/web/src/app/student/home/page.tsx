@@ -29,7 +29,6 @@ import {
   formatLogDate,
 } from "@/components/student/home/types";
 import { DailyTimelineFeed } from "@/components/student/home/DailyTimelineFeed";
-import { SkkniMatrixView } from "@/components/student/home/SkkniMatrixView";
 import { EvidenceGalleryView } from "@/components/student/home/EvidenceGalleryView";
 import { StudentWidgetPanel } from "@/components/student/home/StudentWidgetPanel";
 import { TaskDetailModal } from "@/components/student/home/TaskDetailModal";
@@ -80,8 +79,8 @@ export default function StudentHomePage() {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  // View Mode: Timeline (default) | Matrix | Evidence
-  const [viewMode, setViewMode] = useState<"timeline" | "matrix" | "evidence">("timeline");
+  // View Mode: Timeline (default) | Evidence
+  const [viewMode, setViewMode] = useState<"timeline" | "evidence">("timeline");
   const [selectedTaskModal, setSelectedTaskModal] = useState<KanbanTask | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
@@ -235,6 +234,7 @@ export default function StudentHomePage() {
       const durationJp = sl.items?.reduce((acc, it) => acc + it.durationJp, 0) || 8;
       const autonomyLevel = firstItem?.autonomyLevel || 3;
       const isVerified = sl.status === "VERIFIED";
+      const isRevision = sl.status === "REVISION_REQUIRED";
       const isInReview = sl.status === "PENDING_VERIFICATION";
       const autonomyLabel =
         autonomyLevel === 3 ? "Mandiri" : autonomyLevel === 2 ? "Terbimbing" : "Observasi";
@@ -264,10 +264,14 @@ export default function StudentHomePage() {
         status: isVerified ? "verified" : isInReview ? "in_review" : "in_progress",
         isoDate: sl.logDate,
         tools: isNonCompetency ? ["SOP Industri"] : ["Logbook PKL", "SOP Industri"],
-        submittedAt: isVerified ? "Sah Terverifikasi" : "Tersinkron (Menunggu PIN)",
+        submittedAt: isVerified
+          ? "Sah Terverifikasi"
+          : isRevision
+          ? "Perlu Revisi (Ditolak Mentor)"
+          : "Tersinkron (Menunggu PIN)",
         mentorSignature: isVerified ? placementInfo?.mentorName || "Mentor Industri" : undefined,
         hmacVerified: isVerified,
-        syncState: isVerified ? "verified" : "synced",
+        syncState: isVerified ? "verified" : isRevision ? "revision_required" : "synced",
         isLocalDexie: false,
         shortNote: sl.shortNote || undefined,
         samplePhotoUrl: sl.evidenceWebpUrl || undefined,
@@ -725,13 +729,13 @@ export default function StudentHomePage() {
               Dokumentasi Praktik Industri
             </h2>
 
-            {/* Apple Segmented Control Bar (Mobile-Tuned Labels) */}
-            <div className="grid grid-cols-3 sm:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/70 text-xs font-semibold w-full sm:w-auto">
+            {/* Apple Segmented Control Bar (Timeline vs Galeri Bukti) */}
+            <div className="grid grid-cols-2 sm:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/70 text-xs font-semibold w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => setViewMode("timeline")}
                 className={cn(
-                  "px-2 sm:px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-[11px] sm:text-xs flex items-center justify-center gap-1",
+                  "px-3 sm:px-4 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-xs flex items-center justify-center gap-1",
                   viewMode === "timeline"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
@@ -741,29 +745,15 @@ export default function StudentHomePage() {
               </button>
               <button
                 type="button"
-                onClick={() => setViewMode("matrix")}
-                className={cn(
-                  "px-2 sm:px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-[11px] sm:text-xs flex items-center justify-center gap-1",
-                  viewMode === "matrix"
-                    ? "bg-white text-slate-900 shadow-2xs font-semibold"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
-                )}
-              >
-                <span className="sm:hidden">SKKNI</span>
-                <span className="hidden sm:inline">Matriks SKKNI</span>
-              </button>
-              <button
-                type="button"
                 onClick={() => setViewMode("evidence")}
                 className={cn(
-                  "px-2 sm:px-3.5 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-[11px] sm:text-xs flex items-center justify-center gap-1",
+                  "px-3 sm:px-4 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-xs flex items-center justify-center gap-1",
                   viewMode === "evidence"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
                 )}
               >
-                <span className="sm:hidden">Galeri</span>
-                <span className="hidden sm:inline">Galeri Bukti</span>
+                <span>Galeri Bukti</span>
               </button>
             </div>
           </div>
@@ -777,9 +767,12 @@ export default function StudentHomePage() {
             />
           )}
 
-          {viewMode === "matrix" && <SkkniMatrixView tasks={allTasks} />}
-
-          {viewMode === "evidence" && <EvidenceGalleryView />}
+          {viewMode === "evidence" && (
+            <EvidenceGalleryView
+              serverLogs={serverLogs}
+              mentorName={placementInfo?.mentorName}
+            />
+          )}
         </div>
       </section>
 

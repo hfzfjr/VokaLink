@@ -14,7 +14,7 @@ import {
   CalendarCheck,
 } from "lucide-react";
 import { db } from "@/lib/pwa/db";
-import { generateVerificationLink, fetchStudentLogContext, getPublicAppUrl } from "@/lib/api";
+import { generateVerificationLink, fetchStudentLogContext } from "@/lib/api";
 import { QrCodeView } from "@/components/ui/QrCodeView";
 
 function WhatsAppIcon({ className = "w-4 h-4" }: { className?: string }) {
@@ -55,6 +55,7 @@ export function MentorQrModal({ onClose }: MentorQrModalProps) {
   const loadVerificationData = useCallback(async () => {
     try {
       setIsLoading(true);
+
       const cached = await db.refData.get("student_log_context");
       let placement = (cached?.data as any)?.activePlacement;
       let student = (cached?.data as any)?.student;
@@ -117,21 +118,28 @@ export function MentorQrModal({ onClose }: MentorQrModalProps) {
     };
   }, [onClose]);
 
-  const publicBaseUrl = getPublicAppUrl();
+  const [appOrigin, setAppOrigin] = useState<string>("");
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setAppOrigin(window.location.origin);
+    }
+  }, []);
 
+  const vercelAppUrl = (appOrigin || process.env["NEXT_PUBLIC_APP_URL"] || "https://vokalink.vercel.app").replace(/\/$/, "");
   const verificationPath =
     activeLinkData?.verificationUrl ||
     (activeLinkData?.token ? `/v/${activeLinkData.token}` : "/v/mock-demo-token-123");
 
-  const effectiveVerificationUrl = `${publicBaseUrl}${verificationPath}`;
+  // URL verifikasi publik untuk dipindai kamera mentor
+  const activeUrl = `${vercelAppUrl}${verificationPath}`;
 
   const pendingDays = activeLinkData?.pendingCount ?? 2;
   const totalHours = pendingDays * 8;
 
-  // Draf pesan santun otomatis saat tombol WhatsApp ditekan (selalu menggunakan domain aktif)
+  // Draf pesan santun otomatis saat tombol WhatsApp ditekan
   const politeMessage = `Selamat sore Bapak/Ibu ${mentorName}, mohon izin mengganggu waktunya sebentar. Saya ${studentName} (siswa PKL di ${dudiName}). Mengingat kesibukan Bapak/Ibu, izin mengirimkan tautan rekap jurnal ${
     pendingDays > 1 ? `borongan (${pendingDays} hari kerja)` : "hari ini"
-  } untuk diverifikasi melalui 1 kali input PIN: ${effectiveVerificationUrl}\n\nTerima kasih banyak atas bimbingan dan arahannya, Pak/Bu 🙏`;
+  } untuk diverifikasi melalui 1 kali input PIN: ${activeUrl}\n\nTerima kasih banyak atas bimbingan dan arahannya, Pak/Bu 🙏`;
 
   const waDeepLink = `https://wa.me/${mentorPhone.replace(/^0/, "62")}?text=${encodeURIComponent(
     politeMessage
@@ -139,7 +147,7 @@ export function MentorQrModal({ onClose }: MentorQrModalProps) {
 
   const handleCopyLink = () => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(effectiveVerificationUrl);
+      navigator.clipboard.writeText(activeUrl);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
     }
@@ -203,10 +211,10 @@ export function MentorQrModal({ onClose }: MentorQrModalProps) {
                 <span className="text-[11px] font-medium">Membangkitkan segel QR...</span>
               </div>
             ) : (
-              <QrCodeView value={effectiveVerificationUrl} size={160} errorCorrectionLevel="M" />
+              <QrCodeView value={activeUrl} size={160} errorCorrectionLevel="M" />
             )}
           </div>
-          <p className="text-[11px] text-slate-400 font-medium mt-2">
+          <p className="text-[11px] text-slate-500 font-medium mt-2">
             Arahkan kamera smartphone mentor ke kode QR di atas
           </p>
         </div>
@@ -250,7 +258,7 @@ export function MentorQrModal({ onClose }: MentorQrModalProps) {
           </div>
 
           <Link
-            href={effectiveVerificationUrl}
+            href={activeUrl}
             target="_blank"
             className="inline-flex items-center gap-1 font-semibold text-slate-500 hover:text-emerald-700 hover:underline shrink-0 transition"
             title="Buka tampilan mentor di tab baru"

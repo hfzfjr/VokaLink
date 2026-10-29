@@ -5,13 +5,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/use-auth";
 import VokaIcon from "@/components/common/VokaIcon";
-import { Sparkles, ArrowLeft } from "lucide-react";
+import { Sparkles, ArrowLeft, LogOut } from "lucide-react";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { cn } from "@/lib/cn";
 
 export function TeacherHeader() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const isOnline = useOnlineStatus();
 
   const isDashboard = pathname === "/teacher/dashboard" || pathname === "/teacher";
@@ -76,7 +76,7 @@ export function TeacherHeader() {
           </div>
         </div>
 
-        {/* Right Section: Sector Badge & Avatar Initials */}
+        {/* Right Section: Sector Badge, Avatar Initials & Logout */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100/90 border border-slate-200/70 text-[11px] font-semibold text-slate-700 shadow-2xs">
             <Sparkles className="w-3 h-3 text-amber-500 shrink-0" />
@@ -86,6 +86,21 @@ export function TeacherHeader() {
           <div className="w-8 h-8 rounded-xl bg-slate-900 text-white font-bold text-[11px] flex items-center justify-center shadow-xs shrink-0 select-none">
             {initials}
           </div>
+
+          <button
+            type="button"
+            onClick={async () => {
+              if (confirm("Apakah Anda yakin ingin keluar dari akun guru?")) {
+                await logout();
+                window.location.replace("/login");
+              }
+            }}
+            title="Keluar dari Akun Guru"
+            aria-label="Keluar dari Akun Guru"
+            className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-rose-50 active:scale-95 text-slate-500 hover:text-rose-600 flex items-center justify-center transition border border-slate-200/80 cursor-pointer shadow-2xs shrink-0"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </header>

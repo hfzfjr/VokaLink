@@ -29,6 +29,8 @@ import {
   LayoutGrid,
   Sparkles,
   Maximize2,
+  AlertTriangle,
+  Edit3,
 } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { convertRealHoursToJp, TOTAL_TARGET_JP } from "@vokalink/shared";
@@ -52,7 +54,7 @@ interface LogEntry {
   autonomy: "Mandiri" | "Terbimbing" | "Observasi";
   autonomyScore: number;
   skkniCode?: string;
-  status: "VERIFIED" | "PENDING_VERIFICATION";
+  status: "VERIFIED" | "PENDING_VERIFICATION" | "REVISION_REQUIRED";
   attendanceType?: "PRESENT" | "SICK" | "PERMIT";
   verifiedAt?: string | null;
   mentor: string;
@@ -61,6 +63,7 @@ interface LogEntry {
   isNonCompetency?: boolean;
   nonCompetencyCategory?: string;
   notes?: string;
+  rejectionReason?: string;
   syncState?: "queued" | "meta_synced" | "synced" | "verified" | "revision_required" | "failed";
   isLocalOnly?: boolean;
 }
@@ -243,7 +246,12 @@ export default function LogHistoryPage() {
                 skkniCode: isNonCompetency
                   ? undefined
                   : firstItem?.jobCard?.skkniUnitCode || "J.620100.020.02",
-                status: sl.status === "VERIFIED" ? "VERIFIED" : "PENDING_VERIFICATION",
+                status:
+                  sl.status === "VERIFIED"
+                    ? "VERIFIED"
+                    : sl.status === "REVISION_REQUIRED"
+                    ? "REVISION_REQUIRED"
+                    : "PENDING_VERIFICATION",
                 attendanceType: sl.attendanceType || "PRESENT",
                 verifiedAt: sl.verifiedAt
                   ? formatDateIndo(sl.verifiedAt.slice(0, 10))
@@ -254,21 +262,32 @@ export default function LogHistoryPage() {
                 isNonCompetency,
                 nonCompetencyCategory: firstItem?.nonCompetencyCategory || undefined,
                 notes: sl.shortNote || undefined,
-                syncState: sl.status === "VERIFIED" ? "verified" : "synced",
+                rejectionReason: sl.rejectionReason || undefined,
+                syncState:
+                  sl.status === "VERIFIED"
+                    ? "verified"
+                    : sl.status === "REVISION_REQUIRED"
+                    ? "revision_required"
+                    : "synced",
                 isLocalOnly: false,
               };
             });
             setServerLogs(mapped);
 
-            // Perbarui status log Dexie lokal bila di server sudah TERVERIFIKASI
+            // Perbarui status log Dexie lokal bila di server sudah TERVERIFIKASI atau REVISI
             try {
               for (const sl of dbLogs) {
-                if (sl.status === "VERIFIED" && sl.clientLogUuid) {
+                if (sl.clientLogUuid) {
                   const local = await db.logs.get(sl.clientLogUuid);
-                  if (local && local.state !== "verified") {
+                  if (sl.status === "VERIFIED" && local && local.state !== "verified") {
                     await db.logs.update(sl.clientLogUuid, {
                       state: "verified",
                       verifiedAt: sl.verifiedAt || new Date().toISOString(),
+                    });
+                  } else if (sl.status === "REVISION_REQUIRED" && local && local.state !== "revision_required") {
+                    await db.logs.update(sl.clientLogUuid, {
+                      state: "revision_required",
+                      lastError: sl.rejectionReason || "Mentor meminta revisi",
                     });
                   }
                 }
@@ -341,7 +360,12 @@ export default function LogHistoryPage() {
         autonomy: ol.autonomyLevel === 3 ? "Mandiri" : ol.autonomyLevel === 2 ? "Terbimbing" : "Observasi",
         autonomyScore: ol.autonomyLevel === 3 ? 100 : ol.autonomyLevel === 2 ? 88 : 75,
         skkniCode: isNonComp ? undefined : "J.620100.009.01",
-        status: ol.state === "verified" ? "VERIFIED" : "PENDING_VERIFICATION",
+        status:
+          ol.state === "verified"
+            ? "VERIFIED"
+            : ol.state === "revision_required"
+            ? "REVISION_REQUIRED"
+            : "PENDING_VERIFICATION",
         attendanceType: ol.attendanceType || "PRESENT",
         verifiedAt: ol.verifiedAt ? formatDateIndo(ol.verifiedAt.slice(0, 10)) : null,
         mentor: placementInfo.mentorName || "Rizky Firmansyah",
@@ -349,6 +373,7 @@ export default function LogHistoryPage() {
         isNonCompetency: isNonComp,
         nonCompetencyCategory: ol.nonCompetencyCategory,
         notes: ol.shortNote,
+        rejectionReason: ol.lastError,
         syncState: ol.state,
         isLocalOnly: true,
       };
@@ -373,7 +398,14 @@ export default function LogHistoryPage() {
           hasPhoto: sLog.hasPhoto || offLog.hasPhoto,
           samplePhotoUrl: sLog.samplePhotoUrl || offLog.samplePhotoUrl,
           notes: sLog.notes || offLog.notes,
-          status: isServerVerified ? "VERIFIED" : offLog.status === "VERIFIED" ? "VERIFIED" : sLog.status,
+          rejectionReason: sLog.rejectionReason || offLog.rejectionReason,
+          status: isServerVerified
+            ? "VERIFIED"
+            : sLog.status === "REVISION_REQUIRED"
+            ? "REVISION_REQUIRED"
+            : offLog.status === "VERIFIED"
+            ? "VERIFIED"
+            : sLog.status,
           verifiedAt: sLog.verifiedAt || offLog.verifiedAt,
           syncState: isServerVerified ? "verified" : sLog.syncState,
           isLocalOnly: false,
@@ -400,12 +432,12 @@ export default function LogHistoryPage() {
   );
 
   const totalPendingJp = useMemo(
-    () => allLogs.filter((l) => l.status === "PENDING_VERIFICATION").reduce((acc, curr) => acc + curr.durationJp, 0),
+    () => allLogs.filter((l) => l.status === "PENDING_VERIFICATION" || l.status === "REVISION_REQUIRED").reduce((acc, curr) => acc + curr.durationJp, 0),
     [allLogs]
   );
 
   const pendingCountTotal = useMemo(
-    () => allLogs.filter((l) => l.status === "PENDING_VERIFICATION").length,
+    () => allLogs.filter((l) => l.status === "PENDING_VERIFICATION" || l.status === "REVISION_REQUIRED").length,
     [allLogs]
   );
 
@@ -480,7 +512,7 @@ export default function LogHistoryPage() {
   const filteredLogs = useMemo(() => {
     return allLogs.filter((log) => {
       if (filter === "VERIFIED" && log.status !== "VERIFIED") return false;
-      if (filter === "PENDING" && log.status !== "PENDING_VERIFICATION") return false;
+      if (filter === "PENDING" && log.status !== "PENDING_VERIFICATION" && log.status !== "REVISION_REQUIRED") return false;
       if (filter === "NON_COMPETENCY" && !log.isNonCompetency) return false;
 
       // Filter Periode Bulan
@@ -693,48 +725,48 @@ export default function LogHistoryPage() {
       ───────────────────────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pb-3 border-b border-slate-200/80">
         <div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
+          <div className="flex items-center justify-between sm:justify-start gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
               Riwayat Logbook
             </h1>
             {pendingCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/70 text-[11px] font-medium">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/70 text-[11px] font-medium shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                <span>{pendingCount} Antrean Offline</span>
+                <span>{pendingCount} Offline</span>
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-500 mt-1 font-normal">
+          <p className="text-xs text-slate-500 mt-1 font-normal line-clamp-1 sm:line-clamp-none">
             Arsip aktivitas harian, presensi industri, dan status validasi mentor DUDI
           </p>
         </div>
 
-        {/* Action Buttons: Solid Pill Buttons with generous mobile touch target */}
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
+        {/* Action Buttons: Unified Single-Row Mobile Action Bar */}
+        <div className="flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
           {pendingCount > 0 && (
             <button
               type="button"
               onClick={() => syncNow()}
               disabled={isSyncing || !isOnline}
-              style={{ paddingLeft: "20px", paddingRight: "20px" }}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 h-11 rounded-full bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-700 text-xs sm:text-sm font-semibold border border-slate-200/80 transition disabled:opacity-50 cursor-pointer shadow-2xs whitespace-nowrap"
+              title={isSyncing ? "Menyinkronkan antrean..." : `${pendingCount} antrean offline siap disinkronkan`}
+              className="h-10 px-3 sm:px-4 rounded-xl bg-amber-50 hover:bg-amber-100 active:scale-[0.98] text-amber-800 text-xs font-semibold border border-amber-200/80 transition disabled:opacity-50 cursor-pointer shadow-2xs whitespace-nowrap flex items-center justify-center gap-1.5 shrink-0"
             >
-              <RefreshCw className={cn("w-4 h-4 text-sky-600 shrink-0", isSyncing && "animate-spin")} />
-              <span>{isSyncing ? "Sinkron..." : "Sinkronkan"}</span>
+              <RefreshCw className={cn("w-3.5 h-3.5 text-amber-600 shrink-0", isSyncing && "animate-spin")} />
+              <span className="sm:hidden font-bold">{pendingCount}</span>
+              <span className="hidden sm:inline">{isSyncing ? "Sinkron..." : `Sinkron (${pendingCount})`}</span>
             </button>
           )}
 
           <button
             type="button"
             onClick={handleOpenVerifyModal}
-            style={{ paddingLeft: "22px", paddingRight: "22px" }}
-            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2.5 h-11 rounded-full bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white text-xs sm:text-sm font-semibold shadow-xs transition cursor-pointer whitespace-nowrap"
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 h-10 px-3.5 sm:px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white text-xs sm:text-sm font-semibold shadow-2xs transition cursor-pointer whitespace-nowrap"
           >
             <QrCode className="w-4 h-4 text-sky-400 shrink-0" />
             <span className="sm:hidden">Validasi</span>
             <span className="hidden sm:inline">Minta Validasi (QR)</span>
             {pendingCountTotal > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-sky-500 text-white text-[11px] font-bold">
+              <span className="px-1.5 py-0.5 rounded-full bg-sky-500 text-white text-[10px] font-bold leading-none">
                 {pendingCountTotal}
               </span>
             )}
@@ -742,10 +774,9 @@ export default function LogHistoryPage() {
 
           <Link
             href="/student/log/new"
-            style={{ paddingLeft: "24px", paddingRight: "24px" }}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-11 rounded-full bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs sm:text-sm font-semibold shadow-sm hover:shadow-md transition whitespace-nowrap cursor-pointer"
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 h-10 px-4 sm:px-5 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs sm:text-sm font-semibold shadow-2xs transition whitespace-nowrap cursor-pointer"
           >
-            <PlusCircle className="w-4 h-4 shrink-0" />
+            <PlusCircle className="w-4 h-4 shrink-0 stroke-[2.2]" />
             <span>Catat Jurnal</span>
           </Link>
         </div>
@@ -886,9 +917,8 @@ export default function LogHistoryPage() {
           3. APPLE SEGMENTED CONTROL, SEARCH & VIEW SWITCHER (LIST vs GRID)
       ───────────────────────────────────────────────────────────────────────────── */}
       <div ref={listContainerRef} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        {/* Baris 1 di mobile: Segmented Filter Tabs + Mobile-only View Switcher */}
-        <div className="flex items-center justify-between gap-2 w-full sm:w-auto">
-          <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-full border border-slate-200 text-xs font-medium overflow-x-auto flex-1 sm:flex-initial scrollbar-none">
+        {/* Baris 1: Segmented Filter Tabs */}
+        <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-full border border-slate-200 text-xs font-medium overflow-x-auto w-full sm:w-auto scrollbar-none">
             {/* 1. Semua Jurnal */}
             <button
               type="button"
@@ -992,39 +1022,6 @@ export default function LogHistoryPage() {
               </span>
             </button>
           </div>
-
-          {/* Mobile-Only View Mode Switcher Toggle */}
-          <div className="flex sm:hidden items-center h-10 bg-slate-200/60 p-1 rounded-full border border-slate-200 shrink-0">
-            <button
-              type="button"
-              onClick={() => setViewMode("LIST")}
-              aria-label="Tampilan Baris Rapi (List View)"
-              title="Tampilan Baris Rapi"
-              className={cn(
-                "h-8 px-2 rounded-full transition-all cursor-pointer flex items-center justify-center",
-                viewMode === "LIST"
-                  ? "bg-white text-slate-900 shadow-2xs font-semibold"
-                  : "text-slate-500 hover:text-slate-800"
-              )}
-            >
-              <LayoutList className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("GRID")}
-              aria-label="Tampilan Kartu (Grid View)"
-              title="Tampilan Kartu Visual"
-              className={cn(
-                "h-8 px-2 rounded-full transition-all cursor-pointer flex items-center justify-center",
-                viewMode === "GRID"
-                  ? "bg-white text-slate-900 shadow-2xs font-semibold"
-                  : "text-slate-500 hover:text-slate-800"
-              )}
-            >
-              <LayoutGrid className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
 
         {/* Baris 2: Month Selector + Search Bar + Desktop View Switcher */}
         <div className="flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
@@ -1232,6 +1229,8 @@ export default function LogHistoryPage() {
                                 "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border shrink-0",
                                 isVerified
                                   ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
+                                  : log.status === "REVISION_REQUIRED"
+                                  ? "bg-rose-50 text-rose-700 border-rose-200/80"
                                   : log.syncState === "queued"
                                   ? "bg-amber-50 text-amber-800 border-amber-200/80"
                                   : "bg-amber-50 text-amber-700 border-amber-200/80"
@@ -1241,6 +1240,11 @@ export default function LogHistoryPage() {
                                 <>
                                   <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
                                   <span>Sah</span>
+                                </>
+                              ) : log.status === "REVISION_REQUIRED" ? (
+                                <>
+                                  <AlertTriangle className="w-3 h-3 text-rose-600" />
+                                  <span>Perlu Revisi</span>
                                 </>
                               ) : (
                                 <>
@@ -1336,6 +1340,8 @@ export default function LogHistoryPage() {
                               "inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border",
                               isVerified
                                 ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
+                                : log.status === "REVISION_REQUIRED"
+                                ? "bg-rose-50 text-rose-700 border-rose-200/80"
                                 : log.syncState === "queued"
                                 ? "bg-amber-50 text-amber-800 border-amber-200/80"
                                 : "bg-amber-50 text-amber-700 border-amber-200/80"
@@ -1345,6 +1351,11 @@ export default function LogHistoryPage() {
                               <>
                                 <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
                                 <span>Terverifikasi</span>
+                              </>
+                            ) : log.status === "REVISION_REQUIRED" ? (
+                              <>
+                                <AlertTriangle className="w-3 h-3 text-rose-600" />
+                                <span>Perlu Revisi</span>
                               </>
                             ) : (
                               <>
@@ -1412,6 +1423,8 @@ export default function LogHistoryPage() {
                           "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-semibold border shrink-0 whitespace-nowrap",
                           isVerified
                             ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
+                            : log.status === "REVISION_REQUIRED"
+                            ? "bg-rose-50 text-rose-700 border-rose-200/80"
                             : "bg-amber-50 text-amber-700 border-amber-200/80"
                         )}
                       >
@@ -1419,6 +1432,11 @@ export default function LogHistoryPage() {
                           <>
                             <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
                             <span>Sah</span>
+                          </>
+                        ) : log.status === "REVISION_REQUIRED" ? (
+                          <>
+                            <AlertTriangle className="w-3 h-3 text-rose-600" />
+                            <span>Perlu Revisi</span>
                           </>
                         ) : (
                           <>
@@ -1757,10 +1775,15 @@ export default function LogHistoryPage() {
               <div className="flex items-center justify-between py-1">
                 <span className="text-slate-500 font-normal">Status Verifikasi:</span>
                 <span className="font-semibold text-slate-800">
-                  {selectedLogDetail.verifiedAt ? (
+                  {selectedLogDetail.status === "VERIFIED" && selectedLogDetail.verifiedAt ? (
                     <span className="text-emerald-700 flex items-center gap-1">
                       <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                       <span>{selectedLogDetail.verifiedAt}</span>
+                    </span>
+                  ) : selectedLogDetail.status === "REVISION_REQUIRED" ? (
+                    <span className="text-rose-700 flex items-center gap-1 font-semibold">
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Perlu Revisi (Ditolak Mentor)</span>
                     </span>
                   ) : (
                     <span className="text-amber-700">Menunggu validasi PIN mentor</span>
@@ -1768,6 +1791,19 @@ export default function LogHistoryPage() {
                 </span>
               </div>
             </div>
+
+            {/* Catatan Alasan Revisi dari Mentor */}
+            {selectedLogDetail.status === "REVISION_REQUIRED" && (
+              <div className="space-y-1.5 p-3.5 rounded-2xl bg-rose-50 border border-rose-200/80">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-rose-700">
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Catatan Perbaikan dari Mentor:</span>
+                </div>
+                <p className="text-xs text-rose-900 leading-relaxed font-normal">
+                  &quot;{selectedLogDetail.rejectionReason || "Mentor meminta perbaikan pada rincian aktivitas atau dokumentasi foto bukti pelaksanaan tugas."}&quot;
+                </p>
+              </div>
+            )}
 
             {/* Catatan Aktivitas Siswa */}
             {selectedLogDetail.notes && (
@@ -1781,6 +1817,16 @@ export default function LogHistoryPage() {
 
             {/* Actions: Pill-shaped Buttons */}
             <div className="space-y-2 pt-1">
+              {selectedLogDetail.status === "REVISION_REQUIRED" && (
+                <Link
+                  href="/student/log/new"
+                  className="w-full py-2.5 rounded-full bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Tulis Ulang & Ajukan Revisi</span>
+                </Link>
+              )}
+
               {selectedLogDetail.status === "PENDING_VERIFICATION" && (
                 <button
                   type="button"

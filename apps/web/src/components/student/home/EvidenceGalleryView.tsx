@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/pwa/db";
+import type { StudentDailyLogItem } from "@/lib/api";
 import { formatLogDate } from "./types";
 import { cn } from "@/lib/cn";
 
@@ -37,87 +38,15 @@ export interface EvidenceItem {
   photoUrl: string;
 }
 
-const SAMPLE_EVIDENCES: EvidenceItem[] = [
-  {
-    id: "ev-1",
-    title: "Implementasi Alur Autentikasi Pengguna & Keamanan API",
-    jp: 8,
-    date: "20 Okt 2026",
-    size: "138 KB (WebP)",
-    category: "Pemrograman Web",
-    note: "Membangun alur otorisasi pengguna berbasis token sesi, proteksi rute halaman, dan validasi formulir input terenkripsi.",
-    status: "verified",
-    verifiedAt: "20 Okt 2026, 17:30 WIB",
-    mentor: "Rizky Firmansyah (Mentor DUDI)",
-    photoUrl: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1000&q=80",
-  },
-  {
-    id: "ev-2",
-    title: "Perancangan Skema Basis Data Relasional & Audit Log",
-    jp: 8,
-    date: "19 Okt 2026",
-    size: "112 KB (WebP)",
-    category: "Basis Data",
-    note: "Menyusun normalisasi tabel data master, indeks performa kueri transaksi, dan proteksi integritas logbook magang.",
-    status: "in_review",
-    mentor: "Rizky Firmansyah (Mentor DUDI)",
-    photoUrl: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1000&q=80",
-  },
-  {
-    id: "ev-3",
-    title: "Pengujian Otomatis Fitur & Validasi Alur Logbook",
-    jp: 8,
-    date: "18 Okt 2026",
-    size: "84 KB (WebP)",
-    category: "Testing & QA",
-    note: "Menjalankan skenario pengujian unit otomatis end-to-end dan validasi respons transaksi formulir magang industri.",
-    status: "verified",
-    verifiedAt: "18 Okt 2026, 18:00 WIB",
-    mentor: "Rizky Firmansyah (Mentor DUDI)",
-    photoUrl: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1000&q=80",
-  },
-  {
-    id: "ev-4",
-    title: "Slicing Antarmuka Responsif Mobile-First Web",
-    jp: 8,
-    date: "17 Okt 2026",
-    size: "124 KB (WebP)",
-    category: "Frontend Web",
-    note: "Menata komponen kartu aktivitas kerja agar responsif, proporsional, dan nyaman diakses di smartphone maupun desktop.",
-    status: "verified",
-    verifiedAt: "17 Okt 2026, 17:15 WIB",
-    mentor: "Rizky Firmansyah (Mentor DUDI)",
-    photoUrl: "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=1000&q=80",
-  },
-  {
-    id: "ev-5",
-    title: "Bantuan Administrasi & Pengarsipan Faktur Kantor",
-    jp: 4,
-    date: "16 Okt 2026",
-    size: "96 KB (WebP)",
-    category: "Non-Kompetensi",
-    note: "Membantu penataan dokumen faktur pengiriman barang, pencocokan nomor arsip berkas, dan perapian dokumen kantor DUDI.",
-    status: "verified",
-    verifiedAt: "16 Okt 2026, 17:00 WIB",
-    mentor: "Rizky Firmansyah (Mentor DUDI)",
-    isNonCompetency: true,
-    photoUrl: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=1000&q=80",
-  },
-  {
-    id: "ev-6",
-    title: "Konfigurasi Lingkungan Deployment & Integrasi Server",
-    jp: 8,
-    date: "15 Okt 2026",
-    size: "142 KB (WebP)",
-    category: "Infrastruktur & Cloud",
-    note: "Menyiapkan konfigurasi otomasi rilis build sistem dan pengujian kesiapan integrasi server staging industri.",
-    status: "in_review",
-    mentor: "Rizky Firmansyah (Mentor DUDI)",
-    photoUrl: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1000&q=80",
-  },
-];
+interface EvidenceGalleryViewProps {
+  serverLogs?: StudentDailyLogItem[];
+  mentorName?: string;
+}
 
-export function EvidenceGalleryView() {
+export function EvidenceGalleryView({
+  serverLogs = [],
+  mentorName = "Mentor Industri",
+}: EvidenceGalleryViewProps) {
   const [galleryLayout, setGalleryLayout] = useState<"GRID" | "LIST">("GRID");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "VERIFIED" | "IN_REVIEW">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -133,9 +62,7 @@ export function EvidenceGalleryView() {
       .map((l) => {
         const photo = offlinePhotos.find((p) => p.clientLogUuid === l.clientLogUuid);
         const kbSize = photo ? `${Math.round(photo.sizeBytes / 1024)} KB (WebP)` : "120 KB (WebP)";
-        const photoUrl = photo?.blob
-          ? URL.createObjectURL(photo.blob)
-          : "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1000&q=80";
+        const photoUrl = photo?.blob ? URL.createObjectURL(photo.blob) : "";
         return {
           id: l.clientLogUuid,
           title: l.jobCardTitle || l.shortNote || "Dokumentasi Praktik Industri",
@@ -144,18 +71,59 @@ export function EvidenceGalleryView() {
           size: kbSize,
           category: l.isNonCompetency ? "Non-Kompetensi" : "Dokumentasi Kerja",
           note: l.shortNote || "Dokumentasi foto bukti pelaksanaan tugas magang industri siswa.",
-          status: l.state === "verified" ? "verified" : "in_review",
+          status: (l.state === "verified" ? "verified" : "in_review") as "verified" | "in_review",
           verifiedAt: l.verifiedAt || undefined,
-          mentor: "Rizky Firmansyah (Mentor DUDI)",
+          mentor: mentorName,
           isNonCompetency: l.isNonCompetency,
           photoUrl,
         };
-      });
-  }, [offlineLogs, offlinePhotos]);
+      })
+      .filter((e) => Boolean(e.photoUrl));
+  }, [offlineLogs, offlinePhotos, mentorName]);
 
+  // 2. Foto bukti dari database server
+  const serverEvidences: EvidenceItem[] = useMemo(() => {
+    return serverLogs
+      .filter((sl) => Boolean(sl.evidenceWebpUrl))
+      .map((sl) => {
+        const firstItem = sl.items?.[0];
+        const isNonComp = Boolean(firstItem?.jobCard?.isNonCompetency || firstItem?.nonCompetencyCategory);
+        const durationJp = sl.items?.reduce((acc, it) => acc + it.durationJp, 0) || 8;
+        return {
+          id: sl.clientLogUuid || sl.id,
+          title: firstItem?.jobCard?.title || sl.shortNote || "Dokumentasi Praktik Industri",
+          jp: durationJp,
+          date: formatLogDate(sl.logDate),
+          size: "WebP (< 150 KB)",
+          category: isNonComp ? "Non-Kompetensi" : "Dokumentasi Kerja",
+          note: sl.shortNote || "Dokumentasi foto bukti pelaksanaan tugas magang industri siswa.",
+          status: sl.status === "VERIFIED" ? ("verified" as const) : ("in_review" as const),
+          verifiedAt: sl.verifiedAt ? formatLogDate(sl.verifiedAt.slice(0, 10)) : undefined,
+          mentor: mentorName,
+          isNonCompetency: isNonComp,
+          photoUrl: sl.evidenceWebpUrl!,
+        };
+      });
+  }, [serverLogs, mentorName]);
+
+  // Gabungkan foto offline lokal dengan foto database server (Tanpa dummy palsu)
   const allEvidences = useMemo(() => {
-    return [...offlineEvidences, ...SAMPLE_EVIDENCES];
-  }, [offlineEvidences]);
+    const list: EvidenceItem[] = [];
+    const processedIds = new Set<string>();
+
+    for (const se of serverEvidences) {
+      processedIds.add(se.id);
+      list.push(se);
+    }
+
+    for (const oe of offlineEvidences) {
+      if (!processedIds.has(oe.id)) {
+        list.push(oe);
+      }
+    }
+
+    return list;
+  }, [offlineEvidences, serverEvidences]);
 
   const verifiedCount = useMemo(
     () => allEvidences.filter((e) => e.status === "verified").length,
@@ -208,8 +176,8 @@ export function EvidenceGalleryView() {
     <div className="space-y-4 pt-1 pb-6 animate-in fade-in duration-200">
       {/* ─── Control Bar: Status chips (sekunder) | Cari & List/Grid ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-        {/* Status chips ringan — warna biru VokaLink saat aktif, bersih tanpa dot */}
-        <div className="flex items-center gap-1 w-full sm:w-auto overflow-x-auto scrollbar-none">
+        {/* Status chips segmented control — gaya Apple Segmented pill */}
+        <div className="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-full border border-slate-200/70 text-xs font-semibold overflow-x-auto scrollbar-none w-full sm:w-auto">
           {(
             [
               { key: "ALL", label: "Semua", count: allEvidences.length },
@@ -225,14 +193,21 @@ export function EvidenceGalleryView() {
                 onClick={() => setStatusFilter(chip.key)}
                 aria-pressed={active}
                 className={cn(
-                  "h-8 px-3 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer",
+                  "h-7 sm:h-7.5 px-3 rounded-full text-xs transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5",
                   active
-                    ? "bg-sky-500 text-white shadow-xs font-semibold"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    ? "bg-white text-slate-900 shadow-2xs font-bold"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
                 )}
               >
                 <span>{chip.label}</span>
-                <span className={cn("tabular-nums text-[11px]", active ? "text-white/80 font-medium" : "text-slate-400")}>
+                <span
+                  className={cn(
+                    "tabular-nums text-[10.5px] px-1.5 py-0.2 rounded-full font-semibold",
+                    active
+                      ? "bg-slate-100 text-slate-700"
+                      : "text-slate-400"
+                  )}
+                >
                   {chip.count}
                 </span>
               </button>
@@ -411,8 +386,8 @@ export function EvidenceGalleryView() {
                   <span>{ev.mentor || "Mentor DUDI"}</span>
                 </span>
 
-                <span className="text-[10px] text-slate-400 font-mono">
-                  {ev.size}
+                <span className="text-[11px] text-sky-600 font-medium group-hover:underline">
+                  Lihat Detail &rarr;
                 </span>
               </div>
             </div>

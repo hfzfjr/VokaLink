@@ -26,28 +26,47 @@ export type {
 };
 
 export function getApiBaseUrl(): string {
-  if (process.env["NEXT_PUBLIC_API_URL"]) {
-    return process.env["NEXT_PUBLIC_API_URL"];
-  }
   if (typeof window !== "undefined") {
     const protocol = window.location.protocol;
     const hostname = window.location.hostname;
-    if (hostname === "localhost" || hostname === "127.0.0.1") {
+
+    // Jika berjalan di localhost atau IP privat lokal (192.168.*, 10.*, 172.16-31.*),
+    // selalu arahkan ke Express API server pada port 3001 di host/IP yang sama
+    const isPrivateIp =
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname.startsWith("192.168.") ||
+      hostname.startsWith("10.") ||
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname);
+
+    if (isPrivateIp) {
       return `${protocol}//${hostname}:3001/api/v1`;
     }
+
+    // Jika di lingkungan produksi dengan custom domain API:
+    const envApi = process.env["NEXT_PUBLIC_API_URL"];
+    if (envApi && !envApi.includes("localhost") && !envApi.includes("127.0.0.1")) {
+      return envApi;
+    }
+
     return `${window.location.origin}/api/v1`;
   }
-  return "http://localhost:3001/api/v1";
+
+  // SSR / Server Environment Fallback
+  return process.env["NEXT_PUBLIC_API_URL"] || "http://localhost:3001/api/v1";
 }
 
 export function getPublicAppUrl(): string {
-  if (typeof window !== "undefined") {
-    const hostname = window.location.hostname;
-    if (hostname !== "localhost" && hostname !== "127.0.0.1" && !hostname.startsWith("192.168.")) {
-      return window.location.origin;
-    }
+  // 1. Jika didefinisikan NEXT_PUBLIC_APP_URL (misal Vercel URL yang sudah dideploy), gunakan itu sebagai domain publik utama
+  const envUrl = process.env["NEXT_PUBLIC_APP_URL"];
+  if (envUrl) {
+    return envUrl.replace(/\/$/, "");
   }
-  return process.env["NEXT_PUBLIC_APP_URL"] || "https://vokalink.vercel.app";
+  // 2. Jika di browser client, gunakan window.location.origin aktif
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
+  return "https://vokalink.vercel.app";
 }
 
 const API_BASE_URL = getApiBaseUrl();
