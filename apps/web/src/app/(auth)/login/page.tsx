@@ -20,6 +20,7 @@ import {
 import Navbar, { NavbarButton } from "@/components/layout/Navbar";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/use-auth";
+import { sanitizeErrorMessage } from "@/lib/error-formatter";
 
 function GoogleIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
@@ -110,8 +111,7 @@ function LoginForm() {
       }
     } catch (err: unknown) {
       setGoogleLoading(false);
-      const msg = err instanceof Error ? err.message : "Gagal menginisialisasi login Google.";
-      setErrorMsg(msg);
+      setErrorMsg(sanitizeErrorMessage(err, "Gagal menginisialisasi login Google."));
     }
   };
 
@@ -199,8 +199,7 @@ function LoginForm() {
         router.push("/student/home");
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Gagal masuk ke sistem.";
-      setErrorMsg(msg);
+      setErrorMsg(sanitizeErrorMessage(err, "Gagal masuk ke sistem. Silakan periksa kredensial Anda."));
     } finally {
       setLoading(false);
     }

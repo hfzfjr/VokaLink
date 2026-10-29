@@ -79,10 +79,10 @@ export function PlacementCandidatesTable({
         return (
           <div
             key={student.studentId}
-            className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-slate-300 transition"
+            className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:border-slate-300 transition"
           >
             {/* Col 1: Student Info (Fixed width on desktop for consistent alignment) */}
-            <div className="space-y-1.5 min-w-0 md:w-[320px] lg:w-[350px] shrink-0">
+            <div className="space-y-1.5 min-w-0 lg:w-[320px] xl:w-[350px] shrink-0">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-bold text-sm sm:text-[15px] text-slate-900 truncate">
                   {student.fullName}
@@ -139,12 +139,12 @@ export function PlacementCandidatesTable({
               )}
             </div>
 
-            {/* Col 3: Action (Fixed width on desktop) */}
-            <div className="shrink-0 flex items-center justify-end md:w-[145px]">
+            {/* Col 3: Action (Fixed width on desktop, full width on mobile/tablet) */}
+            <div className="shrink-0 flex items-center justify-end w-full lg:w-[145px]">
               <button
                 type="button"
                 onClick={() => onOpenAssignModal(student)}
-                className="w-full md:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
+                className="w-full lg:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
               >
                 <UserCheck className="w-4 h-4" />
                 <span>Plotkan Siswa</span>

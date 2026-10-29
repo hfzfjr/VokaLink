@@ -21,6 +21,8 @@ import {
   registerSchool,
   type MasterDepartmentItem,
 } from "../../../lib/api";
+import { sanitizeErrorMessage } from "@/lib/error-formatter";
+import { SkeletonRect } from "@/components/ui/Skeleton";
 import Navbar, { NavbarButton } from "@/components/layout/Navbar";
 
 type Step = 1 | 2 | 3 | 4 | 5; // 1: Info, 2: Jurusan, 3: Periode, 4: Admin, 5: Sukses
@@ -228,8 +230,7 @@ export default function RegisterSchoolPage() {
 
       setStep(5);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Pendaftaran sekolah gagal. Silakan coba kembali.";
-      setErrorMsg(msg);
+      setErrorMsg(sanitizeErrorMessage(err, "Pendaftaran sekolah gagal. Silakan coba kembali."));
     } finally {
       setLoading(false);
     }
@@ -415,7 +416,7 @@ export default function RegisterSchoolPage() {
             {loadingDepts ? (
               <div className="space-y-3 py-4">
                 {[1, 2, 3].map((n) => (
-                  <div key={n} className="h-16 rounded-2xl bg-slate-100 animate-pulse" />
+                  <SkeletonRect key={n} className="h-16 rounded-2xl" />
                 ))}
               </div>
             ) : departmentsList.length === 0 ? (

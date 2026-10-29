@@ -18,40 +18,42 @@ export function EraporSummaryBanner({
   averageGrade,
 }: EraporSummaryBannerProps) {
   return (
-    <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/80 shadow-2xs space-y-4">
+    <div className="rounded-3xl bg-white border border-slate-200/80 shadow-2xs overflow-hidden">
       {/* Title & Description */}
-      <div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <FileSpreadsheet className="w-5 h-5 text-sky-500" />
-            Rekapitulasi Nilai e-Rapor SMK
-          </h1>
-          <span className="px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 font-bold text-xs border border-sky-200 whitespace-nowrap shrink-0">
-            Standar Dapodik
-          </span>
+      <div className="p-5 sm:p-6 pb-4 sm:pb-5 space-y-3.5">
+        <div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <FileSpreadsheet className="w-5 h-5 text-sky-500" />
+              Rekapitulasi Nilai e-Rapor SMK
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 font-bold text-xs border border-sky-200 whitespace-nowrap shrink-0">
+              Standar Dapodik
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Perhitungan otomatis bobot kemandirian per Elemen CP dan ekspor berkas CSV siap impor ke aplikasi e-Rapor Dapodik.
+          </p>
         </div>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Perhitungan otomatis bobot kemandirian per Elemen CP dan ekspor berkas CSV siap impor ke aplikasi e-Rapor Dapodik.
-        </p>
+
+        {/* Warning Banner if pending logs exist */}
+        {studentsWithPendingLogsCount > 0 && (
+          <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 flex items-start gap-3 text-xs">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <p className="font-bold text-amber-900">
+                Perhatian: {studentsWithPendingLogsCount} siswa masih memiliki catatan log yang belum diverifikasi mentor!
+              </p>
+              <p className="text-amber-800 text-[11px] leading-relaxed">
+                Hanya jurnal harian yang telah disahkan mentor yang dihitung dalam akumulasi JP dan penilaian akhir e-Rapor. Segera ingatkan mentor industri untuk menyelesaikan verifikasi jurnal.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Warning Banner if pending logs exist */}
-      {studentsWithPendingLogsCount > 0 && (
-        <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 flex items-start gap-3 text-xs">
-          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-          <div className="space-y-0.5">
-            <p className="font-bold text-amber-900">
-              Perhatian: {studentsWithPendingLogsCount} siswa masih memiliki catatan log yang belum diverifikasi mentor!
-            </p>
-            <p className="text-amber-800 text-[11px] leading-relaxed">
-              Hanya jurnal harian yang telah disahkan mentor yang dihitung dalam akumulasi JP dan penilaian akhir e-Rapor. Segera ingatkan mentor industri untuk menyelesaikan verifikasi jurnal.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* 4 Summary Metric Mini Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100">
+      {/* 4 Summary Metric Mini Cards - Full-bleed divider */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-5 sm:p-6 pt-4 border-t border-slate-100 bg-slate-50/30">
         <div className="p-3 rounded-2xl bg-slate-50/80 border border-slate-200/70">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
             Total Siswa Terdata

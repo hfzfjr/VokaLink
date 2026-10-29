@@ -60,10 +60,10 @@ export function DudiPartnerTable({
           return (
             <div
               key={partner.id}
-              className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/80 shadow-2xs space-y-4 hover:border-slate-300 transition"
+              className="rounded-3xl bg-white border border-slate-200/80 shadow-2xs hover:border-slate-300 transition overflow-hidden flex flex-col justify-between"
             >
               {/* Header DUDI: Nama, Sektor, Lokasi, Kuota */}
-              <div className="space-y-2.5">
+              <div className="p-5 sm:p-6 pb-4 sm:pb-5 space-y-2.5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1.5 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -83,11 +83,11 @@ export function DudiPartnerTable({
                     </p>
                   </div>
 
-                  {/* Action: Tambah Mentor */}
+                  {/* Action: Tambah Mentor (Pill button) */}
                   <button
                     type="button"
                     onClick={() => onOpenAddMentor(partner.id, partner.name)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs sm:text-sm font-bold transition shrink-0 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs sm:text-sm font-bold transition shrink-0 cursor-pointer shadow-2xs"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Tambah Mentor</span>
@@ -105,8 +105,8 @@ export function DudiPartnerTable({
                 </div>
               </div>
 
-              {/* Daftar Mentor DUDI (Maks 1 di Kartu + Tombol Lihat Selengkapnya) */}
-              <div className="pt-3.5 border-t border-slate-100 space-y-2.5">
+              {/* Daftar Mentor DUDI - Full-bleed divider menyentuh ujung box */}
+              <div className="border-t border-slate-100 bg-slate-50/30 p-5 sm:p-6 pt-3.5 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
                     Mentor Industri Terdaftar ({partner.mentors.length})

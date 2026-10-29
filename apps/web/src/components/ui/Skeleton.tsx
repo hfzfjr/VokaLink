@@ -2,51 +2,79 @@ import * as React from "react";
 import { cn } from "@/lib/cn";
 
 // ─── Base class ─────────────────────────────────────────────────────────────────
-// SATU-SATUNYA tempat animate-pulse diizinkan per DESIGN.md 13.9
-const BASE = "animate-pulse bg-ink-100";
+// Standar Animasi Shimmer Streaming (Apple / Stripe style) per DESIGN.md 13.9
+const BASE = "skeleton-shimmer animate-pulse bg-slate-200/70";
 
 // ─── Primitives ─────────────────────────────────────────────────────────────────
 
 export function SkeletonText({
   className,
-}: {
-  className?: string;
-}) {
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn(`${BASE} h-4 rounded-md w-full`, className)} />
+    <div className={cn(`${BASE} h-4 rounded-md w-full`, className)} {...props} />
   );
 }
 
-export function SkeletonTitle({ className }: { className?: string }) {
+export function SkeletonTitle({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn(`${BASE} h-6 rounded-md w-3/5`, className)} />
+    <div className={cn(`${BASE} h-6 rounded-md w-3/5`, className)} {...props} />
   );
 }
 
-export function SkeletonRect({ className }: { className?: string }) {
-  return <div className={cn(`${BASE} rounded-md`, className)} />;
-}
-
-export function SkeletonRounded({ className }: { className?: string }) {
+export function SkeletonRect({
+  className,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn(`${BASE} rounded-xl h-40 w-full`, className)} />
+    <div className={cn(`${BASE} rounded-md`, className)} {...props}>
+      {children}
+    </div>
   );
 }
 
-export function SkeletonCircle({ className }: { className?: string }) {
+export function SkeletonRounded({
+  className,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn(`${BASE} rounded-full w-10 h-10 shrink-0`, className)} />
+    <div className={cn(`${BASE} rounded-xl h-40 w-full`, className)} {...props}>
+      {children}
+    </div>
+  );
+}
+
+export function SkeletonCircle({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn(`${BASE} rounded-full w-10 h-10 shrink-0`, className)} {...props} />
   );
 }
 
 /** Avatar alias */
-export function SkeletonAvatar({ className }: { className?: string }) {
-  return <SkeletonCircle className={cn("w-10 h-10", className)} />;
+export function SkeletonAvatar({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return <SkeletonCircle className={cn("w-10 h-10", className)} {...props} />;
 }
 
-export function SkeletonButton({ className }: { className?: string }) {
+export function SkeletonButton({
+  className,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn(`${BASE} h-12 rounded-lg w-28`, className)} />
+    <div className={cn(`${BASE} h-12 rounded-lg w-28`, className)} {...props}>
+      {children}
+    </div>
   );
 }
 

@@ -44,6 +44,7 @@ import { MentorQrModal } from "@/components/student/home/MentorQrModal";
 import { useSyncManager } from "@/lib/pwa/hooks/useSyncManager";
 import { useAuth } from "@/lib/use-auth";
 import { cn } from "@/lib/cn";
+import { SkeletonRect } from "@/components/ui/Skeleton";
 import HistoryLoading from "./loading";
 
 interface LogEntry {
@@ -1684,9 +1685,9 @@ export default function LogHistoryPage() {
 
             {/* Bukti Foto Terlampir & Lightbox Zoomable */}
             {isLoadingDetailPhoto ? (
-              <div className="h-44 rounded-2xl bg-slate-100 flex items-center justify-center animate-pulse text-xs text-slate-400">
+              <SkeletonRect className="h-44 rounded-2xl flex items-center justify-center text-xs text-slate-400">
                 Memuat pratinjau bukti foto...
-              </div>
+              </SkeletonRect>
             ) : detailPhotoUrl ? (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">

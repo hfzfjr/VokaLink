@@ -174,7 +174,7 @@ export function TeacherSidebar() {
               </span>
             </div>
           </Link>
-          <div className="w-full h-px bg-slate-200/80 my-2.5" />
+          <div className="-mx-3 w-[calc(100%+24px)] h-px bg-slate-200/80 my-2.5" />
         </div>
 
         {/* Center: Main Navigation Stack (Fixed Icon Positions) */}
@@ -240,7 +240,7 @@ export function TeacherSidebar() {
 
         {/* Bottom: Settings, Help & Exit */}
         <div className="flex flex-col gap-1.5 w-full">
-          <div className="w-full h-px bg-slate-200/80 my-1" />
+          <div className="-mx-3 w-[calc(100%+24px)] h-px bg-slate-200/80 my-1.5" />
 
           {/* Settings Trigger */}
           <button

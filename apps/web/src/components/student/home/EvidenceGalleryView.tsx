@@ -379,8 +379,8 @@ export function EvidenceGalleryView({
                 </div>
               </div>
 
-              {/* Card Footer: Mentor + WebP Size */}
-              <div className="px-4 pb-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+              {/* Card Footer: Mentor + WebP Size (Full-Bleed Divider) */}
+              <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50/40 flex items-center justify-between text-xs">
                 <span className="text-slate-500 font-normal text-[11px] truncate max-w-[150px] flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <span>{ev.mentor || "Mentor DUDI"}</span>

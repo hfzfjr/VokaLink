@@ -17,8 +17,8 @@ export function PlacementStatsHeader({
   remainingQuotaTotal,
 }: PlacementStatsHeaderProps) {
   return (
-    <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/80 shadow-2xs space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className="rounded-3xl bg-white border border-slate-200/80 shadow-2xs overflow-hidden">
+      <div className="p-5 sm:p-6 pb-4 sm:pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
@@ -32,8 +32,8 @@ export function PlacementStatsHeader({
         </div>
       </div>
 
-      {/* 4 Summary Stat Mini Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100">
+      {/* 4 Summary Stat Mini Cards - Full-bleed divider */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-5 sm:p-6 pt-4 border-t border-slate-100 bg-slate-50/30">
         <div className="p-3 rounded-2xl bg-slate-50/80 border border-slate-200/70">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
             Total Siswa

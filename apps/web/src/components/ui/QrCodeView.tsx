@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import QRCode from "qrcode";
+import { SkeletonRect } from "./Skeleton";
 
 interface QrCodeViewProps {
   value: string;
@@ -50,12 +51,12 @@ export function QrCodeView({
 
   if (!svgHtml) {
     return (
-      <div
-        className={`bg-slate-100 animate-pulse rounded-lg flex items-center justify-center ${className}`}
+      <SkeletonRect
+        className={`rounded-lg flex items-center justify-center ${className}`}
         style={{ width: size, height: size }}
       >
         <span className="text-[10px] text-slate-400">Loading QR...</span>
-      </div>
+      </SkeletonRect>
     );
   }
 

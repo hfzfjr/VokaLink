@@ -7,6 +7,22 @@
   html {
     scroll-padding-top: 5rem;
     scrollbar-gutter: stable; /* Mencegah layout shift: ruang scrollbar selalu stabil & fixed */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* 
+   * Standar Apple WebKit: Cegah auto-zoom pada iPhone / Mobile
+   * WebKit otomatis melakukan zoom jika input/select/textarea memiliki font-size < 16px pada saat fokus.
+   * Aturan ini mengunci font-size 16px pada layar mobile (<= 768px) sehingga auto-zoom TIDAK PERNAH terpicu,
+   * sekaligus menjaga ukuran compact (text-xs / text-sm) pada layar desktop (> 768px).
+   */
+  @media screen and (max-width: 768px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="hidden"]),
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
   }
 
   /* Smooth scrolling alami dengan pertimbangan aksesibilitas (prefers-reduced-motion) */
@@ -67,6 +83,36 @@ body {
   background-image: 
     linear-gradient(to right, rgba(203, 213, 225, 0.28) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(203, 213, 225, 0.28) 1px, transparent 1px);
+}
+
+/* ─── Ultra-Smooth Shimmer Loading Animation (Apple/Stripe Style) ─── */
+@keyframes skeleton-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: #f1f5f9; /* slate-100 */
+}
+
+.skeleton-shimmer::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.65) 50%,
+    transparent 100%
+  );
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
 }
 
 /* Floating micro animations */

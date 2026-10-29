@@ -31,6 +31,7 @@ import { fetchStudentCv, updateStudentPassport, getPublicAppUrl, type StudentCvR
 import { QrCodeView } from "@/components/ui/QrCodeView";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/lib/use-auth";
+import { sanitizeErrorMessage } from "@/lib/error-formatter";
 import CareerCvLoading from "./loading";
 
 export interface EditableExperience {
@@ -292,7 +293,7 @@ export default function CareerCvPage() {
       setBioSummary(data.summaryBio || "");
       initManualFields(data);
     } catch (err: any) {
-      setError(err.message || "Gagal memuat CV ATS dari server database.");
+      setError(sanitizeErrorMessage(err, "Gagal memuat CV ATS dari server database."));
       setCvData(null);
     } finally {
       const elapsed = Date.now() - startTime;
@@ -580,7 +581,7 @@ export default function CareerCvPage() {
       {/* ─────────────────────────────────────────────────────────────────────────────
           1. STUDIO PAGE HEADER & FLOATING ACTIONS (no-print)
       ───────────────────────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pb-3 border-b border-slate-200/80 no-print print:hidden">
+      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 sm:gap-4 pb-3 border-b border-slate-200/80 no-print print:hidden">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
@@ -600,8 +601,8 @@ export default function CareerCvPage() {
           </p>
         </div>
 
-        {/* Action Buttons: 2x2 symmetrical grid on mobile, horizontal row on desktop */}
-        <div className="grid grid-cols-2 sm:flex sm:flex-row items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
+        {/* Action Buttons: 2x2 symmetrical grid on mobile, wrapped row on tablet, inline on wide desktop */}
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap xl:flex-nowrap items-center gap-2 sm:gap-2.5 w-full xl:w-auto">
           {/* Tombol Mode Edit Manual */}
           <button
             type="button"

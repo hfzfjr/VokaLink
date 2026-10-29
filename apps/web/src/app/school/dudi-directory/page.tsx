@@ -19,7 +19,9 @@ import { MentorQrActivationModal } from "@/components/school/dudi/MentorQrActiva
 import { AddMentorModal } from "@/components/school/dudi/AddMentorModal";
 import { ResetDeviceModal } from "@/components/school/dudi/ResetDeviceModal";
 import { Pagination } from "@/components/common/Pagination";
+import { SkeletonRect } from "@/components/ui/Skeleton";
 import { AlertCircle, CheckCircle2, WifiOff } from "lucide-react";
+import { sanitizeErrorMessage } from "@/lib/error-formatter";
 
 const DUDI_PAGE_LIMIT = 8;
 
@@ -151,7 +153,7 @@ export default function DudiDirectoryPage() {
       setCitiesList(res.cities);
       setPagination(res.pagination);
     } catch (err: any) {
-      setErrorMsg(err.message || "Gagal memuat direktori mitra DUDI.");
+      setErrorMsg(sanitizeErrorMessage(err, "Gagal memuat direktori mitra DUDI."));
     } finally {
       setLoading(false);
     }
@@ -228,7 +230,7 @@ export default function DudiDirectoryPage() {
       setSuccessMsg(`Ikatan perangkat untuk ${resetMentor.name} berhasil direset!`);
       await loadPartners();
     } catch (err: any) {
-      setErrorMsg(err.message || "Gagal mereset perangkat mentor.");
+      setErrorMsg(sanitizeErrorMessage(err, "Gagal mereset perangkat mentor."));
     } finally {
       setResetting(false);
     }
@@ -323,7 +325,7 @@ export default function DudiDirectoryPage() {
       {loading ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-48 rounded-3xl bg-slate-200 animate-pulse" />
+            <SkeletonRect key={i} className="h-48 rounded-3xl" />
           ))}
         </div>
       ) : (

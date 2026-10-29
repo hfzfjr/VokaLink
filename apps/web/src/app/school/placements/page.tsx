@@ -18,7 +18,9 @@ import { PlacementCandidatesTable } from "@/components/school/placements/Placeme
 import { ActivePlacementsTable } from "@/components/school/placements/ActivePlacementsTable";
 import { SingleAssignModal } from "@/components/school/placements/SingleAssignModal";
 import { Pagination } from "@/components/common/Pagination";
+import { SkeletonRect } from "@/components/ui/Skeleton";
 import { AlertCircle, CheckCircle2, WifiOff } from "lucide-react";
+import { sanitizeErrorMessage } from "@/lib/error-formatter";
 
 const PLACEMENT_PAGE_LIMIT = 10;
 
@@ -134,7 +136,7 @@ export default function SmartPlacementPage() {
       setTotalActiveCount(activeRes.totalActiveCount);
       setActivePagination(activeRes.pagination);
     } catch (err: any) {
-      setErrorMsg(err.message || "Gagal memuat data penempatan dari database.");
+      setErrorMsg(sanitizeErrorMessage(err, "Gagal memuat data penempatan dari database."));
     } finally {
       setLoading(false);
     }
@@ -242,7 +244,7 @@ export default function SmartPlacementPage() {
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-32 rounded-3xl bg-slate-200 animate-pulse" />
+            <SkeletonRect key={i} className="h-32 rounded-3xl" />
           ))}
         </div>
       ) : activeTab === "RECOMMENDATIONS" ? (

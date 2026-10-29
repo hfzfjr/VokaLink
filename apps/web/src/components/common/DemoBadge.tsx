@@ -13,7 +13,7 @@ export default function DemoBadge({
 }: DemoBadgeProps) {
   return (
     <span
-      className={`px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-bold border border-blue-200 ${className}`}
+      className={`px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 text-[11px] font-bold border border-sky-200 ${className}`}
     >
       {label}
     </span>

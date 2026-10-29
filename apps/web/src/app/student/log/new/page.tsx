@@ -42,6 +42,7 @@ import { cn } from "@/lib/cn";
 import { MentorQrModal } from "@/components/student/home/MentorQrModal";
 import { SmartDateSelector } from "@/components/student/log/SmartDateSelector";
 import { SmartShiftSelector } from "@/components/student/log/SmartShiftSelector";
+import { SkeletonRect } from "@/components/ui/Skeleton";
 
 interface JobCardItem {
   id: string;
@@ -1250,9 +1251,9 @@ export default function NewLogPage() {
 
             {/* Bar Progres 792 JP & Jam Kerja Minggu Ini di header */}
             {isLoadingContext ? (
-              <div className="flex flex-col sm:items-end gap-1.5 self-start sm:self-auto shrink-0 min-w-[200px] animate-pulse motion-reduce:animate-none">
-                <div className="w-36 h-3.5 bg-slate-200 rounded" />
-                <div className="w-48 h-2 bg-slate-200 rounded-full" />
+              <div className="flex flex-col sm:items-end gap-1.5 self-start sm:self-auto shrink-0 min-w-[200px]">
+                <SkeletonRect className="w-36 h-3.5 rounded" />
+                <SkeletonRect className="w-48 h-2 rounded-full" />
               </div>
             ) : (
               <div className="flex flex-col sm:items-end gap-1.5 self-start sm:self-auto shrink-0 min-w-[240px]">
@@ -1292,15 +1293,15 @@ export default function NewLogPage() {
 
           {/* ─── DUDI Placement & Assignment Context Bar (Non-sticky, ringkas & elegan) ─── */}
           {isLoadingContext ? (
-            <div className="mt-3.5 p-3.5 sm:px-4 sm:py-3 rounded-2xl bg-slate-50/80 border border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs animate-pulse motion-reduce:animate-none">
+            <div className="mt-3.5 p-3.5 sm:px-4 sm:py-3 rounded-2xl bg-slate-50/80 border border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-slate-200" />
+                <SkeletonRect className="w-8 h-8 rounded-xl" />
                 <div className="space-y-1">
-                  <div className="w-32 h-3.5 bg-slate-200 rounded" />
-                  <div className="w-48 h-3 bg-slate-200 rounded" />
+                  <SkeletonRect className="w-32 h-3.5 rounded" />
+                  <SkeletonRect className="w-48 h-3 rounded" />
                 </div>
               </div>
-              <div className="w-28 h-6 bg-slate-200 rounded-xl" />
+              <SkeletonRect className="w-28 h-6 rounded-xl" />
             </div>
           ) : (
             <div className="mt-3.5 p-3 sm:px-4 sm:py-3 rounded-2xl bg-slate-50/70 border border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
