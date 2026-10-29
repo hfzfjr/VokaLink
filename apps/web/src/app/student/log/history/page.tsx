@@ -1146,8 +1146,8 @@ export default function LogHistoryPage() {
             )}
           </div>
 
-          {/* Desktop-Only View Mode Switcher Toggle */}
-          <div className="hidden sm:flex items-center h-10 bg-slate-200/60 p-1 rounded-full border border-slate-200 shrink-0">
+          {/* View Mode Switcher Toggle (Mobile & Desktop) */}
+          <div className="flex items-center h-10 bg-slate-200/60 p-1 rounded-full border border-slate-200 shrink-0">
             <button
               type="button"
               onClick={() => setViewMode("LIST")}
@@ -1217,27 +1217,64 @@ export default function LogHistoryPage() {
                             setSelectedLogDetail(log);
                           }
                         }}
-                        className="group flex flex-col sm:flex-row sm:items-center justify-between py-3.5 px-4 sm:px-5 hover:bg-slate-50/80 focus:bg-slate-50/80 focus:outline-none transition-colors duration-150 cursor-pointer select-none gap-3"
+                        className="group flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:py-3.5 sm:px-5 hover:bg-slate-50/80 focus:bg-slate-50/80 focus:outline-none transition-colors duration-150 cursor-pointer select-none gap-2.5 sm:gap-4"
                       >
-                        {/* Bagian Kiri: Date Badge + Info Utama */}
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0 flex-1">
-                          {/* Sleek Minimalist Date Badge */}
-                          <div className="shrink-0 flex items-center sm:w-38">
+                        {/* ─── Baris 1 di Mobile: Date Badge (Kiri) + Status Pill (Kanan) ─── */}
+                        <div className="flex items-center justify-between sm:hidden w-full gap-2">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100/90 text-xs font-semibold text-slate-700 border border-slate-200/70 group-hover:bg-sky-50 group-hover:text-sky-700 transition-colors">
+                            <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                            <span>{formatDateIndo(log.date)}</span>
+                          </span>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border shrink-0",
+                                isVerified
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
+                                  : log.syncState === "queued"
+                                  ? "bg-amber-50 text-amber-800 border-amber-200/80"
+                                  : "bg-amber-50 text-amber-700 border-amber-200/80"
+                              )}
+                            >
+                              {isVerified ? (
+                                <>
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
+                                  <span>Sah</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Clock className="w-3 h-3 text-amber-600" />
+                                  <span>Menunggu PIN</span>
+                                </>
+                              )}
+                            </span>
+                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-sky-500 transition-transform" />
+                          </div>
+                        </div>
+
+                        {/* ─── Konten Tengah: Date (Desktop) + Judul + Metadata Chips ─── */}
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4 min-w-0 flex-1">
+                          {/* Desktop-Only Date Badge */}
+                          <div className="hidden sm:flex shrink-0 items-center sm:w-38">
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100/90 text-xs font-semibold text-slate-700 border border-slate-200/70 group-hover:bg-sky-50 group-hover:text-sky-700 group-hover:border-sky-200 transition-colors whitespace-nowrap">
                               <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
                               <span>{formatDateIndo(log.date)}</span>
                             </span>
                           </div>
 
-                          {/* Judul & Detail */}
+                          {/* Judul & Detail Chips */}
                           <div className="min-w-0 flex-1 space-y-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-semibold text-xs sm:text-sm text-slate-900 group-hover:text-sky-600 transition-colors truncate">
-                                {log.title}
-                              </h3>
-                            </div>
+                            <h3 className="font-semibold text-xs sm:text-sm text-slate-900 group-hover:text-sky-600 transition-colors line-clamp-2 leading-snug">
+                              {log.title}
+                            </h3>
 
                             <div className="flex items-center gap-1.5 flex-wrap text-slate-500 text-xs">
+                              {/* Jam di mobile tampil sebagai badge kecil yang rapi */}
+                              <span className="sm:hidden px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 font-semibold text-[10px]">
+                                {log.durationJp} Jam ({convertRealHoursToJp(log.durationJp).toFixed(1)} JP)
+                              </span>
+
                               {isSickOrPermit ? (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200/70 text-[10px] font-medium">
                                   <HeartPulse className="w-2.5 h-2.5" />
@@ -1283,9 +1320,9 @@ export default function LogHistoryPage() {
                           </div>
                         </div>
 
-                        {/* Bagian Kanan: Jam, Status Badge & Chevron */}
-                        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                          <div className="text-left sm:text-right">
+                        {/* ─── Bagian Kanan (Desktop): Jam, Status Badge & Chevron ─── */}
+                        <div className="hidden sm:flex items-center justify-end gap-3 shrink-0">
+                          <div className="text-right">
                             <span className="font-semibold text-xs sm:text-sm text-slate-900 block leading-tight">
                               {log.durationJp} Jam Kerja
                             </span>

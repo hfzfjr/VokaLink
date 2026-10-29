@@ -410,12 +410,43 @@ export function DailyTimelineFeed({
               <div
                 key={task.id}
                 onClick={() => onSelectTask(task)}
-                className="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 group cursor-pointer"
+                className="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200/80 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 group cursor-pointer"
               >
-                {/* Bagian Kiri: Sleek Date Badge + Info Utama */}
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4 min-w-0 flex-1">
-                  {/* Sleek Minimalist Date Badge */}
-                  <div className="shrink-0 flex items-center sm:w-38">
+                {/* ─── Baris 1 di Mobile: Date Badge (Kiri) + Status Pill / QR PIN (Kanan) ─── */}
+                <div className="flex items-center justify-between sm:hidden w-full gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100/90 text-xs font-semibold text-slate-700 border border-slate-200/70 group-hover:bg-sky-50 group-hover:text-sky-700 transition-colors">
+                    <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                    <span>{task.date}</span>
+                  </span>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {isVerified ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[11px] font-semibold">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
+                        <span>Sah</span>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenQrModal();
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-[11px] font-semibold shadow-2xs transition cursor-pointer"
+                        title="Buka QR Verifikasi Mentor"
+                      >
+                        <QrCode className="w-3 h-3" />
+                        <span>QR PIN</span>
+                      </button>
+                    )}
+                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-sky-500 transition-transform" />
+                  </div>
+                </div>
+
+                {/* ─── Bagian Kiri: Date Badge (Desktop) + Info Utama ─── */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4 min-w-0 flex-1">
+                  {/* Sleek Minimalist Date Badge (Desktop-only) */}
+                  <div className="hidden sm:flex shrink-0 items-center sm:w-38">
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100/90 text-xs font-semibold text-slate-700 border border-slate-200/70 group-hover:bg-sky-50 group-hover:text-sky-700 group-hover:border-sky-200 transition-colors whitespace-nowrap">
                       <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0" />
                       <span>{task.date}</span>
@@ -424,11 +455,16 @@ export function DailyTimelineFeed({
 
                   {/* Judul & Detail */}
                   <div className="min-w-0 flex-1 space-y-1">
-                    <h3 className="font-semibold text-xs sm:text-sm text-slate-900 group-hover:text-sky-600 transition-colors truncate">
+                    <h3 className="font-semibold text-xs sm:text-sm text-slate-900 group-hover:text-sky-600 transition-colors line-clamp-2 leading-snug">
                       {task.title}
                     </h3>
 
                     <div className="flex items-center gap-1.5 flex-wrap text-slate-500 text-xs">
+                      {/* Jam di mobile tampil sebagai badge kecil */}
+                      <span className="sm:hidden px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 font-semibold text-[10px]">
+                        {task.durationJp} Jam Kerja
+                      </span>
+
                       {/* Tag Khusus Non-Kompetensi (BR-004) */}
                       {task.category.toLowerCase().includes("non-kompetensi") && (
                         <>
@@ -436,7 +472,6 @@ export function DailyTimelineFeed({
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
                             <span>Non-Kompetensi</span>
                           </span>
-                          <span className="text-slate-300">·</span>
                         </>
                       )}
 
@@ -465,9 +500,9 @@ export function DailyTimelineFeed({
                   </div>
                 </div>
 
-                {/* Bagian Kanan: Jam, Status / QR Button & Chevron */}
-                <div className="flex items-center justify-between sm:justify-end gap-3.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                  <div className="text-left sm:text-right">
+                {/* ─── Bagian Kanan (Desktop): Jam, Status / QR Button & Chevron ─── */}
+                <div className="hidden sm:flex items-center justify-end gap-3.5 shrink-0">
+                  <div className="text-right">
                     <span className="font-semibold text-xs sm:text-sm text-slate-900 block leading-tight">
                       {task.durationJp} Jam Kerja
                     </span>
