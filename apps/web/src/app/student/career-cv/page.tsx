@@ -184,10 +184,11 @@ export default function CareerCvPage() {
       bulletPoints: exp.bulletPoints ? exp.bulletPoints.map((b) => b.bulletText) : [],
     }));
 
-    // Cek cache kustomisasi lokal jika pernah disimpan
+    // Cek cache kustomisasi lokal terisolasi per ID siswa jika pernah disimpan
     try {
       if (typeof window !== "undefined") {
-        const saved = localStorage.getItem("vokalink_cv_customizations");
+        const storageKey = `vokalink_cv_customizations_${data.student.id || "default"}`;
+        const saved = localStorage.getItem(storageKey);
         if (saved) {
           const p = JSON.parse(saved);
           setCustomFullName(p.fullName || data.student.fullName || "Andi Pratama");
@@ -300,8 +301,9 @@ export default function CareerCvPage() {
     setIsSavingManual(true);
     try {
       if (typeof window !== "undefined") {
+        const storageKey = `vokalink_cv_customizations_${cvData?.student?.id || "default"}`;
         localStorage.setItem(
-          "vokalink_cv_customizations",
+          storageKey,
           JSON.stringify({
             fullName: customFullName,
             departmentName: customDepartment,
@@ -339,7 +341,8 @@ export default function CareerCvPage() {
     if (confirm("Kembalikan semua teks CV ke data asli terverifikasi?")) {
       try {
         if (typeof window !== "undefined") {
-          localStorage.removeItem("vokalink_cv_customizations");
+          const storageKey = `vokalink_cv_customizations_${cvData?.student?.id || "default"}`;
+          localStorage.removeItem(storageKey);
         }
       } catch {}
       initManualFields(cvData);
@@ -494,6 +497,9 @@ export default function CareerCvPage() {
 
   const handlePrintPdf = () => {
     if (typeof window !== "undefined") {
+      if (isEditMode) {
+        setIsEditMode(false);
+      }
       window.print();
     }
   };
@@ -909,7 +915,12 @@ export default function CareerCvPage() {
 
               {/* Daftar Pengalaman PKL */}
               <div className="space-y-4">
-                {customExperiences.map((exp, expIdx) => (
+                {customExperiences.length === 0 ? (
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 text-center text-xs text-slate-500">
+                    Belum ada riwayat jurnal PKL yang berstatus terverifikasi resmi (VERIFIED) oleh mentor industri. Jurnal yang telah disetujui akan otomatis dikonversi menjadi capaian kerja di sini.
+                  </div>
+                ) : (
+                  customExperiences.map((exp, expIdx) => (
                   <div
                     key={exp.id || expIdx}
                     className={cn(
@@ -971,15 +982,10 @@ export default function CareerCvPage() {
                     {/* Company, City, Mentor & Real Hours */}
                     {isEditMode ? (
                       <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-0.5 text-xs">
-                        <input
-                          type="text"
-                          value={exp.dudiName}
-                          onChange={(e) =>
-                            handleUpdateExperienceField(exp.id, "dudiName", e.target.value)
-                          }
-                          className="bg-white border border-slate-300 rounded px-2 py-1 text-slate-800 text-xs focus:outline-none focus:border-sky-500 font-medium"
-                          placeholder="Nama Perusahaan / DUDI"
-                        />
+                        <div className="flex items-center gap-1.5 bg-slate-100/90 border border-slate-200 rounded px-2.5 py-1 text-slate-800 text-xs font-semibold">
+                          <Lock className="w-3 h-3 text-slate-500 shrink-0" />
+                          <span className="truncate">{exp.dudiName}</span>
+                        </div>
                         <input
                           type="text"
                           value={exp.dudiCity || ""}
@@ -998,21 +1004,9 @@ export default function CareerCvPage() {
                           className="bg-white border border-slate-300 rounded px-2 py-1 text-slate-800 text-xs focus:outline-none focus:border-sky-500"
                           placeholder="Nama Pembimbing / Mentor"
                         />
-                        <div className="flex items-center gap-1.5 bg-white border border-slate-300 rounded px-2 py-0.5">
-                          <input
-                            type="number"
-                            value={exp.totalVerifiedJp || ""}
-                            onChange={(e) =>
-                              handleUpdateExperienceField(
-                                exp.id,
-                                "totalVerifiedJp",
-                                Number(e.target.value) || 0
-                              )
-                            }
-                            className="w-16 text-slate-900 font-semibold text-xs focus:outline-none"
-                            placeholder="Jam"
-                          />
-                          <span className="text-[11px] text-slate-500">Jam Kerja Riil</span>
+                        <div className="flex items-center gap-1.5 bg-slate-100/90 border border-slate-200 rounded px-2.5 py-1 text-slate-800 text-xs font-semibold">
+                          <Lock className="w-3 h-3 text-slate-500 shrink-0" />
+                          <span>{exp.totalVerifiedJp} Jam (Terkunci)</span>
                         </div>
                       </div>
                     ) : (
@@ -1074,7 +1068,8 @@ export default function CareerCvPage() {
                       </ul>
                     )}
                   </div>
-                ))}
+                ))
+              )}
               </div>
             </div>
 
@@ -1387,36 +1382,21 @@ export default function CareerCvPage() {
                     </div>
                     <div>
                       <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
-                        Perusahaan / DUDI
+                        Perusahaan / DUDI Mitra
                       </label>
-                      <input
-                        type="text"
-                        value={customEndorsement.dudiName}
-                        onChange={(e) =>
-                          setCustomEndorsement((prev) => ({ ...prev, dudiName: e.target.value }))
-                        }
-                        className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-slate-900 focus:outline-none focus:border-sky-500"
-                        placeholder="PT Nusantara Tech"
-                      />
+                      <div className="flex items-center gap-1.5 bg-slate-100 border border-slate-200 rounded px-2.5 py-1 text-slate-800 text-xs font-semibold">
+                        <Lock className="w-3 h-3 text-slate-500 shrink-0" />
+                        <span className="truncate">{customEndorsement.dudiName || cvData?.endorsement?.dudiName || "Mitra Industri"}</span>
+                      </div>
                     </div>
                     <div>
                       <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
-                        Skor Etos Kerja (0-100)
+                        Skor Etos Kerja (Resmi Mentor)
                       </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={customEndorsement.attitudeScore}
-                        onChange={(e) =>
-                          setCustomEndorsement((prev) => ({
-                            ...prev,
-                            attitudeScore: Number(e.target.value) || 0,
-                          }))
-                        }
-                        className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-slate-900 focus:outline-none focus:border-sky-500"
-                        placeholder="96"
-                      />
+                      <div className="flex items-center gap-1.5 bg-slate-100 border border-slate-200 rounded px-2.5 py-1 text-slate-800 text-xs font-semibold">
+                        <Lock className="w-3 h-3 text-slate-500 shrink-0" />
+                        <span>{customEndorsement.attitudeScore || cvData?.endorsement?.attitudeScore || 0} / 100</span>
+                      </div>
                     </div>
                   </div>
 
