@@ -532,7 +532,7 @@ export default function StudentHomePage() {
                     className="flex-1 h-11 bg-white hover:bg-sky-50 active:scale-[0.98] text-sky-700 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition"
                   >
                     <PlusCircle className="w-4 h-4 stroke-[2.5]" />
-                    <span>+ Catat Jurnal Sekarang</span>
+                    <span>Catat Jurnal Sekarang</span>
                   </Link>
                   <button
                     type="button"
