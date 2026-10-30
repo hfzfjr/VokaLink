@@ -93,25 +93,62 @@ VokaLink menghadirkan ekosistem digital terpadu yang menghubungkan seluruh peman
 
 ## 🎮 Simulasi & Demo Juri (1-Click Switcher)
 
-Sistem VokaLink telah dilengkapi dengan **Judge Demo Switcher (Simulasi Peran Juri)** yang memungkinkan penguji mengevaluasi seluruh alur tanpa perlu mendaftarkan akun baru atau membuat data uji manual.
+Sistem VokaLink telah dilengkapi dengan **Judge Demo Switcher (Simulasi Peran Juri)** yang memungkinkan dewan juri mengevaluasi seluruh alur tanpa perlu mendaftarkan akun baru atau membuat data uji manual.
 
-Kunjungi halaman masuk di **`http://localhost:3000/login`** dan pilih salah satu peran instan:
+Kunjungi halaman masuk di **`http://localhost:3000/login`** dan pilih salah satu peran instan, atau gunakan kredensial pengujian berikut:
 
-1. 🏛️ **Admin Pokja PKL (SMK Demo)**  
-   *Rute:* `/school/dashboard`  
-   *Fitur:* Ringkasan operasional sekolah, manajemen mitra DUDI & aktivasi mentor, penempatan siswa ke DUDI, dan ekspor nilai e-Rapor.
-2. 👨‍🏫 **Guru Pembimbing (Budi Santoso)**  
-   *Rute:* `/teacher/heatmap`  
-   *Fitur:* Matriks live heatmap siswa binaan, peringatan dini penyimpangan tugas (*drift alert*), dan koordinasi cepat ke WhatsApp mentor.
-3. 👨‍🎓 **Siswa PKL (Andi Pratama — RPL)**  
-   *Rute:* `/student/home`  
-   *Fitur:* Progres jam PKL, pengisian kartu tugas instan `/student/log/new` (offline-first), minta validasi mentor, dan unduh CV ATS `/student/career-cv`.
-4. 🏢 **Mentor DUDI Zero-Login (PT Sentra Solusi)**  
-   *Rute:* `/v/demo-token-123` atau `/v/demo-token-123/endorse`  
-   *Fitur:* Persetujuan jurnal siswa tanpa login (< 10 detik) dengan PIN 4 digit, serta pengisian skor sikap & lencana etos kerja akhir PKL.
-5. 🌐 **Verifikasi Paspor Publik (Perekrut / HRD)**  
-   *Rute:* `/verify/andi-pratama-rpl-2026`  
-   *Fitur:* Sertifikat publik Paspor Kompetensi ber-QR, bukti segel kriptografis HMAC-SHA256, dan rincian kompetensi serta lencana etos kerja terverifikasi.
+> 🔑 **Kata Sandi Global Akun Pengujian:** `VokaLink2026!`  
+> 📌 **PIN Mentor DUDI Universal (Zero-Login):** `1234` *(berlaku untuk seluruh 24 mitra DUDI & penambahan mitra baru)*
+
+---
+
+### 1. Matriks Kredensial Akun Pengujian
+
+| Peran | Nama Akun / Instansi | Email Resmi | ID Resmi (NISN / NIP / NPSN) | Kata Sandi | Dasbor Utama | Skenario Pengujian |
+|---|---|---|---|:---:|---|---|
+| 🏛️ **Admin Pokja PKL** | SMK Telkom 1 Medan | `adminpkl@smktelkom1medan.sch.id` | `99000001` / `10210852` | `VokaLink2026!` | `/school/dashboard` | Pantauan sekolah, manajemen mitra DUDI, smart placement, dan e-Rapor. |
+| 👨‍🏫 **Guru Pembimbing** | Budi Santoso, S.Kom (RPL) | `budisantoso@smktelkom1medan.sch.id` | `197501012000011001` | `VokaLink2026!` | `/teacher/heatmap` | Matriks live heatmap 2D, radar JP, deteksi drift, dan aksi intervensi WA. |
+| 👨‍🎓 **Siswa PKL Utama** | Andi Pratama (RPL) | `andipratama@smktelkom1medan.sch.id` | `0078901234` | `VokaLink2026!` | `/student/home` | Siswa tuntas (280 JP), isi kartu tugas, minta validasi mentor, dan unduh CV ATS. |
+| 👨‍🎓 **Siswa Kasus Drift** | Bintang Ramadhan (RPL) | `bintangramadhan@smktelkom1medan.sch.id` | `0078901235` | `VokaLink2026!` | `/student/home` | Uji anomali penugasan non-kompetensi (>30%) yang memicu alert guru. |
+| 🌐 **Paspor Publik HRD** | Andi Pratama (Publik) | *Tanpa Login (Akses Publik)* | *Slug Publik* | *Tanpa Sandi* | `/verify/andi-pratama` | Paspor digital ber-QR anti-manipulasi berstempel segel HMAC-SHA256. |
+
+---
+
+### 2. Akun Mentor DUDI & PIN Universal (Zero-Login Verification)
+
+Sesuai aturan bisnis **BR-007**, mentor industri di lapangan **tidak memerlukan registrasi akun, username/password, atau instalasi aplikasi apapun**. Untuk mempermudah dewan juri dalam menguji verifikasi mentor tanpa memerlukan nomor WhatsApp fisik atau smartphone tambahan:
+
+* 🔑 **PIN Mentor Universal:** **`1234`** (standar 4 digit, diamankan dengan hash scrypt + salt unik per mentor + `PIN_PEPPER` server, proteksi lockout 5 kali salah).
+* 📱 **Device Token Otomatis:** Seluruh 24 akun mentor DUDI di database telah terikat (*device token binding*) secara otomatis.
+* ⚡ **Uji Coba Cepat (Direct Judge Testing):** Pada halaman pengajuan jurnal siswa (`/student/log/verify-request`), tersedia tombol khusus **"Buka Halaman Mentor Langsung (Uji Coba Cepat)"** sehingga juri dapat langsung membuka halaman verifikasi mentor di tab peramban baru tanpa perlu scan kamera fisik.
+
+#### Contoh Mitra DUDI & Mentor Terdaftar (PIN: `1234`)
+
+| Perusahaan / Mitra DUDI | Nama Mentor Industri | Jabatan Mentor | Konsentrasi Keahlian | PIN Demo Juri |
+|---|---|---|:---:|:---:|
+| **PT Telkom Indonesia Witel Sumut** | Rahmat Hidayat Siregar, S.T | Senior Network Engineer | RPL / TKJ | **`1234`** |
+| **PT Prima Solusindo Teknologi** | Ferry Anggriawan, M.Cs | Lead Software Engineer | RPL | **`1234`** |
+| **Studio Visual Kreatif Medan** | Annisa Lubis, S.Ds | Art Director & Visual Designer | DKV | **`1234`** |
+| **KAP Syahril & Rekan** | T. M. Zulkarnain, S.E., Ak., CA | Senior Partner & Auditor | AKL | **`1234`** |
+| **Hotel Grand Mercure Medan Angkasa** | Chef Zulkifli Nasution | Executive Chef | Kuliner | **`1234`** |
+| **Auto2000 Medan Amplas** | Irwansyah Putra | Service Supervisor | Otomotif | **`1234`** |
+| **PT LEN Industri (Persero)** | Ir. Dedi Supriyadi, M.T | Engineering Manager | RPL / Elektronika | **`1234`** |
+| **Agate Visual Studio & Animation** | Rina Kusuma Dewi, S.Sn | Lead 3D Animator | DKV / Animasi | **`1234`** |
+
+> *(Catatan: Seluruh 24 akun mentor DUDI di database serta penambahan DUDI baru oleh sekolah otomatis menggunakan PIN: **`1234`**)*
+
+---
+
+### 3. Cara Cepat Juri Menguji Verifikasi Mentor (< 10 Detik)
+
+1. Masuk sebagai Siswa (misal: Andi Pratama di `/student/home`).
+2. Masukkan logbook pekerjaan baru di `/student/log/new` atau buka riwayat pengajuan di `/student/log/verify-request`.
+3. Klik tombol **"Buka Halaman Mentor Langsung (Uji Coba Cepat)"** *(atau pindai QR code menggunakan kamera smartphone)*.
+4. Halaman verifikasi mentor tanpa-login (`/v/[token]`) akan terbuka dengan detail pekerjaan dan bukti foto.
+5. Klik **"Setujui Pekerjaan"**.
+6. Masukkan PIN: **`1 2 3 4`** pada keypad visual layar sentuh.
+7. Jurnal langsung tersegel secara kriptografis (**HMAC-SHA256**) dengan status **VERIFIED** permanen (*immutable*).
+8. *(Opsional)* Juri juga dapat menguji penilaian akhir etos kerja & 3 lencana soft skill mentor di `/v/[token]/endorse` dengan PIN yang sama: **`1234`**.
 
 ---
 
@@ -241,7 +278,7 @@ pnpm lint
 # Jalankan seluruh test suite Vitest
 pnpm test
 ```
-*Hasil:* **14 Test Suites, 116 Tests Lulus 100%**.
+*Hasil:* **16 Test Suites, 131 Tests Lulus 100%**.
 
 ### 2. Hasil Audit Lighthouse (Mode Emulasi Mobile)
 Audit otomatis dijalankan menggunakan Google Chrome Lighthouse pada rute-rute inti:
@@ -264,6 +301,7 @@ Audit otomatis dijalankan menggunakan Google Chrome Lighthouse pada rute-rute in
 Untuk rincian spesifikasi arsitektur dan aturan bisnis yang lebih mendalam, silakan merujuk pada direktori [`docs/`](docs/):
 
 - 📄 [`docs/PRD.md`](docs/PRD.md) — Dokumen spesifikasi kebutuhan produk lengkap (FR-001 s.d. FR-012, BR-001 s.d. BR-012, kriteria penerimaan).
+- 🧪 [`docs/USER_TESTING_GUIDE.md`](docs/USER_TESTING_GUIDE.md) — Panduan lengkap akun uji coba juri, matriks peran, kredensial, dan PIN mentor DUDI.
 - 🏗️ [`docs/DESIGN.md`](docs/DESIGN.md) — Cetak biru arsitektur sistem, skema database, ADR, dan Design System Bab 13.
 - 📋 [`docs/SPRINT.md`](docs/SPRINT.md) — Rencana kerja sprint dan batasan pengerjaan tim.
 - 📈 [`docs/PROGRESS.md`](docs/PROGRESS.md) — Status ketercapaian harian dan matriks pengujian QA.
