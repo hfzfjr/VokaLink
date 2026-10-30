@@ -9,19 +9,28 @@ interface QrCodeViewProps {
   size?: number;
   className?: string;
   errorCorrectionLevel?: "L" | "M" | "Q" | "H";
+  centerLogo?: string | boolean;
+  logoSize?: number;
 }
 
 /**
  * Komponen QR Code Dinamis & Asli (FR-012 & TC-010)
  * Menghasilkan SVG QR matriks murni yang dapat dipindai oleh kamera HP tanpa koneksi internet.
+ * Mendukung center logo vector VokaLink resmi dengan koreksi kesalahan tinggi (H / 30%).
  */
 export function QrCodeView({
   value,
   size = 160,
   className = "",
-  errorCorrectionLevel = "M",
+  errorCorrectionLevel = "H",
+  centerLogo = "/icons/vokalink-icon.svg",
+  logoSize,
 }: QrCodeViewProps) {
   const [svgHtml, setSvgHtml] = useState<string>("");
+
+  // Gunakan level 'H' jika ada center logo agar redundansi data QR mencapai 30%
+  const effectiveEcLevel = centerLogo ? "H" : errorCorrectionLevel;
+  const computedLogoSize = logoSize || Math.round(size * 0.24);
 
   useEffect(() => {
     let isMounted = true;
@@ -31,7 +40,7 @@ export function QrCodeView({
       type: "svg",
       margin: 2,
       width: size,
-      errorCorrectionLevel,
+      errorCorrectionLevel: effectiveEcLevel,
       color: {
         dark: "#0f172a", // slate-900
         light: "#ffffff",
@@ -47,7 +56,7 @@ export function QrCodeView({
     return () => {
       isMounted = false;
     };
-  }, [value, size, errorCorrectionLevel]);
+  }, [value, size, effectiveEcLevel]);
 
   if (!svgHtml) {
     return (
@@ -60,10 +69,24 @@ export function QrCodeView({
     );
   }
 
+  const logoSrc = typeof centerLogo === "string" ? centerLogo : "/icons/vokalink-icon.svg";
+
   return (
-    <div
-      className={`inline-block overflow-hidden ${className}`}
-      dangerouslySetInnerHTML={{ __html: svgHtml }}
-    />
+    <div className={`relative inline-block overflow-hidden ${className}`}>
+      <div dangerouslySetInnerHTML={{ __html: svgHtml }} />
+      {Boolean(centerLogo) && (
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl p-1 shadow-md border border-slate-200/90 flex items-center justify-center pointer-events-none"
+          style={{ width: computedLogoSize, height: computedLogoSize }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={logoSrc}
+            alt="VokaLink"
+            className="w-full h-full object-contain"
+          />
+        </div>
+      )}
+    </div>
   );
 }

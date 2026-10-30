@@ -184,20 +184,30 @@ export function MentorQrModal({ onClose }: MentorQrModalProps) {
       >
         {/* ─── 1. HEADER MODAL & IDENTITAS MENTOR ─── */}
         <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-200/70">
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 id="mentor-qr-title" className="text-base font-bold text-slate-900 tracking-tight">
-                Minta Validasi Mentor
-              </h3>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/70 text-[10px] font-semibold">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Mentor Aktif</span>
-              </span>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-white border border-slate-200/90 p-1.5 shadow-2xs flex items-center justify-center shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/icons/vokalink-icon.svg"
+                alt="VokaLink"
+                className="w-full h-full object-contain"
+              />
             </div>
-            <p className="text-xs text-slate-500 font-normal mt-0.5 flex items-center gap-1">
-              <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
-              <span>{mentorName} · {dudiName} ({dudiCity})</span>
-            </p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 id="mentor-qr-title" className="text-base font-bold text-slate-900 tracking-tight">
+                  Minta Validasi Mentor
+                </h3>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/70 text-[10px] font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Mentor Aktif</span>
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 font-normal mt-0.5 flex items-center gap-1 truncate">
+                <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
+                <span className="truncate">{mentorName} · {dudiName} ({dudiCity})</span>
+              </p>
+            </div>
           </div>
 
           <button
@@ -287,7 +297,12 @@ export function MentorQrModal({ onClose }: MentorQrModalProps) {
                     <span className="text-[11px] font-medium">Membangkitkan segel QR...</span>
                   </div>
                 ) : (
-                  <QrCodeView value={activeUrl} size={160} errorCorrectionLevel="M" />
+                  <QrCodeView
+                    value={activeUrl}
+                    size={160}
+                    centerLogo="/icons/vokalink-icon.svg"
+                    errorCorrectionLevel="H"
+                  />
                 )}
               </div>
               <p className="text-[11px] text-slate-500 font-medium mt-2">
