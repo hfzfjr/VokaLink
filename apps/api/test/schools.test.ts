@@ -169,6 +169,35 @@ describe("Schools API (FR-001)", () => {
       expect(res.body.data.academicPeriod.targetTotalJp).toBe(792);
       expect(res.body.data.admin.role).toBe("SCHOOL_ADMIN");
     });
+
+    it("successfully registers school with custom added department", async () => {
+      vi.mocked(prisma.school.findUnique).mockResolvedValueOnce(null);
+
+      const res = await request(app)
+        .post("/api/schools/register")
+        .send({
+          ...validPayload,
+          selectedDepartmentSectorCodes: ["RPL", "TKJ"],
+          customDepartments: [
+            {
+              sectorCode: "TKJ",
+              name: "Teknik Komputer dan Jaringan",
+              description: "Konsentrasi keahlian jaringan komputer dan server.",
+            },
+          ],
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(prisma.schoolDepartment.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            sectorCode: "TKJ",
+            name: "Teknik Komputer dan Jaringan",
+          }),
+        })
+      );
+    });
   });
 
   describe("POST /api/schools/demo-sandbox", () => {

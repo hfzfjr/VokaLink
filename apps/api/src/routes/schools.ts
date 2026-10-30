@@ -156,11 +156,12 @@ schoolsRouter.post(
           },
         });
 
-        // Clone curriculum for selected departments
+        // Clone curriculum for selected departments (including any custom departments added)
         const clonedDepartments = await cloneCurriculumForSchool(
           tx,
           school.id,
-          input.selectedDepartmentSectorCodes
+          input.selectedDepartmentSectorCodes,
+          input.customDepartments ?? []
         );
 
         return {
