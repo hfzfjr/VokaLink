@@ -118,14 +118,12 @@ export default function VerifyRequestPage() {
     loadVerificationData();
   }, [loadVerificationData]);
 
-  const [appOrigin, setAppOrigin] = useState<string>("");
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setAppOrigin(window.location.origin);
-    }
-  }, []);
-
-  const vercelAppUrl = (appOrigin || process.env["NEXT_PUBLIC_APP_URL"] || "https://vokalink.vercel.app").replace(/\/$/, "");
+  // Mengutamakan domain publik Vercel (https://vokalink.vercel.app) agar saat dipindai kamera HP tidak menuju ke localhost
+  const vercelAppUrl = (
+    process.env["NEXT_PUBLIC_APP_URL"] ||
+    (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" ? window.location.origin : "") ||
+    "https://vokalink.vercel.app"
+  ).replace(/\/$/, "");
 
   // Relative path ke halaman verifikasi mentor: /v/[token]
   const verificationPath =
