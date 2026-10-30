@@ -171,7 +171,6 @@ export default function VerifyRequestPage() {
               <ArrowLeft className="w-4 h-4" />
             </Link>
             <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/90 p-1 shadow-2xs flex items-center justify-center shrink-0">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/icons/vokalink-icon.svg"
                 alt="VokaLink"

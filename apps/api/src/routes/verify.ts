@@ -5,7 +5,6 @@ import { getLocalIPv4 } from "../lib/network.js";
 import { AppError } from "../middlewares/error-handler.js";
 import {
   parseAndVerifySignedToken,
-  createSignedToken,
   hashSha256Hex,
   verifyPinWithScrypt,
   sealObjectWithHmac,

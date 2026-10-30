@@ -186,7 +186,6 @@ export function MentorQrModal({ onClose }: MentorQrModalProps) {
         <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-200/70">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-2xl bg-white border border-slate-200/90 p-1.5 shadow-2xs flex items-center justify-center shrink-0">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/icons/vokalink-icon.svg"
                 alt="VokaLink"

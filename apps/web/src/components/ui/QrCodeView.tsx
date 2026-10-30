@@ -79,7 +79,6 @@ export function QrCodeView({
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl p-1 shadow-md border border-slate-200/90 flex items-center justify-center pointer-events-none"
           style={{ width: computedLogoSize, height: computedLogoSize }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={logoSrc}
             alt="VokaLink"
