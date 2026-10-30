@@ -1,5 +1,7 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
+import crypto from "node:crypto";
 import { prisma } from "../lib/prisma.js";
+import { getLocalIPv4 } from "../lib/network.js";
 import { AppError } from "../middlewares/error-handler.js";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
 import {
@@ -25,6 +27,66 @@ const SERVER_CRYPTO_SECRET =
   process.env["SERVER_CRYPTO_SECRET"] || "vokalink_dev_server_crypto_secret_32bytes_min!";
 const PIN_PEPPER =
   process.env["PIN_PEPPER"] || "vokalink_dev_pin_pepper_secret_key_32bytes!";
+
+function resolveWebAppOrigin(req: Request): string {
+  const headerOrigin = req.get("origin") || req.get("referer");
+  if (headerOrigin) {
+    try {
+      const parsed = new URL(headerOrigin);
+      const origin = parsed.origin;
+      const isLocal = origin.includes("localhost") || origin.includes("127.0.0.1");
+      if (isLocal) {
+        const localIp = getLocalIPv4();
+        if (localIp && localIp !== "127.0.0.1") {
+          return `http://${localIp}:${parsed.port || "3000"}`;
+        }
+      }
+      return origin;
+    } catch {}
+  }
+
+  const envUrl = process.env["NEXT_PUBLIC_APP_URL"] || process.env["APP_ORIGIN"];
+  if (envUrl) {
+    return envUrl.replace(/\/$/, "");
+  }
+
+  const localIp = getLocalIPv4();
+  if (localIp && localIp !== "127.0.0.1") {
+    return `http://${localIp}:3000`;
+  }
+  return "http://localhost:3000";
+}
+
+function buildMentorActivationObject(params: {
+  req: Request;
+  activationToken: string;
+  expSeconds: number;
+  mentorFullName: string;
+  whatsappNumber: string;
+  dudiName: string;
+}) {
+  const origin = resolveWebAppOrigin(params.req);
+  const activatePath = `/v/${params.activationToken}/activate`;
+  const fullUrl = `${origin}${activatePath}`;
+
+  const cleanPhone = params.whatsappNumber.replace(/^0/, "62").replace(/\+/, "");
+  const waMessage = encodeURIComponent(
+    `Halo ${params.mentorFullName}, Anda didaftarkan sebagai Mentor Industri di ${params.dudiName} pada VokaLink.\n\nSilakan klik tautan berikut dari browser HP Anda untuk mengaktifkan perangkat verifikator (tanpa akun/password):\n${fullUrl}\n\nTautan ini berlaku selama 72 jam.`
+  );
+  const waLink = `https://wa.me/${cleanPhone}?text=${waMessage}`;
+
+  return {
+    token: params.activationToken,
+    activationToken: params.activationToken,
+    path: activatePath,
+    activatePath,
+    url: fullUrl,
+    fullUrl,
+    whatsappLink: waLink,
+    whatsappDirectLink: waLink,
+    expiresAt: new Date(params.expSeconds * 1000).toISOString(),
+  };
+}
 
 // ─── GET /api/dudi ─────────────────────────────────────────────────────────────
 /**
@@ -488,7 +550,7 @@ dudiRouter.post(
         );
       }
 
-      // Simpan partner dan relasi capabilities dalam transaksi
+      // Simpan partner, relasi capabilities, dan mentor awal (jika ada) dalam transaksi
       const result = await prisma.$transaction(async (tx) => {
         const partner = await tx.dudiPartner.create({
           data: {
@@ -511,16 +573,79 @@ dudiRouter.post(
           })),
         });
 
-        return partner;
+        let initialMentorResult: {
+          mentor: { id: string; fullName: string; jobTitle: string; whatsappNumber: string };
+          activationToken: string;
+          expSeconds: number;
+        } | null = null;
+
+        if (data.mentor) {
+          const mentor = await tx.dudiMentor.create({
+            data: {
+              dudiPartnerId: partner.id,
+              fullName: data.mentor.fullName,
+              jobTitle: data.mentor.jobTitle,
+              whatsappNumber: data.mentor.whatsappNumber,
+            },
+          });
+
+          const expSeconds = Math.floor(Date.now() / 1000) + 72 * 3600;
+          const linkId = crypto.randomUUID();
+          const tokenPayload = {
+            rid: linkId,
+            mid: mentor.id,
+            p: "DEVICE_ACTIVATION",
+            exp: expSeconds,
+          };
+
+          const activationToken = createSignedToken(tokenPayload, SERVER_CRYPTO_SECRET);
+          const tokenHash = hashSha256Hex(activationToken);
+
+          await tx.signedLink.create({
+            data: {
+              id: linkId,
+              purpose: "DEVICE_ACTIVATION",
+              tokenHash,
+              keyId: "k1",
+              mentorId: mentor.id,
+              payloadHash: hashSha256Hex(JSON.stringify(tokenPayload)),
+              expiresAt: new Date(expSeconds * 1000),
+              createdBy: user.id,
+            },
+          });
+
+          initialMentorResult = { mentor, activationToken, expSeconds };
+        }
+
+        return { partner, initialMentorResult };
       });
+
+      const initialMentorPayload = result.initialMentorResult
+        ? {
+            id: result.initialMentorResult.mentor.id,
+            fullName: result.initialMentorResult.mentor.fullName,
+            jobTitle: result.initialMentorResult.mentor.jobTitle,
+            whatsappNumber: result.initialMentorResult.mentor.whatsappNumber,
+            activation: buildMentorActivationObject({
+              req,
+              activationToken: result.initialMentorResult.activationToken,
+              expSeconds: result.initialMentorResult.expSeconds,
+              mentorFullName: result.initialMentorResult.mentor.fullName,
+              whatsappNumber: result.initialMentorResult.mentor.whatsappNumber,
+              dudiName: result.partner.name,
+            }),
+          }
+        : undefined;
 
       res.status(201).json({
         message: "Mitra DUDI dan kapasitas kompetensi berhasil didaftarkan.",
+        ...(initialMentorPayload ? { initialMentor: initialMentorPayload } : {}),
         data: {
-          id: result.id,
-          name: result.name,
-          city: result.city,
+          id: result.partner.id,
+          name: result.partner.name,
+          city: result.partner.city,
           supportedJobCardsCount: data.supportedJobCardIds.length,
+          ...(initialMentorPayload ? { initialMentor: initialMentorPayload } : {}),
         },
       });
     } catch (err) {
@@ -601,20 +726,24 @@ dudiRouter.post(
         return { mentor, activationToken, expSeconds };
       });
 
-      const host = req.get("host") || "localhost:3000";
-      const protocol = req.protocol === "https" ? "https" : "http";
-      const activatePath = `/v/${result.activationToken}/activate`;
-      const fullUrl = `${protocol}://${host}${activatePath}`;
-
-      // WhatsApp direct share message
-      const cleanPhone = mentorData.whatsappNumber.replace(/^0/, "62").replace(/\+/, "");
-      const waMessage = encodeURIComponent(
-        `Halo ${mentorData.fullName}, Anda didaftarkan sebagai Mentor Industri di ${partner.name} pada VokaLink.\n\nSilakan klik tautan berikut dari browser HP Anda untuk mengaktifkan perangkat verifikator (tanpa akun/password):\n${fullUrl}\n\nTautan ini berlaku selama 72 jam.`
-      );
-      const waLink = `https://wa.me/${cleanPhone}?text=${waMessage}`;
+      const activationObj = buildMentorActivationObject({
+        req,
+        activationToken: result.activationToken,
+        expSeconds: result.expSeconds,
+        mentorFullName: mentorData.fullName,
+        whatsappNumber: mentorData.whatsappNumber,
+        dudiName: partner.name,
+      });
 
       res.status(201).json({
         message: "Mentor industri berhasil didaftarkan.",
+        mentor: {
+          id: result.mentor.id,
+          fullName: result.mentor.fullName,
+          jobTitle: result.mentor.jobTitle,
+          whatsappNumber: result.mentor.whatsappNumber,
+        },
+        activation: activationObj,
         data: {
           mentor: {
             id: result.mentor.id,
@@ -622,13 +751,86 @@ dudiRouter.post(
             jobTitle: result.mentor.jobTitle,
             whatsappNumber: result.mentor.whatsappNumber,
           },
-          activation: {
-            token: result.activationToken,
-            path: activatePath,
-            fullUrl,
-            whatsappLink: waLink,
-            expiresAt: new Date(result.expSeconds * 1000).toISOString(),
+          activation: activationObj,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// ─── POST /api/dudi/mentors/:mentorId/activation-link ─────────────────────────
+/**
+ * Terbitkan tautan aktivasi perangkat 72 jam untuk mentor yang belum terikat HP
+ */
+dudiRouter.post(
+  "/mentors/:mentorId/activation-link",
+  requireAuth,
+  requireRole("SCHOOL_ADMIN", "TEACHER"),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { mentorId } = req.params as { mentorId: string };
+
+      const mentor = await prisma.dudiMentor.findUnique({
+        where: { id: mentorId },
+        include: { dudiPartner: { select: { name: true } } },
+      });
+
+      if (!mentor) {
+        throw new AppError("Mentor tidak ditemukan", 404, "NOT_FOUND");
+      }
+
+      const result = await prisma.$transaction(async (tx) => {
+        // Cabut signed links aktivasi sebelumnya yang belum dipakai
+        await tx.signedLink.updateMany({
+          where: { mentorId, purpose: "DEVICE_ACTIVATION", usedAt: null, revokedAt: null },
+          data: { revokedAt: new Date() },
+        });
+
+        const expSeconds = Math.floor(Date.now() / 1000) + 72 * 3600;
+        const linkId = crypto.randomUUID();
+        const tokenPayload = {
+          rid: linkId,
+          mid: mentorId,
+          p: "DEVICE_ACTIVATION",
+          exp: expSeconds,
+        };
+
+        const activationToken = createSignedToken(tokenPayload, SERVER_CRYPTO_SECRET);
+        const tokenHash = hashSha256Hex(activationToken);
+
+        await tx.signedLink.create({
+          data: {
+            id: linkId,
+            purpose: "DEVICE_ACTIVATION",
+            tokenHash,
+            keyId: "k1",
+            mentorId,
+            payloadHash: hashSha256Hex(JSON.stringify(tokenPayload)),
+            expiresAt: new Date(expSeconds * 1000),
+            createdBy: req.user!.id,
           },
+        });
+
+        return { activationToken, expSeconds };
+      });
+
+      const activationObj = buildMentorActivationObject({
+        req,
+        activationToken: result.activationToken,
+        expSeconds: result.expSeconds,
+        mentorFullName: mentor.fullName,
+        whatsappNumber: mentor.whatsappNumber || "",
+        dudiName: mentor.dudiPartner.name,
+      });
+
+      res.json({
+        message: "Tautan aktivasi perangkat mentor berhasil diterbitkan.",
+        activation: activationObj,
+        data: {
+          ...activationObj,
+          activation: activationObj,
         },
       });
     } catch (err) {
@@ -708,18 +910,21 @@ dudiRouter.post(
         return { activationToken, expSeconds };
       });
 
-      const host = req.get("host") || "localhost:3000";
-      const protocol = req.protocol === "https" ? "https" : "http";
-      const activatePath = `/v/${result.activationToken}/activate`;
-      const fullUrl = `${protocol}://${host}${activatePath}`;
+      const activationObj = buildMentorActivationObject({
+        req,
+        activationToken: result.activationToken,
+        expSeconds: result.expSeconds,
+        mentorFullName: mentor.fullName,
+        whatsappNumber: mentor.whatsappNumber || "",
+        dudiName: mentor.dudiPartner.name,
+      });
 
       res.json({
         message: "Perangkat mentor berhasil di-reset. Tautan aktivasi baru telah dibuat.",
+        activation: activationObj,
         data: {
-          activationToken: result.activationToken,
-          activatePath,
-          fullUrl,
-          expiresAt: new Date(result.expSeconds * 1000).toISOString(),
+          ...activationObj,
+          activation: activationObj,
         },
       });
     } catch (err) {

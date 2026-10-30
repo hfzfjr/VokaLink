@@ -33,6 +33,7 @@ const { mockPrisma } = vi.hoisted(() => {
     },
     dudiMentor: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       update: vi.fn(),
     },
     placement: {
@@ -259,6 +260,43 @@ describe("Dual-Mode Zero-Login Mentor Verification & Anti-Forgery Stamp (FR-007,
 
       expect(res.status).toBe(403);
       expect(res.body.code).toBe("DEVICE_MISMATCH");
+      expect(mockPrisma.securityFlag.create).toHaveBeenCalled();
+    });
+
+    it("menolak persetujuan lintas DUDI jika perangkat milik mentor dari perusahaan/jurusan lain (403 CROSS_DUDI_MISMATCH)", async () => {
+      const token = createTestToken();
+
+      mockPrisma.signedLink.findUnique.mockResolvedValueOnce({
+        id: "link-123",
+        expiresAt: new Date(Date.now() + 3600 * 1000),
+        usedAt: null,
+        revokedAt: null,
+        placementId: TEST_PLACEMENT_ID,
+        mentor: {
+          id: TEST_MENTOR_ID,
+          deviceTokenHash: TEST_DEVICE_HASH,
+          lockedUntil: null,
+        },
+      });
+
+      mockPrisma.dudiMentor.findFirst.mockResolvedValueOnce({
+        id: "00000000-0000-0000-0000-000000000099",
+        fullName: "Mentor Akuntansi KAP",
+        dudiPartner: { name: "KAP Drs. Bambang & Rekan" },
+      });
+
+      const res = await request(app)
+        .post(`/api/v1/verify/mentor/${token}/execute`)
+        .send({
+          nonce: "nonce-12345",
+          deviceToken: "other-mentor-device-token-from-kap!",
+          pin: "1234",
+          decision: "APPROVE",
+        });
+
+      expect(res.status).toBe(403);
+      expect(res.body.code).toBe("CROSS_DUDI_MISMATCH");
+      expect(res.body.detail).toContain("KAP Drs. Bambang & Rekan");
       expect(mockPrisma.securityFlag.create).toHaveBeenCalled();
     });
 

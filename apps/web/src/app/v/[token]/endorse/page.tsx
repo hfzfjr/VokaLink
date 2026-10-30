@@ -132,11 +132,12 @@ export default function MentorEndorsementPage({ params }: PageProps) {
 
   // Handle badge toggle (max 3 items)
   const toggleBadge = (badge: string) => {
+    setSubmitError(null);
     if (selectedBadges.includes(badge)) {
       setSelectedBadges(selectedBadges.filter((b) => b !== badge));
     } else {
       if (selectedBadges.length >= 3) {
-        alert("Maksimal memilih 3 lencana etos kerja unggulan.");
+        setSubmitError("Maksimal memilih 3 lencana etos kerja unggulan.");
         return;
       }
       setSelectedBadges([...selectedBadges, badge]);

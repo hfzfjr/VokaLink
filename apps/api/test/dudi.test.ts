@@ -180,6 +180,51 @@ describe("Assisted DUDI Onboarding & Mentor Device Binding (FR-003)", () => {
       expect(res.body.data.id).toBe(TEST_DUDI_ID);
       expect(res.body.data.supportedJobCardsCount).toBe(2);
     });
+
+    it("harus berhasil mendaftarkan DUDI sekaligus mentor awal dan menerbitkan token aktivasi 72 jam (201)", async () => {
+      mockPrisma.jobCard.findMany.mockResolvedValue([{ id: TEST_JC_1 }]);
+      mockPrisma.dudiPartner.create.mockResolvedValue({
+        id: TEST_DUDI_ID,
+        name: "PT Inovasi Software",
+        city: "Surabaya",
+      });
+      mockPrisma.dudiCapability.createMany.mockResolvedValue({ count: 1 });
+      mockPrisma.dudiMentor.create.mockResolvedValue({
+        id: TEST_MENTOR_ID,
+        fullName: "Budi Santoso",
+        jobTitle: "Engineering Lead",
+        whatsappNumber: "081234567890",
+      });
+      mockPrisma.signedLink.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .post("/api/dudi")
+        .set("Authorization", "Bearer mock-token")
+        .send({
+          name: "PT Inovasi Software",
+          sectorCategory: "Teknologi Informasi & Software",
+          address: "Jl. Pemuda No. 10",
+          city: "Surabaya",
+          latitude: -7.26,
+          longitude: 112.75,
+          maxQuota: 4,
+          supportedJobCardIds: [TEST_JC_1],
+          mentor: {
+            fullName: "Budi Santoso",
+            jobTitle: "Engineering Lead",
+            whatsappNumber: "081234567890",
+          },
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.initialMentor).toBeDefined();
+      expect(res.body.initialMentor.fullName).toBe("Budi Santoso");
+      expect(res.body.initialMentor.activation.token.startsWith("v1.")).toBe(true);
+      expect(res.body.initialMentor.activation.url).toContain("/v/");
+      expect(res.body.initialMentor.activation.whatsappDirectLink).toContain(
+        "wa.me/6281234567890"
+      );
+    });
   });
 
   describe("POST /api/dudi/:dudiId/mentors (Pendaftaran Mentor & Link Aktivasi)", () => {

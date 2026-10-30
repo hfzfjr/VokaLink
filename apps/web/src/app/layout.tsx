@@ -88,7 +88,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" className={`${plusJakartaSans.variable} ${plusJakartaSans.className}`}>
-      <body className={`${plusJakartaSans.className} min-h-screen bg-paper font-sans text-ink-900 antialiased selection:bg-safety-500 selection:text-ink-900`}>
+      <body className={`${plusJakartaSans.className} min-h-screen bg-slate-50 font-sans text-slate-900 antialiased selection:bg-sky-500 selection:text-white`}>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

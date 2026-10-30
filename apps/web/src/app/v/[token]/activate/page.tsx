@@ -44,26 +44,13 @@ export default function MentorActivationPage() {
       const details = await fetchActivationDetails(token);
       setData(details);
     } catch (err: any) {
-      console.warn("Activation error fallback to preview:", err);
-      // Fallback preview data jika token demo lokal
-      setData({
-        mentor: {
-          id: "m-preview",
-          fullName: "Budi Santoso, S.Kom",
-          jobTitle: "Senior Lead Engineer",
-        },
-        dudi: {
-          id: "dudi-preview",
-          name: "PT Teknologi Inovasi Mandiri",
-          sectorCategory: "Teknologi Informasi & Software",
-          city: "Surabaya",
-        },
-        supportedJobCards: [
-          { id: "jc-1", title: "Implementasi REST API & Backend Service", tools: ["Node.js", "Express"] },
-          { id: "jc-2", title: "Slicing UI Responsif & Tailwind CSS", tools: ["React", "Tailwind"] },
-          { id: "jc-3", title: "Testing & Quality Assurance", tools: ["Vitest", "Postman"] },
-        ],
-      });
+      setData(null);
+      setErrorMsg(
+        sanitizeErrorMessage(
+          err,
+          "Tautan aktivasi tidak valid, sudah pernah digunakan, atau telah kedaluwarsa."
+        )
+      );
     } finally {
       setLoading(false);
     }
@@ -116,6 +103,9 @@ export default function MentorActivationPage() {
 
       // 2. Simpan device token ke localStorage & IndexedDB secara persisten
       localStorage.setItem("vokalink_mentor_device_token", deviceTokenHex);
+      if (data?.mentor?.id) {
+        localStorage.setItem(`vokalink_mentor_device_token_${data.mentor.id}`, deviceTokenHex);
+      }
       if ("storage" in navigator && "persist" in navigator.storage) {
         await navigator.storage.persist();
       }

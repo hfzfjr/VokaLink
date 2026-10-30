@@ -10,15 +10,13 @@ import {
   Check,
   Star,
   ChevronDown,
-  X,
-  Play,
   FileText,
   UserCheck,
   Building2,
   GraduationCap,
   QrCode,
   Award,
-  CheckCircle2,
+  ShieldCheck,
 } from "lucide-react";
 
 interface MajorDetail {
@@ -38,9 +36,9 @@ const MAJORS_DATA: Record<string, MajorDetail> = {
     partner: "PT Telkom Indonesia / Software House Mitra",
     hours: "792 JP",
     competency: "RESTful API, State Management & Unit Test",
-    exam: "Demo Proyek & Portofolio Git Bersegel Kriptografis",
+    exam: "Sidang Proyek & Portofolio Bersegel Kriptografis",
     sampleLog:
-      "\"Melakukan implementasi endpoint validasi skema Zod, perbaikan bug relasi database PostgreSQL, serta integrasi pengujian unit sebelum diajukan ke mentor industri untuk stempel cepat.\"",
+      "\"Melakukan implementasi endpoint validasi skema Zod, perbaikan relasi database PostgreSQL, serta integrasi pengujian unit sebelum diajukan ke mentor industri untuk pengesahan PIN.\"",
   },
   tkj: {
     badge: "Teknik Jaringan Komputer & Telekomunikasi (TJKT)",
@@ -50,7 +48,7 @@ const MAJORS_DATA: Record<string, MajorDetail> = {
     competency: "Fiber Optic, VLAN & Routing MikroTik Terkelola",
     exam: "Uji Konfigurasi Topologi & Troubleshooting Jaringan",
     sampleLog:
-      "\"Penyambungan core fiber optic (splicing) pada ODP distribusi, konfigurasi limit bandwidth user hotspot, serta monitoring utilitas switch core dengan penandaan geotagging lokasi presensi.\"",
+      "\"Penyambungan core fiber optic (splicing) pada ODP distribusi, konfigurasi limit bandwidth user hotspot, serta monitoring utilitas switch core sesuai standar keselamatan kerja.\"",
   },
   dkv: {
     badge: "Desain Komunikasi Visual (DKV)",
@@ -60,7 +58,7 @@ const MAJORS_DATA: Record<string, MajorDetail> = {
     competency: "Design System, Figma Prototyping & Visual Identity",
     exam: "Pameran Karya Portofolio Digital Terverifikasi",
     sampleLog:
-      "\"Menyusun 5 variasi banner promosi media sosial sesuai identitas brand mitra, membuat komponen tombol dan input dalam design tokens, serta melampirkan bukti foto terkompresi WebP 48 KB.\"",
+      "\"Menyusun 5 variasi materi promosi media sosial sesuai identitas brand mitra, merancang sistem komponen antarmuka, serta melampirkan bukti foto terkompresi WebP di bawah 150 KB.\"",
   },
   tkr: {
     badge: "Teknik Kendaraan Ringan (TKR Otomotif)",
@@ -70,7 +68,7 @@ const MAJORS_DATA: Record<string, MajorDetail> = {
     competency: "Sistem Injeksi EFI, Engine Scanner OBD-II & K3LH",
     exam: "Uji Kinerja Servis Berkala 20.000 KM Standar IDUKA",
     sampleLog:
-      "\"Melakukan pembacaan data trouble code sensor EFI menggunakan scanner OBD-II, pembersihan throttle body terkalibrasi, dan pengisian kartu pekerjaan langsung dari tablet bengkel saat offline.\"",
+      "\"Melakukan pembacaan data trouble code sensor EFI menggunakan scanner OBD-II, pembersihan throttle body terkalibrasi, dan pencatatan kartu pekerjaan langsung dari perangkat saat offline.\"",
   },
   akl: {
     badge: "Akuntansi & Keuangan Lembaga (AKL)",
@@ -80,7 +78,7 @@ const MAJORS_DATA: Record<string, MajorDetail> = {
     competency: "Rekonsiliasi Fiskal, Kas Kecil & e-Faktur Pajak",
     exam: "Laporan Tutup Buku Akhir Periode Sesuai SAK",
     sampleLog:
-      "\"Pemeriksaan fisik bukti voucher transaksi terhadap mutasi bank giro, pembukuan jurnal pembelian kredit, dan verifikasi harian oleh instruktur keuangan via stempel QR sekali pakai.\"",
+      "\"Pemeriksaan fisik bukti voucher transaksi terhadap mutasi bank giro, pembukuan jurnal pembelian kredit, dan verifikasi harian oleh penyelia keuangan via tautan QR sekali pakai.\"",
   },
   kuliner: {
     badge: "Kuliner & Tata Boga",
@@ -88,7 +86,7 @@ const MAJORS_DATA: Record<string, MajorDetail> = {
     partner: "Hotel Bintang 4/5 & Restoran Industri Boga",
     hours: "792 JP",
     competency: "Higienitas HACCP, Penimbangan Resep & Food Plating",
-    exam: "Live Cooking & Uji Cita Rasa Asesor IDUKA",
+    exam: "Uji Kinerja Hidangan & Asesmen Standar IDUKA",
     sampleLog:
       "\"Persiapan bahan baku mise en place untuk 120 porsi banquet, pengawasan suhu pemanggangan pastry bakery terukur, dan pencatatan jam praktik mandiri sesuai standar sanitasi dapur hotel.\"",
   },
@@ -96,24 +94,24 @@ const MAJORS_DATA: Record<string, MajorDetail> = {
 
 const FAQ_ITEMS = [
   {
-    q: "Apakah sistem ini dapat disinkronkan dengan data Dapodik dan e-Rapor sekolah?",
-    a: "Ya, VokaLink dirancang khusus sesuai regulasi Kurikulum Merdeka Fase F (Permendikbudristek No. 12/2024). Data siswa, kelas, dan DUDI dapat diimpor massal via spreadsheet Excel, dan nilai akhir praktik 792 JP langsung diekspor ke format resmi e-Rapor SMK Dapodikdasmen.",
+    q: "Apakah sistem ini sesuai dengan regulasi Kurikulum Merdeka dan format e-Rapor SMK?",
+    a: "Ya, VokaLink dirancang sesuai regulasi Kurikulum Merdeka Fase F (Permendikbudristek No. 12/2024) dengan standar 792 JP. Rekapitulasi nilai akhir yang menggabungkan capaian jam kompetensi, level kemandirian, dan penilaian 9 aspek industri dapat langsung diekspor ke format CSV resmi e-Rapor SMK.",
   },
   {
-    q: "Bagaimana jika di tempat magang siswa tidak ada koneksi internet?",
-    a: "VokaLink bekerja secara 100% Offline-First menggunakan IndexedDB (Dexie). Siswa tetap dapat memilih kartu tugas harian dan mengambil foto bukti kerja. Foto dikompresi otomatis ke WebP di bawah 60 KB, dan seluruh data akan tersinkronisasi otomatis begitu perangkat kembali terhubung ke jaringan internet.",
+    q: "Bagaimana jika di lokasi magang siswa sinyal internet lemah atau tidak tersedia?",
+    a: "VokaLink bekerja secara 100% Offline-First menggunakan penyimpanan lokal IndexedDB (Dexie). Siswa tetap dapat memilih kartu tugas harian dan mengambil foto bukti kerja yang dikompresi otomatis ke format WebP (maksimal 150 KB). Seluruh jurnal akan tersinkronisasi otomatis secara idempoten saat perangkat kembali online.",
   },
   {
     q: "Apakah mentor industri (DUDI) wajib membuat akun baru dan mengingat password?",
-    a: "Sama sekali tidak. VokaLink menerapkan mekanisme Zero-Login Verification. Mentor cukup membuka tautan aman sekali pakai yang dikirim via WhatsApp atau memindai QR Code siswa, lalu memasukkan PIN 4 digit. Seluruh proses stempel verifikasi selesai dalam waktu kurang dari 10 detik.",
+    a: "Sama sekali tidak. VokaLink menerapkan protokol Zero-Login Verification. Mentor cukup membuka tautan sekali pakai yang dikirim via WhatsApp (termasuk rekap borongan beberapa hari) atau memindai QR Code siswa, lalu memasukkan PIN 4 digit pada perangkat yang telah ditautkan.",
   },
   {
-    q: "Apakah pihak sekolah harus membayar biaya langganan server atau lisensi software?",
-    a: "Biaya infrastruktur adalah Rp0 (Zero-Cost Architecture) yang dibangun untuk kompetisi UINIC 8.0 Web Development 2026. Seluruh layanan berjalan di atas free-tier teroptimasi: Next.js di Vercel, Supabase PostgreSQL & Auth, serta Express API di Cloudflare Tunnel.",
+    q: "Bagaimana sistem menjamin keaslian CV ATS dan Paspor Kompetensi siswa?",
+    a: "Hanya jurnal yang berstatus VERIFIED oleh mentor industri yang dapat masuk ke klaim keterampilan CV ATS dan Paspor Kompetensi publik. Setiap entri yang disahkan dikunci secara permanen (immutable) dan disegel dengan tanda tangan kriptografis HMAC-SHA256 yang dapat diverifikasi publik melalui QR Code.",
   },
   {
-    q: "Bagaimana cara mendeteksi jika siswa diberi tugas kasar di luar jurusannya?",
-    a: "Guru pembimbing memiliki akses ke fitur Live Heatmap & Competency Drift. Sistem akan menganalisis kartu tugas harian yang distempel mentor dan otomatis memberikan peringatan dini jika alokasi jam siswa melenceng dari Capaian Pembelajaran (CP) SKKNI jurusannya.",
+    q: "Bagaimana cara mendeteksi jika siswa diberi tugas di luar kompetensi jurusannya?",
+    a: "Guru pembimbing memantau matriks ketercapaian Capaian Pembelajaran (CP) dan sistem deteksi anomali (Competency Drift) secara real-time. Jika rasio tugas non-kompetensi melampaui ambang batas atau siswa tidak aktif mencatat jurnal, sistem otomatis memberikan peringatan intervensi dini.",
   },
 ];
 
@@ -123,43 +121,22 @@ const DEFAULT_MAJOR: MajorDetail = {
   partner: "PT Telkom Indonesia / Software House Mitra",
   hours: "792 JP",
   competency: "RESTful API, State Management & Unit Test",
-  exam: "Demo Proyek & Portofolio Git Bersegel Kriptografis",
+  exam: "Sidang Proyek & Portofolio Bersegel Kriptografis",
   sampleLog:
-    "\"Melakukan implementasi endpoint validasi skema Zod, perbaikan bug relasi database PostgreSQL, serta integrasi pengujian unit sebelum diajukan ke mentor industri untuk stempel cepat.\"",
+    "\"Melakukan implementasi endpoint validasi skema Zod, perbaikan relasi database PostgreSQL, serta integrasi pengujian unit sebelum diajukan ke mentor industri untuk pengesahan PIN.\"",
 };
 
 export default function Home() {
   const [activeDimension, setActiveDimension] = useState<"siswa" | "guru" | "dudi">("siswa");
   const [activeMajor, setActiveMajor] = useState<string>("rpl");
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
-  const [demoModalOpen, setDemoModalOpen] = useState(false);
-  const [demoSchoolName, setDemoSchoolName] = useState("");
-  const [demoPicName, setDemoPicName] = useState("");
-  const [demoPhone, setDemoPhone] = useState("");
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 3800);
-  };
-
-  const handleDemoSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setDemoModalOpen(false);
-    showToast(`Pengajuan demo untuk ${demoSchoolName || "SMK Anda"} berhasil dikirim! Akun simulasi siap dicoba.`);
-    setDemoSchoolName("");
-    setDemoPicName("");
-    setDemoPhone("");
-  };
 
   const currentMajor: MajorDetail = MAJORS_DATA[activeMajor] ?? DEFAULT_MAJOR;
 
   return (
     <div className="min-h-screen bg-canvas text-content-primary font-sans selection:bg-sky-500 selection:text-white">
       {/* 1. STICKY NAVBAR */}
-      <LandingNavbar onScheduleDemo={() => setDemoModalOpen(true)} />
+      <LandingNavbar />
 
       {/* MAIN CONTENT LANDMARK */}
       <main id="main-content">
@@ -170,13 +147,13 @@ export default function Home() {
               <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 leading-[1.12]">
                 Monitoring PKL SMK{" "}
                 <span className="text-sky-500">Lebih Terukur</span>{" "}
-                & Bebas Dokumen Kertas
+                &amp; Bebas Dokumen Kertas
               </h1>
               <p className="mt-6 text-base sm:text-lg lg:text-xl text-slate-600 font-normal leading-relaxed max-w-2xl mx-auto">
-                Satu ekosistem digital yang menghubungkan <strong className="text-slate-800">Siswa Vokasi</strong>,{" "}
+                Satu ekosistem multi-tenant yang menghubungkan <strong className="text-slate-800">Sekolah</strong>,{" "}
+                <strong className="text-slate-800">Siswa Vokasi</strong>,{" "}
                 <strong className="text-slate-800">Guru Pembimbing</strong>, dan{" "}
-                <strong className="text-slate-800">Mentor DUDI</strong> secara transparan, akurat, dan terintegrasi langsung
-                dengan standar asesmen industri tanpa beban biaya server (Rp0).
+                <strong className="text-slate-800">Mentor DUDI</strong> secara transparan dari penempatan geospasial hingga penerbitan Paspor Kompetensi bersegel digital.
               </p>
 
               {/* CTA Buttons */}
@@ -185,17 +162,16 @@ export default function Home() {
                   href="/login"
                   className="px-8 py-4 rounded-full bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-sm sm:text-base shadow-lg shadow-sky-500/25 hover:scale-105 transition duration-150 flex items-center gap-2"
                 >
-                  <span>Buka Live Dashboard PKL</span>
+                  <span>Masuk ke Portal VokaLink</span>
                   <ArrowRight className="size-4" />
                 </Link>
-                <button
-                  type="button"
-                  onClick={() => setDemoModalOpen(true)}
+                <Link
+                  href="/register-school"
                   className="px-8 py-4 rounded-full bg-white hover:bg-slate-50 text-slate-700 font-bold text-sm sm:text-base border border-slate-200/80 shadow-xs hover:shadow transition flex items-center gap-2"
                 >
-                  <Play className="size-4 text-sky-500 fill-sky-500" />
-                  <span>Simulasi Peran Juri & Guru</span>
-                </button>
+                  <Building2 className="size-4 text-sky-500" />
+                  <span>Daftarkan Sekolah Baru</span>
+                </Link>
               </div>
             </div>
           </div>
@@ -213,20 +189,20 @@ export default function Home() {
 
               <div className="p-3">
                 <p className="text-3xl sm:text-4xl font-extrabold text-emerald-600 tracking-tight">&lt; 10 dtk</p>
-                <p className="text-xs sm:text-sm font-bold text-slate-700 mt-1">Stempel Cepat Zero-Login</p>
-                <p className="text-[11px] text-slate-500">Tanpa Registrasi Akun Mentor</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-700 mt-1">Pengesahan Zero-Login</p>
+                <p className="text-[11px] text-slate-500">QR &amp; WhatsApp + PIN 4-Digit</p>
               </div>
 
               <div className="p-3">
                 <p className="text-3xl sm:text-4xl font-extrabold text-indigo-600 tracking-tight">100%</p>
                 <p className="text-xs sm:text-sm font-bold text-slate-700 mt-1">PWA Offline-First</p>
-                <p className="text-[11px] text-slate-500">IndexedDB & WebP &lt; 60 KB</p>
+                <p className="text-[11px] text-slate-500">IndexedDB &amp; WebP &le; 150 KB</p>
               </div>
 
               <div className="p-3">
-                <p className="text-3xl sm:text-4xl font-extrabold text-amber-600 tracking-tight">Rp0</p>
-                <p className="text-xs sm:text-sm font-bold text-slate-700 mt-1">Biaya Server Sekolah</p>
-                <p className="text-[11px] text-slate-500">Zero-Cost Architecture UINIC 8.0</p>
+                <p className="text-3xl sm:text-4xl font-extrabold text-amber-600 tracking-tight">SHA-256</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-700 mt-1">Segel Digital Kriptografis</p>
+                <p className="text-[11px] text-slate-500">Portofolio &amp; CV ATS Terverifikasi</p>
               </div>
             </div>
           </div>
@@ -367,7 +343,7 @@ export default function Home() {
                     <span className="flex items-center gap-1">
                       <Clock className="size-3" /> 8 Jam Pelajaran (JP)
                     </span>
-                    <span>2 Lampiran Foto (WebP &lt; 60 KB)</span>
+                    <span>Bukti Foto (WebP &le; 150 KB)</span>
                   </div>
                 </div>
                 <div className="bg-sky-500 text-white p-4 rounded-2xl flex items-center justify-between gap-3 shadow-xs">
@@ -448,42 +424,34 @@ export default function Home() {
                   <span className="text-[10px] font-bold text-sky-600 shrink-0 whitespace-nowrap">32 Siswa</span>
                 </div>
                 {/* Item 1 */}
-                <div className="bg-white p-3 rounded-2xl border border-slate-200/50 flex items-center justify-between shadow-xs">
+                <div className="bg-white p-3.5 rounded-2xl border border-slate-200/60 flex items-center justify-between shadow-xs">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-sky-100 text-sky-600 font-bold flex items-center justify-center text-xs">
-                      GR
+                      AP
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-slate-800">Gilang Ramadhan</p>
-                      <p className="text-[10px] text-slate-400">PT Telkom Indonesia &bull; 480 JP Tercapai</p>
+                      <p className="text-xs font-bold text-slate-800">Andi Pratama</p>
+                      <p className="text-[10px] text-slate-400">PT Telkom Indonesia &bull; 480 / 792 JP Tercapai</p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => showToast("Jurnal Gilang Ramadhan berhasil disetujui Guru!")}
-                    className="text-[11px] bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full font-bold hover:bg-emerald-100 transition"
-                  >
-                    Setujui
-                  </button>
+                  <span className="text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200/80 px-3 py-1 rounded-full font-bold">
+                    On-Track
+                  </span>
                 </div>
                 {/* Item 2 */}
-                <div className="bg-white p-3 rounded-2xl border border-slate-200/50 flex items-center justify-between shadow-xs">
+                <div className="bg-white p-3.5 rounded-2xl border border-slate-200/60 flex items-center justify-between shadow-xs">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-rose-100 text-rose-700 font-bold flex items-center justify-center text-xs">
                       AF
                     </div>
                     <div>
                       <p className="text-xs font-bold text-slate-800">Ahmad Fauzi</p>
-                      <p className="text-[10px] text-rose-500">Peringatan: Deviasi Tugas di Bengkel</p>
+                      <p className="text-[10px] text-rose-500">Peringatan: Rasio Non-Kompetensi &gt; 35%</p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => showToast("Membuka detail review deviasi kompetensi Ahmad Fauzi")}
-                    className="text-[11px] bg-rose-50 text-rose-700 px-3 py-1 rounded-full font-bold hover:bg-rose-100 transition"
-                  >
-                    Review
-                  </button>
+                  <span className="text-[11px] bg-rose-50 text-rose-700 border border-rose-200/80 px-3 py-1 rounded-full font-bold">
+                    Perlu Intervensi
+                  </span>
                 </div>
               </div>
             </div>
@@ -667,17 +635,17 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 7. INTERACTIVE JURUSAN SIMULATOR */}
+      {/* 7. PROGRAM KEAHLIAN SMK */}
       <section id="simulasi" className="py-20 lg:py-28 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-12">
           <p className="text-xs font-bold text-sky-600 uppercase tracking-widest mb-3">
-            Simulasi Interaktif
+            Kurikulum Multi-Sektor SMK
           </p>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
             Disesuaikan untuk Seluruh Bidang Keahlian SMK
           </h2>
           <p className="text-sm sm:text-base text-slate-500 mt-3">
-            Pilih program keahlian di bawah ini untuk melihat contoh kompetensi, kartu tugas logbook, dan mitra industri yang relevan.
+            Pilih konsentrasi keahlian di bawah ini untuk melihat pemetaan Capaian Pembelajaran (CP), kartu tugas logbook, dan mitra industri yang relevan.
           </p>
 
           {/* Jurusan Pill Selector */}
@@ -904,29 +872,30 @@ export default function Home() {
       <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-sky-50/90 border border-sky-100 rounded-[36px] p-8 sm:p-14 text-slate-800 relative overflow-hidden shadow-soft">
           <div className="relative z-10 max-w-3xl">
-            <p className="text-xs font-bold text-sky-700 uppercase tracking-widest mb-3">
-              Konsultasi & Simulasi Gratis untuk SMK
+            <p className="text-xs font-bold text-sky-700 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+              <ShieldCheck className="size-4 text-sky-600" />
+              <span>Ekosistem Multi-Tenant SMK &amp; Mitra DUDI</span>
             </p>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight text-slate-900">
-              Siap Mewujudkan Manajemen PKL yang Modern & Profesional?
+              Siap Mewujudkan Manajemen PKL yang Modern &amp; Terukur?
             </h2>
             <p className="text-slate-600 text-sm sm:text-base mt-4 leading-relaxed">
-              Tingkatkan akreditasi sekolah vokasi Anda dan permudah koordinasi dengan ratusan mitra industri dalam satu dashboard terintegrasi tanpa biaya server (Rp0).
+              Aktifkan ruang kerja sekolah Anda dengan isolasi data berdasarkan NPSN, katalog kartu tugas otomatis sesuai jurusan, dan pengesahan mentor industri tanpa akun.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-4">
-              <button
-                type="button"
-                onClick={() => setDemoModalOpen(true)}
-                className="px-7 py-3.5 rounded-full bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-sm shadow-md shadow-sky-500/25 hover:scale-105 transition duration-150"
+              <Link
+                href="/register-school"
+                className="px-7 py-3.5 rounded-full bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-sm shadow-md shadow-sky-500/25 hover:scale-105 transition duration-150 inline-flex items-center gap-2"
               >
-                Jadwalkan Presentasi untuk Sekolah
-              </button>
+                <span>Daftarkan Sekolah Sekarang</span>
+                <ArrowRight className="size-4" />
+              </Link>
               <Link
                 href="/login"
                 className="px-7 py-3.5 rounded-full bg-white hover:bg-slate-50 text-slate-700 font-bold text-sm border border-slate-200/80 shadow-xs transition"
               >
-                Eksplorasi Dashboard Langsung
+                Masuk ke Portal Sistem
               </Link>
             </div>
           </div>
@@ -935,104 +904,8 @@ export default function Home() {
 
       </main>
 
-      {/* 11. FOOTER 5-KOLOM */}
+      {/* 11. FOOTER */}
       <LandingFooter />
-
-      {/* 12. MODAL JADWALKAN DEMO SEKOLAH */}
-      {demoModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-lg p-6 sm:p-8 shadow-2xl border border-slate-100">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
-              <div>
-                <h3 className="text-lg font-bold text-slate-800">Jadwalkan Demo & Konsultasi</h3>
-                <p className="text-xs text-slate-500">Dapatkan akses akun percobaan gratis untuk SMK Anda</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDemoModalOpen(false)}
-                className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-500 text-sm flex items-center justify-center"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleDemoSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nama SMK / Institusi</label>
-                <input
-                  type="text"
-                  required
-                  value={demoSchoolName}
-                  onChange={(e) => setDemoSchoolName(e.target.value)}
-                  placeholder="Contoh: SMKN 1 Bandung / SMKN 2 Surabaya"
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-sky-400"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Perwakilan</label>
-                  <input
-                    type="text"
-                    required
-                    value={demoPicName}
-                    onChange={(e) => setDemoPicName(e.target.value)}
-                    placeholder="Nama Guru / Pokja PKL"
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-sky-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor WhatsApp</label>
-                  <input
-                    type="tel"
-                    required
-                    value={demoPhone}
-                    onChange={(e) => setDemoPhone(e.target.value)}
-                    placeholder="0812-xxxx-xxxx"
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-sky-400"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Perkiraan Jumlah Siswa PKL per Tahun
-                </label>
-                <select className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-sky-400">
-                  <option>Kurang dari 100 Siswa</option>
-                  <option>100 - 300 Siswa</option>
-                  <option>300 - 700 Siswa</option>
-                  <option>Lebih dari 700 Siswa (SMK PK)</option>
-                </select>
-              </div>
-
-              <div className="pt-3 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setDemoModalOpen(false)}
-                  className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-500 hover:bg-slate-100 transition"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2.5 rounded-full text-xs font-bold bg-sky-500 hover:bg-sky-600 text-white shadow-md shadow-sky-500/25 transition"
-                >
-                  Kirim Pengajuan Demo
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* 13. FLOATING NOTIFICATION TOAST */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 z-50 animate-bounce">
-          <CheckCircle2 className="size-4 text-emerald-400" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
     </div>
   );
 }

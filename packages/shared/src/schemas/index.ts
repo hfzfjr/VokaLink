@@ -196,6 +196,22 @@ export type UpdateJobCardInput = z.infer<typeof updateJobCardSchema>;
 // ─────────────────────────────────────────────────────────
 
 /**
+ * Pendaftaran Mentor Industri di DUDI
+ */
+export const createDudiMentorSchema = z.object({
+  fullName: z.string().min(3, "Nama mentor minimal 3 karakter").max(120),
+  jobTitle: z.string().min(2, "Jabatan / divisi mentor minimal 2 karakter").max(100),
+  whatsappNumber: z
+    .string()
+    .regex(
+      /^(\+62|62|08)[0-9]{8,13}$/,
+      "Nomor WhatsApp tidak valid (Gunakan format 08123456789 atau +628123456789)"
+    ),
+});
+
+export type CreateDudiMentorInput = z.infer<typeof createDudiMentorSchema>;
+
+/**
  * Pendaftaran Mitra DUDI baru & Pemetaan Kapasitas Job Cards
  */
 export const createDudiPartnerSchema = z.object({
@@ -220,25 +236,10 @@ export const createDudiPartnerSchema = z.object({
   supportedJobCardIds: z
     .array(z.string().uuid("ID Job Card harus berformat UUID"))
     .min(1, "Pilih minimal 1 pekerjaan teknis yang tersedia di lokasi mitra ini."),
+  mentor: createDudiMentorSchema.optional(),
 });
 
 export type CreateDudiPartnerInput = z.infer<typeof createDudiPartnerSchema>;
-
-/**
- * Pendaftaran Mentor Industri di DUDI
- */
-export const createDudiMentorSchema = z.object({
-  fullName: z.string().min(3, "Nama mentor minimal 3 karakter").max(120),
-  jobTitle: z.string().min(2, "Jabatan / divisi mentor minimal 2 karakter").max(100),
-  whatsappNumber: z
-    .string()
-    .regex(
-      /^(\+62|62|08)[0-9]{8,13}$/,
-      "Nomor WhatsApp tidak valid (Gunakan format 08123456789 atau +628123456789)"
-    ),
-});
-
-export type CreateDudiMentorInput = z.infer<typeof createDudiMentorSchema>;
 
 /**
  * Aktivasi & Pengikatan Perangkat Mentor (Device Token & PIN 4-digit)

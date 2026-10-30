@@ -6,18 +6,14 @@ import { ExternalLink, Menu, X } from "lucide-react";
 import VokaLogo from "@/components/common/VokaLogo";
 
 const NAV_ITEMS = [
-  { id: "fitur", label: "Fitur 3 Dimensi" },
+  { id: "fitur", label: "Fitur Ekosistem" },
   { id: "alur", label: "Alur Kerja PKL" },
-  { id: "simulasi", label: "Simulasi Jurusan" },
-  { id: "testimoni", label: "Testimoni Sekolah" },
+  { id: "simulasi", label: "Program Keahlian" },
+  { id: "testimoni", label: "Testimoni" },
   { id: "faq", label: "FAQ" },
 ] as const;
 
-interface LandingNavbarProps {
-  onScheduleDemo?: () => void;
-}
-
-export default function LandingNavbar({ onScheduleDemo }: LandingNavbarProps) {
+export default function LandingNavbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>(null);
 
@@ -194,7 +190,7 @@ export default function LandingNavbar({ onScheduleDemo }: LandingNavbarProps) {
           })}
         </nav>
 
-        {/* Right Section: Mobile (Masuk Portal only) / Desktop (Masuk Portal + Jadwalkan Demo) */}
+        {/* Right Section: Mobile (Masuk Portal only) / Desktop (Masuk Portal + Daftarkan Sekolah) */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <Link
             href="/login"
@@ -203,13 +199,12 @@ export default function LandingNavbar({ onScheduleDemo }: LandingNavbarProps) {
             <ExternalLink className="size-3.5 text-sky-500" />
             <span>Masuk Portal</span>
           </Link>
-          <button
-            type="button"
-            onClick={onScheduleDemo}
+          <Link
+            href="/register-school"
             className="hidden lg:inline-flex px-5 py-2.5 rounded-full text-xs font-bold text-white bg-sky-500 hover:bg-sky-600 shadow-md shadow-sky-500/25 transition cursor-pointer"
           >
-            Jadwalkan Demo Sekolah
-          </button>
+            Daftarkan Sekolah
+          </Link>
         </div>
       </div>
 
@@ -251,16 +246,13 @@ export default function LandingNavbar({ onScheduleDemo }: LandingNavbarProps) {
               >
                 Masuk Portal
               </Link>
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onScheduleDemo?.();
-                }}
-                className="w-full text-center py-2.5 rounded-full text-xs font-bold text-white bg-sky-500 hover:bg-sky-600 shadow-md shadow-sky-500/25 transition cursor-pointer"
+              <Link
+                href="/register-school"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full text-center py-2.5 rounded-full text-xs font-bold text-white bg-sky-500 hover:bg-sky-600 shadow-md shadow-sky-500/25 transition"
               >
-                Jadwalkan Demo
-              </button>
+                Daftarkan Sekolah
+              </Link>
             </div>
           </div>
         </>

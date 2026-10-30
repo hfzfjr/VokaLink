@@ -7,6 +7,7 @@ import {
   fetchDudiPartnersPaginated,
   createDudiPartner,
   createDudiMentor,
+  issueMentorActivationLink,
   resetMentorDevice,
   fetchCurriculum,
   type DudiPartnerItem,
@@ -183,14 +184,17 @@ export default function DudiDirectoryPage() {
     const res = await createDudiPartner(payload, token);
     setSuccessMsg(`Mitra DUDI ${payload.name} berhasil didaftarkan ke database!`);
 
+    const initialMentor = res.initialMentor || res.data?.initialMentor;
     // If initial mentor was registered, show QR modal immediately
-    if (res.initialMentor?.activation) {
+    if (initialMentor?.activation) {
       setQrModalData({
-        mentorName: res.initialMentor.fullName,
+        mentorName: initialMentor.fullName,
         dudiName: payload.name,
-        token: res.initialMentor.activation.token,
-        url: res.initialMentor.activation.url,
-        waLink: res.initialMentor.activation.whatsappDirectLink,
+        token: initialMentor.activation.token || initialMentor.activation.activationToken,
+        url: initialMentor.activation.url || initialMentor.activation.fullUrl,
+        waLink:
+          initialMentor.activation.whatsappDirectLink ||
+          initialMentor.activation.whatsappLink,
       });
     }
 
@@ -206,13 +210,14 @@ export default function DudiDirectoryPage() {
     const res = await createDudiMentor(dudiId, payload, token);
     setSuccessMsg(`Mentor ${payload.fullName} berhasil didaftarkan!`);
 
-    if (res.activation) {
+    const act = res.activation || res.data?.activation;
+    if (act) {
       setQrModalData({
         mentorName: payload.fullName,
         dudiName: addMentorDudi?.name || "Mitra DUDI",
-        token: res.activation.token,
-        url: res.activation.url,
-        waLink: res.activation.whatsappDirectLink,
+        token: act.token || act.activationToken,
+        url: act.url || act.fullUrl,
+        waLink: act.whatsappDirectLink || act.whatsappLink,
       });
     }
 
@@ -225,10 +230,25 @@ export default function DudiDirectoryPage() {
     setResetting(true);
     setErrorMsg(null);
     try {
-      await resetMentorDevice(resetMentor.id, token);
+      const res = await resetMentorDevice(resetMentor.id, token);
+      const mentorTarget = resetMentor;
       setResetMentor(null);
-      setSuccessMsg(`Ikatan perangkat untuk ${resetMentor.name} berhasil direset!`);
+      setSuccessMsg(`Ikatan perangkat untuk ${mentorTarget.name} berhasil direset! Silakan pindai QR baru.`);
       await loadPartners();
+
+      const act = res.activation || res.data?.activation || res.data;
+      if (act?.token || act?.activationToken) {
+        const partnerMatch = partners.find((p) =>
+          p.mentors.some((m) => m.id === mentorTarget.id)
+        );
+        setQrModalData({
+          mentorName: mentorTarget.name,
+          dudiName: partnerMatch?.name || "Mitra DUDI",
+          token: act.token || act.activationToken,
+          url: act.url || act.fullUrl,
+          waLink: act.whatsappDirectLink || act.whatsappLink || "",
+        });
+      }
     } catch (err: any) {
       setErrorMsg(sanitizeErrorMessage(err, "Gagal mereset perangkat mentor."));
     } finally {
@@ -236,31 +256,32 @@ export default function DudiDirectoryPage() {
     }
   };
 
-  // Trigger QR modal for existing mentor
+  // Trigger QR modal for existing mentor (terbitkan token aktivasi resmi 72 jam dari API)
   const handleTriggerQr = async (mentor: {
     mentorName: string;
     dudiName: string;
     whatsappNumber: string;
     mentorId: string;
   }) => {
-    const origin =
-      typeof window !== "undefined" && window.location.origin
-        ? window.location.origin
-        : (process.env["NEXT_PUBLIC_APP_URL"] || "http://localhost:3000");
-    const dummyToken = `demo_token_${mentor.mentorId.slice(0, 8)}`;
-    const url = `${origin}/v/${dummyToken}/activate`;
-    const message = encodeURIComponent(
-      `Halo ${mentor.mentorName}, mohon aktivasi perangkat HP Anda sebagai pembimbing PKL di VokaLink melalui tautan: ${url}`
-    );
-    const waLink = `https://wa.me/${mentor.whatsappNumber.replace(/\D/g, "")}?text=${message}`;
-
-    setQrModalData({
-      mentorName: mentor.mentorName,
-      dudiName: mentor.dudiName,
-      token: dummyToken,
-      url,
-      waLink,
-    });
+    if (!token) return;
+    setErrorMsg(null);
+    try {
+      const res = await issueMentorActivationLink(mentor.mentorId, token);
+      const act = res.activation || res.data?.activation || res.data;
+      if (act) {
+        setQrModalData({
+          mentorName: mentor.mentorName,
+          dudiName: mentor.dudiName,
+          token: act.token || act.activationToken,
+          url: act.url || act.fullUrl,
+          waLink: act.whatsappDirectLink || act.whatsappLink,
+        });
+      }
+    } catch (err: any) {
+      setErrorMsg(
+        sanitizeErrorMessage(err, "Gagal menerbitkan tautan aktivasi QR untuk mentor.")
+      );
+    }
   };
 
   return (
