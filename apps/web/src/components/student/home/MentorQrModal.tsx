@@ -8,8 +8,6 @@ import {
   Copy,
   Check,
   CheckCircle2,
-  ExternalLink,
-  ShieldCheck,
   RefreshCw,
   Building2,
   CalendarCheck,
@@ -338,24 +336,6 @@ export function MentorQrModal({ onClose }: MentorQrModalProps) {
                   </>
                 )}
               </button>
-            </div>
-
-            {/* ─── 6. FOOTNOTE KEAMANAN & DEMO JURI ─── */}
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-              <div className="flex items-center gap-1 text-slate-500 truncate mr-2">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span className="truncate">Tautan aman 1x pakai · PIN 4-digit</span>
-              </div>
-
-              <Link
-                href={activeUrl}
-                target="_blank"
-                className="inline-flex items-center gap-1 font-semibold text-slate-500 hover:text-emerald-700 hover:underline shrink-0 transition"
-                title="Buka tampilan mentor di tab baru"
-              >
-                <span>Buka Halaman</span>
-                <ExternalLink className="w-3 h-3" />
-              </Link>
             </div>
           </>
         )}

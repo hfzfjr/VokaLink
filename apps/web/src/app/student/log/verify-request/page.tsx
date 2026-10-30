@@ -6,8 +6,6 @@ import {
   Copy,
   Check,
   CheckCircle2,
-  ExternalLink,
-  ShieldCheck,
   RefreshCw,
   CalendarCheck,
   ArrowLeft,
@@ -330,27 +328,6 @@ export default function VerifyRequestPage() {
                   </>
                 )}
               </button>
-            </div>
-
-            {/* ─── 5. FOOTNOTE KEAMANAN & DEMO JURI ─── */}
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10.5px] sm:text-[11px] text-slate-500">
-              <div className="flex items-center gap-1 min-w-0 truncate">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span className="truncate">
-                  <strong className="text-slate-700 font-semibold">Keamanan 2-Faktor:</strong> Tautan 1x pakai · PIN 4-digit
-                </span>
-              </div>
-
-              <a
-                href={activeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 font-semibold text-sky-600 hover:text-sky-700 hover:underline shrink-0 transition ml-2"
-                title="Buka tampilan mentor di tab baru"
-              >
-                <span>Buka Halaman</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
             </div>
           </>
         )}
