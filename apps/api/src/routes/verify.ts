@@ -136,18 +136,20 @@ verifyRouter.get(
         return;
       }
 
-      // 1. Verifikasi tanda tangan kriptografi token
-      const verified = parseAndVerifySignedToken(token, SERVER_CRYPTO_SECRET);
-      if (!verified.valid || !verified.payload) {
-        throw new AppError(
-          "Tautan verifikasi tidak valid atau telah dimanipulasi",
-          401,
-          "INVALID_TOKEN"
-        );
+      // 1. Verifikasi tanda tangan kriptografi token jika format v1
+      if (token.startsWith("v1.")) {
+        const verified = parseAndVerifySignedToken(token, SERVER_CRYPTO_SECRET);
+        if (!verified.valid || !verified.payload) {
+          throw new AppError(
+            "Tautan verifikasi tidak valid atau telah dimanipulasi",
+            401,
+            "INVALID_TOKEN"
+          );
+        }
       }
 
       const tokenHash = hashSha256Hex(token);
-      const signedLink = await prisma.signedLink.findUnique({
+      let signedLink = await prisma.signedLink.findUnique({
         where: { tokenHash },
         include: {
           mentor: {
@@ -157,6 +159,20 @@ verifyRouter.get(
           },
         },
       });
+
+      // Dukungan fallback pencarian lewat keyId (Short Code)
+      if (!signedLink) {
+        signedLink = await prisma.signedLink.findFirst({
+          where: { keyId: token },
+          include: {
+            mentor: {
+              include: {
+                dudiPartner: true,
+              },
+            },
+          },
+        });
+      }
 
       if (!signedLink) {
         throw new AppError("Tautan verifikasi tidak ditemukan di sistem", 404, "NOT_FOUND");
@@ -331,10 +347,17 @@ verifyRouter.post(
       const deviceToken = parsed.success ? parsed.data.deviceToken : null;
 
       const tokenHash = hashSha256Hex(token);
-      const signedLink = await prisma.signedLink.findUnique({
+      let signedLink = await prisma.signedLink.findUnique({
         where: { tokenHash },
         include: { mentor: true },
       });
+
+      if (!signedLink) {
+        signedLink = await prisma.signedLink.findFirst({
+          where: { keyId: token },
+          include: { mentor: true },
+        });
+      }
 
       if (!signedLink) {
         throw new AppError("Tautan verifikasi tidak valid", 404, "NOT_FOUND");
@@ -423,21 +446,30 @@ verifyRouter.post(
         return;
       }
 
-      // 2. Verifikasi kriptografi token signed link
-      const verified = parseAndVerifySignedToken(token, SERVER_CRYPTO_SECRET);
-      if (!verified.valid || !verified.payload) {
-        throw new AppError(
-          "Tautan verifikasi tidak valid atau telah kedaluwarsa",
-          401,
-          "INVALID_TOKEN"
-        );
+      // 2. Verifikasi kriptografi token signed link jika format v1
+      if (token.startsWith("v1.")) {
+        const verified = parseAndVerifySignedToken(token, SERVER_CRYPTO_SECRET);
+        if (!verified.valid || !verified.payload) {
+          throw new AppError(
+            "Tautan verifikasi tidak valid atau telah kedaluwarsa",
+            401,
+            "INVALID_TOKEN"
+          );
+        }
       }
 
       const tokenHash = hashSha256Hex(token);
-      const signedLink = await prisma.signedLink.findUnique({
+      let signedLink = await prisma.signedLink.findUnique({
         where: { tokenHash },
         include: { mentor: true },
       });
+
+      if (!signedLink) {
+        signedLink = await prisma.signedLink.findFirst({
+          where: { keyId: token },
+          include: { mentor: true },
+        });
+      }
 
       if (!signedLink) {
         throw new AppError("Tautan verifikasi tidak ditemukan", 404, "NOT_FOUND");
@@ -808,27 +840,25 @@ verifyRouter.post(
       const expiresAt = new Date(Date.now() + durationSeconds * 1000);
 
       const linkId = crypto.randomUUID();
-      const token = createSignedToken(
-        {
-          rid: linkId,
-          mid: mentor.id,
-          pid: placement.id,
-          lids: actualLogIds,
-          p: "LOG_VERIFY",
-          mode,
-          exp: Math.floor(expiresAt.getTime() / 1000),
-        },
-        SERVER_CRYPTO_SECRET
-      );
 
-      const tokenHash = hashSha256Hex(token);
+      // Pembangkitan Short Code 8 Karakter Unik (URL Ramah WhatsApp & QR Ringkas)
+      const SHORT_CHARS = "23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ";
+      const randomBytesBuf = crypto.randomBytes(8);
+      let shortCode = "";
+      for (let i = 0; i < 8; i++) {
+        shortCode += SHORT_CHARS[randomBytesBuf[i]! % SHORT_CHARS.length];
+      }
+
+      // Hash SHA-256 dari shortCode yang disimpan di kolom tokenHash (Unique)
+      const tokenHash = hashSha256Hex(shortCode);
+
       await prisma.signedLink.create({
         data: {
           id: linkId,
           purpose: SignedLinkPurpose.LOG_VERIFY,
           mode: isQr ? SignedLinkMode.QR : SignedLinkMode.WA_BATCH,
           tokenHash,
-          keyId: "k1",
+          keyId: shortCode,
           mentorId: mentor.id,
           placementId: placement.id,
           logIds: actualLogIds,
@@ -837,7 +867,7 @@ verifyRouter.post(
         },
       });
 
-      const verificationUrl = `/v/${token}`;
+      const verificationUrl = `/v/${shortCode}`;
       const headerOrigin = req.get("origin") || req.get("referer");
       let detectedOrigin = "";
       if (headerOrigin) {
@@ -867,7 +897,8 @@ verifyRouter.post(
         : null;
 
       res.status(201).json({
-        token,
+        token: shortCode,
+        shortCode,
         verificationUrl,
         fullUrl,
         networkUrl,
