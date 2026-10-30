@@ -10,6 +10,7 @@ import React, {
 } from "react";
 import type { UserRole } from "@vokalink/shared";
 import { supabase } from "@/lib/supabase";
+import { getApiBaseUrl } from "@/lib/api";
 
 export interface AuthSchool {
   id: string;
@@ -62,10 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const apiUrl =
-    typeof window !== "undefined"
-      ? `${window.location.protocol}//${window.location.hostname}:3001/api/v1`
-      : (process.env["NEXT_PUBLIC_API_URL"] || "http://localhost:3001/api/v1");
+  const apiUrl = getApiBaseUrl();
 
   // Simpan sesi ke state dan storage
   const setSession = useCallback((newToken: string, newUser: AuthUser) => {
