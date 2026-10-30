@@ -1057,8 +1057,13 @@ export function TeacherJobCardModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in-0 duration-150">
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in-0 duration-150">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full max-h-[90vh] sm:max-h-[88vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 pb-[env(safe-area-inset-bottom,0px)]">
+        {/* Mobile Drag Indicator Handle */}
+        <div className="pt-2.5 sm:hidden flex justify-center shrink-0 bg-white">
+          <div className="w-12 h-1.5 bg-slate-300/80 rounded-full" />
+        </div>
+
         {/* ─── 1. Header Dialog (Kompak & Bersih) ─── */}
         <div className="px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3 bg-white shrink-0">
           <div className="flex items-center gap-3 min-w-0">
