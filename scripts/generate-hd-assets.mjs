@@ -18,7 +18,28 @@ const pathMatches = [...svgContent.matchAll(/<path\s+d="([^"]+)"\s+fill="([^"]+)
 const path1 = pathMatches[0] ? pathMatches[0][1] : "";
 const path2 = pathMatches[1] ? pathMatches[1][1] : "";
 
-// 2. Generate 1200x630 OpenGraph Banner SVG
+// 2. Generate 512x512 Square Icon SVG (WhatsApp, Telegram, Apple Touch, Favicons)
+// Pure crisp white background with rounded-3xl container and centered interlocking vector monogram
+const icon512Svg = `
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="icon-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f8fafc" />
+    </linearGradient>
+  </defs>
+  <!-- Clean solid rounded card for maximum contrast on dark and light WhatsApp themes -->
+  <rect width="512" height="512" rx="96" fill="url(#icon-bg)" />
+  <rect width="504" height="504" x="4" y="4" rx="92" fill="none" stroke="#e2e8f0" stroke-width="8" />
+  <!-- Embedded High-Definition VokaLink Vector Monogram -->
+  <g transform="translate(86, 80) scale(1.22)">
+    <path d="${path1}" fill="#0F172A" />
+    <path d="${path2}" fill="#0EA5E9" />
+  </g>
+</svg>
+`;
+
+// 3. Generate 1200x630 OpenGraph Banner SVG
 const ogSvg = `
 <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -84,51 +105,61 @@ const ogSvg = `
 </svg>
 `;
 
-// 3. Generate 512x512 Icon SVG (for icon.png)
-const icon512Svg = `
-<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="icon-bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="100%" stop-color="#f8fafc" />
-    </linearGradient>
-    <filter id="icon-shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#0f172a" flood-opacity="0.12" />
-    </filter>
-  </defs>
-  <rect width="512" height="512" rx="115" fill="url(#icon-bg)" filter="url(#icon-shadow)" />
-  <rect width="508" height="508" x="2" y="2" rx="113" fill="none" stroke="#e2e8f0" stroke-width="4" />
-  <g transform="translate(76, 76) scale(1.29)">
-    <path d="${path1}" fill="#0F172A" />
-    <path d="${path2}" fill="#0EA5E9" />
-  </g>
-</svg>
-`;
-
 async function main() {
   console.log("Generating HD assets from vokalink-icon.svg...");
 
-  // Generate og-image.png (1200x630)
+  const iconBuffer = Buffer.from(icon512Svg);
+
+  // 1. Root icon.png (512x512) - Primary square thumbnail for WhatsApp link preview
+  const iconPngPath = path.join(webDir, "public", "icon.png");
+  await sharp(iconBuffer)
+    .resize(512, 512)
+    .png({ quality: 100, compressionLevel: 9 })
+    .toFile(iconPngPath);
+  console.log("✓ Created HD icon.png (512x512)");
+
+  // 2. Apple touch icon (180x180)
+  const appleIconPath = path.join(webDir, "public", "apple-icon.png");
+  await sharp(iconBuffer)
+    .resize(180, 180)
+    .png({ quality: 100, compressionLevel: 9 })
+    .toFile(appleIconPath);
+  console.log("✓ Created HD apple-icon.png (180x180)");
+
+  // 3. Icons directory (PWA & browser fallbacks)
+  const iconsDir = path.join(webDir, "public", "icons");
+  if (!fs.existsSync(iconsDir)) fs.mkdirSync(iconsDir, { recursive: true });
+
+  await sharp(iconBuffer)
+    .resize(512, 512)
+    .png({ quality: 100, compressionLevel: 9 })
+    .toFile(path.join(iconsDir, "favicon-512x512.png"));
+  console.log("✓ Created HD icons/favicon-512x512.png");
+
+  await sharp(iconBuffer)
+    .resize(192, 192)
+    .png({ quality: 100, compressionLevel: 9 })
+    .toFile(path.join(iconsDir, "favicon-192x192.png"));
+  console.log("✓ Created HD icons/favicon-192x192.png");
+
+  await sharp(iconBuffer)
+    .resize(32, 32)
+    .png({ quality: 100, compressionLevel: 9 })
+    .toFile(path.join(iconsDir, "favicon-32x32.png"));
+  console.log("✓ Created HD icons/favicon-32x32.png");
+
+  await sharp(iconBuffer)
+    .resize(16, 16)
+    .png({ quality: 100, compressionLevel: 9 })
+    .toFile(path.join(iconsDir, "favicon-16x16.png"));
+  console.log("✓ Created HD icons/favicon-16x16.png");
+
+  // 4. Large Landscape OpenGraph Banner (1200x630)
   const ogPngPath = path.join(webDir, "public", "og-image.png");
   await sharp(Buffer.from(ogSvg))
     .png({ quality: 100, compressionLevel: 9 })
     .toFile(ogPngPath);
-  console.log("Created HD og-image.png (1200x630):", ogPngPath);
-
-  // Generate icon.png (512x512)
-  const iconPngPath = path.join(webDir, "public", "icon.png");
-  await sharp(Buffer.from(icon512Svg))
-    .png({ quality: 100, compressionLevel: 9 })
-    .toFile(iconPngPath);
-  console.log("Created HD icon.png (512x512):", iconPngPath);
-
-  // Generate apple-icon.png (180x180)
-  const appleIconPath = path.join(webDir, "public", "apple-icon.png");
-  await sharp(Buffer.from(icon512Svg))
-    .resize(180, 180)
-    .png({ quality: 100, compressionLevel: 9 })
-    .toFile(appleIconPath);
-  console.log("Created HD apple-icon.png (180x180):", appleIconPath);
+  console.log("✓ Created HD og-image.png (1200x630)");
 
   console.log("All HD assets generated successfully!");
 }
