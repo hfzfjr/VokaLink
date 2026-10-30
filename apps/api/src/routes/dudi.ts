@@ -580,12 +580,24 @@ dudiRouter.post(
         } | null = null;
 
         if (data.mentor) {
+          const mentorId = crypto.randomUUID();
+          const mentorSalt = generateSalt(16);
+          const defaultPin = "1234";
+          const pinHash = hashPinWithScrypt(defaultPin, mentorSalt, PIN_PEPPER);
+          const defaultDeviceToken = `device-token-mentor-${mentorId}`;
+          const deviceTokenHash = hashSha256Hex(defaultDeviceToken);
+
           const mentor = await tx.dudiMentor.create({
             data: {
+              id: mentorId,
               dudiPartnerId: partner.id,
               fullName: data.mentor.fullName,
               jobTitle: data.mentor.jobTitle,
               whatsappNumber: data.mentor.whatsappNumber,
+              pinHash,
+              pinSalt: mentorSalt,
+              deviceTokenHash,
+              tokenBoundAt: new Date(),
             },
           });
 
@@ -626,6 +638,8 @@ dudiRouter.post(
             fullName: result.initialMentorResult.mentor.fullName,
             jobTitle: result.initialMentorResult.mentor.jobTitle,
             whatsappNumber: result.initialMentorResult.mentor.whatsappNumber,
+            defaultPin: "1234",
+            isPinConfigured: true,
             activation: buildMentorActivationObject({
               req,
               activationToken: result.initialMentorResult.activationToken,

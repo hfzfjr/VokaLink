@@ -17,11 +17,22 @@ import { createHash } from "crypto";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import dotenv from "dotenv";
+import {
+  hashPinWithScrypt,
+  hashSha256Hex,
+  generateSalt,
+} from "@vokalink/core/crypto";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+dotenv.config({ path: join(__dirname, "../.env") });
 
 const prisma = new PrismaClient();
+
+const PIN_PEPPER =
+  process.env.PIN_PEPPER ||
+  "2368e2efd2c3f72399a155b368dfaa0377122fc6d41afd66c2215d717f8543f4";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -502,7 +513,13 @@ async function main() {
 
   // 7. Upsert DudiPartners + Mentors
   console.log("🏢 Menyimpan DUDI dan mentor...");
-  for (const dudi of DEMO_DUDIS) {
+  for (let i = 0; i < DEMO_DUDIS.length; i++) {
+    const dudi = DEMO_DUDIS[i]!;
+    const salt = generateSalt(16);
+    const defaultPinHash = hashPinWithScrypt("1234", salt, PIN_PEPPER);
+    const defaultDeviceToken = `device-token-mentor-${i}`;
+    const deviceTokenHash = hashSha256Hex(defaultDeviceToken);
+
     await prisma.dudiPartner.upsert({
       where: { id: dudi.id },
       create: {
@@ -530,14 +547,21 @@ async function main() {
         fullName: dudi.mentorName,
         jobTitle: dudi.mentorJobTitle,
         whatsappNumber: dudi.mentorWhatsapp,
-        // PIN dan deviceToken akan di-setup saat onboarding nyata
+        pinHash: defaultPinHash,
+        pinSalt: salt,
+        deviceTokenHash,
+        tokenBoundAt: new Date("2026-01-05T08:00:00.000Z"),
       },
       update: {
         fullName: dudi.mentorName,
+        pinHash: defaultPinHash,
+        pinSalt: salt,
+        deviceTokenHash,
+        tokenBoundAt: new Date("2026-01-05T08:00:00.000Z"),
       },
     });
 
-    console.log(`   ✅ ${dudi.name} — mentor: ${dudi.mentorName}`);
+    console.log(`   ✅ ${dudi.name} — mentor: ${dudi.mentorName} (PIN Demo: 1234)`);
   }
   console.log();
 
