@@ -1193,91 +1193,79 @@ function HeatmapContent() {
             <>
             {/* ─── A.1 TAMPILAN KHUSUS MOBILE: HERO & STATUS DRIFT (< lg) ─── */}
             <div className="block lg:hidden space-y-3 font-sans">
-          {/* Context Pill Guru & Sekolah */}
-          <div className="flex items-center justify-between text-xs px-1">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <Building2 className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-              <span className="font-semibold text-slate-800 truncate">
-                {data?.department.name || "Rekayasa Perangkat Lunak"}
-              </span>
-              <span className="text-slate-300">·</span>
-              <span className="text-slate-500 truncate">
-                {user?.school?.name || "SMK Telkom 1 Medan"}
-              </span>
-            </div>
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60 shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Fase F</span>
-            </span>
-          </div>
+              {/* Card Status & Aksi Utama Mobile */}
+              <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    {summary.studentsWithDrift > 0 ? (
+                      <>
+                        <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                        <span className="text-xs font-bold text-rose-800">
+                          {summary.studentsWithDrift} Siswa Butuh Intervensi
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                        <span className="text-xs font-bold text-emerald-800">
+                          Semua Siswa Sesuai Target
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <span className="text-[11px] text-slate-400 font-medium">{todayFormatted}</span>
+                </div>
 
-          {/* Card Status & Aksi Utama Mobile */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                {summary.studentsWithDrift > 0 ? (
-                  <>
-                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                    <span className="text-xs font-bold text-rose-800">
-                      {summary.studentsWithDrift} Siswa Butuh Intervensi
+                <div className="space-y-1">
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
+                    Halo, {teacherFirstName}!
+                  </h3>
+                  <p className="text-xs text-slate-500 leading-relaxed font-normal">
+                    {summary.studentsWithDrift > 0
+                      ? "Terdapat anomali drift kompetensi pada siswa bimbingan Anda. Lakukan evaluasi atau intervensi mentor."
+                      : "Seluruh siswa bimbingan Anda memenuhi target jam dan kompetensi PKL."}
+                  </p>
+                </div>
+
+                {/* Tombol Aksi Mobile Seimbang & Proporsional */}
+                <div className={cn("pt-1 grid gap-2", securityFlags.length > 0 ? "grid-cols-3" : "grid-cols-2")}>
+                  {securityFlags.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => router.push("/teacher/dashboard?view=security")}
+                      className="h-10 px-2 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200/80 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
+                      title="Buka Insiden Audit Keamanan"
+                    >
+                      <ShieldAlert className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                      <span className="truncate">{securityFlags.length} Insiden</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleDownloadErapor}
+                    disabled={isDownloadingErapor}
+                    className="h-10 px-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-800 border border-emerald-200/80 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-50 shadow-2xs"
+                    title="Unduh Rekap CSV Nilai e-Rapor Kurikulum Merdeka"
+                  >
+                    <Award className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span className="truncate">{isDownloadingErapor ? "Unduh..." : "e-Rapor"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleTriggerEvaluate}
+                    disabled={isEvaluating}
+                    className="h-10 px-2 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-2xs transition cursor-pointer disabled:opacity-50"
+                    title="Jalankan Evaluasi Algoritma Drift Sekarang"
+                  >
+                    <RefreshCw className={cn("w-3.5 h-3.5 text-white shrink-0", isEvaluating && "animate-spin")} />
+                    <span className="truncate">
+                      {isEvaluating ? "Memindai..." : "Evaluasi"}
+                      <span className="hidden min-[380px]:inline"> Drift</span>
                     </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span className="text-xs font-bold text-emerald-800">
-                      Semua Siswa Sesuai Target
-                    </span>
-                  </>
-                )}
+                  </button>
+                </div>
               </div>
-              <span className="text-[11px] text-slate-400 font-medium">{todayFormatted}</span>
             </div>
-
-            <div className="space-y-1">
-              <h3 className="text-sm font-bold text-slate-900 leading-snug">
-                Halo, {teacherFirstName}!
-              </h3>
-              <p className="text-xs text-slate-500 leading-relaxed font-normal">
-                {summary.studentsWithDrift > 0
-                  ? "Terdapat anomali drift kompetensi pada siswa bimbingan Anda. Lakukan evaluasi atau intervensi mentor."
-                  : "Seluruh siswa bimbingan Anda memenuhi target jam dan kompetensi PKL."}
-              </p>
-            </div>
-
-            <div className="pt-1 flex items-center gap-2">
-              {securityFlags.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => router.push("/teacher/dashboard?view=security")}
-                  className="h-11 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0"
-                >
-                  <ShieldAlert className="w-4 h-4 text-rose-600" />
-                  <span>{`${securityFlags.length} Insiden`}</span>
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={handleDownloadErapor}
-                disabled={isDownloadingErapor}
-                className="h-11 px-3.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-50 shrink-0"
-                title="Unduh Rekap CSV Nilai e-Rapor Kurikulum Merdeka"
-              >
-                <Award className="w-4 h-4 text-emerald-600" />
-                <span>{isDownloadingErapor ? "Mengunduh..." : "e-Rapor"}</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleTriggerEvaluate}
-                disabled={isEvaluating}
-                className="flex-1 h-11 bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition cursor-pointer disabled:opacity-50"
-              >
-                <RefreshCw className={cn("w-4 h-4 text-white", isEvaluating && "animate-spin")} />
-                <span>{isEvaluating ? "Memindai..." : "Evaluasi Drift"}</span>
-              </button>
-            </div>
-          </div>
-        </div>
 
         {/* ─── A.2 TAMPILAN KHUSUS DESKTOP: HEADER SAPAAN + AKSI UTAMA (≥ lg) ─── */}
         <div className="hidden lg:flex lg:h-[86px] items-center justify-between gap-6 bg-white rounded-2xl px-5 border border-slate-200/70 shadow-2xs shrink-0">
@@ -1413,7 +1401,7 @@ function HeatmapContent() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate">
-                Rata-Rata Capaian CP
+                Capaian CP
               </p>
               <div className="flex items-baseline gap-1.5 mt-0.5">
                 <p className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
@@ -1627,7 +1615,7 @@ function HeatmapContent() {
         {viewMode !== "security" && viewMode !== "overview" && (
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
             {/* Status chips segmented control — gaya Apple Segmented pill */}
-            <div className="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-full border border-slate-200/70 text-xs font-semibold overflow-x-auto scrollbar-none">
+            <div className="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-full border border-slate-200/70 text-xs font-semibold overflow-x-auto scrollbar-none self-start">
               <button
                 type="button"
                 onClick={() => setStatusFilter("ALL")}
@@ -1714,10 +1702,10 @@ function HeatmapContent() {
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Cari siswa, NISN, DUDI..."
+                  placeholder="Cari nama siswa, NISN..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-8 pl-9 pr-8 rounded-full bg-white border border-slate-200/90 text-xs text-slate-900 placeholder:text-slate-400 font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs"
+                  className="w-full h-9 pl-9 pr-8 rounded-full bg-white border border-slate-200/90 text-xs text-slate-900 placeholder:text-slate-400 font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs"
                 />
                 {searchQuery && (
                   <button
@@ -1735,7 +1723,7 @@ function HeatmapContent() {
                 <select
                   value={selectedDudi}
                   onChange={(e) => setSelectedDudi(e.target.value)}
-                  className="h-8 px-3 rounded-full bg-white border border-slate-200/90 text-[11px] font-medium text-slate-700 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs cursor-pointer max-w-[150px] truncate"
+                  className="h-9 px-3 rounded-full bg-white border border-slate-200/90 text-[11px] font-medium text-slate-700 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition shadow-2xs cursor-pointer max-w-[135px] sm:max-w-[160px] truncate shrink-0"
                 >
                   <option value="ALL">Semua DUDI</option>
                   {dudiOptions.map((d) => (
