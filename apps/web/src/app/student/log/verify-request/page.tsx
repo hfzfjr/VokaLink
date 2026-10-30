@@ -10,7 +10,7 @@ import {
   CalendarCheck,
   ArrowLeft,
 } from "lucide-react";
-import { generateVerificationLink, fetchStudentLogContext } from "@/lib/api";
+import { generateVerificationLink, fetchStudentLogContext, getPublicAppUrl } from "@/lib/api";
 import { QrCodeView } from "@/components/ui/QrCodeView";
 import { db } from "@/lib/pwa/db";
 
@@ -118,12 +118,8 @@ export default function VerifyRequestPage() {
     loadVerificationData();
   }, [loadVerificationData]);
 
-  // Mengutamakan domain publik Vercel (https://vokalink.vercel.app) agar saat dipindai kamera HP tidak menuju ke localhost
-  const vercelAppUrl = (
-    process.env["NEXT_PUBLIC_APP_URL"] ||
-    (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" ? window.location.origin : "") ||
-    "https://vokalink.vercel.app"
-  ).replace(/\/$/, "");
+  // Selalu mengutamakan domain publik Vercel online agar saat dipindai kamera HP tidak menuju ke localhost
+  const vercelAppUrl = getPublicAppUrl();
 
   // Relative path ke halaman verifikasi mentor: /v/[token]
   const verificationPath =

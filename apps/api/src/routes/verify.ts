@@ -1028,20 +1028,22 @@ verifyRouter.post(
         } catch {}
       }
 
-      const origin =
-        clientOrigin ||
-        detectedOrigin ||
-        process.env["APP_ORIGIN"] ||
-        "http://localhost:3000";
-      const fullUrl = `${origin}${verificationUrl}`;
+      // Selalu prioritaskan domain publik Vercel online agar QR Code & tautan WhatsApp mentor
+      // dapat diakses langsung oleh smartphone dewan juri tanpa kendala localhost
+      let origin = "https://vokalink.vercel.app";
+      if (clientOrigin && !clientOrigin.includes("localhost") && !clientOrigin.includes("127.0.0.1")) {
+        origin = clientOrigin;
+      } else if (detectedOrigin && !detectedOrigin.includes("localhost") && !detectedOrigin.includes("127.0.0.1")) {
+        origin = detectedOrigin;
+      } else if (process.env["PUBLIC_APP_URL"] && !process.env["PUBLIC_APP_URL"].includes("localhost")) {
+        origin = process.env["PUBLIC_APP_URL"];
+      }
 
-      const localIp = getLocalIPv4();
-      const isLocalHost = origin.includes("localhost") || origin.includes("127.0.0.1");
-      const networkOrigin = isLocalHost && localIp ? `http://${localIp}:3000` : origin;
-      const networkUrl = `${networkOrigin}${verificationUrl}`;
+      const fullUrl = `${origin}${verificationUrl}`;
+      const networkUrl = fullUrl;
 
       // Teks pesan otomatis WhatsApp ramah dan informatif dengan nomor 628... (FR-009)
-      const messageUrl = isLocalHost && localIp ? networkUrl : fullUrl;
+      const messageUrl = fullUrl;
       const waMessageText = `Halo Bapak/Ibu ${mentor.fullName} (${mentor.jobTitle}),\n\nSaya ${placement.student.fullName} (Siswa Magang SMK di ${placement.dudiPartner.name}) bermaksud meminta validasi jurnal Praktik Kerja Lapangan untuk ${actualLogIds.length} hari kegiatan yang telah saya selesaikan.\n\nMohon berkenan memvalidasi melalui tautan aman VokaLink berikut:\n${messageUrl}\n\nTerima kasih banyak atas bimbingan dan waktu Bapak/Ibu.`;
 
       const waShareUrl = mentor.whatsappNumber

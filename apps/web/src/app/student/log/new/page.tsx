@@ -37,7 +37,7 @@ import {
 } from "@vokalink/shared";
 import { db } from "@/lib/pwa/db";
 import { compressEvidencePhoto, type CompressedPhotoResult } from "@/lib/pwa/photo";
-import { fetchStudentLogContext, fetchStudentLogs, type StudentLogContextResponse } from "@/lib/api";
+import { fetchStudentLogContext, fetchStudentLogs, getPublicAppUrl, type StudentLogContextResponse } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { MentorQrModal } from "@/components/student/home/MentorQrModal";
 import { SmartDateSelector } from "@/components/student/log/SmartDateSelector";
@@ -2398,7 +2398,7 @@ export default function NewLogPage() {
                     : `${durationJp} Jam Kerja`;
 
                 if (isDemoMode) {
-                  const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+                  const origin = getPublicAppUrl();
                   const demoVerificationUrl = `${origin}/v/mock-demo-token-123`;
                   const waMessage = `Halo ${mentorDisplayName}, saya telah mengisi jurnal PKL VokaLink hari ini (${durationJp} Jam Kerja - ${attendanceType === "PRESENT" ? tasksSummary : attendanceType === "SICK" ? "Sakit (Surat Dokter)" : "Izin Resmi"}). Mohon kesediaannya untuk memvalidasi logbook saya melalui tautan berikut: ${demoVerificationUrl}`;
 

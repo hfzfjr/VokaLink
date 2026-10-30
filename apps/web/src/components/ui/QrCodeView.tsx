@@ -36,7 +36,13 @@ export function QrCodeView({
     let isMounted = true;
     if (!value) return;
 
-    QRCode.toString(value, {
+    // Pastikan nilai QR code tidak pernah mengarah ke localhost agar kamera HP selalu membuka Vercel online
+    const sanitizedValue = value.replace(
+      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/,
+      "https://vokalink.vercel.app"
+    );
+
+    QRCode.toString(sanitizedValue, {
       type: "svg",
       margin: 2,
       width: size,

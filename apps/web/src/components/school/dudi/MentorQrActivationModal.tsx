@@ -20,8 +20,23 @@ export function MentorQrActivationModal({ data, onClose }: MentorQrActivationMod
 
   if (!data) return null;
 
+  // Pastikan URL aktivasi selalu mengarah ke domain Vercel online agar dapat dipindai kamera HP mentor
+  const onlineUrl = (data.url || "").replace(
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/,
+    "https://vokalink.vercel.app"
+  );
+  const onlineWaLink = (data.waLink || "")
+    .replace(
+      /https?%3A%2F%2F(localhost|127\.0\.0\.1)(%3A\d+)?/gi,
+      encodeURIComponent("https://vokalink.vercel.app")
+    )
+    .replace(
+      /https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/gi,
+      "https://vokalink.vercel.app"
+    );
+
   const handleCopy = () => {
-    navigator.clipboard.writeText(data.url);
+    navigator.clipboard.writeText(onlineUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -60,7 +75,7 @@ export function MentorQrActivationModal({ data, onClose }: MentorQrActivationMod
           {/* QR Code Container */}
           <div className="flex justify-center py-2">
             <div className="p-4 bg-white rounded-2xl border-2 border-slate-200/80 shadow-xs inline-block">
-              <QrCodeView value={data.url} size={180} />
+              <QrCodeView value={onlineUrl} size={180} />
             </div>
           </div>
 
@@ -71,7 +86,7 @@ export function MentorQrActivationModal({ data, onClose }: MentorQrActivationMod
           {/* Actions: Copy Link & WhatsApp Direct */}
           <div className="space-y-2 pt-2">
             <a
-              href={data.waLink}
+              href={onlineWaLink}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs flex items-center justify-center gap-2 cursor-pointer"

@@ -68,15 +68,20 @@ export function getApiBaseUrl(): string {
 }
 
 export function getPublicAppUrl(): string {
-  // 1. Jika didefinisikan NEXT_PUBLIC_APP_URL (misal Vercel URL yang sudah dideploy), gunakan itu sebagai domain publik utama
-  const envUrl = process.env["NEXT_PUBLIC_APP_URL"];
-  if (envUrl) {
+  // 1. Jika didefinisikan NEXT_PUBLIC_APP_URL dan bukan localhost, gunakan itu sebagai domain publik utama
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL || process.env["NEXT_PUBLIC_APP_URL"];
+  if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
     return envUrl.replace(/\/$/, "");
   }
-  // 2. Jika di browser client, gunakan window.location.origin aktif
-  if (typeof window !== "undefined") {
+  // 2. Jika di browser client dan bukan localhost, gunakan window.location.origin aktif
+  if (
+    typeof window !== "undefined" &&
+    window.location.hostname !== "localhost" &&
+    window.location.hostname !== "127.0.0.1"
+  ) {
     return window.location.origin;
   }
+  // 3. Fallback resmi ke domain produksi Vercel agar QR Code selalu dapat dipindai smartphone
   return "https://vokalink.vercel.app";
 }
 
@@ -1316,8 +1321,7 @@ export async function generateVerificationLink(data: {
   expiresAt: string;
   pendingCount: number;
 }> {
-  const currentOrigin =
-    data.origin || (typeof window !== "undefined" ? window.location.origin : undefined);
+  const currentOrigin = data.origin || getPublicAppUrl();
   const res = await fetch(`${API_BASE_URL}/verify/links`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
