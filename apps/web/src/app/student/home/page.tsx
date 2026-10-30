@@ -29,6 +29,7 @@ import {
   formatLogDate,
 } from "@/components/student/home/types";
 import { DailyTimelineFeed } from "@/components/student/home/DailyTimelineFeed";
+import { SkkniMatrixView } from "@/components/student/home/SkkniMatrixView";
 import { EvidenceGalleryView } from "@/components/student/home/EvidenceGalleryView";
 import { StudentWidgetPanel } from "@/components/student/home/StudentWidgetPanel";
 import { TaskDetailModal } from "@/components/student/home/TaskDetailModal";
@@ -79,8 +80,8 @@ export default function StudentHomePage() {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  // View Mode: Timeline (default) | Evidence
-  const [viewMode, setViewMode] = useState<"timeline" | "evidence">("timeline");
+  // View Mode: Timeline (default) | Matriks SKKNI | Evidence Gallery
+  const [viewMode, setViewMode] = useState<"timeline" | "matrix" | "evidence">("timeline");
   const [selectedTaskModal, setSelectedTaskModal] = useState<KanbanTask | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
@@ -140,6 +141,26 @@ export default function StudentHomePage() {
                 const dbLogs = await fetchStudentLogs(fresh.activePlacement.id);
                 if (isMounted && Array.isArray(dbLogs)) {
                   setServerLogs(dbLogs);
+
+                  // Sinkronisasi status log Dexie lokal bila di server sudah TERVERIFIKASI atau REVISI
+                  try {
+                    for (const sl of dbLogs) {
+                      if (sl.clientLogUuid) {
+                        const local = await db.logs.get(sl.clientLogUuid);
+                        if (sl.status === "VERIFIED" && local && local.state !== "verified") {
+                          await db.logs.update(sl.clientLogUuid, {
+                            state: "verified",
+                            verifiedAt: sl.verifiedAt || new Date().toISOString(),
+                          });
+                        } else if (sl.status === "REVISION_REQUIRED" && local && local.state !== "revision_required") {
+                          await db.logs.update(sl.clientLogUuid, {
+                            state: "revision_required",
+                            lastError: sl.rejectionReason || "Mentor meminta revisi",
+                          });
+                        }
+                      }
+                    }
+                  } catch {}
                 }
               } catch (logErr) {
                 console.warn("Gagal menarik logs server:", logErr);
@@ -172,7 +193,7 @@ export default function StudentHomePage() {
       isMounted = false;
       clearTimeout(safetyTimer);
     };
-  }, []);
+  }, [user?.id, token]);
 
   // 3. Transform Dexie offline logs reactively into KanbanTask objects
   const dexieTasks: KanbanTask[] = useMemo(() => {
@@ -247,7 +268,7 @@ export default function StudentHomePage() {
       const categoryColor: CategoryColor = isNonCompetency ? "rose" : "sky";
 
       return {
-        id: sl.clientLogUuid,
+        id: sl.clientLogUuid || sl.id,
         title:
           firstItem?.jobCard?.title ||
           sl.shortNote ||
@@ -262,7 +283,7 @@ export default function StudentHomePage() {
           ? "NON-KOMPETENSI"
           : firstItem?.jobCard?.skkniUnitCode || "J.620100.009.01",
         status: isVerified ? "verified" : isInReview ? "in_review" : "in_progress",
-        isoDate: sl.logDate,
+        isoDate: sl.logDate ? sl.logDate.slice(0, 10) : undefined,
         tools: isNonCompetency ? ["SOP Industri"] : ["Logbook PKL", "SOP Industri"],
         submittedAt: isVerified
           ? "Sah Terverifikasi"
@@ -281,30 +302,58 @@ export default function StudentHomePage() {
 
   // Combine Dexie logs (recent first) with real server database logs (NO DUMMY TASKS)
   const allTasks = useMemo(() => {
-    const offlineIdSet = new Set(dexieTasks.map((t) => t.id));
-    const nonDuplicatedServer = serverTasks.filter((st) => !offlineIdSet.has(st.id));
-    return [...dexieTasks, ...nonDuplicatedServer];
+    const serverMap = new Map(serverTasks.map((st) => [st.id, st]));
+    const mergedDexie = dexieTasks.map((dt) => {
+      const serverTask = serverMap.get(dt.id);
+      if (!serverTask) return dt;
+      // Bila di server sudah terverifikasi sah, utamakan status server
+      if (serverTask.status === "verified") {
+        return {
+          ...dt,
+          status: "verified" as const,
+          progressPercent: 100,
+          submittedAt: "Sah Terverifikasi",
+          mentorSignature: serverTask.mentorSignature || dt.mentorSignature,
+          hmacVerified: true,
+          samplePhotoUrl: serverTask.samplePhotoUrl || dt.samplePhotoUrl,
+        };
+      }
+      if (serverTask.status === "in_review" && dt.status === "in_progress") {
+        return {
+          ...dt,
+          status: "in_review" as const,
+          progressPercent: 85,
+          submittedAt: "Tersinkron (Menunggu PIN)",
+        };
+      }
+      return dt;
+    });
+
+    const dexieIdSet = new Set(dexieTasks.map((t) => t.id));
+    const nonDuplicatedServer = serverTasks.filter((st) => !dexieIdSet.has(st.id));
+    return [...mergedDexie, ...nonDuplicatedServer];
   }, [dexieTasks, serverTasks]);
 
   // Detect whether student has already logged for today across both offline & server
   const todayLog = useMemo(() => {
-    // 1. Cek offline Dexie bila baru saja dicatat
+    const serverToday = serverLogs.find((sl) => (sl.logDate || "").slice(0, 10) === todayStr);
     const offlineToday = offlineLogs.find((l) => (l.logDate || "").slice(0, 10) === todayStr);
+
     if (offlineToday) {
+      // Jika di server sudah terverifikasi, gunakan status verified
+      const isServerVerified = serverToday?.status === "VERIFIED";
       return {
         durationJp: offlineToday.durationJp,
-        state: offlineToday.state,
+        state: isServerVerified ? ("verified" as const) : offlineToday.state,
         jobCardTitle: offlineToday.jobCardTitle,
       };
     }
-    // 2. Cek apakah ada di riwayat server database
-    const serverToday = serverLogs.find((sl) => (sl.logDate || "").slice(0, 10) === todayStr);
     if (serverToday) {
       const firstItem = serverToday.items?.[0];
       const duration = serverToday.items?.reduce((acc, it) => acc + it.durationJp, 0) || 8;
       return {
         durationJp: duration,
-        state: serverToday.status === "VERIFIED" ? "verified" : "synced",
+        state: serverToday.status === "VERIFIED" ? ("verified" as const) : ("synced" as const),
         jobCardTitle: firstItem?.jobCard?.title || serverToday.shortNote || "Pencatatan Jurnal Praktik",
       };
     }
@@ -729,8 +778,8 @@ export default function StudentHomePage() {
               Dokumentasi Praktik Industri
             </h2>
 
-            {/* Apple Segmented Control Bar (Timeline vs Galeri Bukti) */}
-            <div className="grid grid-cols-2 sm:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/70 text-xs font-semibold w-full sm:w-auto">
+            {/* Apple Segmented Control Bar (Timeline vs Matriks SKKNI vs Galeri Bukti) */}
+            <div className="grid grid-cols-3 sm:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/70 text-xs font-semibold w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => setViewMode("timeline")}
@@ -742,6 +791,18 @@ export default function StudentHomePage() {
                 )}
               >
                 <span>Timeline</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("matrix")}
+                className={cn(
+                  "px-3 sm:px-4 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-xs flex items-center justify-center gap-1",
+                  viewMode === "matrix"
+                    ? "bg-white text-slate-900 shadow-2xs font-semibold"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
+                )}
+              >
+                <span>Matriks SKKNI</span>
               </button>
               <button
                 type="button"
@@ -764,6 +825,14 @@ export default function StudentHomePage() {
               tasks={allTasks}
               onSelectTask={setSelectedTaskModal}
               onOpenQrModal={() => setShowQrModal(true)}
+            />
+          )}
+
+          {viewMode === "matrix" && (
+            <SkkniMatrixView
+              tasks={allTasks}
+              departmentName={currentMajorName}
+              sectorCode={user?.department?.sectorCode}
             />
           )}
 

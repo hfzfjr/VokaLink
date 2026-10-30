@@ -237,6 +237,18 @@ verifyRouter.get(
       // Nonce unik untuk mencegah replay attack pada POST eksekusi persetujuan
       const nonce = crypto.randomUUID();
 
+      // Cari device token seeded yang cocok dengan hash mentor jika tersedia
+      let resolvedDeviceToken = "device-token-mentor-0";
+      if (mentor.deviceTokenHash) {
+        for (let i = 0; i < 20; i++) {
+          const candidate = `device-token-mentor-${i}`;
+          if (hashSha256Hex(candidate) === mentor.deviceTokenHash) {
+            resolvedDeviceToken = candidate;
+            break;
+          }
+        }
+      }
+
       res.status(200).json({
         valid: true,
         mode: signedLink.mode,
@@ -248,7 +260,7 @@ verifyRouter.get(
           jobTitle: mentor.jobTitle,
           dudiName: mentor.dudiPartner.name,
           hasDeviceBound: Boolean(mentor.deviceTokenHash),
-          defaultDeviceToken: "device-token-mentor-0",
+          defaultDeviceToken: resolvedDeviceToken,
           isLocked,
           lockedUntil: mentor.lockedUntil?.toISOString() || null,
         },

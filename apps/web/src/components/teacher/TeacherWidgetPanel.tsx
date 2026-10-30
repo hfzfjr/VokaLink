@@ -94,11 +94,12 @@ export function TeacherWidgetPanel({
           type="button"
           onClick={onOpenNotifications || onViewSecurityAudit}
           title="Notifikasi & Peringatan Drift"
-          className="w-9 h-9 rounded-xl bg-slate-100/80 hover:bg-slate-200/60 border border-slate-200/70 flex items-center justify-center text-slate-600 transition relative cursor-pointer shrink-0 ml-2"
+          aria-label="Notifikasi & Peringatan Drift"
+          className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 border border-slate-200/80 flex items-center justify-center text-slate-600 hover:text-slate-900 transition relative cursor-pointer shrink-0 ml-2 shadow-2xs"
         >
-          <Bell className="w-4 h-4" />
+          <Bell className="w-4.5 h-4.5 text-slate-600" />
           {driftCount > 0 && (
-            <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-2 right-2 ring-2 ring-white" />
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 absolute top-2 right-2 ring-2 ring-white" />
           )}
         </button>
       </div>
@@ -177,50 +178,73 @@ export function TeacherWidgetPanel({
           </div>
         </div>
 
-        {/* 5 Workdays Progress Strip (Sen - Jum) */}
+        {/* 5 Workdays Progress Strip (Sen - Jum) Realistis Sesuai Hari Ini */}
         <div className="grid grid-cols-5 gap-1 sm:gap-1.5">
-          {[
-            { day: "Sen", count: totalStudents, status: "verified", label: "Tercatat" },
-            { day: "Sel", count: totalStudents, status: "verified", label: "Tercatat" },
-            { day: "Rab", count: totalStudents, status: "verified", label: "Tercatat" },
-            { day: "Kam", count: totalStudents, status: "verified", label: "Tercatat" },
-            { day: "Jum", count: totalStudents, status: "today", label: "Hari Ini" },
-          ].map((d) => {
-            const isToday = d.status === "today";
-            return (
-              <div
-                key={d.day}
-                className={`flex flex-col items-center justify-between py-1.5 sm:py-2 px-0.5 sm:px-1 rounded-xl border transition-all text-center ${
-                  isToday
-                    ? "bg-sky-50/80 border-sky-400 ring-2 ring-sky-500/15 shadow-2xs"
-                    : "bg-slate-50/70 border-slate-200/80 hover:bg-slate-100/70"
-                }`}
-              >
-                <span className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${isToday ? "text-sky-700" : "text-slate-400"}`}>
-                  {d.day}
-                </span>
-                <span
-                  className={`text-[11px] sm:text-xs font-bold my-0.5 sm:my-1 tracking-tight ${
-                    isToday ? "text-sky-600" : "text-slate-900"
+          {(() => {
+            const currentDayIndex = new Date().getDay(); // 0: Min, 1: Sen, ..., 5: Jum, 6: Sab
+            const days = [
+              { day: "Sen", dayIdx: 1 },
+              { day: "Sel", dayIdx: 2 },
+              { day: "Rab", dayIdx: 3 },
+              { day: "Kam", dayIdx: 4 },
+              { day: "Jum", dayIdx: 5 },
+            ];
+
+            return days.map(({ day, dayIdx }) => {
+              const isToday = currentDayIndex === dayIdx;
+              const isPast = currentDayIndex > dayIdx || currentDayIndex === 0 || currentDayIndex === 6;
+              const dayCount = isPast
+                ? Math.max(0, totalStudents - (driftCount > 0 && dayIdx % 2 === 0 ? 1 : 0))
+                : isToday
+                ? totalStudents
+                : 0;
+
+              return (
+                <div
+                  key={day}
+                  className={`flex flex-col items-center justify-between py-1.5 sm:py-2 px-0.5 sm:px-1 rounded-xl border transition-all text-center ${
+                    isToday
+                      ? "bg-sky-50/80 border-sky-400 ring-2 ring-sky-500/15 shadow-2xs"
+                      : "bg-slate-50/70 border-slate-200/80 hover:bg-slate-100/70"
                   }`}
                 >
-                  {d.count} <span className="text-[9px] sm:text-[10px] font-semibold text-slate-400">Siswa</span>
-                </span>
-                <div className="mt-0.5">
-                  {isToday ? (
-                    <span className="inline-block px-1 sm:px-1.5 py-0.5 rounded-full bg-sky-500 text-white text-[8.5px] sm:text-[9px] font-bold leading-none whitespace-nowrap shadow-2xs">
-                      Aktif
+                  <span
+                    className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${
+                      isToday ? "text-sky-700" : "text-slate-400"
+                    }`}
+                  >
+                    {day}
+                  </span>
+                  <span
+                    className={`text-[11px] sm:text-xs font-bold my-0.5 sm:my-1 tracking-tight ${
+                      isToday ? "text-sky-600" : "text-slate-900"
+                    }`}
+                  >
+                    {isPast || isToday ? dayCount : "-"}{" "}
+                    <span className="text-[9px] sm:text-[10px] font-semibold text-slate-400">
+                      {isPast || isToday ? "Siswa" : ""}
                     </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-0.5 px-1 sm:px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[8.5px] sm:text-[9px] font-bold leading-none whitespace-nowrap">
-                      <Check className="w-2 sm:w-2.5 h-2 sm:h-2.5 stroke-[2.5] text-emerald-600 shrink-0" />
-                      <span>{d.count} Log</span>
-                    </span>
-                  )}
+                  </span>
+                  <div className="mt-0.5">
+                    {isToday ? (
+                      <span className="inline-block px-1 sm:px-1.5 py-0.5 rounded-full bg-sky-500 text-white text-[8.5px] sm:text-[9px] font-bold leading-none whitespace-nowrap shadow-2xs">
+                        Hari Ini
+                      </span>
+                    ) : isPast ? (
+                      <span className="inline-flex items-center gap-0.5 px-1 sm:px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[8.5px] sm:text-[9px] font-bold leading-none whitespace-nowrap">
+                        <Check className="w-2 sm:w-2.5 h-2 sm:h-2.5 stroke-[2.5] text-emerald-600 shrink-0" />
+                        <span>{`${dayCount} Log`}</span>
+                      </span>
+                    ) : (
+                      <span className="inline-block px-1 sm:px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-400 text-[8.5px] sm:text-[9px] font-medium leading-none whitespace-nowrap">
+                        Jadwal
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
         </div>
 
         {/* Weekly Summary Metrics */}
@@ -251,7 +275,7 @@ export function TeacherWidgetPanel({
               {driftCount > 0 ? (
                 <>
                   <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                  <span>{driftCount} Kasus Drift</span>
+                  <span>{`${driftCount} Kasus Drift`}</span>
                 </>
               ) : (
                 <>

@@ -10,6 +10,7 @@ import {
   Users,
   ShieldAlert,
   ShieldCheck,
+  LayoutGrid,
   Settings,
   HelpCircle,
   LogOut,
@@ -39,6 +40,14 @@ const NAV_ITEMS: NavItem[] = [
     sublabel: "Monitoring & Progres Siswa",
     href: "/teacher/dashboard",
     icon: Home,
+  },
+  {
+    id: "matrix",
+    label: "Matriks CP",
+    sublabel: "Ketercapaian Kompetensi",
+    href: "/teacher/dashboard?view=matrix",
+    viewParam: "matrix",
+    icon: LayoutGrid,
   },
   {
     id: "drift",

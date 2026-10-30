@@ -7,6 +7,7 @@ import {
   X,
   Copy,
   Check,
+  CheckCircle2,
   ExternalLink,
   ShieldCheck,
   RefreshCw,
@@ -51,10 +52,12 @@ export function MentorQrModal({ onClose }: MentorQrModalProps) {
     expiresAt: string;
     pendingCount?: number;
   } | null>(null);
+  const [emptyStatus, setEmptyStatus] = useState<"ALL_VERIFIED" | "NO_PENDING_LOGS" | null>(null);
 
   const loadVerificationData = useCallback(async () => {
     try {
       setIsLoading(true);
+      setEmptyStatus(null);
 
       const cached = await db.refData.get("student_log_context");
       let placement = (cached?.data as any)?.activePlacement;
@@ -83,14 +86,25 @@ export function MentorQrModal({ onClose }: MentorQrModalProps) {
       if (placement?.mentorPhone) setMentorPhone(placement.mentorPhone);
 
       // Selalu bundel seluruh jurnal yang pending dari PostgreSQL
-      const res = await generateVerificationLink({
-        placementId,
-        mode: "WA_BATCH",
-      });
-
-      setActiveLinkData(res);
+      try {
+        const res = await generateVerificationLink({
+          placementId,
+          mode: "WA_BATCH",
+        });
+        setActiveLinkData(res);
+      } catch (genErr: any) {
+        if (genErr?.code === "ALL_LOGS_VERIFIED") {
+          setEmptyStatus("ALL_VERIFIED");
+          setActiveLinkData(null);
+        } else if (genErr?.code === "NO_PENDING_LOGS") {
+          setEmptyStatus("NO_PENDING_LOGS");
+          setActiveLinkData(null);
+        } else {
+          console.warn("Gagal membangkitkan tautan verifikasi mentor di modal:", genErr);
+        }
+      }
     } catch (err) {
-      console.warn("Gagal membangkitkan tautan verifikasi mentor di modal:", err);
+      console.warn("Konteks verifikasi mentor di modal:", err);
     } finally {
       setIsLoading(false);
     }
@@ -196,77 +210,141 @@ export function MentorQrModal({ onClose }: MentorQrModalProps) {
           </button>
         </div>
 
-        {/* ─── 2. INFO REKAP BORONGAN ─── */}
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-200/80 text-xs font-bold w-full justify-center">
-          <CalendarCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-          <span>{pendingDays} Hari Kerja ({totalHours} Jam) Menunggu Pengesahan</span>
-        </div>
+        {emptyStatus === "ALL_VERIFIED" ? (
+          <div className="bg-emerald-50/70 p-6 rounded-3xl border border-emerald-200/80 flex flex-col items-center justify-center text-center space-y-3">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-2xs">
+              <CheckCircle2 className="w-8 h-8 stroke-[2.3]" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-emerald-950">
+                Seluruh Jurnal Telah Terverifikasi Sah!
+              </h4>
+              <p className="text-xs text-emerald-800/80 mt-1 max-w-xs leading-relaxed">
+                Semua logbook praktik industri Anda telah disetujui resmi oleh mentor dengan segel digital HMAC. Tidak ada antrean pengesahan saat ini.
+              </p>
+            </div>
+            <div className="flex gap-2 w-full pt-2">
+              <Link
+                href="/student/log/history"
+                onClick={onClose}
+                className="flex-1 h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs font-bold flex items-center justify-center transition"
+              >
+                Buka Riwayat Jurnal
+              </Link>
+              <button
+                type="button"
+                onClick={onClose}
+                className="h-10 px-4 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        ) : emptyStatus === "NO_PENDING_LOGS" ? (
+          <div className="bg-slate-50/80 p-6 rounded-3xl border border-slate-200/80 flex flex-col items-center justify-center text-center space-y-3">
+            <div className="w-14 h-14 rounded-2xl bg-sky-100 flex items-center justify-center text-sky-600 shadow-2xs">
+              <CalendarCheck className="w-8 h-8 stroke-[2.3]" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-slate-900">
+                Belum Ada Jurnal Menunggu Verifikasi
+              </h4>
+              <p className="text-xs text-slate-600 mt-1 max-w-xs leading-relaxed">
+                Anda belum memiliki jurnal yang perlu diajukan atau semua jurnal sudah selesai diproses.
+              </p>
+            </div>
+            <div className="flex gap-2 w-full pt-2">
+              <Link
+                href="/student/log/new"
+                onClick={onClose}
+                className="flex-1 h-10 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 active:scale-[0.98] text-white text-xs font-bold flex items-center justify-center transition"
+              >
+                Tulis Jurnal Baru
+              </Link>
+              <button
+                type="button"
+                onClick={onClose}
+                className="h-10 px-4 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* ─── 2. INFO REKAP BORONGAN ─── */}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-200/80 text-xs font-bold w-full justify-center">
+              <CalendarCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>{`${pendingDays} Hari Kerja (${totalHours} Jam) Menunggu Pengesahan`}</span>
+            </div>
 
-        {/* ─── 3. KODE QR BERSIH & PRESISI ─── */}
-        <div className="bg-slate-50/70 p-4 rounded-3xl border border-slate-200/80 flex flex-col items-center justify-center text-center">
-          <div className="w-44 h-44 bg-white rounded-2xl border border-slate-200/90 p-2 flex items-center justify-center shadow-xs">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center gap-2 text-slate-400">
-                <RefreshCw className="w-5 h-5 animate-spin text-emerald-500" />
-                <span className="text-[11px] font-medium">Membangkitkan segel QR...</span>
+            {/* ─── 3. KODE QR BERSIH & PRESISI ─── */}
+            <div className="bg-slate-50/70 p-4 rounded-3xl border border-slate-200/80 flex flex-col items-center justify-center text-center">
+              <div className="w-44 h-44 bg-white rounded-2xl border border-slate-200/90 p-2 flex items-center justify-center shadow-xs">
+                {isLoading ? (
+                  <div className="flex flex-col items-center justify-center gap-2 text-slate-400">
+                    <RefreshCw className="w-5 h-5 animate-spin text-emerald-500" />
+                    <span className="text-[11px] font-medium">Membangkitkan segel QR...</span>
+                  </div>
+                ) : (
+                  <QrCodeView value={activeUrl} size={160} errorCorrectionLevel="M" />
+                )}
               </div>
-            ) : (
-              <QrCodeView value={activeUrl} size={160} errorCorrectionLevel="M" />
-            )}
-          </div>
-          <p className="text-[11px] text-slate-500 font-medium mt-2">
-            Arahkan kamera smartphone mentor ke kode QR di atas
-          </p>
-        </div>
+              <p className="text-[11px] text-slate-500 font-medium mt-2">
+                Arahkan kamera smartphone mentor ke kode QR di atas
+              </p>
+            </div>
 
-        {/* ─── 5. TOMBOL AKSI UTAMA: WHATSAPP & SALIN TAUTAN ─── */}
-        <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
-          <a
-            href={waDeepLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full sm:flex-1 h-11 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm shadow-emerald-600/25 transition cursor-pointer"
-          >
-            <WhatsAppIcon className="w-4 h-4 fill-white shrink-0" />
-            <span>Kirim ke WhatsApp Mentor</span>
-          </a>
+            {/* ─── 5. TOMBOL AKSI UTAMA: WHATSAPP & SALIN TAUTAN ─── */}
+            <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+              <a
+                href={waDeepLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:flex-1 h-11 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm shadow-emerald-600/25 transition cursor-pointer"
+              >
+                <WhatsAppIcon className="w-4 h-4 fill-white shrink-0" />
+                <span>Kirim ke WhatsApp Mentor</span>
+              </a>
 
-          <button
-            type="button"
-            onClick={handleCopyLink}
-            className="w-full sm:w-auto h-11 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition border border-slate-200/80 cursor-pointer"
-          >
-            {copiedLink ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="text-emerald-700 font-bold">Tersalin!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5 text-slate-500" />
-                <span>Salin Tautan</span>
-              </>
-            )}
-          </button>
-        </div>
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="w-full sm:w-auto h-11 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition border border-slate-200/80 cursor-pointer"
+              >
+                {copiedLink ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="text-emerald-700 font-bold">Tersalin!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Salin Tautan</span>
+                  </>
+                )}
+              </button>
+            </div>
 
-        {/* ─── 6. FOOTNOTE KEAMANAN & DEMO JURI ─── */}
-        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-          <div className="flex items-center gap-1 text-slate-500 truncate mr-2">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span className="truncate">Tautan aman 1x pakai · PIN 4-digit</span>
-          </div>
+            {/* ─── 6. FOOTNOTE KEAMANAN & DEMO JURI ─── */}
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+              <div className="flex items-center gap-1 text-slate-500 truncate mr-2">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="truncate">Tautan aman 1x pakai · PIN 4-digit</span>
+              </div>
 
-          <Link
-            href={activeUrl}
-            target="_blank"
-            className="inline-flex items-center gap-1 font-semibold text-slate-500 hover:text-emerald-700 hover:underline shrink-0 transition"
-            title="Buka tampilan mentor di tab baru"
-          >
-            <span>Buka Halaman</span>
-            <ExternalLink className="w-3 h-3" />
-          </Link>
-        </div>
+              <Link
+                href={activeUrl}
+                target="_blank"
+                className="inline-flex items-center gap-1 font-semibold text-slate-500 hover:text-emerald-700 hover:underline shrink-0 transition"
+                title="Buka tampilan mentor di tab baru"
+              >
+                <span>Buka Halaman</span>
+                <ExternalLink className="w-3 h-3" />
+              </Link>
+            </div>
+          </>
+        )}
       </div>
     </div>,
     document.body

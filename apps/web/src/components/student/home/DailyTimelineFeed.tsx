@@ -104,7 +104,7 @@ export function DailyTimelineFeed({
 
       // 2. Month Filter
       if (monthFilter !== "ALL") {
-        if (t.isoDate && !t.isoDate.startsWith(monthFilter)) {
+        if (!t.isoDate || !t.isoDate.startsWith(monthFilter)) {
           return false;
         }
       }
@@ -179,7 +179,11 @@ export function DailyTimelineFeed({
                   className={cn(
                     "h-7 sm:h-7.5 px-3 rounded-full text-xs transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5",
                     active
-                      ? "bg-white text-slate-900 shadow-2xs font-bold"
+                      ? chip.key === "ALL"
+                        ? "bg-sky-500 text-white shadow-xs font-bold"
+                        : chip.key === "VERIFIED"
+                        ? "bg-white text-emerald-800 shadow-2xs font-bold"
+                        : "bg-white text-amber-800 shadow-2xs font-bold"
                       : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
                   )}
                 >
@@ -188,8 +192,12 @@ export function DailyTimelineFeed({
                     className={cn(
                       "tabular-nums text-[10.5px] px-1.5 py-0.2 rounded-full font-semibold",
                       active
-                        ? "bg-slate-100 text-slate-700"
-                        : "text-slate-400"
+                        ? chip.key === "ALL"
+                          ? "text-sky-100 font-bold"
+                          : chip.key === "VERIFIED"
+                          ? "bg-emerald-50 text-emerald-800"
+                          : "bg-amber-50 text-amber-800"
+                        : "text-slate-400 font-medium"
                     )}
                   >
                     {chip.count}

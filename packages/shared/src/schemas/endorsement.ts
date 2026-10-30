@@ -122,6 +122,7 @@ export interface EndorsementDetailResponse {
   };
   standardBadges: string[];
   isAlreadyEndorsed: boolean;
+  defaultDeviceToken?: string;
   existingEndorsement?: {
     attitudeScore: number;
     badges: string[];

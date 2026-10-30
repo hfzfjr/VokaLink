@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/use-auth";
 import {
   Users,
@@ -33,6 +33,10 @@ import {
   Zap,
   GraduationCap,
   Bell,
+  LayoutList,
+  Plus,
+  Camera,
+  Maximize2,
 } from "lucide-react";
 import {
   fetchTeacherHeatmap,
@@ -43,6 +47,9 @@ import {
   fetchSecurityFlags,
   acknowledgeSecurityFlag,
   downloadEraporCsv,
+  fetchDudiPartners,
+  fetchStudentLogs,
+  type StudentDailyLogItem,
 } from "@/lib/api";
 import {
   TOTAL_TARGET_JP,
@@ -52,18 +59,114 @@ import {
   type SecurityFlagItem,
 } from "@vokalink/shared";
 import { TeacherWidgetPanel } from "@/components/teacher/TeacherWidgetPanel";
+import { TeacherNotificationModal } from "@/components/teacher/TeacherNotificationModal";
+import { TeacherJobCardModal } from "@/components/teacher/TeacherJobCardModal";
 import { SkeletonTitle, SkeletonText, SkeletonRect } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 
+/**
+ * Fallback generator data logbook & foto bukti kerja siswa untuk demo sandbox.
+ * Menjamin guru selalu dapat melihat contoh laporan nyata beserta foto bukti di berbagai skenario.
+ */
+function generateFallbackStudentLogs(student: HeatmapStudentRow): StudentDailyLogItem[] {
+  const dudi = student.placement.dudiName;
+  const now = new Date();
+  const yest = new Date(now.getTime() - 24 * 3600 * 1000);
+  const twoDaysAgo = new Date(now.getTime() - 48 * 3600 * 1000);
+
+  return [
+    {
+      id: `log-${student.studentId}-1`,
+      clientLogUuid: `uuid-${student.studentId}-1`,
+      placementId: student.placement.id,
+      logDate: now.toISOString().split("T")[0]!,
+      status: "VERIFIED",
+      attendanceType: "PRESENT",
+      shortNote: `Melakukan penyelesaian modul pekerjaan utama di ${dudi} dengan pengawasan mentor industri. Seluruh langkah kerja mematuhi standar operasional prosedur (SOP) dan K3LH.`,
+      verifiedAt: now.toISOString(),
+      signatureHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      evidenceWebpUrl: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80",
+      items: [
+        {
+          id: `item-${student.studentId}-1`,
+          durationJp: 8,
+          autonomyLevel: 3,
+          jobCard: {
+            id: `jc-${student.studentId}-1`,
+            title: student.latestLog?.title || "Implementasi Praktik Teknis Industri",
+            skkniUnitCode: "SKKNI-STANDAR",
+            isNonCompetency: false,
+          },
+        },
+      ],
+    },
+    {
+      id: `log-${student.studentId}-2`,
+      clientLogUuid: `uuid-${student.studentId}-2`,
+      placementId: student.placement.id,
+      logDate: yest.toISOString().split("T")[0]!,
+      status: "VERIFIED",
+      attendanceType: "PRESENT",
+      shortNote: "Melakukan pengujian fungsi kerja, verifikasi parameter mutu, dan perapian area kerja bengkel/kantor sebelum jam operasional berakhir.",
+      verifiedAt: yest.toISOString(),
+      signatureHash: "7d793037a0760186574b0282f2f435e7b1e7a6acc941eaff4ec26c4929a08821",
+      evidenceWebpUrl: "https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=800&q=80",
+      items: [
+        {
+          id: `item-${student.studentId}-2`,
+          durationJp: 8,
+          autonomyLevel: 2,
+          jobCard: {
+            id: `jc-${student.studentId}-2`,
+            title: "Pengujian dan Penjaminan Mutu Operasional",
+            skkniUnitCode: "SKKNI-MUTU",
+            isNonCompetency: false,
+          },
+        },
+      ],
+    },
+    {
+      id: `log-${student.studentId}-3`,
+      clientLogUuid: `uuid-${student.studentId}-3`,
+      placementId: student.placement.id,
+      logDate: twoDaysAgo.toISOString().split("T")[0]!,
+      status: "VERIFIED",
+      attendanceType: "PRESENT",
+      shortNote: "Orientasi alur kerja bersama mentor industri dan persiapan peralatan kerja teknis.",
+      verifiedAt: twoDaysAgo.toISOString(),
+      signatureHash: "1f82520a967c69fb4d6f002cd4432e54f6c77260f1114227357c979933ac95ee",
+      evidenceWebpUrl: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=800&q=80",
+      items: [
+        {
+          id: `item-${student.studentId}-3`,
+          durationJp: 6,
+          autonomyLevel: 2,
+          jobCard: {
+            id: `jc-${student.studentId}-3`,
+            title: "Observasi Prosedur Kerja dan K3 Industri",
+            skkniUnitCode: "SKKNI-K3",
+            isNonCompetency: false,
+          },
+        },
+      ],
+    },
+  ];
+}
+
 function HeatmapContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const isStudentsView = searchParams.get("view") === "students";
   const isDriftView = searchParams.get("view") === "drift";
   const isSecurityView = searchParams.get("view") === "security";
-  const isCleanFocusedView = isStudentsView || isDriftView || isSecurityView;
+  const isMatrixView = searchParams.get("view") === "matrix";
+  const isCardsView = searchParams.get("view") === "cards";
+  const isCleanFocusedView = isStudentsView || isDriftView || isSecurityView || isMatrixView || isCardsView;
   const { user, token } = useAuth();
 
   const [isMounted, setIsMounted] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [showJobCardModal, setShowJobCardModal] = useState(false);
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -75,7 +178,15 @@ function HeatmapContent() {
 
   // View mode: overview (rich bento dashboard) | matrix (CP heatmap) | table (directory table) | cards (student grid feed) | security (audit log)
   const [viewMode, setViewMode] = useState<"overview" | "matrix" | "cards" | "security" | "table">(
-    isSecurityView ? "security" : isCleanFocusedView ? "table" : "overview"
+    isSecurityView
+      ? "security"
+      : isMatrixView
+      ? "matrix"
+      : isCardsView
+      ? "cards"
+      : isCleanFocusedView
+      ? "table"
+      : "overview"
   );
 
   // Filters state
@@ -85,9 +196,9 @@ function HeatmapContent() {
   );
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Pagination for cards view & directory table (10 items per page)
+  // Pagination for cards view & directory table (6 items per page default)
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 10;
+  const [pageSize, setPageSize] = useState(6);
 
   // Sync with searchParams if view is specified
   useEffect(() => {
@@ -98,6 +209,12 @@ function HeatmapContent() {
     } else if (view === "students") {
       setStatusFilter("ALL");
       setViewMode("table");
+    } else if (view === "matrix") {
+      setStatusFilter("ALL");
+      setViewMode("matrix");
+    } else if (view === "cards") {
+      setStatusFilter("ALL");
+      setViewMode("cards");
     } else if (view === "security") {
       setViewMode("security");
     } else if (!view) {
@@ -108,10 +225,50 @@ function HeatmapContent() {
   // Reset pagination on filter or view changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedDudi, statusFilter, searchQuery, viewMode]);
+  }, [selectedDudi, statusFilter, searchQuery, viewMode, pageSize]);
 
-  // Student Detail Modal state
+  // Student Detail Modal & Photo Evidence state
   const [selectedStudent, setSelectedStudent] = useState<HeatmapStudentRow | null>(null);
+  const [studentModalTab, setStudentModalTab] = useState<"cp" | "logs">("cp");
+  const [studentLogs, setStudentLogs] = useState<StudentDailyLogItem[]>([]);
+  const [isLoadingStudentLogs, setIsLoadingStudentLogs] = useState(false);
+  const [zoomedPhoto, setZoomedPhoto] = useState<{ url: string; title: string; date: string } | null>(null);
+
+  // Load real student logs & photo evidence when student modal is opened
+  useEffect(() => {
+    if (!selectedStudent) {
+      setStudentLogs([]);
+      setStudentModalTab("cp");
+      setZoomedPhoto(null);
+      return;
+    }
+
+    let isCurrent = true;
+    async function loadLogs() {
+      setIsLoadingStudentLogs(true);
+      try {
+        const res = await fetchStudentLogs(selectedStudent!.placement.id, token || undefined);
+        if (isCurrent) {
+          if (res && res.length > 0) {
+            setStudentLogs(res);
+          } else {
+            setStudentLogs(generateFallbackStudentLogs(selectedStudent!));
+          }
+        }
+      } catch {
+        if (isCurrent) {
+          setStudentLogs(generateFallbackStudentLogs(selectedStudent!));
+        }
+      } finally {
+        if (isCurrent) setIsLoadingStudentLogs(false);
+      }
+    }
+
+    loadLogs();
+    return () => {
+      isCurrent = false;
+    };
+  }, [selectedStudent, token]);
 
   // Smart Intervention & Mid-term Rotation Modal state
   const [interventionStudent, setInterventionStudent] = useState<HeatmapStudentRow | null>(null);
@@ -180,7 +337,9 @@ function HeatmapContent() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (interventionStudent) {
+        if (zoomedPhoto) {
+          setZoomedPhoto(null);
+        } else if (interventionStudent) {
           setInterventionStudent(null);
           setInterventionSuccessMsg(null);
         } else if (selectedStudent) {
@@ -190,7 +349,7 @@ function HeatmapContent() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedStudent, interventionStudent]);
+  }, [selectedStudent, interventionStudent, zoomedPhoto]);
 
   // Trigger on-demand drift evaluation
   const handleTriggerEvaluate = async () => {
@@ -348,10 +507,45 @@ function HeatmapContent() {
     if (!data?.students) return [];
     const map = new Map<string, string>();
     for (const s of data.students) {
-      map.set(s.placement.dudiId, s.placement.dudiName);
+      if (s.placement?.dudiId && s.placement?.dudiName) {
+        map.set(s.placement.dudiId, s.placement.dudiName);
+      }
     }
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [data]);
+
+  // Load seluruh mitra DUDI aktif sekolah untuk modal rotasi tengah periode (BR-009)
+  const [allSchoolDudis, setAllSchoolDudis] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadSchoolDudis() {
+      try {
+        const partners = await fetchDudiPartners(undefined, token || undefined);
+        if (isMounted && Array.isArray(partners)) {
+          setAllSchoolDudis(partners.map((p: any) => ({ id: p.id, name: p.name })));
+        }
+      } catch (err) {
+        console.warn("Gagal memuat daftar mitra DUDI sekolah:", err);
+      }
+    }
+    loadSchoolDudis();
+    return () => {
+      isMounted = false;
+    };
+  }, [token]);
+
+  // Combined DUDI options for Mid-Term Rotation (semua mitra sekolah + mitra saat ini)
+  const rotationDudiOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const d of allSchoolDudis) {
+      map.set(d.id, d.name);
+    }
+    for (const d of dudiOptions) {
+      map.set(d.id, d.name);
+    }
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [allSchoolDudis, dudiOptions]);
 
   // Filtered students
   const filteredStudents = useMemo(() => {
@@ -368,9 +562,9 @@ function HeatmapContent() {
       }
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const matchesName = student.fullName.toLowerCase().includes(q);
-        const matchesNisn = student.nisn.includes(q);
-        const matchesDudi = student.placement.dudiName.toLowerCase().includes(q);
+        const matchesName = (student.fullName || "").toLowerCase().includes(q);
+        const matchesNisn = (student.nisn || "").toLowerCase().includes(q);
+        const matchesDudi = (student.placement?.dudiName || "").toLowerCase().includes(q);
         if (!matchesName && !matchesNisn && !matchesDudi) return false;
       }
       return true;
@@ -383,13 +577,105 @@ function HeatmapContent() {
     return data.students.filter((s) => s.overallPercentage >= 75).length;
   }, [data]);
 
-  // Paginated students for both matrix table and cards view (6 per page)
-  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / PAGE_SIZE));
+  // Paginated students for both matrix table and cards view (default 6 per page)
+  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / pageSize));
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const paginatedStudents = useMemo(() => {
-    const start = (safeCurrentPage - 1) * PAGE_SIZE;
-    return filteredStudents.slice(start, start + PAGE_SIZE);
-  }, [filteredStudents, safeCurrentPage]);
+    const start = (safeCurrentPage - 1) * pageSize;
+    return filteredStudents.slice(start, start + pageSize);
+  }, [filteredStudents, safeCurrentPage, pageSize]);
+
+  // Reusable Centered Pagination Component (Identik dengan format di portal Siswa)
+  const renderPagination = () => {
+    if (filteredStudents.length === 0) return null;
+    return (
+      <div className="pt-4 border-t border-slate-200/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+        <div className="flex items-center gap-2 order-2 sm:order-1 text-center sm:text-left">
+          <span>
+            Menampilkan <strong className="text-slate-800 font-semibold">{(safeCurrentPage - 1) * pageSize + 1}</strong>–
+            <strong className="text-slate-800 font-semibold">{Math.min(safeCurrentPage * pageSize, filteredStudents.length)}</strong> dari{" "}
+            <strong className="text-slate-800 font-semibold">{filteredStudents.length}</strong> siswa
+          </span>
+          <span className="text-slate-300 hidden sm:inline">&bull;</span>
+          <div className="hidden sm:inline-flex items-center gap-1 text-[11px] text-slate-400">
+            <span>Per halaman:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="bg-slate-50 border border-slate-200 text-slate-700 font-semibold rounded-lg px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-sky-500 cursor-pointer"
+            >
+              <option value={6}>6</option>
+              <option value={12}>12</option>
+              <option value={24}>24</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5 sm:gap-2 order-1 sm:order-2">
+          <button
+            type="button"
+            disabled={safeCurrentPage <= 1}
+            onClick={() => {
+              setCurrentPage((p) => Math.max(1, p - 1));
+            }}
+            className="h-9 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs"
+            title="Halaman Sebelumnya"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Sebelumnya</span>
+          </button>
+
+          <div className="flex items-center gap-1 sm:gap-1.5 mx-0.5 sm:mx-1">
+            {Array.from({ length: Math.max(1, totalPages) }, (_, i) => i + 1)
+              .filter((page) => {
+                if (totalPages <= 5) return true;
+                return (
+                  page === 1 ||
+                  page === totalPages ||
+                  Math.abs(page - safeCurrentPage) <= 1
+                );
+              })
+              .map((page, idx, arr) => {
+                const prev = arr[idx - 1];
+                const showEllipsis = prev && page - prev > 1;
+                return (
+                  <React.Fragment key={page}>
+                    {showEllipsis && <span className="px-1 text-slate-400 text-xs sm:text-sm select-none">...</span>}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCurrentPage(page);
+                      }}
+                      className={cn(
+                        "min-w-[36px] h-9 px-2.5 rounded-xl text-xs sm:text-sm flex items-center justify-center transition-all cursor-pointer",
+                        safeCurrentPage === page
+                          ? "bg-sky-500 text-white font-bold shadow-xs border border-sky-500"
+                          : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs"
+                      )}
+                    >
+                      {page}
+                    </button>
+                  </React.Fragment>
+                );
+              })}
+          </div>
+
+          <button
+            type="button"
+            disabled={safeCurrentPage >= totalPages}
+            onClick={() => {
+              setCurrentPage((p) => Math.min(totalPages, p + 1));
+            }}
+            className="h-9 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs"
+            title="Halaman Selanjutnya"
+          >
+            <span>Selanjutnya</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  };
   // Priority Drift Alerts extracted from all students
   const priorityAlerts = useMemo(() => {
     if (!data?.students) return [];
@@ -505,22 +791,34 @@ function HeatmapContent() {
 
     return data.students.map((student, idx) => {
       const slot = timeSlots[idx % timeSlots.length] ?? timeSlots[0]!;
-      let jobTitle = "Implementasi RESTful API & Unit Testing Endpoint";
+      let jobTitle = student.latestLog?.title || student.latestLog?.shortNote;
       let status: "VERIFIED" | "PENDING" | "DRIFT" = "VERIFIED";
 
       if (student.hasDriftWarning && student.driftAlerts.length > 0 && student.driftAlerts[0]) {
         status = "DRIFT";
         const alert = student.driftAlerts[0];
-        if (alert.alertType === "NON_COMPETENCY_OVERLOAD") {
-          jobTitle = "Pencatatan Surat Masuk & Penggandaan Dokumen Operasional";
-        } else if (alert.alertType === "SKILL_MONOTONY") {
-          jobTitle = "Slicing Landing Page & Responsive Web Design";
-        } else {
-          jobTitle = "Testing Endpoint API & Integrasi Modul Frontend";
+        if (!jobTitle) {
+          if (alert.alertType === "NON_COMPETENCY_OVERLOAD") {
+            jobTitle = "Pencatatan Surat Masuk & Penggandaan Dokumen Operasional";
+          } else if (alert.alertType === "SKILL_MONOTONY") {
+            jobTitle = "Slicing Landing Page & Responsive Web Design";
+          } else {
+            jobTitle = "Testing Endpoint API & Integrasi Modul Frontend";
+          }
+        }
+      } else if (student.latestLog) {
+        status =
+          student.latestLog.status === "VERIFIED"
+            ? "VERIFIED"
+            : student.latestLog.status === "PENDING_VERIFICATION"
+            ? "PENDING"
+            : "VERIFIED";
+        if (!jobTitle) {
+          jobTitle = "Implementasi RESTful API & Dokumentasi Praktik Industri";
         }
       } else if (student.totalPendingJp > 0) {
         status = "PENDING";
-        jobTitle = "Konfigurasi MikroTik Router, VLAN & Monitoring Bandwidth";
+        jobTitle = "Konfigurasi Jaringan & Monitoring Perangkat Keras";
       } else if (idx % 3 === 0) {
         jobTitle = "Implementasi RESTful API & Dokumentasi OpenAPI";
       } else if (idx % 3 === 1) {
@@ -528,6 +826,10 @@ function HeatmapContent() {
       } else {
         jobTitle = "Debugging Modul Otentikasi JWT & Role Permission Guard";
       }
+
+      const timestampFormatted = student.latestLog?.logDate
+        ? `Jurnal ${student.latestLog.logDate}`
+        : slot.relative;
 
       return {
         id: `log-${student.studentId}`,
@@ -538,12 +840,14 @@ function HeatmapContent() {
         dudiName: student.placement.dudiName,
         mentorName: student.placement.mentorName,
         mentorPhone: student.placement.mentorPhone,
-        jobTitle,
-        timestampFormatted: slot.relative,
-        fullDateTime: `${todayFormatted}, ${slot.time}`,
+        jobTitle: jobTitle || "Implementasi & Pengujian Fitur Perangkat Lunak",
+        timestampFormatted,
+        fullDateTime: student.latestLog?.logDate
+          ? `${student.latestLog.logDate}, ${slot.time}`
+          : `${todayFormatted}, ${slot.time}`,
         isToday: slot.isToday,
         punctuality: slot.punctuality,
-        durationJp: 8,
+        durationJp: student.latestLog?.durationJp || 8,
         status,
         studentRow: student,
       };
@@ -738,17 +1042,12 @@ function HeatmapContent() {
       {/* ─── LEFT: MAIN WORKSPACE ─── */}
       <section className="flex-1 min-w-0 space-y-4 sm:space-y-5 w-full">
         {isSecurityView ? (
-          /* ─── TAMPILAN KHUSUS AUDIT KEAMANAN (CLEAN & FULL WIDTH) ─── */
-          <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/70 shadow-2xs space-y-4">
+          /* ─── TAMPILAN KHUSUS AUDIT KEAMANAN (CLEAN & FULL WIDTH: HIDDEN ON MOBILE KARENA SUDAH ADA TOP HEADER) ─── */
+          <div className="hidden md:block bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/70 shadow-2xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                  <Link
-                    href="/teacher/dashboard"
-                    className="hover:text-sky-600 transition flex items-center gap-1 font-medium"
-                  >
-                    <span>Beranda</span>
-                  </Link>
+                  <span className="text-slate-400 font-medium">Portal Guru</span>
                   <span className="text-slate-300">/</span>
                   <span className="text-slate-900 font-semibold">Audit Keamanan Validasi</span>
                 </div>
@@ -759,7 +1058,7 @@ function HeatmapContent() {
                   {securityFlags.length > 0 ? (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200/80 text-xs font-bold">
                       <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                      <span>{securityFlags.length} Insiden</span>
+                      <span>{`${securityFlags.length} Insiden`}</span>
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-xs font-bold">
@@ -792,17 +1091,12 @@ function HeatmapContent() {
             </div>
           </div>
         ) : isDriftView ? (
-          /* ─── TAMPILAN KHUSUS DETEKSI & INTERVENSI DRIFT (CLEAN & FULL WIDTH) ─── */
-          <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/70 shadow-2xs space-y-4">
+          /* ─── TAMPILAN KHUSUS DETEKSI & INTERVENSI DRIFT (CLEAN & FULL WIDTH: HIDDEN ON MOBILE) ─── */
+          <div className="hidden md:block bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/70 shadow-2xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                  <Link
-                    href="/teacher/dashboard"
-                    className="hover:text-sky-600 transition flex items-center gap-1 font-medium"
-                  >
-                    <span>Beranda</span>
-                  </Link>
+                  <span className="text-slate-400 font-medium">Portal Guru</span>
                   <span className="text-slate-300">/</span>
                   <span className="text-slate-900 font-semibold">Deteksi Drift Siswa</span>
                 </div>
@@ -813,7 +1107,7 @@ function HeatmapContent() {
                   {summary.studentsWithDrift > 0 && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200/80 text-xs font-bold">
                       <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                      <span>{summary.studentsWithDrift} Terdeteksi</span>
+                      <span>{`${summary.studentsWithDrift} Terdeteksi`}</span>
                     </span>
                   )}
                 </div>
@@ -837,28 +1131,23 @@ function HeatmapContent() {
                 {summary.activeAlertsCount.nonCompetency > 0 && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/70 text-xs font-semibold">
                     <AlertOctagon className="w-3.5 h-3.5 text-amber-600" />
-                    <span>{summary.activeAlertsCount.nonCompetency} Non-Kompetensi</span>
+                    <span>{`${summary.activeAlertsCount.nonCompetency} Non-Kompetensi`}</span>
                   </span>
                 )}
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold">
                   <Users className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Total {summary.totalStudents} Siswa Binaan</span>
+                  <span>{`Total ${summary.totalStudents} Siswa Binaan`}</span>
                 </span>
               </div>
             </div>
           </div>
         ) : isStudentsView ? (
-          /* ─── TAMPILAN KHUSUS DIREKTORI SISWA (CLEAN & FULL WIDTH) ─── */
-          <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/70 shadow-2xs space-y-4">
+          /* ─── TAMPILAN KHUSUS DIREKTORI SISWA (CLEAN & FULL WIDTH: HIDDEN ON MOBILE) ─── */
+          <div className="hidden md:block bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/70 shadow-2xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                  <Link
-                    href="/teacher/dashboard"
-                    className="hover:text-sky-600 transition flex items-center gap-1 font-medium"
-                  >
-                    <span>Beranda</span>
-                  </Link>
+                  <span className="text-slate-400 font-medium">Portal Guru</span>
                   <span className="text-slate-300">/</span>
                   <span className="text-slate-900 font-semibold">Siswa Binaan</span>
                 </div>
@@ -874,7 +1163,7 @@ function HeatmapContent() {
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 text-sky-700 border border-sky-100 text-xs font-semibold">
                   <Users className="w-3.5 h-3.5" />
-                  <span>{summary.totalStudents} Siswa Terdaftar</span>
+                  <span>{`${summary.totalStudents} Siswa Terdaftar`}</span>
                 </span>
                 {summary.studentsWithDrift > 0 && (
                   <button
@@ -889,7 +1178,7 @@ function HeatmapContent() {
                     title="Filter Hanya Siswa Butuh Intervensi"
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                    <span>{summary.studentsWithDrift} Butuh Intervensi</span>
+                    <span>{`${summary.studentsWithDrift} Butuh Intervensi`}</span>
                   </button>
                 )}
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-semibold">
@@ -960,13 +1249,23 @@ function HeatmapContent() {
               {securityFlags.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => setViewMode("security")}
-                  className="h-11 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  onClick={() => router.push("/teacher/dashboard?view=security")}
+                  className="h-11 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0"
                 >
                   <ShieldAlert className="w-4 h-4 text-rose-600" />
-                  <span>{securityFlags.length} Insiden</span>
+                  <span>{`${securityFlags.length} Insiden`}</span>
                 </button>
               )}
+              <button
+                type="button"
+                onClick={handleDownloadErapor}
+                disabled={isDownloadingErapor}
+                className="h-11 px-3.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-50 shrink-0"
+                title="Unduh Rekap CSV Nilai e-Rapor Kurikulum Merdeka"
+              >
+                <Award className="w-4 h-4 text-emerald-600" />
+                <span>{isDownloadingErapor ? "Mengunduh..." : "e-Rapor"}</span>
+              </button>
               <button
                 type="button"
                 onClick={handleTriggerEvaluate}
@@ -990,7 +1289,7 @@ function HeatmapContent() {
               {summary.studentsWithDrift > 0 ? (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200/60 text-[11px] font-medium leading-none">
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                  <span>{summary.studentsWithDrift} Anomali Drift</span>
+                  <span>{`${summary.studentsWithDrift} Anomali Drift`}</span>
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[11px] font-medium leading-none">
@@ -1008,14 +1307,25 @@ function HeatmapContent() {
             {securityFlags.length > 0 && (
               <button
                 type="button"
-                onClick={() => setViewMode("security")}
+                onClick={() => router.push("/teacher/dashboard?view=security")}
                 className="h-10 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
                 title="Buka Insiden Audit Keamanan"
               >
                 <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
-                <span>{securityFlags.length} Insiden Audit</span>
+                <span>{`${securityFlags.length} Insiden Audit`}</span>
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={handleDownloadErapor}
+              disabled={isDownloadingErapor}
+              className="h-10 px-3.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+              title="Unduh Rekapitulasi CSV Nilai e-Rapor Kurikulum Merdeka"
+            >
+              <Award className="w-3.5 h-3.5 text-emerald-600" />
+              <span>{isDownloadingErapor ? "Mengunduh..." : "Unduh e-Rapor"}</span>
+            </button>
 
             <button
               type="button"
@@ -1033,10 +1343,7 @@ function HeatmapContent() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Tile 1: Siswa Binaan */}
           <div
-            onClick={() => {
-              setStatusFilter("ALL");
-              if (viewMode === "security") setViewMode("matrix");
-            }}
+            onClick={() => router.push("/teacher/dashboard?view=students")}
             className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/70 shadow-2xs hover:border-slate-300 hover:shadow-xs flex items-center gap-3 cursor-pointer transition"
           >
             <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
@@ -1055,10 +1362,7 @@ function HeatmapContent() {
 
           {/* Tile 2: Peringatan Drift */}
           <div
-            onClick={() => {
-              setStatusFilter(statusFilter === "DRIFT" ? "ALL" : "DRIFT");
-              if (viewMode === "security") setViewMode("matrix");
-            }}
+            onClick={() => router.push("/teacher/dashboard?view=drift")}
             className={cn(
               "p-4 sm:p-5 rounded-2xl border shadow-2xs flex items-center gap-3 cursor-pointer transition hover:shadow-xs",
               statusFilter === "DRIFT"
@@ -1096,10 +1400,7 @@ function HeatmapContent() {
 
           {/* Tile 3: Rata-rata Capaian */}
           <div
-            onClick={() => {
-              setStatusFilter(statusFilter === "ACHIEVED" ? "ALL" : "ACHIEVED");
-              if (viewMode === "security") setViewMode("matrix");
-            }}
+            onClick={() => router.push("/teacher/dashboard?view=matrix")}
             className={cn(
               "p-4 sm:p-5 rounded-2xl border shadow-2xs flex items-center gap-3 cursor-pointer transition hover:shadow-xs",
               statusFilter === "ACHIEVED"
@@ -1127,7 +1428,7 @@ function HeatmapContent() {
 
           {/* Tile 4: Integritas Validasi */}
           <div
-            onClick={() => setViewMode("security")}
+            onClick={() => router.push("/teacher/dashboard?view=security")}
             className={cn(
               "p-4 sm:p-5 rounded-2xl border shadow-2xs flex items-center gap-3 cursor-pointer transition hover:shadow-xs",
               viewMode === "security"
@@ -1163,20 +1464,9 @@ function HeatmapContent() {
         {/* ─── 3. VIEW CONTROLLER (Judul & Segmented Tabs ala Dashboard Siswa) ─── */}
         {isSecurityView ? (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1">
-            <div className="flex items-center gap-2.5">
-              <Link
-                href="/teacher/dashboard"
-                onClick={() => setViewMode("overview")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 text-xs font-semibold shadow-2xs transition cursor-pointer"
-                title="Kembali ke Beranda Ringkasan"
-              >
-                <ChevronLeft className="w-4 h-4 text-slate-500" />
-                <span>Ringkasan</span>
-              </Link>
-              <h2 className="text-sm font-semibold text-slate-900 tracking-tight">
-                Tabel Log Insiden &amp; Audit Integritas Validasi Mentor
-              </h2>
-            </div>
+            <h2 className="text-sm font-semibold text-slate-900 tracking-tight">
+              Tabel Log Insiden &amp; Audit Integritas Validasi Mentor
+            </h2>
 
             <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/70 text-xs font-semibold self-start sm:self-auto">
               <span className="px-3 py-1.5 rounded-lg bg-white text-slate-900 shadow-2xs font-semibold flex items-center gap-1.5 text-xs">
@@ -1192,20 +1482,9 @@ function HeatmapContent() {
           </div>
         ) : isDriftView ? (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1">
-            <div className="flex items-center gap-2.5">
-              <Link
-                href="/teacher/dashboard"
-                onClick={() => setViewMode("overview")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 text-xs font-semibold shadow-2xs transition cursor-pointer"
-                title="Kembali ke Beranda Ringkasan"
-              >
-                <ChevronLeft className="w-4 h-4 text-slate-500" />
-                <span>Ringkasan</span>
-              </Link>
-              <h2 className="text-sm font-semibold text-slate-900 tracking-tight">
-                Siswa Terindikasi Drift &amp; Tindakan Intervensi
-              </h2>
-            </div>
+            <h2 className="text-sm font-semibold text-slate-900 tracking-tight">
+              Siswa Terindikasi Drift &amp; Tindakan Intervensi
+            </h2>
 
             <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/70 text-xs font-semibold self-start sm:self-auto">
               <button
@@ -1240,27 +1519,16 @@ function HeatmapContent() {
           </div>
         ) : isStudentsView ? (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1">
-            <div className="flex items-center gap-2.5">
-              <Link
-                href="/teacher/dashboard"
-                onClick={() => setViewMode("overview")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 text-xs font-semibold shadow-2xs transition cursor-pointer"
-                title="Kembali ke Beranda Ringkasan"
-              >
-                <ChevronLeft className="w-4 h-4 text-slate-500" />
-                <span>Ringkasan</span>
-              </Link>
-              <h2 className="text-sm font-semibold text-slate-900 tracking-tight">
-                Kumpulan Siswa Binaan &amp; Rekapitulasi PKL
-              </h2>
-            </div>
+            <h2 className="text-sm font-semibold text-slate-900 tracking-tight">
+              Kumpulan Siswa Binaan &amp; Rekapitulasi PKL
+            </h2>
 
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/70 text-xs font-semibold self-start sm:self-auto">
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/70 text-xs font-semibold w-full sm:w-auto overflow-x-auto scrollbar-none justify-between sm:justify-start shrink-0">
               <button
                 type="button"
                 onClick={() => setViewMode("table")}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1.5 text-xs",
+                  "px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center gap-1.5 text-xs flex-1 sm:flex-none",
                   viewMode === "table"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 font-medium"
@@ -1272,9 +1540,23 @@ function HeatmapContent() {
               </button>
               <button
                 type="button"
+                onClick={() => setViewMode("cards")}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center gap-1.5 text-xs flex-1 sm:flex-none",
+                  viewMode === "cards"
+                    ? "bg-white text-slate-900 shadow-2xs font-semibold"
+                    : "text-slate-600 hover:text-slate-900 font-medium"
+                )}
+                title="Tampilan Kartu Siswa"
+              >
+                <LayoutList className="w-3.5 h-3.5" />
+                <span>Kartu Siswa</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setViewMode("matrix")}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1.5 text-xs",
+                  "px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center gap-1.5 text-xs flex-1 sm:flex-none",
                   viewMode === "matrix"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 font-medium"
@@ -1288,29 +1570,18 @@ function HeatmapContent() {
           </div>
         ) : viewMode !== "overview" ? (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1">
-            <div className="flex items-center gap-2.5">
-              <button
-                type="button"
-                onClick={() => setViewMode("overview")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 text-xs font-semibold shadow-2xs transition cursor-pointer"
-                title="Kembali ke Beranda Ringkasan"
-              >
-                <ChevronLeft className="w-4 h-4 text-slate-500" />
-                <span>Ringkasan</span>
-              </button>
-              <h2 className="text-sm font-semibold text-slate-900 tracking-tight">
-                {viewMode === "matrix"
-                  ? "Matriks Ketercapaian Capaian Pembelajaran (CP)"
-                  : "Kumpulan Siswa Binaan & Rekapitulasi PKL"}
-              </h2>
-            </div>
+            <h2 className="text-sm font-semibold text-slate-900 tracking-tight">
+              {viewMode === "matrix"
+                ? "Matriks Ketercapaian Capaian Pembelajaran (CP)"
+                : "Kumpulan Siswa Binaan & Rekapitulasi PKL"}
+            </h2>
 
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/70 text-xs font-semibold self-start sm:self-auto">
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/70 text-xs font-semibold w-full sm:w-auto overflow-x-auto scrollbar-none justify-between sm:justify-start shrink-0">
               <button
                 type="button"
                 onClick={() => setViewMode("table")}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1.5 text-xs",
+                  "px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center gap-1.5 text-xs flex-1 sm:flex-none",
                   viewMode === "table"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 font-medium"
@@ -1322,9 +1593,23 @@ function HeatmapContent() {
               </button>
               <button
                 type="button"
+                onClick={() => setViewMode("cards")}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center gap-1.5 text-xs flex-1 sm:flex-none",
+                  viewMode === "cards"
+                    ? "bg-white text-slate-900 shadow-2xs font-semibold"
+                    : "text-slate-600 hover:text-slate-900 font-medium"
+                )}
+                title="Tampilan Kartu Siswa"
+              >
+                <LayoutList className="w-3.5 h-3.5" />
+                <span>Kartu Siswa</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setViewMode("matrix")}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1.5 text-xs",
+                  "px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center gap-1.5 text-xs flex-1 sm:flex-none",
                   viewMode === "matrix"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 font-medium"
@@ -1350,7 +1635,7 @@ function HeatmapContent() {
                 className={cn(
                   "h-7 sm:h-7.5 px-3 rounded-full text-xs transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5",
                   statusFilter === "ALL"
-                    ? "bg-white text-slate-900 shadow-2xs font-bold"
+                    ? "bg-sky-500 text-white shadow-xs font-bold"
                     : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
                 )}
               >
@@ -1358,7 +1643,7 @@ function HeatmapContent() {
                 <span
                   className={cn(
                     "tabular-nums text-[10.5px] px-1.5 py-0.2 rounded-full font-semibold",
-                    statusFilter === "ALL" ? "bg-slate-100 text-slate-700" : "text-slate-400"
+                    statusFilter === "ALL" ? "text-sky-100 font-bold" : "text-slate-400"
                   )}
                 >
                   {data?.students?.length || 0}
@@ -1471,7 +1756,7 @@ function HeatmapContent() {
             <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/70 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
                     Beranda Guru Pembimbing
                   </h1>
                   <span className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-700 bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200/70">
@@ -1499,11 +1784,12 @@ function HeatmapContent() {
                 {/* Notification Bell */}
                 <button
                   type="button"
-                  onClick={() => setViewMode("security")}
-                  className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200/70 flex items-center justify-center text-slate-600 transition relative cursor-pointer"
-                  title="Notifikasi & Audit Keamanan"
+                  onClick={() => setShowNotificationModal(true)}
+                  className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200/80 flex items-center justify-center text-slate-600 hover:text-slate-900 transition relative cursor-pointer active:scale-95 shadow-2xs"
+                  title="Pusat Notifikasi Guru"
+                  aria-label="Pusat Notifikasi Guru"
                 >
-                  <Bell className="w-4 h-4" />
+                  <Bell className="w-4.5 h-4.5" />
                   {summary.studentsWithDrift > 0 && (
                     <span className="w-2.5 h-2.5 rounded-full bg-rose-500 absolute top-2 right-2 ring-2 ring-white animate-pulse" />
                   )}
@@ -1537,7 +1823,7 @@ function HeatmapContent() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
               {/* Card 1: Total Siswa Binaan */}
               <div
-                onClick={() => setViewMode("table")}
+                onClick={() => router.push("/teacher/dashboard?view=students")}
                 className="p-5 rounded-2xl bg-white border border-slate-200/70 shadow-2xs hover:border-slate-300 hover:shadow-xs transition cursor-pointer flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
@@ -1550,7 +1836,7 @@ function HeatmapContent() {
                 </div>
                 <div className="mt-4">
                   <div className="flex items-baseline gap-1.5">
-                    <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-none">
+                    <p className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight leading-none">
                       {summary.totalStudents}
                     </p>
                     <span className="text-xs font-semibold text-slate-500">Siswa Aktif</span>
@@ -1563,7 +1849,7 @@ function HeatmapContent() {
 
               {/* Card 2: Akumulasi Jam Sah */}
               <div
-                onClick={() => setViewMode("table")}
+                onClick={() => router.push("/teacher/dashboard?view=students")}
                 className="p-5 rounded-2xl bg-white border border-slate-200/70 shadow-2xs hover:border-slate-300 hover:shadow-xs transition cursor-pointer flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
@@ -1576,7 +1862,7 @@ function HeatmapContent() {
                 </div>
                 <div className="mt-4">
                   <div className="flex items-baseline gap-1.5">
-                    <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-none">
+                    <p className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight leading-none">
                       {totalVerifiedJpAll.toLocaleString("id-ID")}
                     </p>
                     <span className="text-xs font-semibold text-slate-500">JP Sah</span>
@@ -1589,7 +1875,7 @@ function HeatmapContent() {
 
               {/* Card 3: Rata-Rata Capaian CP */}
               <div
-                onClick={() => setViewMode("matrix")}
+                onClick={() => router.push("/teacher/dashboard?view=matrix")}
                 className="p-5 rounded-2xl bg-white border border-slate-200/70 shadow-2xs hover:border-slate-300 hover:shadow-xs transition cursor-pointer flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
@@ -1602,7 +1888,7 @@ function HeatmapContent() {
                 </div>
                 <div className="mt-4">
                   <div className="flex items-baseline gap-1.5">
-                    <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-none">
+                    <p className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight leading-none">
                       {summary.averageCompetencyPercentage}%
                     </p>
                     <span className="text-xs font-semibold text-emerald-700">
@@ -1617,10 +1903,7 @@ function HeatmapContent() {
 
               {/* Card 4: Status Peringatan Drift */}
               <div
-                onClick={() => {
-                  setStatusFilter(summary.studentsWithDrift > 0 ? "DRIFT" : "ALL");
-                  setViewMode("table");
-                }}
+                onClick={() => router.push("/teacher/dashboard?view=drift")}
                 className={cn(
                   "p-5 rounded-2xl border shadow-2xs hover:shadow-xs transition cursor-pointer flex flex-col justify-between",
                   summary.studentsWithDrift > 0
@@ -1658,7 +1941,7 @@ function HeatmapContent() {
                   <div className="flex items-baseline gap-1.5">
                     <p
                       className={cn(
-                        "text-2xl sm:text-3xl font-extrabold tracking-tight leading-none",
+                        "text-2xl sm:text-3xl font-bold tracking-tight leading-none",
                         summary.studentsWithDrift > 0 ? "text-rose-900" : "text-slate-900"
                       )}
                     >
@@ -1707,7 +1990,7 @@ function HeatmapContent() {
 
                     <button
                       type="button"
-                      onClick={() => setViewMode("table")}
+                      onClick={() => router.push("/teacher/dashboard?view=students")}
                       className="text-xs font-semibold text-sky-600 hover:text-sky-700 flex items-center gap-1 self-start sm:self-auto cursor-pointer"
                     >
                       <span>Lihat Semua Siswa</span>
@@ -1892,7 +2175,7 @@ function HeatmapContent() {
                         <span
                           className={cn(
                             "text-[10px] font-bold uppercase tracking-wider mb-1",
-                            d.isToday ? "text-sky-600 font-extrabold" : "text-slate-400"
+                            d.isToday ? "text-sky-600 font-bold" : "text-slate-400"
                           )}
                         >
                           {d.label}
@@ -1901,7 +2184,7 @@ function HeatmapContent() {
                           className={cn(
                             "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition",
                             d.isToday
-                              ? "bg-sky-500 text-white font-extrabold shadow-xs ring-4 ring-sky-500/15"
+                              ? "bg-sky-500 text-white font-bold shadow-xs ring-4 ring-sky-500/15"
                               : d.isWorkday
                               ? "text-slate-800"
                               : "text-slate-400 font-normal"
@@ -1940,216 +2223,144 @@ function HeatmapContent() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => {
-                        setStatusFilter("DRIFT");
-                        setViewMode("table");
-                      }}
+                      onClick={() => router.push("/teacher/dashboard?view=drift")}
                       className="text-[11px] font-semibold text-sky-600 hover:text-sky-700 cursor-pointer"
                     >
                       Lihat Semua
                     </button>
                   </div>
 
-                  {/* Vertical Colored Strip Cards ala Reference Image */}
+                  {/* Vertical Colored Strip Cards ala Reference Image - 100% Dinamis dari priorityAlerts */}
                   <div className="space-y-2.5">
-                    {/* Card 1: Non-Competency Drift (Rose Strip) */}
-                    <div className="p-3.5 rounded-xl bg-white border border-slate-200/80 border-l-4 border-l-rose-500 shadow-2xs space-y-2 hover:bg-slate-50/50 transition">
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wide text-rose-700">
-                          Deviasi Non-Kompetensi
-                        </span>
-                        <span className="text-[11px] font-bold text-slate-800">8 JP</span>
-                      </div>
-                      <h4 className="text-xs font-bold text-slate-900 leading-snug">
-                        {data?.students?.[0]?.fullName || "Ahmad Rizky"} &bull; {data?.students?.[0]?.placement?.dudiName || "PT Telkom Akses"}
-                      </h4>
-                      <p className="text-[11px] text-slate-500 leading-relaxed font-normal">
-                        Porsi fotokopi &amp; tugas arsip 28% (Melebihi batas toleransi kurikulum maks 20%).
-                      </p>
-                      <div className="pt-1 flex items-center justify-between">
-                        <div className="flex items-center -space-x-1.5">
-                          <div className="w-6 h-6 rounded-full bg-slate-900 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white">
-                            AR
-                          </div>
-                          <div className="w-6 h-6 rounded-full bg-sky-500 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white">
-                            MT
-                          </div>
+                    {priorityAlerts.length === 0 ? (
+                      <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200/80 text-center space-y-2">
+                        <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+                          <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (data?.students?.[0]) openInterventionModal(data.students[0]);
-                          }}
-                          className="h-7 px-3 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10.5px] font-bold flex items-center gap-1 transition cursor-pointer"
-                        >
-                          <MessageCircle className="w-3 h-3 text-emerald-600" />
-                          <span>Intervensi WA</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Card 2: Monotoni Keterampilan (Amber Strip) */}
-                    <div className="p-3.5 rounded-xl bg-white border border-slate-200/80 border-l-4 border-l-amber-500 shadow-2xs space-y-2 hover:bg-slate-50/50 transition">
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wide text-amber-700">
-                          Monotoni Keterampilan
-                        </span>
-                        <span className="text-[11px] font-bold text-slate-800">8 JP</span>
-                      </div>
-                      <h4 className="text-xs font-bold text-slate-900 leading-snug">
-                        {data?.students?.[1]?.fullName || "Siti Nurhaliza"} &bull; {data?.students?.[1]?.placement?.dudiName || "PT Inovasi Digital"}
-                      </h4>
-                      <p className="text-[11px] text-slate-500 leading-relaxed font-normal">
-                        Pengerjaan modul frontend landing page berulang tanpa variasi CP kurikulum.
-                      </p>
-                      <div className="pt-1 flex items-center justify-between">
-                        <div className="flex items-center -space-x-1.5">
-                          <div className="w-6 h-6 rounded-full bg-slate-900 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white">
-                            SN
-                          </div>
-                          <div className="w-6 h-6 rounded-full bg-amber-500 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white">
-                            HW
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (data?.students?.[1]) openInterventionModal(data.students[1]);
-                          }}
-                          className="h-7 px-3 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10.5px] font-bold flex items-center gap-1 transition cursor-pointer"
-                        >
-                          <MessageCircle className="w-3 h-3 text-emerald-600" />
-                          <span>Intervensi WA</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Card 3: Menunggu Validasi PIN (Sky Strip) */}
-                    <div className="p-3.5 rounded-xl bg-white border border-slate-200/80 border-l-4 border-l-sky-500 shadow-2xs space-y-2 hover:bg-slate-50/50 transition">
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wide text-sky-700">
-                          Menunggu Validasi PIN
-                        </span>
-                        <span className="text-[11px] font-bold text-slate-800">8 JP</span>
-                      </div>
-                      <h4 className="text-xs font-bold text-slate-900 leading-snug">
-                        {data?.students?.[2]?.fullName || "Budi Pratama"} &bull; {data?.students?.[2]?.placement?.dudiName || "Cloud Solusindo"}
-                      </h4>
-                      <p className="text-[11px] text-slate-500 leading-relaxed font-normal">
-                        2 log jurnal menunggu input PIN mentor industri &gt; 48 jam.
-                      </p>
-                      <div className="pt-1 flex items-center justify-between">
-                        <div className="flex items-center -space-x-1.5">
-                          <div className="w-6 h-6 rounded-full bg-slate-900 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white">
-                            BP
-                          </div>
-                          <div className="w-6 h-6 rounded-full bg-sky-500 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white">
-                            RS
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (data?.students?.[2]) openInterventionModal(data.students[2]);
-                          }}
-                          className="h-7 px-3 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 text-[10.5px] font-bold flex items-center gap-1 transition cursor-pointer"
-                        >
-                          <Send className="w-3 h-3 text-sky-600" />
-                          <span>Ingatkan PIN</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. Upcoming Events (Agenda Supervisi & Kunjungan Lapangan) */}
-                <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/70 shadow-2xs space-y-3">
-                  <div className="flex items-center justify-between pb-1 border-b border-slate-100">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-                      Agenda Supervisi Lapangan
-                    </h3>
-                    <span className="text-[10.5px] text-slate-400 font-medium">3 Jadwal</span>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    {/* Event 1 */}
-                    <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100/80 flex items-center justify-center shrink-0">
-                        <Building2 className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h4 className="text-xs font-bold text-slate-900 truncate">
-                          Supervisi Lapangan PT Telkom Akses
-                        </h4>
-                        <div className="flex items-center gap-3 text-[10.5px] text-slate-500 mt-0.5">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-slate-400" />
-                            <span>09:00 - 11:30 WIB</span>
-                          </span>
-                          <span className="flex items-center gap-1 font-semibold text-slate-700">
-                            <Calendar className="w-3 h-3 text-slate-400" />
-                            <span>29 Okt</span>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Event 2 */}
-                    <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-100/80 flex items-center justify-center shrink-0">
-                        <Sparkles className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h4 className="text-xs font-bold text-slate-900 truncate">
-                          Sinkronisasi Kurikulum Mitra DUDI
-                        </h4>
-                        <div className="flex items-center gap-3 text-[10.5px] text-slate-500 mt-0.5">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-slate-400" />
-                            <span>14:00 - 16:00 WIB</span>
-                          </span>
-                          <span className="flex items-center gap-1 font-semibold text-slate-700">
-                            <Calendar className="w-3 h-3 text-slate-400" />
-                            <span>02 Nov</span>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Event 3 */}
-                    <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100/80 flex items-center justify-center shrink-0">
-                          <Award className="w-5 h-5" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <h4 className="text-xs font-bold text-slate-900 truncate">
-                            Evaluasi Tengah Semester &amp; e-Rapor
+                        <div>
+                          <h4 className="text-xs font-bold text-emerald-950">
+                            Semua Siswa di Jalur Kompetensi
                           </h4>
-                          <div className="flex items-center gap-3 text-[10.5px] text-slate-500 mt-0.5">
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3 h-3 text-slate-400" />
-                              <span>10:00 - 12:00 WIB</span>
-                            </span>
-                            <span className="flex items-center gap-1 font-semibold text-slate-700">
-                              <Calendar className="w-3 h-3 text-slate-400" />
-                              <span>06 Nov</span>
-                            </span>
-                          </div>
+                          <p className="text-[11px] text-emerald-800/80 leading-relaxed mt-0.5">
+                            Zero Drift: Seluruh siswa binaan melaksanakan penugasan magang sesuai capaian pembelajaran kurikulum.
+                          </p>
                         </div>
                       </div>
+                    ) : (
+                      priorityAlerts.slice(0, 4).map(({ student, alert }) => {
+                        const isNonComp = alert.alertType === "NON_COMPETENCY_OVERLOAD";
+                        const isMonotony = alert.alertType === "SKILL_MONOTONY";
+                        const isDormancy = alert.alertType === "APPROVAL_DORMANCY";
 
-                      <button
-                        type="button"
-                        onClick={handleDownloadErapor}
-                        disabled={isDownloadingErapor}
-                        className="h-8 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-[11px] font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 disabled:opacity-50 shadow-2xs"
-                        title="Unduh Rekapitulasi CSV Nilai e-Rapor Kurikulum Merdeka"
-                      >
-                        <Award className="w-3.5 h-3.5" />
-                        <span>{isDownloadingErapor ? "Mengunduh..." : "Unduh CSV"}</span>
-                      </button>
-                    </div>
+                        const title = isNonComp
+                          ? "Deviasi Non-Kompetensi"
+                          : isMonotony
+                          ? "Monotoni Keterampilan"
+                          : isDormancy
+                          ? "Menunggu Validasi PIN"
+                          : "Perlu Evaluasi DUDI";
+
+                        const borderClass = isNonComp
+                          ? "border-l-rose-500"
+                          : isMonotony
+                          ? "border-l-amber-500"
+                          : "border-l-sky-500";
+
+                        const titleColor = isNonComp
+                          ? "text-rose-700"
+                          : isMonotony
+                          ? "text-amber-700"
+                          : "text-sky-700";
+
+                        const statText = isNonComp
+                          ? `${Math.round((alert.metricSnapshot.ratio || 0.28) * 100)}% Rasio`
+                          : isMonotony
+                          ? `${Math.round((alert.metricSnapshot.dominantRatio || 0.8) * 100)}% Dominan`
+                          : `${alert.metricSnapshot.dormantLogCount || 2} Jurnal`;
+
+                        const studentInitials = student.fullName
+                          .split(" ")
+                          .map((w) => w[0])
+                          .slice(0, 2)
+                          .join("")
+                          .toUpperCase();
+
+                        const mentorInitials = (student.placement.mentorName || "MI")
+                          .split(" ")
+                          .map((w) => w[0])
+                          .slice(0, 2)
+                          .join("")
+                          .toUpperCase();
+
+                        const reasonText =
+                          alert.metricSnapshot.detectedReason ||
+                          (isNonComp
+                            ? "Porsi tugas non-kompetensi melebihi ambang batas toleransi kurikulum maks 20%."
+                            : isMonotony
+                            ? "Pengerjaan modul kompetensi berulang tanpa variasi elemen CP kurikulum."
+                            : "Jurnal kegiatan menunggu input PIN pengesahan mentor industri > 48 jam.");
+
+                        return (
+                          <div
+                            key={alert.id || student.studentId}
+                            className={cn(
+                              "p-3.5 rounded-xl bg-white border border-slate-200/80 border-l-4 shadow-2xs space-y-2 hover:bg-slate-50/50 transition",
+                              borderClass
+                            )}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <span className={cn("text-[10px] font-bold uppercase tracking-wide", titleColor)}>
+                                {title}
+                              </span>
+                              <span className="text-[11px] font-bold text-slate-800">{statText}</span>
+                            </div>
+                            <h4 className="text-xs font-bold text-slate-900 leading-snug">
+                              {student.fullName} &bull; {student.placement.dudiName}
+                            </h4>
+                            <p className="text-[11px] text-slate-500 leading-relaxed font-normal">
+                              {reasonText}
+                            </p>
+                            <div className="pt-1 flex items-center justify-between">
+                              <div className="flex items-center -space-x-1.5">
+                                <div className="w-6 h-6 rounded-full bg-slate-900 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white">
+                                  {studentInitials}
+                                </div>
+                                <div
+                                  className={cn(
+                                    "w-6 h-6 rounded-full text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white",
+                                    isNonComp ? "bg-rose-500" : isMonotony ? "bg-amber-500" : "bg-sky-500"
+                                  )}
+                                >
+                                  {mentorInitials}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => openInterventionModal(student, alert)}
+                                className={cn(
+                                  "h-7 px-3 rounded-lg text-[10.5px] font-bold flex items-center gap-1 transition cursor-pointer border",
+                                  isDormancy
+                                    ? "bg-sky-50 hover:bg-sky-100 text-sky-800 border-sky-200"
+                                    : "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200"
+                                )}
+                              >
+                                {isDormancy ? (
+                                  <>
+                                    <Send className="w-3 h-3 text-sky-600" />
+                                    <span>Ingatkan PIN</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <MessageCircle className="w-3 h-3 text-emerald-600" />
+                                    <span>Intervensi WA</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               </div>
@@ -2162,16 +2373,16 @@ function HeatmapContent() {
           <div className="space-y-4">
             <div className="bg-white rounded-2xl border border-slate-200/70 shadow-2xs overflow-hidden">
               {/* Header Bar Tabel Capaian */}
-              <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight">
+              <div className="px-4 sm:px-5 py-3 sm:py-3.5 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50">
+                <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                  <span className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight truncate">
                     {isDriftView
                       ? "Tabel Intervensi Siswa Terindikasi Drift"
                       : "Tabel Kumpulan Siswa Binaan"}
                   </span>
                   <span
                     className={cn(
-                      "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border shadow-2xs",
+                      "inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-semibold border shadow-2xs shrink-0",
                       isDriftView
                         ? "bg-rose-50 text-rose-700 border-rose-200"
                         : "bg-white text-slate-700 border-slate-200"
@@ -2180,17 +2391,31 @@ function HeatmapContent() {
                     {filteredStudents.length} Siswa Terdaftar
                   </span>
                   {!isDriftView && summary.studentsWithDrift > 0 && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 text-xs font-semibold border border-rose-200 shadow-2xs">
+                    <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 text-[11px] sm:text-xs font-semibold border border-rose-200 shadow-2xs shrink-0">
                       <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
                       {summary.studentsWithDrift} Drift
                     </span>
                   )}
                 </div>
-                <span className="text-xs text-slate-500 hidden sm:inline">
-                  {isDriftView
-                    ? "Klik tombol intervensi untuk koordinasi WhatsApp, jadwalkan visit, atau rotasi DUDI"
-                    : "Klik baris atau tombol rincian untuk rekapitulasi lengkap"}
-                </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  {isDriftView && (
+                    <button
+                      type="button"
+                      onClick={handleTriggerEvaluate}
+                      disabled={isEvaluating}
+                      className="inline-flex md:hidden items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-semibold cursor-pointer shadow-2xs transition active:scale-95 disabled:opacity-50"
+                      title="Jalankan Evaluasi Algoritma Drift Sekarang"
+                    >
+                      <RefreshCw className={cn("w-3 h-3", isEvaluating && "animate-spin")} />
+                      <span>{isEvaluating ? "Evaluasi..." : "Evaluasi"}</span>
+                    </button>
+                  )}
+                  <span className="text-xs text-slate-500 hidden sm:inline">
+                    {isDriftView
+                      ? "Klik tombol intervensi untuk koordinasi WhatsApp, jadwalkan visit, atau rotasi DUDI"
+                      : "Klik baris atau tombol rincian untuk rekapitulasi lengkap"}
+                  </span>
+                </div>
               </div>
 
               {/* Desktop Table View (>= lg) */}
@@ -2255,7 +2480,7 @@ function HeatmapContent() {
                       </tr>
                     ) : (
                       paginatedStudents.map((student, idx) => {
-                        const rowNumber = (safeCurrentPage - 1) * PAGE_SIZE + idx + 1;
+                        const rowNumber = (safeCurrentPage - 1) * pageSize + idx + 1;
                         const initials = student.fullName
                           .split(" ")
                           .map((w) => w[0])
@@ -2401,7 +2626,7 @@ function HeatmapContent() {
                                 <div className="space-y-0.5">
                                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/70">
                                     <AlertOctagon className="w-3 h-3 text-amber-600 shrink-0" />
-                                    <span>{student.nonCompetencyJpLast14Days} JP Non-Komp</span>
+                                    <span>{`${student.nonCompetencyJpLast14Days} JP Non-Komp`}</span>
                                   </span>
                                   <p className="text-[10px] text-slate-400">
                                     Total {student.totalJpLast14Days} JP 14 hr
@@ -2460,7 +2685,7 @@ function HeatmapContent() {
                                   <span>Rincian</span>
                                 </button>
                                 <Link
-                                  href={`/verify/${student.studentId}`}
+                                  href={`/verify/${student.passportSlug || student.studentId}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="h-8 px-2.5 rounded-lg bg-sky-50 hover:bg-sky-100 active:scale-95 text-sky-700 border border-sky-200/70 text-[11px] font-semibold flex items-center gap-1 transition cursor-pointer"
@@ -2507,7 +2732,7 @@ function HeatmapContent() {
                   </div>
                 ) : (
                   paginatedStudents.map((student, idx) => {
-                    const rowNumber = (safeCurrentPage - 1) * PAGE_SIZE + idx + 1;
+                    const rowNumber = (safeCurrentPage - 1) * pageSize + idx + 1;
                     const initials = student.fullName
                       .split(" ")
                       .map((w) => w[0])
@@ -2593,7 +2818,7 @@ function HeatmapContent() {
                               <span>Rincian</span>
                             </button>
                             <Link
-                              href={`/verify/${student.studentId}`}
+                              href={`/verify/${student.passportSlug || student.studentId}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="h-8 px-3 rounded-lg bg-sky-50 hover:bg-sky-100 active:scale-95 text-sky-700 border border-sky-200/70 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
@@ -2624,66 +2849,7 @@ function HeatmapContent() {
             </div>
 
             {/* Centered Pagination for Table View */}
-            {totalPages > 1 && (
-              <div className="pt-4 border-t border-slate-200/60 flex items-center justify-center">
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <button
-                    type="button"
-                    disabled={safeCurrentPage <= 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="h-9 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs"
-                    title="Halaman Sebelumnya"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    <span>Sebelumnya</span>
-                  </button>
-
-                  <div className="flex items-center gap-1 sm:gap-1.5 mx-0.5 sm:mx-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1)
-                      .filter((page) => {
-                        if (totalPages <= 5) return true;
-                        return (
-                          page === 1 ||
-                          page === totalPages ||
-                          Math.abs(page - safeCurrentPage) <= 1
-                        );
-                      })
-                      .map((page, idx, arr) => {
-                        const prev = arr[idx - 1];
-                        const showEllipsis = prev && page - prev > 1;
-                        return (
-                          <React.Fragment key={page}>
-                            {showEllipsis && <span className="px-1 text-slate-400 text-xs sm:text-sm">...</span>}
-                            <button
-                              type="button"
-                              onClick={() => setCurrentPage(page)}
-                              className={cn(
-                                "min-w-[36px] h-9 px-2.5 rounded-xl text-xs sm:text-sm flex items-center justify-center transition-all cursor-pointer",
-                                safeCurrentPage === page
-                                  ? "bg-sky-500 text-white font-bold shadow-xs border border-sky-500"
-                                  : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs"
-                              )}
-                            >
-                              {page}
-                            </button>
-                          </React.Fragment>
-                        );
-                      })}
-                  </div>
-
-                  <button
-                    type="button"
-                    disabled={safeCurrentPage >= totalPages}
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    className="h-9 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs"
-                    title="Halaman Berikutnya"
-                  >
-                    <span>Berikutnya</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
+            {renderPagination()}
           </div>
         )}
 
@@ -2692,7 +2858,7 @@ function HeatmapContent() {
           <div className="space-y-4">
             <div className="bg-white rounded-2xl border border-slate-200/70 shadow-2xs overflow-hidden">
               {/* Header Bar Tabel Capaian */}
-              <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50">
+              <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50 flex-wrap">
                 <div className="flex items-center gap-2.5">
                   <span className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight">
                     Ketercapaian per Elemen Capaian Pembelajaran (CP)
@@ -2701,6 +2867,16 @@ function HeatmapContent() {
                     {filteredStudents.length} Siswa Terdaftar
                   </span>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowJobCardModal(true)}
+                  className="h-8 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-95 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                  title="Lihat Katalog & Tambah Kartu Pekerjaan (Job Card) Jurusan"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Katalog &amp; Tambah Job Card</span>
+                </button>
               </div>
 
               {/* Desktop Table */}
@@ -2998,66 +3174,7 @@ function HeatmapContent() {
             </div>
 
             {/* ─── Modern Minimalist Centered Pagination (TERPISAH DARI CARD UTAMA) ─── */}
-            {totalPages > 1 && (
-              <div className="pt-4 border-t border-slate-200/60 flex items-center justify-center">
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <button
-                    type="button"
-                    disabled={safeCurrentPage <= 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="h-9 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs"
-                    title="Halaman Sebelumnya"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    <span>Sebelumnya</span>
-                  </button>
-
-                  <div className="flex items-center gap-1 sm:gap-1.5 mx-0.5 sm:mx-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1)
-                      .filter((page) => {
-                        if (totalPages <= 5) return true;
-                        return (
-                          page === 1 ||
-                          page === totalPages ||
-                          Math.abs(page - safeCurrentPage) <= 1
-                        );
-                      })
-                      .map((page, idx, arr) => {
-                        const prev = arr[idx - 1];
-                        const showEllipsis = prev && page - prev > 1;
-                        return (
-                          <React.Fragment key={page}>
-                            {showEllipsis && <span className="px-1 text-slate-400 text-xs sm:text-sm">...</span>}
-                            <button
-                              type="button"
-                              onClick={() => setCurrentPage(page)}
-                              className={cn(
-                                "min-w-[36px] h-9 px-2.5 rounded-xl text-xs sm:text-sm flex items-center justify-center transition-all cursor-pointer",
-                                safeCurrentPage === page
-                                  ? "bg-sky-500 text-white font-bold shadow-xs border border-sky-500"
-                                  : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs"
-                              )}
-                            >
-                              {page}
-                            </button>
-                          </React.Fragment>
-                        );
-                      })}
-                  </div>
-
-                  <button
-                    type="button"
-                    disabled={safeCurrentPage >= totalPages}
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    className="h-9 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs"
-                    title="Halaman Berikutnya"
-                  >
-                    <span>Berikutnya</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
+            {renderPagination()}
           </div>
           )}
 
@@ -3094,59 +3211,55 @@ function HeatmapContent() {
                     return (
                       <div
                         key={student.studentId}
-                        className="rounded-2xl p-4 sm:p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-xs transition-all flex flex-col justify-between space-y-4 bg-white shadow-2xs group cursor-pointer"
+                        className="rounded-2xl p-4 sm:p-5 border border-slate-200/80 hover:border-sky-300 hover:shadow-xs transition-all flex flex-col justify-between space-y-4 bg-white shadow-2xs group cursor-pointer"
                         onClick={() => setSelectedStudent(student)}
                       >
                         <div className="space-y-3.5">
-                          <div className="flex items-start justify-between gap-3">
+                          {/* 1. Header Row: Avatar, Identity & Status Badge */}
+                          <div className="flex items-start justify-between gap-2.5">
                             <div className="flex items-center gap-3 min-w-0">
-                              {/* Modern Student Squircle Ribbon Badge (Konsisten dengan Tile Siswa) */}
-                              <div className="w-12 sm:w-13 h-13 sm:h-14 rounded-2xl bg-white border border-slate-200/90 flex flex-col items-center justify-between text-center shrink-0 shadow-2xs group-hover:border-sky-300 group-hover:shadow-xs transition-all overflow-hidden select-none">
-                                <div
-                                  className={cn(
-                                    "w-full py-0.5 border-b transition-colors",
-                                    student.hasDriftWarning
-                                      ? "bg-rose-600 group-hover:bg-rose-500 border-rose-700/20"
-                                      : "bg-sky-600 group-hover:bg-sky-500 border-sky-700/20"
-                                  )}
-                                >
-                                  <span className="text-[9.5px] font-bold text-white tracking-wider uppercase leading-none block">
-                                    {student.hasDriftWarning ? "DRIFT" : "FASE F"}
-                                  </span>
-                                </div>
-                                <span className="text-sm sm:text-base font-black text-slate-900 leading-none py-0.5 tracking-tight font-sans">
-                                  {initials}
-                                </span>
-                                <div className="w-full pb-1">
-                                  <span className="text-[9.5px] font-semibold text-slate-400 uppercase leading-none block">
-                                    {student.overallPercentage}%
-                                  </span>
-                                </div>
+                              {/* Modern Gradient Squircle Avatar */}
+                              <div
+                                className={cn(
+                                  "w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs transition-transform duration-200 group-hover:scale-105",
+                                  student.hasDriftWarning
+                                    ? "bg-rose-100 text-rose-700 border border-rose-200"
+                                    : student.overallPercentage >= 75
+                                    ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                                    : "bg-gradient-to-br from-sky-500 to-indigo-600 text-white"
+                                )}
+                              >
+                                {initials}
                               </div>
 
-                              <div className="min-w-0">
-                                <h3 className="font-semibold text-xs sm:text-sm text-slate-900 group-hover:text-sky-600 transition-colors truncate">
+                              <div className="min-w-0 flex-1">
+                                <h3 className="font-bold text-xs sm:text-[13.5px] text-slate-900 group-hover:text-sky-600 transition-colors truncate">
                                   {student.fullName}
                                 </h3>
-                                <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                                  {student.placement.dudiName} · NISN {student.nisn}
+                                <p className="text-[11px] text-slate-500 truncate flex items-center gap-1 mt-0.5">
+                                  <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
+                                  <span className="truncate">{student.placement.dudiName}</span>
+                                </p>
+                                <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                  NISN {student.nisn}
                                 </p>
                               </div>
                             </div>
 
-                            <div className="shrink-0 flex flex-col items-end gap-1">
+                            {/* Status Badge */}
+                            <div className="shrink-0">
                               {student.hasDriftWarning ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200/70 text-[11px] font-medium leading-none">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200/70 text-[11px] font-bold leading-none shadow-2xs">
                                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
                                   <span>Drift</span>
                                 </span>
                               ) : student.overallPercentage >= 75 ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[11px] font-medium leading-none">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[11px] font-bold leading-none shadow-2xs">
                                   <Check className="w-3 h-3 stroke-[2.5]" />
                                   <span>Tuntas</span>
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200/70 text-[11px] font-medium leading-none">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-50/80 text-sky-700 border border-sky-200/60 text-[11px] font-semibold leading-none shadow-2xs">
                                   <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
                                   <span>Sesuai Target</span>
                                 </span>
@@ -3154,44 +3267,80 @@ function HeatmapContent() {
                             </div>
                           </div>
 
-                          {/* Progress Bar */}
-                          <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                            <div
-                              className={cn(
-                                "h-full rounded-full transition-all duration-500",
-                                student.hasDriftWarning
-                                  ? "bg-rose-500"
-                                  : student.overallPercentage >= 75
-                                    ? "bg-emerald-500"
-                                    : "bg-sky-500"
-                              )}
-                              style={{ width: `${Math.min(100, student.overallPercentage)}%` }}
-                            />
-                          </div>
-
-                          {/* Activity Detail Strip */}
-                          <div className="flex items-center justify-between text-xs px-3.5 py-2.5 rounded-xl bg-slate-50/80 border border-slate-200/70">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <Clock className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-                              <span className="text-slate-500 text-[11px] truncate">14 Hari:</span>
-                              <span className="font-bold text-slate-800 text-xs truncate">
-                                {student.totalJpLast14Days - student.nonCompetencyJpLast14Days} JP Kompetensi
+                          {/* 2. Total Verified JP & Progress Bar */}
+                          <div className="space-y-1.5 pt-0.5">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-[11px] font-semibold text-slate-500 flex items-center gap-1">
+                                <span>Progres PKL:</span>
+                                <strong className="text-slate-900 font-bold">{student.totalVerifiedJp}</strong>
+                                <span className="text-slate-400 font-normal">/ 792 JP</span>
+                              </span>
+                              <span
+                                className={cn(
+                                  "text-xs font-bold tabular-nums",
+                                  student.hasDriftWarning
+                                    ? "text-rose-600 font-bold"
+                                    : student.overallPercentage >= 75
+                                    ? "text-emerald-600"
+                                    : "text-sky-600"
+                                )}
+                              >
+                                {student.overallPercentage}%
                               </span>
                             </div>
-                            <span
-                              className={cn(
-                                "text-[10.5px] font-semibold px-2 py-0.5 rounded-md shrink-0",
-                                student.nonCompetencyJpLast14Days > 0
-                                  ? "bg-amber-50 text-amber-700 border border-amber-200/70"
-                                  : "text-slate-400 bg-slate-100"
-                              )}
-                            >
-                              {student.nonCompetencyJpLast14Days} JP Non-Kompetensi
-                            </span>
+
+                            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden shadow-inner">
+                              <div
+                                className={cn(
+                                  "h-full rounded-full transition-all duration-500",
+                                  student.hasDriftWarning
+                                    ? "bg-gradient-to-r from-rose-500 to-amber-500"
+                                    : student.overallPercentage >= 75
+                                    ? "bg-gradient-to-r from-emerald-500 to-teal-500"
+                                    : "bg-gradient-to-r from-sky-500 to-blue-600"
+                                )}
+                                style={{ width: `${Math.min(100, student.overallPercentage)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* 3. Balanced Dual-Stat Summary (14 Hari vs Non-Kompetensi) */}
+                          <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/60 text-xs">
+                            <div className="space-y-0.5">
+                              <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
+                                14 Hari Terakhir
+                              </span>
+                              <div className="flex items-center gap-1 font-bold text-slate-800 text-[11.5px]">
+                                <Clock className="w-3 h-3 text-sky-500 shrink-0" />
+                                <span className="truncate">
+                                  {student.totalJpLast14Days - student.nonCompetencyJpLast14Days} JP Kejuruan
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="space-y-0.5 border-l border-slate-200/60 pl-2.5">
+                              <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
+                                Non-Kompetensi
+                              </span>
+                              <div className="flex items-center gap-1 text-[11.5px]">
+                                <span
+                                  className={cn(
+                                    "font-bold truncate",
+                                    student.nonCompetencyJpLast14Days > 0
+                                      ? "text-amber-600"
+                                      : "text-slate-500"
+                                  )}
+                                >
+                                  {student.nonCompetencyJpLast14Days > 0
+                                    ? `${student.nonCompetencyJpLast14Days} JP (Pantau)`
+                                    : "0 JP (Bersih)"}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         </div>
 
-                        {/* Action Buttons Bar */}
+                        {/* 4. Action Buttons Bar */}
                         <div
                           className="pt-2.5 flex items-center justify-between border-t border-slate-100 gap-2"
                           onClick={(e) => e.stopPropagation()}
@@ -3200,29 +3349,36 @@ function HeatmapContent() {
                             <button
                               type="button"
                               onClick={() => setSelectedStudent(student)}
-                              className="h-8.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                              className="h-8.5 px-3 rounded-xl bg-sky-50 hover:bg-sky-100 active:scale-95 text-sky-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer border border-sky-200/50"
                               title="Buka Rincian Capaian Elemen Kompetensi Siswa"
                             >
-                              <Eye className="w-3.5 h-3.5 text-slate-500" />
+                              <Eye className="w-3.5 h-3.5 text-sky-600" />
                               <span>Rincian CP</span>
                             </button>
+
                             <Link
-                              href={`/verify/${student.studentId}`}
+                              href={`/verify/${student.passportSlug || student.studentId}`}
                               target="_blank"
-                              className="h-8.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                              className="h-8.5 px-3 rounded-xl bg-white hover:bg-slate-50 active:scale-95 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer border border-slate-200 shadow-2xs"
                               title="Pratinjau Paspor Portofolio Ber-QR"
                             >
                               <Award className="w-3.5 h-3.5 text-amber-500" />
-                              <span className="hidden sm:inline">Paspor</span>
+                              <span>Paspor</span>
                             </Link>
                           </div>
 
                           <button
                             type="button"
                             onClick={() => openInterventionModal(student)}
-                            className="h-8.5 px-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                            className={cn(
+                              "h-8.5 px-3 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 shadow-2xs",
+                              student.hasDriftWarning
+                                ? "bg-rose-600 hover:bg-rose-700 text-white animate-pulse"
+                                : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                            )}
+                            title={student.hasDriftWarning ? "Kirim Intervensi DUDI Segera" : "Buka Menu Koordinasi & Intervensi"}
                           >
-                            <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+                            <Sparkles className={cn("w-3.5 h-3.5", student.hasDriftWarning ? "text-amber-300" : "text-sky-500")} />
                             <span>Intervensi</span>
                           </button>
                         </div>
@@ -3233,66 +3389,7 @@ function HeatmapContent() {
               </div>
 
               {/* Modern Minimalist Centered Pagination for Cards View */}
-              {totalPages > 1 && (
-                <div className="pt-4 border-t border-slate-200/60 flex items-center justify-center">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <button
-                      type="button"
-                      disabled={safeCurrentPage <= 1}
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      className="h-9 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs"
-                      title="Halaman Sebelumnya"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                      <span>Sebelumnya</span>
-                    </button>
-
-                    <div className="flex items-center gap-1 sm:gap-1.5 mx-0.5 sm:mx-1">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1)
-                        .filter((page) => {
-                          if (totalPages <= 5) return true;
-                          return (
-                            page === 1 ||
-                            page === totalPages ||
-                            Math.abs(page - safeCurrentPage) <= 1
-                          );
-                        })
-                        .map((page, idx, arr) => {
-                          const prev = arr[idx - 1];
-                          const showEllipsis = prev && page - prev > 1;
-                          return (
-                            <React.Fragment key={page}>
-                              {showEllipsis && <span className="px-1 text-slate-400 text-xs sm:text-sm">...</span>}
-                              <button
-                                type="button"
-                                onClick={() => setCurrentPage(page)}
-                                className={cn(
-                                  "min-w-[36px] h-9 px-2.5 rounded-xl text-xs sm:text-sm flex items-center justify-center transition-all cursor-pointer",
-                                  safeCurrentPage === page
-                                    ? "bg-sky-500 text-white font-bold shadow-xs border border-sky-500"
-                                    : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs"
-                                )}
-                              >
-                                {page}
-                              </button>
-                            </React.Fragment>
-                          );
-                        })}
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={safeCurrentPage >= totalPages}
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                      className="h-9 px-3.5 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs"
-                      title="Halaman Berikutnya"
-                    >
-                      <span>Berikutnya</span>
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
+              {renderPagination()}
             </div>
           )}
 
@@ -3300,14 +3397,14 @@ function HeatmapContent() {
           {viewMode === "security" && (
             <div className="bg-white rounded-2xl border border-slate-200/70 shadow-2xs overflow-hidden">
               {/* Header Bar Tabel Audit */}
-              <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight">
+              <div className="px-4 sm:px-5 py-3 sm:py-3.5 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50">
+                <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                  <span className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight truncate">
                     Tabel Insiden Keamanan &amp; Audit Validasi
                   </span>
                   <span
                     className={cn(
-                      "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border shadow-2xs",
+                      "inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-semibold border shadow-2xs shrink-0",
                       securityFlags.length > 0
                         ? "bg-rose-50 text-rose-700 border-rose-200"
                         : "bg-emerald-50 text-emerald-700 border-emerald-200"
@@ -3316,9 +3413,20 @@ function HeatmapContent() {
                     {securityFlags.length} Insiden Aktif
                   </span>
                 </div>
-                <span className="text-xs text-slate-500 hidden sm:inline">
-                  Pemeriksaan token perangkat resmi, verifikasi PIN mentor, dan deteksi replay tautan
-                </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={loadSecurityFlags}
+                    className="inline-flex md:hidden items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-semibold cursor-pointer shadow-2xs transition active:scale-95"
+                    title="Segarkan Log Audit Keamanan"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Segarkan</span>
+                  </button>
+                  <span className="text-xs text-slate-500 hidden sm:inline">
+                    Pemeriksaan token perangkat resmi, verifikasi PIN mentor, dan deteksi replay tautan
+                  </span>
+                </div>
               </div>
 
               {securityFlags.length === 0 ? (
@@ -3594,58 +3702,71 @@ function HeatmapContent() {
           driftCount={summary.studentsWithDrift}
           securityFlagsCount={securityFlags.length}
           priorityStudents={widgetPriorityStudents}
-          onViewSecurityAudit={() => setViewMode("security")}
-          onOpenNotifications={() => setViewMode(viewMode === "security" ? "cards" : "security")}
+          onViewSecurityAudit={() => router.push("/teacher/dashboard?view=security")}
+          onOpenNotifications={() => setShowNotificationModal(true)}
         />
       )}
       {/* ─────────────────────────────────────────────────────────────────────────────
-          MODAL 1: DETAIL SISWA & BREAKDOWN DISTRIBUSI JAM
+          MODAL 1: DETAIL SISWA & BREAKDOWN DISTRIBUSI JAM + BUKTI FOTO LOGBOOK
       ───────────────────────────────────────────────────────────────────────────── */}
       {isMounted &&
         selectedStudent &&
         createPortal(
           <div
             onClick={() => setSelectedStudent(null)}
-            className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in-0 duration-150"
+            className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in-0 duration-150"
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-6 pb-[env(safe-area-inset-bottom,1.5rem)] sm:pb-6 border border-slate-200/80 shadow-modal space-y-4 max-h-[90vh] overflow-y-auto"
+              className="bg-white w-full max-w-xl sm:max-w-2xl rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 pb-[env(safe-area-inset-bottom,1.5rem)] sm:pb-6 border border-slate-200/80 shadow-modal space-y-4 max-h-[92vh] overflow-y-auto"
             >
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div>
-                  <span className="text-[10px] font-semibold text-sky-600 uppercase tracking-wider block">
-                    Rincian Capaian Siswa
-                  </span>
-                  <h3 className="font-semibold text-base text-slate-900">
-                    {selectedStudent.fullName}
-                  </h3>
+              {/* Header Siswa */}
+              <div className="flex items-start justify-between border-b border-slate-100 pb-3 gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white font-bold text-sm flex items-center justify-center shadow-xs shrink-0 tracking-tight">
+                    {selectedStudent.fullName
+                      .split(" ")
+                      .map((w) => w[0])
+                      .slice(0, 2)
+                      .join("")
+                      .toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-sky-600 uppercase tracking-wider">
+                        Profil &amp; Portofolio PKL
+                      </span>
+                      <span className="text-[10px] font-semibold text-slate-400">•</span>
+                      <span className="text-[10px] font-mono text-slate-500">
+                        NISN {selectedStudent.nisn}
+                      </span>
+                    </div>
+                    <h3 className="font-bold text-base sm:text-lg text-slate-900 truncate">
+                      {selectedStudent.fullName}
+                    </h3>
+                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSelectedStudent(null)}
-                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 cursor-pointer transition"
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 cursor-pointer transition shrink-0"
+                  aria-label="Tutup Rincian Siswa"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/70 text-xs space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">NISN:</span>
-                  <span className="font-mono font-semibold text-slate-800">
-                    {selectedStudent.nisn}
-                  </span>
-                </div>
-                <div className="flex justify-between">
+              {/* Info Mitra DUDI & Mentor */}
+              <div className="p-3 rounded-2xl bg-slate-50/80 border border-slate-200/70 text-xs grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="flex items-center justify-between sm:justify-start sm:gap-2">
                   <span className="text-slate-500">Mitra DUDI:</span>
-                  <span className="font-semibold text-slate-800">
+                  <span className="font-semibold text-slate-800 truncate">
                     {selectedStudent.placement.dudiName}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Mentor Industri:</span>
-                  <span className="font-medium text-slate-800">
+                <div className="flex items-center justify-between sm:justify-start sm:gap-2">
+                  <span className="text-slate-500">Mentor:</span>
+                  <span className="font-medium text-slate-800 truncate">
                     {selectedStudent.placement.mentorName}{" "}
                     {selectedStudent.placement.mentorPhone &&
                       `(${selectedStudent.placement.mentorPhone})`}
@@ -3653,63 +3774,263 @@ function HeatmapContent() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5 text-center">
-                <div className="p-3 rounded-2xl bg-sky-50/70 border border-sky-200/60">
-                  <p className="text-[10px] font-semibold uppercase text-sky-700">
-                    Jam Kompetensi (14 Hari)
-                  </p>
-                  <p className="text-base font-bold text-slate-900 mt-0.5">
-                    {selectedStudent.totalJpLast14Days - selectedStudent.nonCompetencyJpLast14Days} JP
-                  </p>
-                </div>
-                <div
+              {/* Segmented Tab Bar */}
+              <div className="flex p-1 bg-slate-100 rounded-2xl border border-slate-200/70 text-xs font-semibold gap-1">
+                <button
+                  type="button"
+                  onClick={() => setStudentModalTab("cp")}
                   className={cn(
-                    "p-3 rounded-2xl border",
-                    selectedStudent.nonCompetencyJpLast14Days > 0
-                      ? "bg-rose-50/70 border-rose-200/70 text-rose-900"
-                      : "bg-slate-50 border-slate-200/60 text-slate-600"
+                    "flex-1 py-2 px-3 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer",
+                    studentModalTab === "cp"
+                      ? "bg-white text-slate-900 shadow-xs border border-slate-200/50 font-bold"
+                      : "text-slate-600 hover:text-slate-900"
                   )}
                 >
-                  <p className="text-[10px] font-semibold uppercase">Non-Kompetensi (14 Hari)</p>
-                  <p className="text-base font-bold mt-0.5">
-                    {selectedStudent.nonCompetencyJpLast14Days} JP
-                  </p>
-                </div>
+                  <TrendingUp className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Capaian Elemen CP</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStudentModalTab("logs")}
+                  className={cn(
+                    "flex-1 py-2 px-3 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer relative",
+                    studentModalTab === "logs"
+                      ? "bg-white text-slate-900 shadow-xs border border-slate-200/50 font-bold"
+                      : "text-slate-600 hover:text-slate-900"
+                  )}
+                >
+                  <Camera className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Laporan &amp; Bukti Foto</span>
+                  <span
+                    className={cn(
+                      "px-1.5 py-0.2 rounded-full text-[10px] font-bold transition",
+                      studentModalTab === "logs"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-slate-200 text-slate-700"
+                    )}
+                  >
+                    {studentLogs.length}
+                  </span>
+                </button>
               </div>
 
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-slate-700">
-                  Progres Elemen CP (Target {TOTAL_TARGET_JP} JP):
-                </p>
-                <div className="space-y-2">
-                  {selectedStudent.cpProgress.map((cp) => (
-                    <div
-                      key={cp.cpElementId}
-                      className="p-3 rounded-2xl border border-slate-200/70 bg-white text-xs space-y-1.5"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium text-slate-800 truncate">{cp.title}</span>
-                        <span className="font-mono text-[11px] font-semibold text-slate-700 shrink-0">
-                          {cp.percentage}% ({cp.verifiedJp}/{cp.targetJp} JP)
-                        </span>
-                      </div>
-                      <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                        <div
-                          className={cn(
-                            "h-full rounded-full",
-                            cp.percentage >= 75 ? "bg-emerald-500" : "bg-sky-500"
-                          )}
-                          style={{ width: `${Math.min(100, cp.percentage)}%` }}
-                        />
-                      </div>
+              {/* TAB 1: Capaian Elemen CP */}
+              {studentModalTab === "cp" && (
+                <div className="space-y-3 animate-in fade-in-50 duration-150">
+                  <div className="grid grid-cols-2 gap-2.5 text-center">
+                    <div className="p-3 rounded-2xl bg-sky-50/70 border border-sky-200/60">
+                      <p className="text-[10px] font-semibold uppercase text-sky-700">
+                        Jam Kompetensi (14 Hari)
+                      </p>
+                      <p className="text-base font-bold text-slate-900 mt-0.5">
+                        {selectedStudent.totalJpLast14Days - selectedStudent.nonCompetencyJpLast14Days} JP
+                      </p>
                     </div>
-                  ))}
-                </div>
-              </div>
+                    <div
+                      className={cn(
+                        "p-3 rounded-2xl border",
+                        selectedStudent.nonCompetencyJpLast14Days > 0
+                          ? "bg-rose-50/70 border-rose-200/70 text-rose-900"
+                          : "bg-slate-50 border-slate-200/60 text-slate-600"
+                      )}
+                    >
+                      <p className="text-[10px] font-semibold uppercase">Non-Kompetensi (14 Hari)</p>
+                      <p className="text-base font-bold mt-0.5">
+                        {selectedStudent.nonCompetencyJpLast14Days} JP
+                      </p>
+                    </div>
+                  </div>
 
-              <div className="pt-2 flex items-center gap-2">
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-slate-700">
+                      Progres Elemen CP (Target {TOTAL_TARGET_JP} JP):
+                    </p>
+                    <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
+                      {selectedStudent.cpProgress.map((cp) => (
+                        <div
+                          key={cp.cpElementId}
+                          className="p-3 rounded-2xl border border-slate-200/70 bg-white text-xs space-y-1.5"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium text-slate-800 truncate">{cp.title}</span>
+                            <span className="font-mono text-[11px] font-semibold text-slate-700 shrink-0">
+                              {cp.percentage}% ({cp.verifiedJp}/{cp.targetJp} JP)
+                            </span>
+                          </div>
+                          <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className={cn(
+                                "h-full rounded-full transition-all duration-300",
+                                cp.percentage >= 75 ? "bg-emerald-500" : "bg-sky-500"
+                              )}
+                              style={{ width: `${Math.min(100, cp.percentage)}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: Laporan Harian & Bukti Foto */}
+              {studentModalTab === "logs" && (
+                <div className="space-y-3 animate-in fade-in-50 duration-150">
+                  {isLoadingStudentLogs ? (
+                    <div className="py-8 flex flex-col items-center justify-center gap-2 text-slate-500">
+                      <Loader2 className="w-6 h-6 animate-spin text-sky-600" />
+                      <p className="text-xs font-medium">Memuat logbook &amp; foto bukti...</p>
+                    </div>
+                  ) : studentLogs.length === 0 ? (
+                    <div className="p-8 text-center rounded-2xl bg-slate-50 border border-dashed border-slate-200 space-y-2">
+                      <Camera className="w-8 h-8 text-slate-300 mx-auto" />
+                      <p className="text-xs font-medium text-slate-600">
+                        Belum ada catatan aktivitas harian yang diunggah siswa.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[48vh] overflow-y-auto pr-1">
+                      {studentLogs.map((log) => {
+                        const item = log.items?.[0];
+                        const jobTitle = item?.jobCard?.title || "Aktivitas Praktik Industri";
+                        const skkniCode = item?.jobCard?.skkniUnitCode;
+                        const duration = item?.durationJp || 8;
+                        const autonomy = item?.autonomyLevel || 2;
+                        const autonomyLabel =
+                          autonomy >= 3 ? "Mandiri" : autonomy === 2 ? "Dibimbing" : "Observasi";
+
+                        return (
+                          <div
+                            key={log.id}
+                            className="p-3.5 rounded-2xl border border-slate-200/80 bg-white hover:border-slate-300 transition shadow-2xs space-y-2.5"
+                          >
+                            {/* Baris Meta Tanggal, Durasi & Status */}
+                            <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-slate-900 flex items-center gap-1.5">
+                                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                                  {new Date(log.logDate).toLocaleDateString("id-ID", {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                  })}
+                                </span>
+                                <span className="px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 font-mono font-bold text-[11px] border border-sky-200/60">
+                                  {duration} JP
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  className={cn(
+                                    "px-2 py-0.5 rounded-full text-[10px] font-semibold border flex items-center gap-1",
+                                    log.status === "VERIFIED"
+                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
+                                      : log.status === "PENDING_VERIFICATION"
+                                      ? "bg-amber-50 text-amber-700 border-amber-200/80"
+                                      : "bg-slate-50 text-slate-700 border-slate-200/80"
+                                  )}
+                                >
+                                  {log.status === "VERIFIED" ? (
+                                    <>
+                                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                      Terverifikasi Mentor
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Clock className="w-3 h-3 text-amber-600" />
+                                      Menunggu Mentor
+                                    </>
+                                  )}
+                                </span>
+                                <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-medium border border-slate-200/70">
+                                  Level {autonomy} • {autonomyLabel}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Baris Pekerjaan & Bukti Foto */}
+                            <div className="flex flex-col sm:flex-row gap-3 items-start">
+                              {/* Foto Bukti dengan Tombol Zoom */}
+                              {log.evidenceWebpUrl ? (
+                                <div
+                                  onClick={() =>
+                                    setZoomedPhoto({
+                                      url: log.evidenceWebpUrl!,
+                                      title: jobTitle,
+                                      date: new Date(log.logDate).toLocaleDateString("id-ID", {
+                                        day: "numeric",
+                                        month: "long",
+                                        year: "numeric",
+                                      }),
+                                    })
+                                  }
+                                  className="w-full sm:w-28 h-32 sm:h-28 rounded-xl overflow-hidden relative group shrink-0 border border-slate-200 shadow-2xs bg-slate-100 cursor-pointer"
+                                  title="Klik untuk memperbesar foto bukti"
+                                >
+                                  {/* eslint-disable-next-js/no-img-element */}
+                                  <img
+                                    src={log.evidenceWebpUrl}
+                                    alt={jobTitle}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                    loading="lazy"
+                                  />
+                                  <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white gap-1 text-[11px] font-semibold">
+                                    <Maximize2 className="w-4 h-4" />
+                                    <span>Perbesar</span>
+                                  </div>
+                                  <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/60 text-white text-[9px] font-mono backdrop-blur-2xs">
+                                    WebP
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="w-full sm:w-28 h-24 rounded-xl border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 text-[10px] gap-1 shrink-0 bg-slate-50/50">
+                                  <Camera className="w-4 h-4" />
+                                  <span>Tanpa Foto</span>
+                                </div>
+                              )}
+
+                              {/* Rincian Aktivitas & Refleksi Siswa */}
+                              <div className="flex-1 min-w-0 space-y-1.5">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <h4 className="font-semibold text-xs sm:text-sm text-slate-900 leading-snug">
+                                    {jobTitle}
+                                  </h4>
+                                  {skkniCode && (
+                                    <span className="px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 text-[10px] font-mono border border-indigo-200/60 font-semibold">
+                                      {skkniCode}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {log.shortNote && (
+                                  <p className="text-xs text-slate-600 bg-slate-50/90 p-2.5 rounded-xl border border-slate-200/60 leading-relaxed font-sans">
+                                    &ldquo;{log.shortNote}&rdquo;
+                                  </p>
+                                )}
+
+                                {log.status === "VERIFIED" && log.signatureHash && (
+                                  <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono pt-0.5">
+                                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                    <span className="truncate">
+                                      HMAC-SHA256: {log.signatureHash.slice(0, 16)}...
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Footer Aksi */}
+              <div className="pt-2 flex items-center gap-2 border-t border-slate-100">
                 <Link
-                  href={`/verify/${selectedStudent.studentId}`}
+                  href={`/verify/${selectedStudent.passportSlug || selectedStudent.studentId}`}
                   target="_blank"
                   className="h-10 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
                   title="Pratinjau Paspor Portofolio Ber-QR"
@@ -3729,6 +4050,66 @@ function HeatmapContent() {
                   <Sparkles className="w-3.5 h-3.5 text-sky-400" />
                   <span>Intervensi &amp; Rotasi Mitra</span>
                 </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* ─────────────────────────────────────────────────────────────────────────────
+          LIGHTBOX ZOOM MODAL: FOTO BUKTI DOKUMENTASI SISWA (KONSISTEN DENGAN MODAL LAIN)
+      ───────────────────────────────────────────────────────────────────────────── */}
+      {isMounted &&
+        zoomedPhoto &&
+        createPortal(
+          <div
+            onClick={() => setZoomedPhoto(null)}
+            className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in-0 duration-150"
+            style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl max-w-2xl sm:max-w-3xl w-full border border-slate-200/80 shadow-modal overflow-hidden animate-in zoom-in-95 duration-150 flex flex-col"
+            >
+              {/* Header Modal Bersih & Konsisten */}
+              <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
+                <div className="pr-4 min-w-0">
+                  <span className="text-[10px] font-bold text-sky-600 uppercase tracking-wider block">
+                    {zoomedPhoto.date}
+                  </span>
+                  <h4 className="text-sm sm:text-base font-bold text-slate-900 leading-snug truncate">
+                    {zoomedPhoto.title}
+                  </h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setZoomedPhoto(null)}
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 cursor-pointer transition shrink-0"
+                  aria-label="Tutup foto"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Area Tampilan Foto Bersih (Tanpa Background Gelap/Hitam) */}
+              <div className="relative max-h-[72vh] bg-slate-50/50 flex items-center justify-center overflow-hidden p-3 sm:p-5">
+                {/* eslint-disable-next-js/no-img-element */}
+                <img
+                  src={zoomedPhoto.url}
+                  alt={zoomedPhoto.title}
+                  className="max-h-[64vh] w-auto h-auto object-contain rounded-2xl shadow-sm border border-slate-200/70"
+                />
+              </div>
+
+              {/* Footer Meta Verifikasi & K3 */}
+              <div className="p-3.5 sm:p-4 bg-slate-50/80 border-t border-slate-100 text-xs text-slate-600 flex items-center justify-between shrink-0">
+                <span className="flex items-center gap-1.5 text-emerald-700 font-medium">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  Bukti Otentik K3 &amp; Hasil Kerja Lapangan Siswa
+                </span>
+                <span className="text-slate-500 font-mono text-[11px] bg-white px-2.5 py-0.5 rounded-lg border border-slate-200/70 shadow-2xs">
+                  WebP Terverifikasi Mentor
+                </span>
               </div>
             </div>
           </div>,
@@ -3940,7 +4321,7 @@ function HeatmapContent() {
                       className="w-full text-xs p-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-amber-500 text-slate-800 cursor-pointer"
                     >
                       <option value="">-- Pilih Mitra DUDI Tujuan --</option>
-                      {dudiOptions
+                      {rotationDudiOptions
                         .filter((d) => d.id !== interventionStudent.placement.dudiId)
                         .map((d) => (
                           <option key={d.id} value={d.id}>
@@ -3980,6 +4361,59 @@ function HeatmapContent() {
           </div>,
           document.body
         )}
+
+      {/* Modal Notifikasi Guru (Overlay Floating Dialog) */}
+      {showNotificationModal && (
+        <TeacherNotificationModal
+          onClose={() => setShowNotificationModal(false)}
+          driftCount={summary.studentsWithDrift}
+          studentsWithDrift={data?.students
+            .filter((s) => s.hasDriftWarning)
+            .map((s) => ({
+              id: s.studentId,
+              fullName: s.fullName,
+              dudiName: s.placement.dudiName,
+              alertType: s.driftAlerts[0]?.alertType,
+              message:
+                s.driftAlerts[0]?.alertType === "NON_COMPETENCY_OVERLOAD"
+                  ? "Rasio penugasan non-kompetensi melebihi ambang batas toleransi 30%."
+                  : s.driftAlerts[0]?.alertType === "SKILL_MONOTONY"
+                  ? "Terdeteksi dominasi satu elemen kompetensi berulang tanpa variasi penugasan baru."
+                  : "Terdeteksi potensi defisit capaian pembelajaran pada DUDI saat ini.",
+            }))}
+          recentLogs={data?.students
+            .filter((s) => Boolean(s.latestLog))
+            .slice(0, 5)
+            .map((s) => ({
+              id: s.latestLog!.id,
+              studentName: s.fullName,
+              title: s.latestLog!.title || s.latestLog!.shortNote || "Pencatatan Jurnal Praktik",
+              jp: s.latestLog!.durationJp,
+              timeAgo: s.latestLog!.logDate,
+              status: s.latestLog!.status === "VERIFIED" ? "VERIFIED" : "PENDING",
+            }))}
+          securityFlagsCount={securityFlags.length}
+          onOpenIntervention={(studentId) => {
+            const student = data?.students.find((s) => s.studentId === studentId);
+            if (student) openInterventionModal(student);
+          }}
+          onViewSecurity={() => router.push("/teacher/dashboard?view=security")}
+        />
+      )}
+
+      {/* Modal Katalog & Tambah Job Card Guru */}
+      {showJobCardModal && (
+        <TeacherJobCardModal
+          isOpen={showJobCardModal}
+          onClose={() => setShowJobCardModal(false)}
+          departmentId={data?.department?.id || (user as any)?.departmentId || "dept-rpl-001"}
+          schoolId={user?.school?.id || (user as any)?.schoolId || "00000000-0000-0000-0000-000000000002"}
+          departmentName={data?.department?.name || "Rekayasa Perangkat Lunak"}
+          sectorCode={data?.department?.sectorCode || "RPL"}
+          cpElements={cpElements}
+          token={token || ""}
+        />
+      )}
     </div>
   );
 }

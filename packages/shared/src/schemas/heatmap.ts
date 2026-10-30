@@ -59,6 +59,17 @@ export interface HeatmapStudentRow {
   fullName: string;
   nisn: string;
   avatarUrl?: string | null;
+  passportSlug?: string | null;
+  latestLog?: {
+    id: string;
+    logDate: string;
+    attendanceType: string;
+    shortNote?: string | null;
+    status: string;
+    durationJp: number;
+    title?: string;
+    verifiedAt?: string | null;
+  } | null;
   placement: {
     id: string;
     dudiId: string;

@@ -1,4 +1,5 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
+import crypto from "node:crypto";
 import { prisma } from "../lib/prisma.js";
 import { AppError } from "../middlewares/error-handler.js";
 import {
@@ -13,6 +14,10 @@ import {
   buildWhatsAppDeepLink,
   normalizeIndonesianPhoneNumber,
 } from "@vokalink/core";
+import { createSignedToken, hashSha256Hex } from "@vokalink/core/crypto";
+
+const SERVER_CRYPTO_SECRET =
+  process.env["SERVER_CRYPTO_SECRET"] || "vokalink_dev_server_crypto_secret_key_32bytes!";
 
 export const interventionsRouter = Router();
 
@@ -175,8 +180,50 @@ interventionsRouter.post(
           }
 
           if (placement.dudiMentor) {
-            const mentorSub = placement.dudiMentor.id ? placement.dudiMentor.id.slice(0, 8) : "demo";
-            magicLinkUrl = `${webAppOrigin}/v/mentor-${mentorSub}`;
+            const pendingLogIds = placement.dailyLogs
+              .filter((l) => l.status === "PENDING_VERIFICATION")
+              .map((l) => l.id);
+            const actualLogIds =
+              pendingLogIds.length > 0
+                ? pendingLogIds
+                : [placement.dailyLogs[0]?.id || "demo-log-1"];
+            const linkId = crypto.randomUUID();
+            const expiresAt = new Date(Date.now() + 7 * 24 * 3600 * 1000); // Masa berlaku 7 hari
+
+            const token = createSignedToken(
+              {
+                rid: linkId,
+                mid: placement.dudiMentor.id,
+                pid: placement.id,
+                lids: actualLogIds,
+                p: "LOG_VERIFY",
+                mode: "WA_BATCH",
+                exp: Math.floor(expiresAt.getTime() / 1000),
+              },
+              SERVER_CRYPTO_SECRET
+            );
+
+            try {
+              const tokenHash = hashSha256Hex(token);
+              await prisma.signedLink.create({
+                data: {
+                  id: linkId,
+                  purpose: "LOG_VERIFY",
+                  mode: "WA_BATCH",
+                  tokenHash,
+                  keyId: "k1",
+                  mentorId: placement.dudiMentor.id,
+                  placementId: placement.id,
+                  logIds: actualLogIds,
+                  payloadHash: hashSha256Hex(JSON.stringify(actualLogIds)),
+                  expiresAt,
+                },
+              });
+            } catch (err) {
+              console.warn("Signed link creation for intervention warning:", err);
+            }
+
+            magicLinkUrl = `${webAppOrigin}/v/${token}`;
           }
 
           // Identifikasi elemen CP yang masih 0 JP
@@ -354,6 +401,14 @@ interventionsRouter.post(
           });
 
           if (currentPlacement && currentPlacement.status === "ACTIVE") {
+            if (newDudiId === currentPlacement.dudiPartnerId) {
+              throw new AppError(
+                "Mitra DUDI tujuan rotasi tidak boleh sama dengan mitra saat ini",
+                422,
+                "SAME_DUDI_ROTATION"
+              );
+            }
+
             await tx.placement.update({
               where: { id: placementId },
               data: { status: "ROTATED_OUT" },
@@ -489,6 +544,14 @@ export async function handlePlacementRotation(
         "Hanya penempatan berstatus ACTIVE yang dapat dirotasi",
         422,
         "INVALID_PLACEMENT_STATUS"
+      );
+    }
+
+    if (toDudiId === oldPlacement.dudiPartnerId) {
+      throw new AppError(
+        "Mitra DUDI tujuan rotasi tidak boleh sama dengan mitra saat ini",
+        422,
+        "SAME_DUDI_ROTATION"
       );
     }
 

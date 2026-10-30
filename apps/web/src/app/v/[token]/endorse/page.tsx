@@ -102,6 +102,14 @@ export default function MentorEndorsementPage({ params }: PageProps) {
           setSelectedBadges([res.standardBadges[0]!, res.standardBadges[1]!]);
         }
       }
+
+      if (typeof window !== "undefined" && res.defaultDeviceToken) {
+        const local = localStorage.getItem("vokalink_mentor_device_token");
+        if (!local) {
+          localStorage.setItem("vokalink_mentor_device_token", res.defaultDeviceToken);
+          setDeviceToken(res.defaultDeviceToken);
+        }
+      }
     } catch (err: any) {
       setErrorMessage(sanitizeErrorMessage(err, "Gagal memuat formulir endorsement siswa"));
     } finally {

@@ -232,7 +232,7 @@ export function SmartDateSelector({
           ) : activeItem && activeItem.totalJp >= 8 ? (
             <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-slate-700 border border-slate-200 text-xs font-medium">
               <Check className="w-3.5 h-3.5 text-slate-600" />
-              <span>{activeItem.totalJp} JP Lengkap</span>
+              <span>{`${activeItem.totalJp} JP Lengkap`}</span>
             </span>
           ) : isBackdate ? (
             <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium">
@@ -334,12 +334,12 @@ export function SmartDateSelector({
                     ) : opt.totalJp >= 8 ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-slate-700 border border-slate-200 text-xs font-medium">
                         <Check className="w-3 h-3 text-slate-600" />
-                        <span>{opt.totalJp} JP Lengkap</span>
+                        <span>{`${opt.totalJp} JP Lengkap`}</span>
                       </span>
                     ) : opt.totalJp > 0 ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-sky-50 text-sky-700 border border-sky-200/70 text-xs font-medium">
                         <Clock className="w-3 h-3 text-sky-600" />
-                        <span>{opt.totalJp} JP Terisi</span>
+                        <span>{`${opt.totalJp} JP Terisi`}</span>
                       </span>
                     ) : opt.offset === 0 ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-xs font-medium">

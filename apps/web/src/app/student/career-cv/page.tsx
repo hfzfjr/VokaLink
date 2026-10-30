@@ -608,7 +608,7 @@ export default function CareerCvPage() {
             type="button"
             onClick={() => setIsEditMode(!isEditMode)}
             className={cn(
-              "w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-10 px-3 sm:px-5 rounded-full text-xs font-semibold border transition cursor-pointer shadow-2xs whitespace-nowrap active:scale-[0.98]",
+              "w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-10 px-3 sm:px-5 rounded-xl text-xs font-semibold border transition cursor-pointer shadow-2xs whitespace-nowrap active:scale-[0.98]",
               isEditMode
                 ? "bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100"
                 : "bg-white hover:bg-slate-50 text-slate-700 border-slate-200/80"
@@ -622,7 +622,8 @@ export default function CareerCvPage() {
             ) : (
               <>
                 <Edit3 className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-                <span>Edit Semua Bagian</span>
+                <span className="sm:hidden">Edit CV</span>
+                <span className="hidden sm:inline">Edit Semua Bagian</span>
               </>
             )}
           </button>
@@ -630,12 +631,12 @@ export default function CareerCvPage() {
           <button
             type="button"
             onClick={handleCopyLink}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-10 px-3 sm:px-5 rounded-full bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-700 text-xs font-semibold border border-slate-200/80 transition cursor-pointer shadow-2xs whitespace-nowrap"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-10 px-3 sm:px-5 rounded-xl bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-700 text-xs font-semibold border border-slate-200/80 transition cursor-pointer shadow-2xs whitespace-nowrap"
           >
             {copiedLink ? (
               <>
                 <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span className="text-emerald-700">Tersalin!</span>
+                <span className="text-emerald-700 font-bold">Tersalin!</span>
               </>
             ) : (
               <>
@@ -648,7 +649,7 @@ export default function CareerCvPage() {
           <Link
             href={verificationUrl}
             target="_blank"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-10 px-3 sm:px-5 rounded-full bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-700 text-xs font-semibold border border-slate-200/80 transition shadow-2xs whitespace-nowrap"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-10 px-3 sm:px-5 rounded-xl bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-700 text-xs font-semibold border border-slate-200/80 transition shadow-2xs whitespace-nowrap"
           >
             <ExternalLink className="w-3.5 h-3.5 text-sky-600 shrink-0" />
             <span>Audit Publik</span>
@@ -657,7 +658,7 @@ export default function CareerCvPage() {
           <button
             type="button"
             onClick={handlePrintPdf}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-10 px-4 sm:px-6 rounded-full bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white text-xs font-semibold shadow-xs transition cursor-pointer whitespace-nowrap"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-10 px-4 sm:px-6 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white text-xs font-semibold shadow-xs transition cursor-pointer whitespace-nowrap"
           >
             <Printer className="w-3.5 h-3.5 text-white shrink-0" />
             <span>Cetak PDF A4</span>
@@ -1025,7 +1026,7 @@ export default function CareerCvPage() {
                         />
                         <div className="flex items-center gap-1.5 bg-slate-100/90 border border-slate-200 rounded px-2.5 py-1 text-slate-800 text-xs font-semibold">
                           <Lock className="w-3 h-3 text-slate-500 shrink-0" />
-                          <span>{exp.totalVerifiedJp} Jam (Terkunci)</span>
+                          <span>{`${exp.totalVerifiedJp} Jam (Terkunci)`}</span>
                         </div>
                       </div>
                     ) : (
@@ -1493,7 +1494,7 @@ export default function CareerCvPage() {
             <div className="flex items-center gap-3 min-w-0 shrink-0">
               <span className="break-all">Audit: {fullVerificationUrl}</span>
               <Link
-                href={fullVerificationUrl || verificationUrl}
+                href={verificationUrl || "/verify"}
                 target="_blank"
                 className="text-sky-600 font-sans font-medium hover:underline inline-flex items-center gap-0.5 no-print print:hidden shrink-0"
               >

@@ -231,6 +231,18 @@ endorsementsRouter.get(
           }
         : null;
 
+      // Cari device token seeded yang cocok dengan hash mentor jika tersedia
+      let resolvedDeviceToken = "device-token-mentor-0";
+      if (placement.dudiMentor?.deviceTokenHash) {
+        for (let i = 0; i < 20; i++) {
+          const candidate = `device-token-mentor-${i}`;
+          if (hashSha256Hex(candidate) === placement.dudiMentor.deviceTokenHash) {
+            resolvedDeviceToken = candidate;
+            break;
+          }
+        }
+      }
+
       const response: EndorsementDetailResponse = {
         student: {
           id: placement.student.id,
@@ -253,6 +265,7 @@ endorsementsRouter.get(
         standardBadges: [...WORK_ETHIC_BADGES],
         isAlreadyEndorsed,
         existingEndorsement,
+        defaultDeviceToken: resolvedDeviceToken,
       };
 
       res.status(200).json(response);

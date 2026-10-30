@@ -31,7 +31,9 @@ export default function TeacherLayout({
         <div className="flex-1 flex flex-col md:flex-row print:block print:w-full print:p-0 print:m-0">
           {/* 2. Mobile-only top header (hidden on desktop md:hidden, hidden on print) */}
           <div className="md:hidden no-print print:hidden">
-            <TeacherHeader />
+            <Suspense fallback={null}>
+              <TeacherHeader />
+            </Suspense>
           </div>
 
           {/* 3. Desktop Left Slim Sidebar Dock (hidden on mobile, sticky on desktop, hidden on print) */}
