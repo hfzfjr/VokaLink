@@ -8,12 +8,22 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   display: "swap",
 });
 
-const appUrl =
-  process.env["NEXT_PUBLIC_APP_URL"] ||
-  (process.env["VERCEL_URL"] ? `https://${process.env["VERCEL_URL"]}` : "https://vokalink.vercel.app");
+function getMetadataBase(): URL {
+  const raw =
+    process.env["NEXT_PUBLIC_APP_URL"] ||
+    (process.env["VERCEL_URL"] ? `https://${process.env["VERCEL_URL"]}` : "https://vokalink.vercel.app");
+  const normalized = raw.startsWith("http://") || raw.startsWith("https://") ? raw : `https://${raw}`;
+  try {
+    return new URL(normalized);
+  } catch {
+    return new URL("https://vokalink.vercel.app");
+  }
+}
+
+const metadataBaseUrl = getMetadataBase();
 
 export const metadata: Metadata = {
-  metadataBase: new URL(appUrl),
+  metadataBase: metadataBaseUrl,
   title: "VokaLink — Ekosistem PKL SMK Terintegrasi",
   description:
     "Platform PKL SMK multi-tenant offline-first: logbook kartu tugas bebas-ketik, verifikasi penyelia zero-login, heatmap drift, e-Rapor, dan paspor kompetensi publik ber-QR.",
@@ -27,13 +37,11 @@ export const metadata: Metadata = {
     icon: [
       { url: "/icons/vokalink-icon.svg", type: "image/svg+xml" },
       { url: "/vokalink-icon.svg", type: "image/svg+xml" },
-      { url: "/icon.png", type: "image/png", sizes: "512x512" },
-      { url: "/favicon.ico", sizes: "any" },
       { url: "/icons/favicon-32x32.png", type: "image/png", sizes: "32x32" },
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
     ],
     apple: [
       { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
-      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
     shortcut: ["/vokalink-icon.svg"],
   },
@@ -41,7 +49,7 @@ export const metadata: Metadata = {
     title: "VokaLink — Ekosistem PKL SMK Terintegrasi",
     description:
       "Platform PKL SMK multi-tenant offline-first: logbook kartu tugas bebas-ketik, verifikasi zero-login, e-Rapor, dan paspor kompetensi publik ber-QR.",
-    url: appUrl,
+    url: metadataBaseUrl.toString(),
     siteName: "VokaLink",
     locale: "id_ID",
     type: "website",

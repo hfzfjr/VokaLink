@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 export const alt = "VokaLink — Ekosistem PKL SMK Terintegrasi";
 export const size = {
   width: 1200,
