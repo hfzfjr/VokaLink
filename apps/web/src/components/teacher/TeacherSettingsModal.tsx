@@ -116,7 +116,7 @@ export function TeacherSettingsModal({ isOpen, onClose }: TeacherSettingsModalPr
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 cursor-pointer transition shrink-0"
+            className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-slate-500 hover:text-slate-800 cursor-pointer transition shrink-0"
             aria-label="Tutup Pengaturan"
           >
             <X className="w-4 h-4" />
@@ -163,7 +163,7 @@ export function TeacherSettingsModal({ isOpen, onClose }: TeacherSettingsModalPr
             <button
               type="button"
               onClick={() => handleNavigate("/teacher/dashboard?view=cards")}
-              className="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/80 text-left flex items-center justify-between transition cursor-pointer"
+              className="min-h-[44px] p-3 rounded-xl bg-white hover:bg-slate-50 active:scale-95 border border-slate-200/80 text-left flex items-center justify-between transition cursor-pointer shadow-2xs"
             >
               <div className="flex items-center gap-2 min-w-0">
                 <LayoutList className="w-4 h-4 text-sky-600 shrink-0" />
@@ -174,7 +174,7 @@ export function TeacherSettingsModal({ isOpen, onClose }: TeacherSettingsModalPr
             <button
               type="button"
               onClick={() => handleNavigate("/teacher/dashboard?view=matrix")}
-              className="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/80 text-left flex items-center justify-between transition cursor-pointer"
+              className="min-h-[44px] p-3 rounded-xl bg-white hover:bg-slate-50 active:scale-95 border border-slate-200/80 text-left flex items-center justify-between transition cursor-pointer shadow-2xs"
             >
               <div className="flex items-center gap-2 min-w-0">
                 <LayoutGrid className="w-4 h-4 text-indigo-600 shrink-0" />
@@ -185,7 +185,7 @@ export function TeacherSettingsModal({ isOpen, onClose }: TeacherSettingsModalPr
             <button
               type="button"
               onClick={() => handleNavigate("/teacher/dashboard?view=drift")}
-              className="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/80 text-left flex items-center justify-between transition cursor-pointer"
+              className="min-h-[44px] p-3 rounded-xl bg-white hover:bg-slate-50 active:scale-95 border border-slate-200/80 text-left flex items-center justify-between transition cursor-pointer shadow-2xs"
             >
               <div className="flex items-center gap-2 min-w-0">
                 <RefreshCw className="w-4 h-4 text-rose-600 shrink-0" />
@@ -196,7 +196,7 @@ export function TeacherSettingsModal({ isOpen, onClose }: TeacherSettingsModalPr
             <button
               type="button"
               onClick={() => handleNavigate("/teacher/dashboard?view=security")}
-              className="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/80 text-left flex items-center justify-between transition cursor-pointer"
+              className="min-h-[44px] p-3 rounded-xl bg-white hover:bg-slate-50 active:scale-95 border border-slate-200/80 text-left flex items-center justify-between transition cursor-pointer shadow-2xs"
             >
               <div className="flex items-center gap-2 min-w-0">
                 <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -212,7 +212,7 @@ export function TeacherSettingsModal({ isOpen, onClose }: TeacherSettingsModalPr
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full h-10 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-98 text-rose-700 font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer border border-rose-200/70"
+            className="w-full h-11 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer border border-rose-200/70 shadow-2xs"
           >
             <LogOut className="w-4 h-4 text-rose-600" />
             <span>Keluar dari Akun Guru</span>

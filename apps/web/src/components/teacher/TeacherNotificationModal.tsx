@@ -156,14 +156,14 @@ export function TeacherNotificationModal({
             type="button"
             onClick={onClose}
             aria-label="Tutup notifikasi"
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition cursor-pointer active:scale-95 shrink-0"
+            className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition cursor-pointer active:scale-95 shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Tab Filters */}
-        <div className="px-4 sm:px-5 pt-3 pb-2 border-b border-slate-100 bg-slate-50/60 flex items-center gap-1.5 overflow-x-auto scrollbar-none shrink-0">
+        <div className="px-4 sm:px-5 pt-3 pb-2.5 border-b border-slate-100 bg-slate-50/60 flex items-center gap-1.5 overflow-x-auto scrollbar-none shrink-0">
           {[
             { key: "ALL", label: "Semua", count: totalNotifs },
             { key: "DRIFT", label: "Alert Drift", count: effectiveDriftList.length },
@@ -177,7 +177,7 @@ export function TeacherNotificationModal({
                 type="button"
                 onClick={() => setActiveTab(tab.key as any)}
                 className={cn(
-                  "h-7 sm:h-7.5 px-3 rounded-full text-xs font-semibold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5",
+                  "h-8.5 sm:h-9 px-3.5 rounded-full text-xs font-semibold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 active:scale-95",
                   active
                     ? "bg-slate-900 text-white shadow-xs"
                     : "bg-white text-slate-600 hover:text-slate-900 border border-slate-200/80"
@@ -243,7 +243,7 @@ export function TeacherNotificationModal({
                           onClose();
                           onOpenIntervention(item.id);
                         }}
-                        className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1 transition cursor-pointer shadow-xs active:scale-95"
+                        className="h-9 px-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs active:scale-95"
                       >
                         <span>Intervensi WhatsApp</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -342,7 +342,7 @@ export function TeacherNotificationModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white text-xs font-semibold transition cursor-pointer shadow-xs text-center"
+            className="w-full sm:w-auto h-10 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-xs font-semibold transition cursor-pointer shadow-xs flex items-center justify-center text-center"
           >
             Tutup Notifikasi
           </button>

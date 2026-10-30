@@ -1083,7 +1083,7 @@ export function TeacherJobCardModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer shrink-0"
+            className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer shrink-0"
             aria-label="Tutup Dialog"
           >
             <X className="w-4 h-4" />
@@ -1097,7 +1097,7 @@ export function TeacherJobCardModal({
               type="button"
               onClick={() => setActiveTab("catalog")}
               className={cn(
-                "h-8 px-3.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5",
+                "h-9 px-3.5 sm:px-4 rounded-full transition-all cursor-pointer flex items-center gap-1.5 active:scale-95",
                 activeTab === "catalog"
                   ? "bg-white text-slate-900 shadow-2xs font-bold"
                   : "text-slate-600 hover:text-slate-900"
@@ -1114,7 +1114,7 @@ export function TeacherJobCardModal({
               type="button"
               onClick={() => setActiveTab("create")}
               className={cn(
-                "h-8 px-3.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5",
+                "h-9 px-3.5 sm:px-4 rounded-full transition-all cursor-pointer flex items-center gap-1.5 active:scale-95",
                 activeTab === "create"
                   ? "bg-sky-500 text-white shadow-xs font-bold"
                   : "text-slate-600 hover:text-slate-900"
@@ -1165,10 +1165,10 @@ export function TeacherJobCardModal({
                     <button
                       type="button"
                       onClick={() => setSearchQuery("")}
-                      className="w-5 h-5 rounded-full bg-slate-200/80 hover:bg-slate-300 text-slate-600 flex items-center justify-center absolute right-3 top-1/2 -translate-y-1/2 transition cursor-pointer z-10"
+                      className="w-6 h-6 rounded-full bg-slate-200/80 hover:bg-slate-300 active:scale-90 text-slate-600 flex items-center justify-center absolute right-3 top-1/2 -translate-y-1/2 transition cursor-pointer z-10"
                       title="Hapus pencarian"
                     >
-                      <X className="w-3 h-3 stroke-[2.5]" />
+                      <X className="w-3.5 h-3.5 stroke-[2.5]" />
                     </button>
                   )}
                 </div>
@@ -1231,7 +1231,7 @@ export function TeacherJobCardModal({
                         setSearchQuery("");
                         setSelectedCpFilter("ALL");
                       }}
-                      className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition cursor-pointer"
+                      className="h-9 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-xs font-semibold transition cursor-pointer"
                     >
                       Reset Pencarian
                     </button>
@@ -1459,14 +1459,14 @@ export function TeacherJobCardModal({
                 <button
                   type="button"
                   onClick={() => setActiveTab("catalog")}
-                  className="h-9 px-4 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                  className="h-10 px-4 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 active:scale-95 transition cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting || title.trim().length < 3}
-                  className="h-9 px-5 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-95 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50"
+                  className="h-10 px-5 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-95 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting ? (
                     <>

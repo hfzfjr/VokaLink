@@ -1077,13 +1077,13 @@ function HeatmapContent() {
                 <button
                   type="button"
                   onClick={loadSecurityFlags}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-xs font-semibold shadow-xs transition cursor-pointer"
+                  className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-xs font-semibold shadow-xs transition cursor-pointer"
                   title="Segarkan Log Audit Keamanan Sekarang"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   <span>Segarkan Audit</span>
                 </button>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 text-sky-700 border border-sky-100 text-xs font-semibold">
+                <span className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-sky-50 text-sky-700 border border-sky-100 text-xs font-semibold">
                   <ShieldCheck className="w-3.5 h-3.5 text-sky-600" />
                   <span>Enforcement Deny-All Aktif</span>
                 </span>
@@ -1122,19 +1122,19 @@ function HeatmapContent() {
                   type="button"
                   onClick={handleTriggerEvaluate}
                   disabled={isEvaluating}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-xs font-semibold shadow-xs transition disabled:opacity-50 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-xs font-semibold shadow-xs transition disabled:opacity-50 cursor-pointer"
                   title="Jalankan Evaluasi Algoritma Drift Sekarang"
                 >
                   <RefreshCw className={cn("w-3.5 h-3.5", isEvaluating && "animate-spin")} />
                   <span>{isEvaluating ? "Mengevaluasi..." : "Evaluasi Ulang Drift"}</span>
                 </button>
                 {summary.activeAlertsCount.nonCompetency > 0 && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/70 text-xs font-semibold">
+                  <span className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/70 text-xs font-semibold">
                     <AlertOctagon className="w-3.5 h-3.5 text-amber-600" />
                     <span>{`${summary.activeAlertsCount.nonCompetency} Non-Kompetensi`}</span>
                   </span>
                 )}
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold">
+                <span className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold">
                   <Users className="w-3.5 h-3.5 text-slate-500" />
                   <span>{`Total ${summary.totalStudents} Siswa Binaan`}</span>
                 </span>
@@ -1170,7 +1170,7 @@ function HeatmapContent() {
                     type="button"
                     onClick={() => setStatusFilter(statusFilter === "DRIFT" ? "ALL" : "DRIFT")}
                     className={cn(
-                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer border",
+                      "inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-semibold transition cursor-pointer border active:scale-95",
                       statusFilter === "DRIFT"
                         ? "bg-rose-500 text-white border-rose-500 shadow-xs"
                         : "bg-rose-50 text-rose-700 border-rose-200/70 hover:bg-rose-100/70"
@@ -1479,7 +1479,7 @@ function HeatmapContent() {
                 type="button"
                 onClick={() => setViewMode("table")}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1.5 text-xs",
+                  "h-9 px-3 sm:px-3.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1.5 text-xs active:scale-95",
                   viewMode === "table"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 font-medium"
@@ -1493,7 +1493,7 @@ function HeatmapContent() {
                 type="button"
                 onClick={() => setViewMode("matrix")}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1.5 text-xs",
+                  "h-9 px-3 sm:px-3.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center gap-1.5 text-xs active:scale-95",
                   viewMode === "matrix"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 font-medium"
@@ -1516,7 +1516,7 @@ function HeatmapContent() {
                 type="button"
                 onClick={() => setViewMode("table")}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center gap-1.5 text-xs flex-1 sm:flex-none",
+                  "h-9 px-3 sm:px-3.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center gap-1.5 text-xs flex-1 sm:flex-none active:scale-95",
                   viewMode === "table"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 font-medium"
@@ -1530,7 +1530,7 @@ function HeatmapContent() {
                 type="button"
                 onClick={() => setViewMode("cards")}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center gap-1.5 text-xs flex-1 sm:flex-none",
+                  "h-9 px-3 sm:px-3.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center gap-1.5 text-xs flex-1 sm:flex-none active:scale-95",
                   viewMode === "cards"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 font-medium"
@@ -1544,7 +1544,7 @@ function HeatmapContent() {
                 type="button"
                 onClick={() => setViewMode("matrix")}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center gap-1.5 text-xs flex-1 sm:flex-none",
+                  "h-9 px-3 sm:px-3.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center gap-1.5 text-xs flex-1 sm:flex-none active:scale-95",
                   viewMode === "matrix"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 font-medium"
@@ -1569,7 +1569,7 @@ function HeatmapContent() {
                 type="button"
                 onClick={() => setViewMode("table")}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center gap-1.5 text-xs flex-1 sm:flex-none",
+                  "h-9 px-3 sm:px-3.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center gap-1.5 text-xs flex-1 sm:flex-none active:scale-95",
                   viewMode === "table"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 font-medium"
@@ -1583,7 +1583,7 @@ function HeatmapContent() {
                 type="button"
                 onClick={() => setViewMode("cards")}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center gap-1.5 text-xs flex-1 sm:flex-none",
+                  "h-9 px-3 sm:px-3.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center gap-1.5 text-xs flex-1 sm:flex-none active:scale-95",
                   viewMode === "cards"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 font-medium"
@@ -1597,7 +1597,7 @@ function HeatmapContent() {
                 type="button"
                 onClick={() => setViewMode("matrix")}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center gap-1.5 text-xs flex-1 sm:flex-none",
+                  "h-9 px-3 sm:px-3.5 rounded-lg transition-all duration-150 cursor-pointer flex items-center justify-center gap-1.5 text-xs flex-1 sm:flex-none active:scale-95",
                   viewMode === "matrix"
                     ? "bg-white text-slate-900 shadow-2xs font-semibold"
                     : "text-slate-600 hover:text-slate-900 font-medium"
@@ -1621,7 +1621,7 @@ function HeatmapContent() {
                 onClick={() => setStatusFilter("ALL")}
                 aria-pressed={statusFilter === "ALL"}
                 className={cn(
-                  "h-7 sm:h-7.5 px-3 rounded-full text-xs transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5",
+                  "h-8.5 sm:h-9 px-3.5 rounded-full text-xs transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5 active:scale-95",
                   statusFilter === "ALL"
                     ? "bg-sky-500 text-white shadow-xs font-bold"
                     : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
@@ -1643,7 +1643,7 @@ function HeatmapContent() {
                 onClick={() => setStatusFilter("DRIFT")}
                 aria-pressed={statusFilter === "DRIFT"}
                 className={cn(
-                  "h-7 sm:h-7.5 px-3 rounded-full text-xs transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5",
+                  "h-8.5 sm:h-9 px-3.5 rounded-full text-xs transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5 active:scale-95",
                   statusFilter === "DRIFT"
                     ? "bg-white text-rose-700 shadow-2xs font-bold"
                     : "text-slate-600 hover:text-rose-700 hover:bg-white/40 font-medium"
@@ -1671,7 +1671,7 @@ function HeatmapContent() {
                 onClick={() => setStatusFilter("ACHIEVED")}
                 aria-pressed={statusFilter === "ACHIEVED"}
                 className={cn(
-                  "h-7 sm:h-7.5 px-3 rounded-full text-xs transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5",
+                  "h-8.5 sm:h-9 px-3.5 rounded-full text-xs transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5 active:scale-95",
                   statusFilter === "ACHIEVED"
                     ? "bg-white text-emerald-800 shadow-2xs font-bold"
                     : "text-slate-600 hover:text-emerald-700 hover:bg-white/40 font-medium"
@@ -1711,7 +1711,8 @@ function HeatmapContent() {
                   <button
                     type="button"
                     onClick={() => setSearchQuery("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                    className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-100 active:scale-90 text-slate-400 hover:text-slate-600 absolute right-2 top-1/2 -translate-y-1/2 transition cursor-pointer"
+                    title="Hapus pencarian"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -2116,7 +2117,7 @@ function HeatmapContent() {
                                     e.stopPropagation();
                                     setSelectedStudent(log.studentRow);
                                   }}
-                                  className="h-7 px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-semibold transition cursor-pointer shadow-2xs"
+                                  className="h-8 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 active:scale-95 text-slate-700 text-xs font-semibold transition cursor-pointer shadow-2xs"
                                 >
                                   Rincian
                                 </button>
@@ -2326,7 +2327,7 @@ function HeatmapContent() {
                                 type="button"
                                 onClick={() => openInterventionModal(student, alert)}
                                 className={cn(
-                                  "h-7 px-3 rounded-lg text-[10.5px] font-bold flex items-center gap-1 transition cursor-pointer border",
+                                  "h-8.5 px-3 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer border active:scale-95 shadow-2xs",
                                   isDormancy
                                     ? "bg-sky-50 hover:bg-sky-100 text-sky-800 border-sky-200"
                                     : "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200"
@@ -2334,12 +2335,12 @@ function HeatmapContent() {
                               >
                                 {isDormancy ? (
                                   <>
-                                    <Send className="w-3 h-3 text-sky-600" />
+                                    <Send className="w-3.5 h-3.5 text-sky-600" />
                                     <span>Ingatkan PIN</span>
                                   </>
                                 ) : (
                                   <>
-                                    <MessageCircle className="w-3 h-3 text-emerald-600" />
+                                    <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
                                     <span>Intervensi WA</span>
                                   </>
                                 )}
@@ -2391,10 +2392,10 @@ function HeatmapContent() {
                       type="button"
                       onClick={handleTriggerEvaluate}
                       disabled={isEvaluating}
-                      className="inline-flex md:hidden items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-semibold cursor-pointer shadow-2xs transition active:scale-95 disabled:opacity-50"
+                      className="inline-flex md:hidden items-center gap-1.5 h-8 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold cursor-pointer shadow-2xs transition active:scale-95 disabled:opacity-50"
                       title="Jalankan Evaluasi Algoritma Drift Sekarang"
                     >
-                      <RefreshCw className={cn("w-3 h-3", isEvaluating && "animate-spin")} />
+                      <RefreshCw className={cn("w-3.5 h-3.5", isEvaluating && "animate-spin")} />
                       <span>{isEvaluating ? "Evaluasi..." : "Evaluasi"}</span>
                     </button>
                   )}
@@ -2666,7 +2667,7 @@ function HeatmapContent() {
                                 <button
                                   type="button"
                                   onClick={() => setSelectedStudent(student)}
-                                  className="h-8 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-[11px] font-semibold flex items-center gap-1 transition cursor-pointer"
+                                  className="h-8.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
                                   title="Buka Rincian Capaian Elemen Kompetensi Siswa"
                                 >
                                   <Eye className="w-3.5 h-3.5 text-slate-500" />
@@ -2676,7 +2677,7 @@ function HeatmapContent() {
                                   href={`/verify/${student.passportSlug || student.studentId}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="h-8 px-2.5 rounded-lg bg-sky-50 hover:bg-sky-100 active:scale-95 text-sky-700 border border-sky-200/70 text-[11px] font-semibold flex items-center gap-1 transition cursor-pointer"
+                                  className="h-8.5 px-3 rounded-xl bg-sky-50 hover:bg-sky-100 active:scale-95 text-sky-700 border border-sky-200/70 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
                                   title="Buka Paspor Kompetensi Publik Siswa"
                                 >
                                   <Award className="w-3.5 h-3.5 text-sky-600" />
@@ -2688,7 +2689,7 @@ function HeatmapContent() {
                                     onClick={() =>
                                       openInterventionModal(student, student.driftAlerts[0])
                                     }
-                                    className="h-8 px-2.5 rounded-lg bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200/80 text-[11px] font-semibold flex items-center gap-1 transition cursor-pointer"
+                                    className="h-8.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
                                     title="Buka Form Intervensi Drift Siswa"
                                   >
                                     <MessageCircle className="w-3.5 h-3.5 text-rose-600" />
@@ -2800,7 +2801,7 @@ function HeatmapContent() {
                             <button
                               type="button"
                               onClick={() => setSelectedStudent(student)}
-                              className="h-8 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                              className="h-9 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
                             >
                               <Eye className="w-3.5 h-3.5 text-slate-500" />
                               <span>Rincian</span>
@@ -2809,7 +2810,7 @@ function HeatmapContent() {
                               href={`/verify/${student.passportSlug || student.studentId}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="h-8 px-3 rounded-lg bg-sky-50 hover:bg-sky-100 active:scale-95 text-sky-700 border border-sky-200/70 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                              className="h-9 px-3.5 rounded-xl bg-sky-50 hover:bg-sky-100 active:scale-95 text-sky-700 border border-sky-200/70 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
                             >
                               <Award className="w-3.5 h-3.5 text-sky-600" />
                               <span>Paspor</span>
@@ -2822,7 +2823,7 @@ function HeatmapContent() {
                               onClick={() =>
                                 openInterventionModal(student, student.driftAlerts[0])
                               }
-                              className="h-8 px-3 rounded-lg bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                              className="h-9 px-3.5 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
                             >
                               <MessageCircle className="w-3.5 h-3.5 text-rose-600" />
                               <span>Intervensi</span>
@@ -2859,11 +2860,12 @@ function HeatmapContent() {
                 <button
                   type="button"
                   onClick={() => setShowJobCardModal(true)}
-                  className="h-8 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-95 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                  className="h-9 px-3.5 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-95 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
                   title="Lihat Katalog & Tambah Kartu Pekerjaan (Job Card) Jurusan"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Katalog &amp; Tambah Job Card</span>
+                  <span className="hidden sm:inline">Katalog &amp; </span>
+                  <span>Tambah Job Card</span>
                 </button>
               </div>
 
@@ -3337,7 +3339,7 @@ function HeatmapContent() {
                             <button
                               type="button"
                               onClick={() => setSelectedStudent(student)}
-                              className="h-8.5 px-3 rounded-xl bg-sky-50 hover:bg-sky-100 active:scale-95 text-sky-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer border border-sky-200/50"
+                              className="h-9 px-3.5 rounded-xl bg-sky-50 hover:bg-sky-100 active:scale-95 text-sky-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer border border-sky-200/50 shadow-2xs"
                               title="Buka Rincian Capaian Elemen Kompetensi Siswa"
                             >
                               <Eye className="w-3.5 h-3.5 text-sky-600" />
@@ -3347,7 +3349,7 @@ function HeatmapContent() {
                             <Link
                               href={`/verify/${student.passportSlug || student.studentId}`}
                               target="_blank"
-                              className="h-8.5 px-3 rounded-xl bg-white hover:bg-slate-50 active:scale-95 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer border border-slate-200 shadow-2xs"
+                              className="h-9 px-3.5 rounded-xl bg-white hover:bg-slate-50 active:scale-95 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer border border-slate-200 shadow-2xs"
                               title="Pratinjau Paspor Portofolio Ber-QR"
                             >
                               <Award className="w-3.5 h-3.5 text-amber-500" />
@@ -3359,7 +3361,7 @@ function HeatmapContent() {
                             type="button"
                             onClick={() => openInterventionModal(student)}
                             className={cn(
-                              "h-8.5 px-3 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 shadow-2xs",
+                              "h-9 px-3.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 shadow-2xs",
                               student.hasDriftWarning
                                 ? "bg-rose-600 hover:bg-rose-700 text-white animate-pulse"
                                 : "bg-slate-100 hover:bg-slate-200 text-slate-700"
@@ -3405,10 +3407,10 @@ function HeatmapContent() {
                   <button
                     type="button"
                     onClick={loadSecurityFlags}
-                    className="inline-flex md:hidden items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-semibold cursor-pointer shadow-2xs transition active:scale-95"
+                    className="inline-flex md:hidden items-center gap-1.5 h-8 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold cursor-pointer shadow-2xs transition active:scale-95"
                     title="Segarkan Log Audit Keamanan"
                   >
-                    <RefreshCw className="w-3 h-3" />
+                    <RefreshCw className="w-3.5 h-3.5" />
                     <span>Segarkan</span>
                   </button>
                   <span className="text-xs text-slate-500 hidden sm:inline">
@@ -3569,7 +3571,7 @@ function HeatmapContent() {
                                   type="button"
                                   onClick={() => handleAcknowledgeFlag(flag.id)}
                                   disabled={isAcknowledgingFlag === flag.id}
-                                  className="h-8 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-[11px] font-semibold inline-flex items-center gap-1.5 transition disabled:opacity-50 cursor-pointer shadow-2xs ml-auto"
+                                  className="h-9 px-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-xs font-semibold inline-flex items-center gap-1.5 transition disabled:opacity-50 cursor-pointer shadow-2xs ml-auto"
                                   title="Tandai insiden telah ditinjau oleh guru pembimbing"
                                 >
                                   {isAcknowledgingFlag === flag.id ? (
@@ -3651,7 +3653,7 @@ function HeatmapContent() {
                               type="button"
                               onClick={() => handleAcknowledgeFlag(flag.id)}
                               disabled={isAcknowledgingFlag === flag.id}
-                              className="h-8 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-xs font-semibold inline-flex items-center gap-1.5 transition disabled:opacity-50 cursor-pointer shadow-2xs"
+                              className="h-9 px-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-xs font-semibold inline-flex items-center gap-1.5 transition disabled:opacity-50 cursor-pointer shadow-2xs"
                             >
                               {isAcknowledgingFlag === flag.id ? (
                                 <>
@@ -3737,7 +3739,7 @@ function HeatmapContent() {
                 <button
                   type="button"
                   onClick={() => setSelectedStudent(null)}
-                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 cursor-pointer transition shrink-0"
+                  className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-slate-500 hover:text-slate-800 cursor-pointer transition shrink-0"
                   aria-label="Tutup Rincian Siswa"
                 >
                   <X className="w-4 h-4" />
@@ -3768,7 +3770,7 @@ function HeatmapContent() {
                   type="button"
                   onClick={() => setStudentModalTab("cp")}
                   className={cn(
-                    "flex-1 py-2 px-3 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer",
+                    "flex-1 h-10 px-3.5 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer active:scale-95",
                     studentModalTab === "cp"
                       ? "bg-white text-slate-900 shadow-xs border border-slate-200/50 font-bold"
                       : "text-slate-600 hover:text-slate-900"
@@ -3781,7 +3783,7 @@ function HeatmapContent() {
                   type="button"
                   onClick={() => setStudentModalTab("logs")}
                   className={cn(
-                    "flex-1 py-2 px-3 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer relative",
+                    "flex-1 h-10 px-3.5 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer relative active:scale-95",
                     studentModalTab === "logs"
                       ? "bg-white text-slate-900 shadow-xs border border-slate-200/50 font-bold"
                       : "text-slate-600 hover:text-slate-900"
@@ -4020,7 +4022,7 @@ function HeatmapContent() {
                 <Link
                   href={`/verify/${selectedStudent.passportSlug || selectedStudent.studentId}`}
                   target="_blank"
-                  className="h-10 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  className="h-11 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
                   title="Pratinjau Paspor Portofolio Ber-QR"
                 >
                   <Award className="w-3.5 h-3.5 text-amber-500" />
@@ -4033,7 +4035,7 @@ function HeatmapContent() {
                     setSelectedStudent(null);
                     openInterventionModal(st);
                   }}
-                  className="flex-1 h-10 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs"
+                  className="flex-1 h-11 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-sky-400" />
                   <span>Intervensi &amp; Rotasi Mitra</span>
@@ -4072,7 +4074,7 @@ function HeatmapContent() {
                 <button
                   type="button"
                   onClick={() => setZoomedPhoto(null)}
-                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 cursor-pointer transition shrink-0"
+                  className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-slate-500 hover:text-slate-800 cursor-pointer transition shrink-0"
                   aria-label="Tutup foto"
                 >
                   <X className="w-4 h-4" />
@@ -4136,7 +4138,7 @@ function HeatmapContent() {
                     setInterventionStudent(null);
                     setInterventionSuccessMsg(null);
                   }}
-                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition cursor-pointer"
+                  className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-slate-500 transition cursor-pointer shrink-0"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -4164,12 +4166,12 @@ function HeatmapContent() {
               )}
 
               {/* Segmented Action Tabs */}
-              <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-full border border-slate-200/70 text-xs font-medium">
+              <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-full border border-slate-200/70 text-xs font-semibold">
                 <button
                   type="button"
                   onClick={() => setInterventionTab("WA_COORDINATION")}
                   className={cn(
-                    "flex-1 py-1.5 px-2.5 rounded-full flex items-center justify-center gap-1.5 transition cursor-pointer",
+                    "flex-1 h-9 px-3 rounded-full flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-95",
                     interventionTab === "WA_COORDINATION"
                       ? "bg-white text-slate-900 shadow-2xs font-semibold"
                       : "text-slate-500 hover:text-slate-800"
@@ -4183,7 +4185,7 @@ function HeatmapContent() {
                   type="button"
                   onClick={() => setInterventionTab("SITE_VISIT")}
                   className={cn(
-                    "flex-1 py-1.5 px-2.5 rounded-full flex items-center justify-center gap-1.5 transition cursor-pointer",
+                    "flex-1 h-9 px-3 rounded-full flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-95",
                     interventionTab === "SITE_VISIT"
                       ? "bg-white text-slate-900 shadow-2xs font-semibold"
                       : "text-slate-500 hover:text-slate-800"
@@ -4197,7 +4199,7 @@ function HeatmapContent() {
                   type="button"
                   onClick={() => setInterventionTab("DUDI_ROTATION")}
                   className={cn(
-                    "flex-1 py-1.5 px-2.5 rounded-full flex items-center justify-center gap-1.5 transition cursor-pointer",
+                    "flex-1 h-9 px-3 rounded-full flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-95",
                     interventionTab === "DUDI_ROTATION"
                       ? "bg-white text-slate-900 shadow-2xs font-semibold"
                       : "text-slate-500 hover:text-slate-800"
@@ -4237,7 +4239,7 @@ function HeatmapContent() {
                     type="button"
                     disabled={isSubmittingIntervention || !draftMessage.trim()}
                     onClick={handleSendWaIntervention}
-                    className="w-full h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer shadow-xs"
+                    className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer shadow-xs"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>
@@ -4280,7 +4282,7 @@ function HeatmapContent() {
                     type="button"
                     disabled={isSubmittingIntervention}
                     onClick={handleRecordSiteVisit}
-                    className="w-full h-10 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white font-semibold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer shadow-xs"
+                    className="w-full h-11 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white font-semibold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer shadow-xs"
                   >
                     <Calendar className="w-3.5 h-3.5" />
                     <span>
@@ -4336,7 +4338,7 @@ function HeatmapContent() {
                     type="button"
                     disabled={isSubmittingIntervention || !targetDudiId}
                     onClick={handleExecuteRotation}
-                    className="w-full h-10 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-semibold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer shadow-xs"
+                    className="w-full h-11 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-semibold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer shadow-xs"
                   >
                     <Repeat className="w-3.5 h-3.5" />
                     <span>

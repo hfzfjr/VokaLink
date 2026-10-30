@@ -347,9 +347,9 @@ export function TeacherWidgetPanel({
                   <button
                     type="button"
                     onClick={item.onIntervene}
-                    className="w-full mt-1 py-1.5 rounded-full bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10.5px] font-semibold flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs"
+                    className="w-full mt-1.5 h-8.5 rounded-full bg-white hover:bg-emerald-50 active:scale-95 text-emerald-700 border border-emerald-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
                   >
-                    <Sparkles className="w-3 h-3 text-emerald-600" />
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Tindak Lanjuti via WhatsApp</span>
                   </button>
                 )}
