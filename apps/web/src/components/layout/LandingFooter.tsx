@@ -25,10 +25,10 @@ export default function LandingFooter() {
           <div className="lg:col-span-2 space-y-4">
             <VokaLogo size="md" href="/" onClick={scrollToTop} />
             <p className="text-xs text-slate-500 leading-relaxed max-w-sm">
-              Interconnected Multi-Sector Vocational Internship Competency, Zero-Login Verification & Verifiable Career Ecosystem. Platform PKL SMK Kurikulum Merdeka Fase F 792 JP.
+              Ekosistem Praktik Kerja Lapangan (PKL) SMK Multi-Tenant Offline-First. Menghubungkan logbook kartu tugas, verifikasi penyelia industri tanpa akun, pemantauan matriks Capaian Pembelajaran (CP) 792 JP, e-Rapor, CV ATS, dan Paspor Kompetensi bersegel digital.
             </p>
             <div className="text-[11px] text-slate-500">
-              Dikembangkan untuk kompetisi <strong>UINIC 8.0 Web Development 2026</strong> (Subtema: Education).
+              Sesuai standar <strong>Kurikulum Merdeka SMK Fase F (Permendikbudristek No. 12/2024)</strong>.
             </div>
           </div>
 
@@ -36,11 +36,11 @@ export default function LandingFooter() {
           <div>
             <p className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-4">Fitur Utama</p>
             <ul className="space-y-2 text-xs font-medium text-slate-500">
-              <li><a href="#fitur" onClick={scrollTo("fitur")} className="hover:text-sky-600 transition cursor-pointer">Presensi GPS Geofencing</a></li>
+              <li><a href="#fitur" onClick={scrollTo("fitur")} className="hover:text-sky-600 transition cursor-pointer">Smart Placement Geospasial</a></li>
               <li><a href="#fitur" onClick={scrollTo("fitur")} className="hover:text-sky-600 transition cursor-pointer">Logbook PWA Offline-First</a></li>
-              <li><a href="#fitur" onClick={scrollTo("fitur")} className="hover:text-sky-600 transition cursor-pointer">Stempel Zero-Login Mentor</a></li>
-              <li><a href="#fitur" onClick={scrollTo("fitur")} className="hover:text-sky-600 transition cursor-pointer">Live Heatmap & Drift Alert</a></li>
-              <li><a href="#fitur" onClick={scrollTo("fitur")} className="hover:text-sky-600 transition cursor-pointer">Ekspor e-Rapor Dapodik</a></li>
+              <li><a href="#fitur" onClick={scrollTo("fitur")} className="hover:text-sky-600 transition cursor-pointer">Verifikasi Mentor Zero-Login</a></li>
+              <li><a href="#fitur" onClick={scrollTo("fitur")} className="hover:text-sky-600 transition cursor-pointer">Matriks CP &amp; Deteksi Drift</a></li>
+              <li><a href="#fitur" onClick={scrollTo("fitur")} className="hover:text-sky-600 transition cursor-pointer">e-Rapor, CV ATS &amp; Paspor QR</a></li>
             </ul>
           </div>
 
@@ -52,17 +52,17 @@ export default function LandingFooter() {
               <li><a href="#simulasi" onClick={scrollTo("simulasi")} className="hover:text-sky-600 transition cursor-pointer">TKJ / TJKT</a></li>
               <li><a href="#simulasi" onClick={scrollTo("simulasi")} className="hover:text-sky-600 transition cursor-pointer">DKV / Desain Grafis</a></li>
               <li><a href="#simulasi" onClick={scrollTo("simulasi")} className="hover:text-sky-600 transition cursor-pointer">TKR / Otomotif Mobil</a></li>
-              <li><a href="#simulasi" onClick={scrollTo("simulasi")} className="hover:text-sky-600 transition cursor-pointer">Akuntansi & Keuangan</a></li>
+              <li><a href="#simulasi" onClick={scrollTo("simulasi")} className="hover:text-sky-600 transition cursor-pointer">Akuntansi &amp; Keuangan</a></li>
             </ul>
           </div>
 
           {/* Col 4: Regulasi & Akses Portal */}
           <div>
-            <p className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-4">Akses & Regulasi</p>
+            <p className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-4">Akses Portal</p>
             <ul className="space-y-2 text-xs font-medium text-slate-500">
-              <li><Link href="/login" className="hover:text-sky-600 transition font-bold text-sky-600">Simulasi Demo Juri</Link></li>
+              <li><Link href="/login" className="hover:text-sky-600 transition font-bold text-sky-600">Masuk ke Portal Sistem</Link></li>
               <li><Link href="/register-school" className="hover:text-sky-600 transition">Daftarkan Sekolah Baru</Link></li>
-              <li><Link href="/verify/andi-pratama-rpl-2026" className="hover:text-sky-600 transition">Uji Paspor Ber-QR &rarr;</Link></li>
+              <li><a href="#faq" onClick={scrollTo("faq")} className="hover:text-sky-600 transition cursor-pointer">Pusat Bantuan &amp; FAQ</a></li>
             </ul>
           </div>
         </div>
