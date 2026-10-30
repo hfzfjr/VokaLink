@@ -12,27 +12,12 @@ export const metadata: Metadata = {
     siteName: "VokaLink",
     locale: "id_ID",
     type: "website",
-    // Square 1:1 image placed first so WhatsApp displays the clean left-hand logo thumbnail
     images: [
       {
         url: "https://vokalink.vercel.app/icon.png",
         width: 512,
         height: 512,
         alt: "Logo VokaLink",
-        type: "image/png",
-      },
-      {
-        url: "https://vokalink.vercel.app/apple-icon.png",
-        width: 180,
-        height: 180,
-        alt: "Logo VokaLink",
-        type: "image/png",
-      },
-      {
-        url: "https://vokalink.vercel.app/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "VokaLink — Verifikasi Jurnal PKL Siswa",
         type: "image/png",
       },
     ],
