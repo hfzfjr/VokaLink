@@ -29,7 +29,6 @@ import {
   formatLogDate,
 } from "@/components/student/home/types";
 import { DailyTimelineFeed } from "@/components/student/home/DailyTimelineFeed";
-import { SkkniMatrixView } from "@/components/student/home/SkkniMatrixView";
 import { EvidenceGalleryView } from "@/components/student/home/EvidenceGalleryView";
 import { StudentWidgetPanel } from "@/components/student/home/StudentWidgetPanel";
 import { TaskDetailModal } from "@/components/student/home/TaskDetailModal";
@@ -80,8 +79,8 @@ export default function StudentHomePage() {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  // View Mode: Timeline (default) | Matriks SKKNI | Evidence Gallery
-  const [viewMode, setViewMode] = useState<"timeline" | "matrix" | "evidence">("timeline");
+  // View Mode: Timeline (default) | Evidence Gallery
+  const [viewMode, setViewMode] = useState<"timeline" | "evidence">("timeline");
   const [selectedTaskModal, setSelectedTaskModal] = useState<KanbanTask | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
@@ -778,8 +777,8 @@ export default function StudentHomePage() {
               Dokumentasi Praktik Industri
             </h2>
 
-            {/* Apple Segmented Control Bar (Timeline vs Matriks SKKNI vs Galeri Bukti) */}
-            <div className="grid grid-cols-3 sm:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/70 text-xs font-semibold w-full sm:w-auto">
+            {/* Apple Segmented Control Bar (Timeline vs Galeri Bukti) */}
+            <div className="grid grid-cols-2 sm:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/70 text-xs font-semibold w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => setViewMode("timeline")}
@@ -791,18 +790,6 @@ export default function StudentHomePage() {
                 )}
               >
                 <span>Timeline</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("matrix")}
-                className={cn(
-                  "px-3 sm:px-4 py-1.5 rounded-lg transition-all duration-150 cursor-pointer whitespace-nowrap text-center text-xs flex items-center justify-center gap-1",
-                  viewMode === "matrix"
-                    ? "bg-white text-slate-900 shadow-2xs font-semibold"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
-                )}
-              >
-                <span>Matriks SKKNI</span>
               </button>
               <button
                 type="button"
@@ -825,14 +812,6 @@ export default function StudentHomePage() {
               tasks={allTasks}
               onSelectTask={setSelectedTaskModal}
               onOpenQrModal={() => setShowQrModal(true)}
-            />
-          )}
-
-          {viewMode === "matrix" && (
-            <SkkniMatrixView
-              tasks={allTasks}
-              departmentName={currentMajorName}
-              sectorCode={user?.department?.sectorCode}
             />
           )}
 
