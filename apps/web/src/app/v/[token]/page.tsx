@@ -278,7 +278,7 @@ export default function MentorVerificationPage() {
 
     if (isMockData) {
       if (pin !== "1234") {
-        setPinError("PIN demo tidak sesuai. Masukkan PIN: 1234.");
+        setPinError("PIN verifikasi tidak sesuai. Silakan periksa kembali.");
         setPin("");
         return;
       }
@@ -333,7 +333,7 @@ export default function MentorVerificationPage() {
           setShowPinModal(false);
           return;
         } else {
-          setPinError("PIN verifikasi tidak sesuai. Masukkan PIN: 1234.");
+          setPinError("PIN verifikasi tidak sesuai. Silakan periksa kembali.");
         }
       } else {
         setPinError(sanitizeErrorMessage(err, "PIN tidak sesuai. Silakan coba lagi."));
@@ -640,7 +640,7 @@ export default function MentorVerificationPage() {
               <div>
                 <p className="font-bold text-slate-900">Perangkat Pengujian / Belum Ditautkan</p>
                 <p className="text-amber-800/90 mt-0.5 text-[11.5px] leading-relaxed">
-                  Gunakan PIN 1234 untuk persetujuan, atau tautkan perangkat ini sebagai HP mentor resmi.
+                  Masukkan PIN mentor untuk persetujuan, atau tautkan perangkat ini sebagai HP mentor resmi.
                 </p>
               </div>
             </div>
@@ -1018,7 +1018,7 @@ export default function MentorVerificationPage() {
             {/* PIN Display Indicators */}
             <div className="py-1 text-center space-y-2">
               <p className="text-xs text-slate-500">
-                Masukkan 4-digit PIN Mentor <span className="font-bold text-slate-700">(PIN Default: 1234)</span>
+                Masukkan 4-digit PIN keamanan mentor Anda
               </p>
               <div className="flex items-center justify-center gap-4 py-1">
                 {[0, 1, 2, 3].map((idx) => (
