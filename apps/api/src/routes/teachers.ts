@@ -854,20 +854,13 @@ async function handleGetHeatmap(req: Request, res: Response, next: NextFunction)
         const firstItem = recent.items[0];
         latestDailyLog = {
           id: recent.id,
-          logDate:
-            typeof recent.logDate === "string"
-              ? recent.logDate.slice(0, 10)
-              : recent.logDate.toISOString().slice(0, 10),
+          logDate: new Date(recent.logDate).toISOString().slice(0, 10),
           attendanceType: recent.attendanceType,
           shortNote: recent.shortNote,
           status: recent.status,
           durationJp: duration,
           title: firstItem?.jobCard?.title || undefined,
-          verifiedAt: recent.verifiedAt
-            ? typeof recent.verifiedAt === "string"
-              ? recent.verifiedAt
-              : recent.verifiedAt.toISOString()
-            : null,
+          verifiedAt: recent.verifiedAt ? new Date(recent.verifiedAt).toISOString() : null,
         };
       }
 
@@ -1001,10 +994,7 @@ teachersRouter.get(
             severity: alert.severity,
             status: alert.status,
             metricSnapshot: alert.metricSnapshotJson,
-            detectedAt:
-              typeof alert.detectedAt === "string"
-                ? alert.detectedAt
-                : alert.detectedAt.toISOString(),
+            detectedAt: new Date(alert.detectedAt).toISOString(),
             studentName: alert.student.fullName,
             nisn: alert.student.identityNumber || "-",
             dudiName: alert.placement.dudiPartner.name,
@@ -1120,14 +1110,9 @@ teachersRouter.get(
             mentorName: f.mentor.fullName,
             kind: f.kind as any,
             meta: (f.meta as any) || null,
-            createdAt:
-              typeof f.createdAt === "string"
-                ? f.createdAt
-                : f.createdAt.toISOString(),
+            createdAt: new Date(f.createdAt).toISOString(),
             acknowledgedAt: f.acknowledgedAt
-              ? typeof f.acknowledgedAt === "string"
-                ? f.acknowledgedAt
-                : f.acknowledgedAt.toISOString()
+              ? new Date(f.acknowledgedAt).toISOString()
               : null,
           }));
 
