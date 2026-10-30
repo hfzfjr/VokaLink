@@ -61,6 +61,7 @@ import {
 import { TeacherWidgetPanel } from "@/components/teacher/TeacherWidgetPanel";
 import { TeacherNotificationModal } from "@/components/teacher/TeacherNotificationModal";
 import { TeacherJobCardModal } from "@/components/teacher/TeacherJobCardModal";
+import { TeacherSettingsModal } from "@/components/teacher/TeacherSettingsModal";
 import { SkeletonTitle, SkeletonText, SkeletonRect } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 
@@ -167,6 +168,7 @@ function HeatmapContent() {
   const [isMounted, setIsMounted] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [showJobCardModal, setShowJobCardModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -1748,9 +1750,6 @@ function HeatmapContent() {
                   <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
                     Beranda Guru Pembimbing
                   </h1>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-700 bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200/70">
-                    Fase F RPL
-                  </span>
                 </div>
                 <p className="text-xs text-slate-500 font-normal">
                   {todayFormatted} &bull; {data?.department.name || "Rekayasa Perangkat Lunak"} &bull; {user?.school?.name || "SMK Telkom 1 Medan"} &bull; Target {TOTAL_TARGET_JP} JP
@@ -1785,8 +1784,13 @@ function HeatmapContent() {
                 </button>
 
                 {/* Profile Avatar Pill */}
-                <div className="flex items-center gap-2.5 pl-1 sm:pl-2 border-l border-slate-200">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowSettingsModal(true)}
+                  className="flex items-center gap-2.5 pl-1 sm:pl-2 border-l border-slate-200 cursor-pointer text-left group transition active:scale-98"
+                  title="Buka Pengaturan Akun & Sistem Guru"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0 group-hover:ring-2 group-hover:ring-sky-500/40 transition">
                     {user?.fullName
                       ? user.fullName
                           .split(" ")
@@ -1797,14 +1801,14 @@ function HeatmapContent() {
                       : "BS"}
                   </div>
                   <div className="hidden sm:block min-w-0">
-                    <p className="text-xs font-bold text-slate-900 leading-snug truncate max-w-[140px]">
+                    <p className="text-xs font-bold text-slate-900 group-hover:text-sky-600 transition leading-snug truncate max-w-[140px]">
                       {user?.fullName || "Budi Santoso, S.Kom"}
                     </p>
                     <p className="text-[10.5px] text-slate-500 font-medium leading-none mt-0.5">
                       Guru Pembimbing
                     </p>
                   </div>
-                </div>
+                </button>
               </div>
             </div>
 
@@ -4402,6 +4406,14 @@ function HeatmapContent() {
           sectorCode={data?.department?.sectorCode || "RPL"}
           cpElements={cpElements}
           token={token || ""}
+        />
+      )}
+
+      {/* Modal Pengaturan Guru (Konsisten dengan Siswa) */}
+      {showSettingsModal && (
+        <TeacherSettingsModal
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
         />
       )}
     </div>
