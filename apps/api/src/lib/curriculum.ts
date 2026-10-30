@@ -156,6 +156,13 @@ function buildDefaultCustomCurriculum(code: string, name: string): DeptCurriculu
             actionVerbTemplate: "Melaksanakan alur layanan dan proses bisnis industri selama [durasi] menit",
             isNonCompetency: false,
           },
+          {
+            title: "Inovasi Kerja & Efisiensi Alur Tugas Kejuruan",
+            skkniUnitCode: null,
+            toolsAndSoftware: ["Worksheet Inovasi", "Rencana Kerja"],
+            actionVerbTemplate: "Mengusulkan inisiatif perbaikan alur kerja kejuruan selama [durasi] menit",
+            isNonCompetency: false,
+          },
         ],
       },
     ],
