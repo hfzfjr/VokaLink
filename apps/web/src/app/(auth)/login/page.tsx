@@ -361,16 +361,15 @@ function LoginForm() {
               <label className="text-xs font-bold text-slate-700">
                 Kata Sandi / Kode Akses Siswa
               </label>
-              <a
-                href="#reset"
-                onClick={(e) => {
-                  e.preventDefault();
-                  alert("Untuk siswa, minta reset kode akses melalui Guru Pembimbing Anda.");
+              <button
+                type="button"
+                onClick={() => {
+                  setErrorMsg("Untuk siswa, silakan minta reset kode akses melalui Guru Pembimbing atau Admin Pokja PKL sekolah Anda.");
                 }}
-                className="text-[11px] text-sky-600 font-semibold hover:underline"
+                className="text-[11px] text-sky-600 font-semibold hover:underline cursor-pointer"
               >
                 Lupa akses?
-              </a>
+              </button>
             </div>
             <div className="relative">
               <input

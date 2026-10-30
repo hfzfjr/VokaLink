@@ -89,12 +89,17 @@ const config: Config = {
         "4xl": "32px",
       },
       boxShadow: {
+        "2xs": "0 1px 2px 0 rgba(15, 23, 42, 0.04)",
+        xs: "0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04)",
         card: "0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.02)",
         pill: "0 4px 12px -2px rgba(37, 99, 235, 0.2)",
         modal: "0 20px 40px -8px rgba(15, 23, 42, 0.12), 0 8px 16px -4px rgba(15, 23, 42, 0.06)",
         soft: "0 14px 40px -10px rgba(37, 99, 235, 0.08)",
         floating: "0 20px 48px -12px rgba(15, 23, 42, 0.12)",
         capsule: "0 6px 18px -2px rgba(0, 0, 0, 0.1)",
+      },
+      backdropBlur: {
+        xs: "2px",
       },
       fontFamily: {
         sans: ["var(--font-sans)", '"Plus Jakarta Sans"', "Inter", "system-ui", "-apple-system", "sans-serif"],

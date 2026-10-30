@@ -379,7 +379,8 @@ export default function MentorVerificationPage() {
       setSuccessResult(result);
       setShowRejectModal(false);
     } catch (err: any) {
-      alert(sanitizeErrorMessage(err, "Gagal memproses penolakan logbook"));
+      setErrorMessage(sanitizeErrorMessage(err, "Gagal memproses penolakan logbook"));
+      setShowRejectModal(false);
     } finally {
       setIsSubmitting(false);
     }

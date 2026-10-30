@@ -61,7 +61,7 @@ export function TeacherBottomNav() {
   return (
     <nav
       aria-label="Navigasi Bawah Guru"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-xl border-t border-slate-200/80 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] pb-[max(env(safe-area-inset-bottom,0px),0.5rem)] pt-1"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200/80 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] pb-[max(env(safe-area-inset-bottom,0px),0.5rem)] pt-1"
     >
       <div className="max-w-md mx-auto px-2 flex items-center justify-around">
         {NAV_ITEMS.map((item) => {
@@ -77,7 +77,7 @@ export function TeacherBottomNav() {
                 key={item.id}
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
-                className="group relative flex flex-col items-center justify-center -top-3.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 rounded-full"
+                className="group relative flex flex-col items-center justify-center -top-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 rounded-full"
               >
                 <div
                   className={cn(
@@ -91,7 +91,7 @@ export function TeacherBottomNav() {
                 </div>
                 <span
                   className={cn(
-                    "text-[10px] font-semibold tracking-tight mt-0.5 transition-colors duration-150 leading-none",
+                    "text-[10px] font-semibold tracking-tight mt-1 transition-colors duration-150 leading-none",
                     isActive ? "text-sky-600" : "text-slate-600 group-hover:text-sky-600"
                   )}
                 >
@@ -107,26 +107,29 @@ export function TeacherBottomNav() {
               href={item.href}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "flex flex-col items-center justify-center py-1.5 px-2 rounded-xl transition-all duration-150 group min-w-[56px]",
-                isActive ? "text-sky-600 font-semibold" : "text-slate-500 hover:text-slate-900"
+                "relative flex flex-col items-center justify-center min-h-[48px] py-1 px-1.5 min-w-[54px] rounded-xl transition-all duration-150 group focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 active:scale-95",
+                isActive ? "text-sky-600 font-semibold" : "text-slate-400 hover:text-slate-700"
               )}
             >
-              <div className="relative">
+              <div className="relative flex items-center justify-center">
                 <Icon
                   className={cn(
-                    "w-5 h-5 transition-transform duration-150 group-hover:scale-110",
-                    isActive ? "stroke-[2.2] text-sky-600" : "stroke-[1.8] text-slate-500"
+                    "w-5 h-5 transition-transform duration-150",
+                    isActive ? "stroke-[2.2] scale-105 text-sky-600" : "stroke-[1.75] text-slate-400 group-hover:text-slate-700"
                   )}
                 />
               </div>
               <span
                 className={cn(
                   "text-[10px] tracking-tight mt-1 transition-colors leading-none",
-                  isActive ? "font-semibold text-sky-600" : "font-normal text-slate-500"
+                  isActive ? "font-semibold text-sky-600" : "font-medium text-slate-500"
                 )}
               >
                 {item.label}
               </span>
+              {isActive && (
+                <span className="w-1 h-1 bg-sky-500 rounded-full mt-1 animate-in fade-in zoom-in duration-200" />
+              )}
             </Link>
           );
         })}

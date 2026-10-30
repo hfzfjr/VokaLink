@@ -34,28 +34,28 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     const variantClasses = {
       primary:
-        "bg-safety-500 text-ink-900 hover:bg-safety-400 font-semibold focus-visible:ring-safety-500",
+        "bg-sky-500 text-white hover:bg-sky-600 font-bold shadow-xs focus-visible:ring-sky-500",
       secondary:
-        "bg-ink-900 text-white hover:bg-ink-700 font-semibold focus-visible:ring-ink-900",
+        "bg-slate-900 text-white hover:bg-slate-800 font-semibold focus-visible:ring-slate-900",
       outline:
-        "border border-ink-200 bg-white text-ink-900 hover:bg-ink-50 font-semibold focus-visible:ring-ink-900",
+        "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-semibold focus-visible:ring-sky-500",
       ghost:
-        "text-ink-700 hover:bg-ink-100 font-medium focus-visible:ring-ink-900",
+        "text-slate-700 hover:bg-slate-100 font-medium focus-visible:ring-slate-900",
       link:
-        "text-safety-700 hover:underline p-0 h-auto font-medium focus-visible:ring-safety-500",
+        "text-sky-600 hover:underline p-0 h-auto font-semibold focus-visible:ring-sky-500",
       danger:
-        "bg-danger-700 text-white hover:bg-danger-700/90 font-semibold focus-visible:ring-danger-700",
+        "bg-rose-600 text-white hover:bg-rose-700 font-semibold focus-visible:ring-rose-600",
       blue:
-        "bg-primary-600 text-white hover:bg-primary-700 font-semibold shadow-pill focus-visible:ring-primary-100",
+        "bg-sky-500 text-white hover:bg-sky-600 font-semibold shadow-pill focus-visible:ring-sky-500",
       blueSecondary:
-        "bg-primary-50 text-primary-600 border border-primary-100 hover:bg-primary-100 font-semibold focus-visible:ring-primary-100",
+        "bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 font-semibold focus-visible:ring-sky-500",
     };
 
     const sizeClasses = {
-      default: "h-12 lg:h-10 px-4 text-sm rounded-lg",
-      sm: "h-9 px-3 text-xs rounded-lg",
-      lg: "h-12 px-6 text-base rounded-lg",
-      mentor: "h-14 px-6 text-base rounded-lg", // 56px area sentuh mentor
+      default: "h-11 lg:h-10 px-4 text-sm rounded-xl",
+      sm: "h-9 px-3 text-xs rounded-xl",
+      lg: "h-12 px-6 text-base rounded-xl",
+      mentor: "h-14 px-6 text-base rounded-2xl", // 56px area sentuh mentor
     };
 
     return (

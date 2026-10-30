@@ -46,12 +46,12 @@ export function StudentHeader() {
                 href="/student/home"
                 title="Kembali ke Beranda Siswa"
                 aria-label="Kembali ke Beranda Siswa"
-                className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-slate-700 transition cursor-pointer shrink-0 border border-slate-200/60"
+                className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-slate-700 transition cursor-pointer shrink-0 border border-slate-200/60"
               >
                 <ArrowLeft className="w-4 h-4" />
               </Link>
             ) : (
-              <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/90 p-1 flex items-center justify-center shrink-0 shadow-2xs">
+              <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/90 p-1.5 flex items-center justify-center shrink-0 shadow-2xs">
                 <VokaIcon className="w-full h-full object-contain" />
               </div>
             )}
@@ -87,10 +87,10 @@ export function StudentHeader() {
               onClick={() => setShowNotificationModal(true)}
               title="Pemberitahuan Mentor & Sekolah"
               aria-label="Pemberitahuan Mentor & Sekolah"
-              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-600 hover:text-slate-900 flex items-center justify-center transition border border-slate-200/80 cursor-pointer shadow-2xs shrink-0 relative"
+              className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-600 hover:text-slate-900 flex items-center justify-center transition border border-slate-200/80 cursor-pointer shadow-2xs shrink-0 relative"
             >
               <Bell className="w-4 h-4" />
-              <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-1.5 right-1.5 ring-2 ring-white" />
+              <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-2 right-2 ring-2 ring-white" />
             </button>
 
             {/* Tombol Pengaturan (Settings) */}
@@ -99,7 +99,7 @@ export function StudentHeader() {
               onClick={() => setShowSettingsModal(true)}
               title="Pengaturan Akun & Sistem"
               aria-label="Pengaturan Akun & Sistem"
-              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-600 hover:text-slate-900 flex items-center justify-center transition border border-slate-200/80 cursor-pointer shadow-2xs shrink-0"
+              className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-600 hover:text-slate-900 flex items-center justify-center transition border border-slate-200/80 cursor-pointer shadow-2xs shrink-0"
             >
               <Settings className="w-4 h-4" />
             </button>
@@ -108,7 +108,7 @@ export function StudentHeader() {
             <Link
               href="/student/career-cv"
               title="Lihat Profil & Portofolio Siswa"
-              className="w-8 h-8 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center shadow-xs shrink-0 select-none ring-2 ring-white hover:ring-sky-200 transition cursor-pointer"
+              className="w-9 h-9 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center shadow-xs shrink-0 select-none ring-2 ring-white hover:ring-sky-200 active:scale-95 transition cursor-pointer"
             >
               {user?.fullName
                 ? user.fullName

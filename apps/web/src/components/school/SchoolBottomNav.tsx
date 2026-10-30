@@ -65,32 +65,31 @@ export function SchoolBottomNav() {
               href={item.href}
               prefetch={true}
               onTouchStart={() => router.prefetch(item.href)}
+              aria-current={isActive ? "page" : undefined}
               className={cn(
-                "flex flex-col items-center justify-center py-1 px-2 rounded-2xl transition-all duration-150 select-none group min-w-[56px]",
-                isActive ? "text-sky-600 font-bold" : "text-slate-400 hover:text-slate-600"
+                "relative flex flex-col items-center justify-center min-h-[48px] py-1 px-2 min-w-[56px] rounded-xl transition-all duration-150 select-none group focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 active:scale-95",
+                isActive ? "text-sky-600 font-semibold" : "text-slate-400 hover:text-slate-700"
               )}
             >
-              <div
-                className={cn(
-                  "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150 relative",
-                  isActive
-                    ? "bg-sky-50 text-sky-600 shadow-2xs scale-105"
-                    : "group-hover:bg-slate-100 text-slate-400"
-                )}
-              >
-                <Icon className="w-4 h-4" />
-                {isActive && (
-                  <span className="absolute -bottom-0.5 w-1 h-1 rounded-full bg-sky-600" />
-                )}
+              <div className="relative flex items-center justify-center">
+                <Icon
+                  className={cn(
+                    "w-5 h-5 transition-transform duration-150",
+                    isActive ? "stroke-[2.2] scale-105 text-sky-600" : "stroke-[1.75] text-slate-400 group-hover:text-slate-700"
+                  )}
+                />
               </div>
               <span
                 className={cn(
-                  "text-[10px] tracking-tight mt-0.5 transition-colors",
-                  isActive ? "text-sky-600 font-bold" : "text-slate-500 font-medium"
+                  "text-[10px] tracking-tight mt-1 leading-none transition-colors",
+                  isActive ? "text-sky-600 font-semibold" : "text-slate-500 font-medium"
                 )}
               >
                 {item.label}
               </span>
+              {isActive && (
+                <span className="w-1 h-1 bg-sky-500 rounded-full mt-1 animate-in fade-in zoom-in duration-200" />
+              )}
             </Link>
           );
         })}
