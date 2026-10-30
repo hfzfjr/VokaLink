@@ -55,27 +55,34 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/og-image.png",
+        url: "https://vokalink.vercel.app/icon.png",
+        width: 512,
+        height: 512,
+        alt: "Logo VokaLink",
+        type: "image/png",
+      },
+      {
+        url: "https://vokalink.vercel.app/apple-icon.png",
+        width: 180,
+        height: 180,
+        alt: "Logo VokaLink",
+        type: "image/png",
+      },
+      {
+        url: "https://vokalink.vercel.app/og-image.png",
         width: 1200,
         height: 630,
         alt: "VokaLink — Ekosistem PKL SMK Terintegrasi",
         type: "image/png",
       },
-      {
-        url: "/icon.png",
-        width: 512,
-        height: 512,
-        alt: "VokaLink HD Icon",
-        type: "image/png",
-      },
     ],
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "VokaLink — Ekosistem PKL SMK Terintegrasi",
     description:
       "Platform PKL SMK multi-tenant offline-first: logbook kartu tugas bebas-ketik, verifikasi penyelia zero-login, dan paspor kompetensi publik ber-QR.",
-    images: ["/og-image.png"],
+    images: ["https://vokalink.vercel.app/icon.png"],
   },
 };
 
