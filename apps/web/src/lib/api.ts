@@ -521,6 +521,11 @@ export async function createDudiPartner(
     longitude: number;
     maxQuota: number;
     supportedJobCardIds: string[];
+    mentor?: {
+      fullName: string;
+      jobTitle: string;
+      whatsappNumber: string;
+    };
   },
   token: string
 ) {
@@ -551,6 +556,17 @@ export async function createDudiMentor(
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json.detail || "Gagal mendaftarkan mentor");
+  return json;
+}
+
+/** POST /dudi/mentors/:mentorId/activation-link — Terbitkan tautan aktivasi perangkat baru (72 jam) */
+export async function issueMentorActivationLink(mentorId: string, token: string) {
+  const res = await fetch(`${API_BASE_URL}/dudi/mentors/${mentorId}/activation-link`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "Gagal menerbitkan tautan aktivasi mentor");
   return json;
 }
 
@@ -1240,7 +1256,14 @@ export async function fetchMentorVerifyDetails(
 export async function checkMentorDevice(
   token: string,
   deviceToken: string | null
-): Promise<{ recognized: boolean; isLocked: boolean; hasDeviceBound: boolean }> {
+): Promise<{
+  recognized: boolean;
+  isLocked: boolean;
+  hasDeviceBound: boolean;
+  crossMentorConflict?: boolean;
+  conflictDudiName?: string;
+  conflictMentorName?: string;
+}> {
   const res = await fetch(
     `${API_BASE_URL}/verify/mentor/${encodeURIComponent(token)}/check-device`,
     {

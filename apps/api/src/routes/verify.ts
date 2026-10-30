@@ -231,6 +231,19 @@ verifyRouter.get(
         throw new AppError("Data penempatan siswa tidak ditemukan", 404, "PLACEMENT_NOT_FOUND");
       }
 
+      // Validasi kesesuaian DUDI mentor dengan DUDI penempatan siswa
+      if (
+        mentor.dudiPartnerId &&
+        placement.dudiPartnerId &&
+        mentor.dudiPartnerId !== placement.dudiPartnerId
+      ) {
+        throw new AppError(
+          "Akses Ditolak: Tautan verifikasi ini milik Mitra DUDI lain. Mentor hanya dapat memverifikasi siswa di perusahaan tempatnya bernaung.",
+          403,
+          "CROSS_DUDI_MISMATCH"
+        );
+      }
+
       // 3. Ambil log yang akan diverifikasi
       const logIds = signedLink.logIds;
       const logs = await prisma.dailyLog.findMany({
@@ -242,18 +255,45 @@ verifyRouter.get(
         include: {
           items: {
             include: {
-              jobCard: true,
+              jobCard: {
+                include: {
+                  cpElement: true,
+                },
+              },
             },
           },
         },
         orderBy: { logDate: "asc" },
       });
 
+      // Validasi kesesuaian kompetensi jurusan siswa (misal non-RPL tidak bisa memverifikasi Job Card RPL)
+      const studentDeptId =
+        placement.student.schoolDepartmentId || placement.student.schoolDepartment?.id;
+      if (studentDeptId) {
+        for (const log of logs) {
+          for (const item of log.items) {
+            const jc = item.jobCard as any;
+            if (
+              jc &&
+              !jc.isNonCompetency &&
+              jc.cpElement?.schoolDepartmentId &&
+              jc.cpElement.schoolDepartmentId !== studentDeptId
+            ) {
+              throw new AppError(
+                `Akses Ditolak: Tugas "${jc.title}" berasal dari konsentrasi keahlian berbeda dan tidak sesuai dengan jurusan siswa (${placement.student.schoolDepartment?.name || "Jurusan Siswa"}).`,
+                403,
+                "CROSS_DEPARTMENT_MISMATCH"
+              );
+            }
+          }
+        }
+      }
+
       // Nonce unik untuk mencegah replay attack pada POST eksekusi persetujuan
       const nonce = crypto.randomUUID();
 
-      // Cari device token seeded yang cocok dengan hash mentor jika tersedia
-      let resolvedDeviceToken = "device-token-mentor-0";
+      // Cari device token seeded yang cocok dengan hash mentor jika tersedia (hanya untuk akun seed demo)
+      let resolvedDeviceToken: string | null = null;
       if (mentor.deviceTokenHash) {
         for (let i = 0; i < 20; i++) {
           const candidate = `device-token-mentor-${i}`;
@@ -275,7 +315,7 @@ verifyRouter.get(
           jobTitle: mentor.jobTitle,
           dudiName: mentor.dudiPartner.name,
           hasDeviceBound: Boolean(mentor.deviceTokenHash),
-          defaultDeviceToken: resolvedDeviceToken,
+          defaultDeviceToken: resolvedDeviceToken ?? undefined,
           isLocked,
           lockedUntil: mentor.lockedUntil?.toISOString() || null,
         },
@@ -377,27 +417,60 @@ verifyRouter.post(
       const callerTokenHash = hashSha256Hex(deviceToken);
       const isRecognized = callerTokenHash === mentor.deviceTokenHash;
 
-      // Jika token dikirimkan namun tidak cocok, catat SecurityFlag UNTRUSTED_DEVICE (TC-006)
-      if (!isRecognized && signedLink.placementId) {
-        await prisma.securityFlag.create({
-          data: {
-            placementId: signedLink.placementId,
-            mentorId: mentor.id,
-            signedLinkId: signedLink.id,
-            kind: SecurityFlagKind.UNTRUSTED_DEVICE,
-            meta: {
-              attemptedAt: new Date().toISOString(),
-              userAgent: req.headers["user-agent"] || "unknown",
-              note: "Percobaan verifikasi dari perangkat yang tidak terdaftar",
+      let crossMentorConflict = false;
+      let conflictDudiName: string | undefined;
+      let conflictMentorName: string | undefined;
+
+      // Jika token dikirimkan namun tidak cocok, cek apakah milik mentor/DUDI lain & catat SecurityFlag UNTRUSTED_DEVICE (TC-006)
+      if (!isRecognized) {
+        if (typeof (prisma.dudiMentor as any)?.findFirst === "function") {
+          const otherMentor = await prisma.dudiMentor.findFirst({
+            where: {
+              deviceTokenHash: callerTokenHash,
+              ...(mentor.id ? { id: { not: mentor.id } } : {}),
             },
-          },
-        });
+            include: { dudiPartner: true },
+          });
+
+          if (otherMentor) {
+            crossMentorConflict = true;
+            conflictDudiName = otherMentor.dudiPartner?.name;
+            conflictMentorName = otherMentor.fullName;
+          }
+        }
+
+        if (signedLink.placementId) {
+          await prisma.securityFlag.create({
+            data: {
+              placementId: signedLink.placementId,
+              mentorId: mentor.id,
+              signedLinkId: signedLink.id,
+              kind: SecurityFlagKind.UNTRUSTED_DEVICE,
+              meta: {
+                attemptedAt: new Date().toISOString(),
+                userAgent: req.headers["user-agent"] || "unknown",
+                crossMentorConflict,
+                conflictDudiName: conflictDudiName || null,
+                note: crossMentorConflict
+                  ? `Percobaan scan/verifikasi lintas DUDI oleh perangkat mentor ${conflictMentorName || "lain"} (${conflictDudiName || "DUDI lain"})`
+                  : "Percobaan verifikasi dari perangkat yang tidak terdaftar",
+              },
+            },
+          });
+        }
       }
 
       res.json({
         recognized: isRecognized,
         isLocked,
         hasDeviceBound: Boolean(mentor.deviceTokenHash),
+        ...(crossMentorConflict
+          ? {
+              crossMentorConflict: true,
+              conflictDudiName,
+              conflictMentorName,
+            }
+          : {}),
       });
     } catch (err) {
       next(err);
@@ -512,6 +585,17 @@ verifyRouter.post(
 
       // TC-006: Jika mentor sudah memiliki ikatan device token resmi dan token pemanggil tidak cocok, tolak
       if (mentor.deviceTokenHash && !isDeviceMatched) {
+        let otherMentor: any = null;
+        if (typeof (prisma.dudiMentor as any)?.findFirst === "function") {
+          otherMentor = await prisma.dudiMentor.findFirst({
+            where: {
+              deviceTokenHash: callerDeviceHash,
+              ...(mentor.id ? { id: { not: mentor.id } } : {}),
+            },
+            include: { dudiPartner: true },
+          });
+        }
+
         if (signedLink.placementId) {
           await prisma.securityFlag.create({
             data: {
@@ -521,11 +605,23 @@ verifyRouter.post(
               kind: SecurityFlagKind.UNTRUSTED_DEVICE,
               meta: {
                 attemptedTokenHash: callerDeviceHash,
-                note: "Percobaan verifikasi ditolak karena device token tidak cocok (dibuka di browser non-mentor / HP Siswa)",
+                crossMentorConflict: Boolean(otherMentor),
+                conflictDudiName: otherMentor?.dudiPartner?.name || null,
+                note: otherMentor
+                  ? `Percobaan verifikasi lintas DUDI ditolak: perangkat terdaftar untuk ${otherMentor.fullName} (${otherMentor.dudiPartner?.name || "DUDI lain"})`
+                  : "Percobaan verifikasi ditolak karena device token tidak cocok (dibuka di browser non-mentor / HP Siswa)",
                 userAgent: req.headers["user-agent"] || "unknown",
               },
             },
           });
+        }
+
+        if (otherMentor) {
+          throw new AppError(
+            `Akses Ditolak: Perangkat ini terdaftar untuk Mentor ${otherMentor.fullName} (${otherMentor.dudiPartner?.name || "Mitra DUDI lain"}). Anda tidak dapat memverifikasi jurnal siswa di luar DUDI atau bidang keahlian Anda.`,
+            403,
+            "CROSS_DUDI_MISMATCH"
+          );
         }
 
         throw new AppError(

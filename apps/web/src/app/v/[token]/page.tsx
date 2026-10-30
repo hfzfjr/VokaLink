@@ -148,6 +148,10 @@ export default function MentorVerificationPage() {
   // 2. Device Recognition State (BR-007 & TC-006)
   const [deviceToken, setDeviceToken] = useState<string | null>(() => (isMock ? "mock-demo-device-token" : null));
   const [isDeviceRecognized, setIsDeviceRecognized] = useState<boolean | null>(() => (isMock ? true : null));
+  const [crossMentorConflict, setCrossMentorConflict] = useState<{
+    conflictDudiName?: string;
+    conflictMentorName?: string;
+  } | null>(null);
 
   // 3. Verification Dialog & PIN State (BR-007 & TC-007)
   const [showPinModal, setShowPinModal] = useState(false);
@@ -193,15 +197,16 @@ export default function MentorVerificationPage() {
       const res = await fetchMentorVerifyDetails(token);
       setData(res);
 
-      // Check device token in localStorage
+      // Check device token in localStorage (prioritize mentor-specific token if bound on this browser)
       let localToken =
         typeof window !== "undefined"
-          ? localStorage.getItem("vokalink_mentor_device_token")
+          ? localStorage.getItem(`vokalink_mentor_device_token_${res.mentor.id}`) ||
+            localStorage.getItem("vokalink_mentor_device_token")
           : null;
 
-      // Auto-provision default mentor device token if not yet present in this browser/phone
-      if (!localToken && typeof window !== "undefined") {
-        localToken = res.mentor?.defaultDeviceToken || "device-token-mentor-0";
+      // Auto-provision default mentor device token ONLY for seeded demo mentors when no token is present
+      if (!localToken && typeof window !== "undefined" && res.mentor?.defaultDeviceToken) {
+        localToken = res.mentor.defaultDeviceToken;
         localStorage.setItem("vokalink_mentor_device_token", localToken);
       }
       setDeviceToken(localToken);
@@ -210,6 +215,14 @@ export default function MentorVerificationPage() {
       try {
         const checkRes = await checkMentorDevice(token, localToken);
         setIsDeviceRecognized(checkRes.recognized);
+        if (checkRes.crossMentorConflict) {
+          setCrossMentorConflict({
+            conflictDudiName: checkRes.conflictDudiName,
+            conflictMentorName: checkRes.conflictMentorName,
+          });
+        } else {
+          setCrossMentorConflict(null);
+        }
         if (checkRes.isLocked && res.mentor.lockedUntil) {
           const rem = Math.ceil(
             (new Date(res.mentor.lockedUntil).getTime() - Date.now()) / (60 * 1000)
@@ -291,13 +304,12 @@ export default function MentorVerificationPage() {
 
     const effectiveToken =
       deviceToken ||
+      (typeof window !== "undefined" && data.mentor?.id
+        ? localStorage.getItem(`vokalink_mentor_device_token_${data.mentor.id}`) ||
+          localStorage.getItem("vokalink_mentor_device_token")
+        : null) ||
       data.mentor?.defaultDeviceToken ||
-      "device-token-mentor-0";
-
-    if (typeof window !== "undefined" && !deviceToken) {
-      localStorage.setItem("vokalink_mentor_device_token", effectiveToken);
-      setDeviceToken(effectiveToken);
-    }
+      "unregistered-device-token";
 
     setIsSubmitting(true);
     setPinError(null);
@@ -316,8 +328,17 @@ export default function MentorVerificationPage() {
       if (err.code === "PIN_LOCKOUT" || err.message?.includes("15 menit")) {
         setPinLockRemaining(15);
         setPinError("Percobaan PIN salah telah mencapai batas 5 kali. Akses verifikasi terkunci selama 15 menit.");
+      } else if (err.code === "CROSS_DUDI_MISMATCH" || err.code === "CROSS_DEPARTMENT_MISMATCH") {
+        setPinError(
+          sanitizeErrorMessage(
+            err,
+            "Akses Ditolak: Perangkat ini terdaftar untuk Mentor/DUDI lain. Anda tidak dapat memverifikasi jurnal siswa di luar DUDI atau bidang keahlian Anda."
+          )
+        );
       } else if (err.code === "DEVICE_MISMATCH") {
-        setPinError("Perangkat tidak dikenali. Persetujuan ditolak demi keamanan data.");
+        setPinError(
+          "Perangkat tidak dikenali. Verifikasi hanya sah melalui smartphone resmi mentor yang telah diaktivasi."
+        );
       } else if (err.name === "TypeError" || err.message?.includes("fetch")) {
         // Fallback jika API terputus saat submit di Vercel:
         if (pin === "1234") {
@@ -347,8 +368,12 @@ export default function MentorVerificationPage() {
 
     const effectiveToken =
       deviceToken ||
+      (typeof window !== "undefined" && data.mentor?.id
+        ? localStorage.getItem(`vokalink_mentor_device_token_${data.mentor.id}`) ||
+          localStorage.getItem("vokalink_mentor_device_token")
+        : null) ||
       data.mentor?.defaultDeviceToken ||
-      "device-token-mentor-0";
+      "unregistered-device-token";
 
     setIsSubmitting(true);
     try {
@@ -481,19 +506,6 @@ export default function MentorVerificationPage() {
             >
               <RotateCcw className="w-4 h-4" />
               <span>Coba Muat Ulang</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setData(getMockVerificationData());
-                setIsDeviceRecognized(true);
-                setDeviceToken("mock-demo-device-token");
-                setErrorMessage(null);
-                setErrorCode(null);
-              }}
-              className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition cursor-pointer border border-slate-200/80"
-            >
-              Buka Simulasi Demo Pengesahan
             </button>
             <button
               type="button"
@@ -630,39 +642,46 @@ export default function MentorVerificationPage() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-5 space-y-4 sm:space-y-5">
-        {/* Warning Banner: Compact & Non-Intrusive */}
+        {/* Security / Device Status Banner */}
         {isDeviceRecognized === false && (
-          <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-50/90 border border-amber-200/80 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-start gap-2.5 min-w-0">
-              <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold text-slate-900">Perangkat Pengujian / Belum Ditautkan</p>
-                <p className="text-amber-800/90 mt-0.5 text-[11.5px] leading-relaxed">
-                  Masukkan PIN mentor untuk persetujuan, atau tautkan perangkat ini sebagai HP mentor resmi.
-                </p>
-              </div>
+          <div
+            className={`p-3.5 sm:p-4 rounded-2xl border flex items-start gap-2.5 text-xs ${
+              crossMentorConflict
+                ? "bg-rose-50/90 border-rose-200/80 text-rose-900"
+                : "bg-amber-50/90 border-amber-200/80 text-amber-900"
+            }`}
+          >
+            <ShieldAlert
+              className={`w-4 h-4 shrink-0 mt-0.5 ${
+                crossMentorConflict ? "text-rose-600" : "text-amber-600"
+              }`}
+            />
+            <div className="min-w-0">
+              {crossMentorConflict ? (
+                <>
+                  <p className="font-bold text-rose-950">
+                    Akses Lintas DUDI Ditolak ({crossMentorConflict.conflictDudiName || "Mitra Lain"})
+                  </p>
+                  <p className="text-rose-800/90 mt-0.5 text-[11.5px] leading-relaxed">
+                    Perangkat ini terdaftar untuk Mentor{" "}
+                    <strong>{crossMentorConflict.conflictMentorName || "Industri Lain"}</strong> di{" "}
+                    <strong>{crossMentorConflict.conflictDudiName || "DUDI berbeda"}</strong>. Mentor
+                    hanya dapat memindai dan memverifikasi jurnal siswa yang ditempatkan di DUDI dan
+                    bidang keahliannya sendiri.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-bold text-slate-900">
+                    Perangkat Belum Terdaftar sebagai HP Resmi Mentor
+                  </p>
+                  <p className="text-amber-800/90 mt-0.5 text-[11.5px] leading-relaxed">
+                    Tautan ini hanya dapat disahkan melalui smartphone mentor yang telah diaktivasi
+                    lewat tautan QR Aktivasi Sekolah (Device-Bound Token + PIN 4-Digit).
+                  </p>
+                </>
+              )}
             </div>
-
-            <button
-              type="button"
-              onClick={async () => {
-                const tokenToSet = data?.mentor?.defaultDeviceToken || "device-token-mentor-0";
-                if (typeof window !== "undefined") {
-                  localStorage.setItem("vokalink_mentor_device_token", tokenToSet);
-                }
-                setDeviceToken(tokenToSet);
-                try {
-                  const checkRes = await checkMentorDevice(token, tokenToSet);
-                  setIsDeviceRecognized(checkRes.recognized);
-                } catch {
-                  setIsDeviceRecognized(true);
-                }
-              }}
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold text-xs transition shadow-2xs cursor-pointer shrink-0"
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Tautkan HP Ini (1-Klik)</span>
-            </button>
           </div>
         )}
 
@@ -770,7 +789,9 @@ export default function MentorVerificationPage() {
                     setPinError(null);
                     setShowPinModal(true);
                   }}
-                  disabled={Boolean(pinLockRemaining && pinLockRemaining > 0)}
+                  disabled={Boolean(
+                    (pinLockRemaining && pinLockRemaining > 0) || crossMentorConflict
+                  )}
                   className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition disabled:opacity-50 cursor-pointer"
                 >
                   <ShieldCheck className="w-4 h-4" />
@@ -784,7 +805,9 @@ export default function MentorVerificationPage() {
                 <button
                   type="button"
                   onClick={() => setShowRejectModal(true)}
-                  disabled={Boolean(pinLockRemaining && pinLockRemaining > 0)}
+                  disabled={Boolean(
+                    (pinLockRemaining && pinLockRemaining > 0) || crossMentorConflict
+                  )}
                   className="w-full h-10 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-[0.99] text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
                 >
                   <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
@@ -957,7 +980,9 @@ export default function MentorVerificationPage() {
             <button
               type="button"
               onClick={() => setShowRejectModal(true)}
-              disabled={Boolean(pinLockRemaining && pinLockRemaining > 0)}
+              disabled={Boolean(
+                (pinLockRemaining && pinLockRemaining > 0) || crossMentorConflict
+              )}
               className="h-12 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition disabled:opacity-50 cursor-pointer shrink-0 border border-slate-200/60"
             >
               <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
@@ -972,7 +997,9 @@ export default function MentorVerificationPage() {
                 setPinError(null);
                 setShowPinModal(true);
               }}
-              disabled={Boolean(pinLockRemaining && pinLockRemaining > 0)}
+              disabled={Boolean(
+                (pinLockRemaining && pinLockRemaining > 0) || crossMentorConflict
+              )}
               className="flex-1 h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition disabled:opacity-50 cursor-pointer"
             >
               <ShieldCheck className="w-4 h-4 shrink-0" />
