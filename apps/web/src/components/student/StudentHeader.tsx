@@ -3,15 +3,17 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, Settings } from "lucide-react";
+import { ArrowLeft, Bell, Settings } from "lucide-react";
 import { useAuth } from "@/lib/use-auth";
 import VokaIcon from "@/components/common/VokaIcon";
 import { StudentSettingsModal } from "./StudentSettingsModal";
+import { MentorNotificationModal } from "@/components/student/home/MentorNotificationModal";
 
 export function StudentHeader() {
   const pathname = usePathname();
   const { user } = useAuth();
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
 
   const isHome = pathname === "/student" || pathname === "/student/home";
 
@@ -56,9 +58,14 @@ export function StudentHeader() {
 
             <div className="min-w-0">
               {isHome ? (
-                <span className="font-extrabold text-base tracking-tight text-slate-900 leading-none">
-                  VokaLink
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-extrabold text-base tracking-tight text-slate-900 leading-none">
+                    VokaLink
+                  </span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-100 font-semibold leading-none tracking-wide">
+                    SISWA
+                  </span>
+                </div>
               ) : (
                 <div className="min-w-0">
                   <h1 className="font-bold text-sm tracking-tight text-slate-900 leading-tight truncate">
@@ -72,8 +79,20 @@ export function StudentHeader() {
             </div>
           </div>
 
-          {/* Right Section: Settings Button & User Avatar */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Right Section: Notification, Settings & User Avatar */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Tombol Notifikasi (Pemberitahuan Mentor & Sekolah) */}
+            <button
+              type="button"
+              onClick={() => setShowNotificationModal(true)}
+              title="Pemberitahuan Mentor & Sekolah"
+              aria-label="Pemberitahuan Mentor & Sekolah"
+              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-600 hover:text-slate-900 flex items-center justify-center transition border border-slate-200/80 cursor-pointer shadow-2xs shrink-0 relative"
+            >
+              <Bell className="w-4 h-4" />
+              <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-1.5 right-1.5 ring-2 ring-white" />
+            </button>
+
             {/* Tombol Pengaturan (Settings) */}
             <button
               type="button"
@@ -103,6 +122,13 @@ export function StudentHeader() {
           </div>
         </div>
       </header>
+
+      {/* Modal Notifikasi Mentor & Sekolah */}
+      {showNotificationModal && (
+        <MentorNotificationModal
+          onClose={() => setShowNotificationModal(false)}
+        />
+      )}
 
       {/* Modal Pengaturan Siswa */}
       <StudentSettingsModal

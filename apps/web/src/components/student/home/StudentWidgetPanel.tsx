@@ -121,11 +121,12 @@ export function StudentWidgetPanel({
         <button
           type="button"
           onClick={onOpenNotifications}
-          title="Pemberitahuan Mentor"
-          className="w-9 h-9 rounded-xl bg-slate-100/80 hover:bg-slate-200/60 border border-slate-200/70 flex items-center justify-center text-slate-600 transition relative cursor-pointer shrink-0 ml-2"
+          title="Pemberitahuan Mentor & Sekolah"
+          aria-label="Pemberitahuan Mentor & Sekolah"
+          className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 border border-slate-200/80 flex items-center justify-center text-slate-600 hover:text-slate-900 transition relative cursor-pointer shrink-0 ml-2 shadow-2xs"
         >
-          <Bell className="w-4 h-4" />
-          <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-2 right-2 ring-2 ring-white" />
+          <Bell className="w-4.5 h-4.5 text-slate-600" />
+          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 absolute top-2 right-2 ring-2 ring-white" />
         </button>
       </div>
 

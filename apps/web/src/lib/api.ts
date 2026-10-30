@@ -1142,8 +1142,18 @@ export interface StudentDailyLogItem {
 }
 
 /** GET /api/v1/logs/me?placementId=... */
-export async function fetchStudentLogs(placementId: string): Promise<StudentDailyLogItem[]> {
-  const res = await fetch(`${API_BASE_URL}/logs/me?placementId=${encodeURIComponent(placementId)}`);
+export async function fetchStudentLogs(
+  placementId: string,
+  token?: string
+): Promise<StudentDailyLogItem[]> {
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(
+    `${API_BASE_URL}/logs/me?placementId=${encodeURIComponent(placementId)}`,
+    { headers }
+  );
   const json = await res.json();
   if (!res.ok) throw new Error(json.detail || "Gagal memuat riwayat logbook");
   return json.logs || [];

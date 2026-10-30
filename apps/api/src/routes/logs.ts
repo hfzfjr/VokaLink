@@ -384,6 +384,8 @@ logsRouter.get(
     try {
       const placementId = req.query["placementId"] as string | undefined;
       const since = req.query["since"] as string | undefined;
+      const limitRaw = req.query["limit"] as string | undefined;
+      const limit = limitRaw ? Math.min(Math.max(1, parseInt(limitRaw, 10) || 100), 500) : 250;
 
       const whereClause: {
         placementId?: string;
@@ -427,7 +429,7 @@ logsRouter.get(
           },
         },
         orderBy: { logDate: "desc" },
-        take: 50,
+        take: limit,
       });
 
       res.status(200).json({

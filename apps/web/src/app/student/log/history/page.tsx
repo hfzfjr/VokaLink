@@ -726,14 +726,14 @@ export default function LogHistoryPage() {
       ───────────────────────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pb-3 border-b border-slate-200/80">
         <div>
-          <div className="flex items-center justify-between sm:justify-start gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
               Riwayat Logbook
             </h1>
             {pendingCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/70 text-[11px] font-medium shrink-0">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/70 text-[11px] font-semibold shrink-0 shadow-2xs">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                <span>{pendingCount} Offline</span>
+                <span>{`${pendingCount} Antrean Offline`}</span>
               </span>
             )}
           </div>
@@ -742,40 +742,51 @@ export default function LogHistoryPage() {
           </p>
         </div>
 
-        {/* Action Buttons: Unified Single-Row Mobile Action Bar */}
-        <div className="flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
-          {pendingCount > 0 && (
-            <button
-              type="button"
-              onClick={() => syncNow()}
-              disabled={isSyncing || !isOnline}
-              title={isSyncing ? "Menyinkronkan antrean..." : `${pendingCount} antrean offline siap disinkronkan`}
-              className="h-10 px-3 sm:px-4 rounded-xl bg-amber-50 hover:bg-amber-100 active:scale-[0.98] text-amber-800 text-xs font-semibold border border-amber-200/80 transition disabled:opacity-50 cursor-pointer shadow-2xs whitespace-nowrap flex items-center justify-center gap-1.5 shrink-0"
-            >
-              <RefreshCw className={cn("w-3.5 h-3.5 text-amber-600 shrink-0", isSyncing && "animate-spin")} />
-              <span className="sm:hidden font-bold">{pendingCount}</span>
-              <span className="hidden sm:inline">{isSyncing ? "Sinkron..." : `Sinkron (${pendingCount})`}</span>
-            </button>
-          )}
+        {/* Action Buttons: 1 Baris Rapi, Proporsional & Konsisten di Mobile maupun Desktop */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {/* 1. Tombol Sinkronkan (Smart: Kompak/Highlight Amber bila ada antrean) */}
+          <button
+            type="button"
+            onClick={() => syncNow()}
+            disabled={isSyncing || !isOnline}
+            title={isSyncing ? "Menyinkronkan antrean..." : `${pendingCount} antrean offline siap disinkronkan`}
+            className={cn(
+              "h-10 px-2.5 sm:px-3.5 rounded-xl text-xs font-semibold transition active:scale-[0.98] cursor-pointer shadow-2xs whitespace-nowrap flex items-center justify-center gap-1.5 shrink-0 border",
+              pendingCount > 0
+                ? "bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200/80"
+                : "bg-white hover:bg-slate-50 text-slate-700 border-slate-200/80"
+            )}
+          >
+            <RefreshCw className={cn("w-3.5 h-3.5 text-sky-500 shrink-0", isSyncing && "animate-spin")} />
+            <span className={cn(pendingCount > 0 ? "hidden min-[370px]:inline" : "hidden sm:inline")}>
+              {isSyncing ? "Sinkron..." : "Sinkronkan"}
+            </span>
+            {pendingCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold leading-none">
+                {pendingCount}
+              </span>
+            )}
+          </button>
 
+          {/* 2. Tombol Validasi (Buka QR Verifikasi Mentor DUDI) */}
           <button
             type="button"
             onClick={handleOpenVerifyModal}
-            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 h-10 px-3.5 sm:px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white text-xs sm:text-sm font-semibold shadow-2xs transition cursor-pointer whitespace-nowrap"
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 h-10 px-3 sm:px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white text-xs sm:text-sm font-semibold shadow-2xs transition cursor-pointer whitespace-nowrap"
           >
             <QrCode className="w-4 h-4 text-sky-400 shrink-0" />
-            <span className="sm:hidden">Validasi</span>
-            <span className="hidden sm:inline">Minta Validasi (QR)</span>
+            <span>Validasi</span>
             {pendingCountTotal > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-sky-500 text-white text-[10px] font-bold leading-none">
+              <span className="w-5 h-5 rounded-full bg-sky-500 text-white text-[11px] font-bold flex items-center justify-center leading-none">
                 {pendingCountTotal}
               </span>
             )}
           </button>
 
+          {/* 3. Tombol Catat Jurnal (Aksi Utama / Primary CTA) */}
           <Link
             href="/student/log/new"
-            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 h-10 px-4 sm:px-5 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs sm:text-sm font-semibold shadow-2xs transition whitespace-nowrap cursor-pointer"
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 h-10 px-3.5 sm:px-5 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-xs sm:text-sm font-semibold shadow-2xs transition whitespace-nowrap cursor-pointer"
           >
             <PlusCircle className="w-4 h-4 shrink-0 stroke-[2.2]" />
             <span>Catat Jurnal</span>
@@ -925,20 +936,19 @@ export default function LogHistoryPage() {
               type="button"
               onClick={() => setFilter("ALL")}
               className={cn(
-                "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
+                "flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-full whitespace-nowrap text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95",
                 filter === "ALL"
-                  ? "bg-white text-slate-900 font-semibold shadow-xs"
+                  ? "bg-sky-500 text-white font-bold shadow-xs"
                   : "text-slate-600 hover:text-slate-900 font-medium"
               )}
             >
-              <span className="sm:hidden">Semua</span>
-              <span className="hidden sm:inline">Semua Jurnal</span>
+              <span>Semua</span>
               <span
                 className={cn(
-                  "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
+                  "px-1.5 py-0.2 rounded-full text-[10.5px] font-semibold tabular-nums",
                   filter === "ALL"
-                    ? "bg-slate-100 text-slate-800"
-                    : "bg-slate-300/60 text-slate-600"
+                    ? "text-sky-100 font-bold"
+                    : "text-slate-400 font-medium"
                 )}
               >
                 {allLogs.length}
@@ -950,21 +960,20 @@ export default function LogHistoryPage() {
               type="button"
               onClick={() => setFilter("VERIFIED")}
               className={cn(
-                "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
+                "flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-full whitespace-nowrap text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95",
                 filter === "VERIFIED"
-                  ? "bg-white text-emerald-800 font-semibold shadow-xs"
+                  ? "bg-white text-emerald-800 font-bold shadow-xs"
                   : "text-slate-600 hover:text-slate-900 font-medium"
               )}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-              <span className="sm:hidden">Sah</span>
-              <span className="hidden sm:inline">Sah Terverifikasi</span>
+              <span>Sah</span>
               <span
                 className={cn(
-                  "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
+                  "px-1.5 py-0.2 rounded-full text-[10.5px] font-semibold tabular-nums",
                   filter === "VERIFIED"
-                    ? "bg-emerald-100 text-emerald-800"
-                    : "bg-slate-300/60 text-slate-600"
+                    ? "bg-emerald-50 text-emerald-800 font-bold"
+                    : "text-slate-400 font-medium"
                 )}
               >
                 {verifiedCountTotal}
@@ -976,21 +985,20 @@ export default function LogHistoryPage() {
               type="button"
               onClick={() => setFilter("PENDING")}
               className={cn(
-                "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
+                "flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-full whitespace-nowrap text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95",
                 filter === "PENDING"
-                  ? "bg-white text-amber-800 font-semibold shadow-xs"
+                  ? "bg-white text-amber-800 font-bold shadow-xs"
                   : "text-slate-600 hover:text-slate-900 font-medium"
               )}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-              <span className="sm:hidden">Pending</span>
-              <span className="hidden sm:inline">Menunggu Validasi</span>
+              <span>Menunggu</span>
               <span
                 className={cn(
-                  "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
+                  "px-1.5 py-0.2 rounded-full text-[10.5px] font-semibold tabular-nums",
                   filter === "PENDING"
-                    ? "bg-amber-100 text-amber-800"
-                    : "bg-slate-300/60 text-slate-600"
+                    ? "bg-amber-50 text-amber-800 font-bold"
+                    : "text-slate-400 font-medium"
                 )}
               >
                 {pendingCountTotal}
@@ -1002,21 +1010,21 @@ export default function LogHistoryPage() {
               type="button"
               onClick={() => setFilter("NON_COMPETENCY")}
               className={cn(
-                "flex-1 sm:flex-initial px-2.5 sm:px-3.5 py-1.5 rounded-full whitespace-nowrap text-[11px] sm:text-xs transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 active:scale-95",
+                "flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 rounded-full whitespace-nowrap text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95",
                 filter === "NON_COMPETENCY"
-                  ? "bg-white text-indigo-800 font-semibold shadow-xs"
+                  ? "bg-white text-indigo-800 font-bold shadow-xs"
                   : "text-slate-600 hover:text-slate-900 font-medium"
               )}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
-              <span className="sm:hidden">Umum</span>
+              <span className="sm:hidden">Ops</span>
               <span className="hidden sm:inline">Non-Kejuruan</span>
               <span
                 className={cn(
-                  "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
+                  "px-1.5 py-0.2 rounded-full text-[10.5px] font-semibold tabular-nums",
                   filter === "NON_COMPETENCY"
-                    ? "bg-indigo-100 text-indigo-800"
-                    : "bg-slate-300/60 text-slate-600"
+                    ? "bg-indigo-50 text-indigo-800 font-bold"
+                    : "text-slate-400 font-medium"
                 )}
               >
                 {nonCompetencyCountTotal}

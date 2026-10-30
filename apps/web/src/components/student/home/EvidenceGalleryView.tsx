@@ -62,7 +62,21 @@ export function EvidenceGalleryView({
       .map((l) => {
         const photo = offlinePhotos.find((p) => p.clientLogUuid === l.clientLogUuid);
         const kbSize = photo ? `${Math.round(photo.sizeBytes / 1024)} KB (WebP)` : "120 KB (WebP)";
-        const photoUrl = photo?.blob ? URL.createObjectURL(photo.blob) : "";
+        let photoUrl = "";
+        if (typeof window !== "undefined" && typeof URL !== "undefined" && photo?.blob) {
+          try {
+            const rawBlob = photo.blob as unknown;
+            if (rawBlob instanceof Blob) {
+              photoUrl = URL.createObjectURL(rawBlob);
+            } else if (rawBlob instanceof ArrayBuffer || ArrayBuffer.isView(rawBlob)) {
+              const blob = new Blob([rawBlob as BlobPart], { type: photo.mimeType || "image/webp" });
+              photoUrl = URL.createObjectURL(blob);
+            }
+          } catch (err) {
+            console.warn("Gagal membuat ObjectURL bukti offline:", err);
+            photoUrl = "";
+          }
+        }
         return {
           id: l.clientLogUuid,
           title: l.jobCardTitle || l.shortNote || "Dokumentasi Praktik Industri",
@@ -81,6 +95,21 @@ export function EvidenceGalleryView({
       .filter((e) => Boolean(e.photoUrl));
   }, [offlineLogs, offlinePhotos, mentorName]);
 
+  // Bersihkan memory blob URLs saat komponen unmount atau foto berubah
+  React.useEffect(() => {
+    return () => {
+      offlineEvidences.forEach((item) => {
+        if (item.photoUrl && item.photoUrl.startsWith("blob:")) {
+          try {
+            URL.revokeObjectURL(item.photoUrl);
+          } catch {
+            // ignore
+          }
+        }
+      });
+    };
+  }, [offlineEvidences]);
+
   // 2. Foto bukti dari database server
   const serverEvidences: EvidenceItem[] = useMemo(() => {
     return serverLogs
@@ -89,6 +118,23 @@ export function EvidenceGalleryView({
         const firstItem = sl.items?.[0];
         const isNonComp = Boolean(firstItem?.jobCard?.isNonCompetency || firstItem?.nonCompetencyCategory);
         const durationJp = sl.items?.reduce((acc, it) => acc + it.durationJp, 0) || 8;
+
+        // Resolusi URL foto: cocokkan foto offline lokal di Dexie jika ada, atau pastikan URL valid
+        const localPhoto = offlinePhotos.find((p) => p.clientLogUuid === (sl.clientLogUuid || sl.id));
+        let resolvedPhotoUrl = sl.evidenceWebpUrl || "";
+        if (localPhoto?.blob) {
+          try {
+            const raw = localPhoto.blob as unknown;
+            if (raw instanceof Blob) {
+              resolvedPhotoUrl = URL.createObjectURL(raw);
+            }
+          } catch {
+            // fallback ke URL server
+          }
+        } else if (!resolvedPhotoUrl.startsWith("http") && !resolvedPhotoUrl.startsWith("blob:")) {
+          resolvedPhotoUrl = "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80";
+        }
+
         return {
           id: sl.clientLogUuid || sl.id,
           title: firstItem?.jobCard?.title || sl.shortNote || "Dokumentasi Praktik Industri",
@@ -98,13 +144,13 @@ export function EvidenceGalleryView({
           category: isNonComp ? "Non-Kompetensi" : "Dokumentasi Kerja",
           note: sl.shortNote || "Dokumentasi foto bukti pelaksanaan tugas magang industri siswa.",
           status: sl.status === "VERIFIED" ? ("verified" as const) : ("in_review" as const),
-          verifiedAt: sl.verifiedAt ? formatLogDate(sl.verifiedAt.slice(0, 10)) : undefined,
+          verifiedAt: typeof sl.verifiedAt === "string" ? formatLogDate(sl.verifiedAt.slice(0, 10)) : undefined,
           mentor: mentorName,
           isNonCompetency: isNonComp,
-          photoUrl: sl.evidenceWebpUrl!,
+          photoUrl: resolvedPhotoUrl,
         };
       });
-  }, [serverLogs, mentorName]);
+  }, [serverLogs, mentorName, offlinePhotos]);
 
   // Gabungkan foto offline lokal dengan foto database server (Tanpa dummy palsu)
   const allEvidences = useMemo(() => {
@@ -112,12 +158,15 @@ export function EvidenceGalleryView({
     const processedIds = new Set<string>();
 
     for (const se of serverEvidences) {
-      processedIds.add(se.id);
-      list.push(se);
+      if (se.id) {
+        processedIds.add(se.id);
+        list.push(se);
+      }
     }
 
     for (const oe of offlineEvidences) {
-      if (!processedIds.has(oe.id)) {
+      if (oe.id && !processedIds.has(oe.id)) {
+        processedIds.add(oe.id);
         list.push(oe);
       }
     }
@@ -193,9 +242,13 @@ export function EvidenceGalleryView({
                 onClick={() => setStatusFilter(chip.key)}
                 aria-pressed={active}
                 className={cn(
-                  "h-7 sm:h-7.5 px-3 rounded-full text-xs transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5",
+                  "flex-1 sm:flex-initial justify-center h-7 sm:h-7.5 px-3 rounded-full text-xs transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5",
                   active
-                    ? "bg-white text-slate-900 shadow-2xs font-bold"
+                    ? chip.key === "ALL"
+                      ? "bg-sky-500 text-white shadow-xs font-bold"
+                      : chip.key === "VERIFIED"
+                      ? "bg-white text-emerald-800 shadow-2xs font-bold"
+                      : "bg-white text-amber-800 shadow-2xs font-bold"
                     : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
                 )}
               >
@@ -204,8 +257,12 @@ export function EvidenceGalleryView({
                   className={cn(
                     "tabular-nums text-[10.5px] px-1.5 py-0.2 rounded-full font-semibold",
                     active
-                      ? "bg-slate-100 text-slate-700"
-                      : "text-slate-400"
+                      ? chip.key === "ALL"
+                        ? "text-sky-100 font-bold"
+                        : chip.key === "VERIFIED"
+                        ? "bg-emerald-50 text-emerald-800"
+                        : "bg-amber-50 text-amber-800"
+                      : "text-slate-400 font-medium"
                   )}
                 >
                   {chip.count}
@@ -272,28 +329,43 @@ export function EvidenceGalleryView({
         </div>
       </div>
 
-      {/* ─── Empty Search State ─── */}
+      {/* ─── Empty State (Zero Photos vs Empty Search/Filter) ─── */}
       {filteredEvidences.length === 0 && (
         <div className="py-12 bg-white rounded-3xl border border-slate-200/80 text-center space-y-3">
           <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
             <Inbox className="w-6 h-6" />
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-slate-900">Bukti Praktik Tidak Ditemukan</h4>
+            <h4 className="text-sm font-semibold text-slate-900">
+              {allEvidences.length === 0 ? "Belum Ada Dokumentasi Foto" : "Bukti Praktik Tidak Ditemukan"}
+            </h4>
             <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-              Tidak ada dokumentasi bukti yang cocok dengan kata kunci &quot;{searchQuery}&quot;.
+              {allEvidences.length === 0
+                ? "Foto bukti pelaksanaan tugas industri yang kamu sertakan saat mencatat jurnal akan tampil rapi di sini."
+                : searchQuery
+                ? `Tidak ada dokumentasi bukti yang cocok dengan kata kunci "${searchQuery}".`
+                : "Tidak ada dokumentasi bukti dengan filter status yang dipilih."}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setSearchQuery("");
-              setStatusFilter("ALL");
-            }}
-            className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition cursor-pointer"
-          >
-            Reset Pencarian
-          </button>
+          {allEvidences.length === 0 ? (
+            <a
+              href="/student/log/new"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold transition cursor-pointer shadow-xs"
+            >
+              Catat Jurnal &amp; Lampirkan Foto
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery("");
+                setStatusFilter("ALL");
+              }}
+              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition cursor-pointer"
+            >
+              Reset Filter &amp; Pencarian
+            </button>
+          )}
         </div>
       )}
 
@@ -591,7 +663,7 @@ export function EvidenceGalleryView({
                 {selectedItem.status === "verified" ? (
                   <span className="font-semibold text-emerald-700 inline-flex items-center gap-1">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Disahkan {selectedItem.mentor} ({selectedItem.verifiedAt})</span>
+                    <span>Disahkan {selectedItem.mentor}{selectedItem.verifiedAt ? ` (${selectedItem.verifiedAt})` : ""}</span>
                   </span>
                 ) : (
                   <span className="font-semibold text-amber-700 inline-flex items-center gap-1">

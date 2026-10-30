@@ -71,7 +71,7 @@ export function EraporDataTable({ records, onOpenDetail }: EraporDataTableProps)
               {r.pendingLogsCount > 0 && (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-amber-50 text-amber-700 font-bold text-[11px] border border-amber-200/80">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                  <span>{r.pendingLogsCount} Jurnal Menunggu Verifikasi</span>
+                  <span>{`${r.pendingLogsCount} Jurnal Menunggu Verifikasi`}</span>
                 </div>
               )}
             </div>

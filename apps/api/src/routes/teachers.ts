@@ -18,6 +18,7 @@ interface TeacherContext {
   userId?: string;
   schoolId?: string;
   role?: string;
+  schoolDepartmentId?: string | null;
 }
 
 /**
@@ -70,15 +71,17 @@ async function getTeacherContext(req: Request): Promise<TeacherContext | null> {
     const appMetadata = (payload["app_metadata"] ?? {}) as Record<string, unknown>;
     let role = (appMetadata["role"] ?? "TEACHER") as string;
     let schoolId = (appMetadata["school_id"] ?? paramSchoolId ?? "") as string;
+    let schoolDepartmentId: string | null = null;
 
-    if (sub && !schoolId) {
+    if (sub) {
       const profile = await prisma.userProfile.findUnique({
         where: { id: sub },
-        select: { schoolId: true, role: true },
+        select: { schoolId: true, role: true, schoolDepartmentId: true },
       });
       if (profile) {
-        schoolId = profile.schoolId;
+        if (!schoolId) schoolId = profile.schoolId;
         role = profile.role;
+        schoolDepartmentId = profile.schoolDepartmentId;
       }
     }
 
@@ -86,6 +89,7 @@ async function getTeacherContext(req: Request): Promise<TeacherContext | null> {
       userId: sub,
       schoolId: schoolId || paramSchoolId,
       role,
+      schoolDepartmentId,
     };
   } catch {
     return paramSchoolId ? { schoolId: paramSchoolId } : null;
@@ -552,6 +556,7 @@ function getMockHeatmapData(): HeatmapResponse {
 }
 
 // ─── GET /heatmap & GET /api/schools/:schoolId/heatmap ───────────────────────
+teachersRouter.get("/", handleGetHeatmap);
 teachersRouter.get("/heatmap", handleGetHeatmap);
 teachersRouter.get("/schools/:schoolId/heatmap", handleGetHeatmap);
 
@@ -616,6 +621,8 @@ async function handleGetHeatmap(req: Request, res: Response, next: NextFunction)
     const deptWhere: any = {};
     if (departmentId) {
       deptWhere.id = departmentId;
+    } else if (authContext?.schoolDepartmentId) {
+      deptWhere.id = authContext.schoolDepartmentId;
     } else {
       deptWhere.sectorCode = "RPL";
     }
@@ -699,7 +706,15 @@ async function handleGetHeatmap(req: Request, res: Response, next: NextFunction)
     const placements = await prisma.placement.findMany({
       where: placementWhere,
       include: {
-        student: true,
+        student: {
+          include: {
+            skillPassport: {
+              select: {
+                passportSlug: true,
+              },
+            },
+          },
+        },
         dudiPartner: true,
         dudiMentor: true,
         dailyLogs: {
@@ -829,11 +844,33 @@ async function handleGetHeatmap(req: Request, res: Response, next: NextFunction)
       );
       const orientationGracePeriod = daysSincePlacementStart <= 14;
 
+      // Ekstrak logbook harian terbaru riil siswa untuk feed aktivitas guru
+      let latestDailyLog: HeatmapStudentRow["latestLog"] = null;
+      const allStudentLogs = pList.flatMap((p) => p.dailyLogs);
+      if (allStudentLogs.length > 0) {
+        allStudentLogs.sort((a, b) => new Date(b.logDate).getTime() - new Date(a.logDate).getTime());
+        const recent = allStudentLogs[0]!;
+        const duration = recent.items.reduce((acc, it) => acc + it.durationJp, 0);
+        const firstItem = recent.items[0];
+        latestDailyLog = {
+          id: recent.id,
+          logDate: new Date(recent.logDate).toISOString().slice(0, 10),
+          attendanceType: recent.attendanceType,
+          shortNote: recent.shortNote,
+          status: recent.status,
+          durationJp: duration,
+          title: firstItem?.jobCard?.title || undefined,
+          verifiedAt: recent.verifiedAt ? new Date(recent.verifiedAt).toISOString() : null,
+        };
+      }
+
       students.push({
         studentId: activePlacement.student.id,
         fullName: activePlacement.student.fullName,
         nisn: activePlacement.student.identityNumber,
         avatarUrl: null,
+        passportSlug: (activePlacement.student as any).skillPassport?.passportSlug || null,
+        latestLog: latestDailyLog,
         placement: {
           id: activePlacement.id,
           dudiId: activePlacement.dudiPartner.id,
@@ -957,7 +994,7 @@ teachersRouter.get(
             severity: alert.severity,
             status: alert.status,
             metricSnapshot: alert.metricSnapshotJson,
-            detectedAt: alert.detectedAt.toISOString(),
+            detectedAt: new Date(alert.detectedAt).toISOString(),
             studentName: alert.student.fullName,
             nisn: alert.student.identityNumber || "-",
             dudiName: alert.placement.dudiPartner.name,
@@ -1073,8 +1110,10 @@ teachersRouter.get(
             mentorName: f.mentor.fullName,
             kind: f.kind as any,
             meta: (f.meta as any) || null,
-            createdAt: f.createdAt.toISOString(),
-            acknowledgedAt: f.acknowledgedAt?.toISOString() || null,
+            createdAt: new Date(f.createdAt).toISOString(),
+            acknowledgedAt: f.acknowledgedAt
+              ? new Date(f.acknowledgedAt).toISOString()
+              : null,
           }));
 
           res.status(200).json({ flags });

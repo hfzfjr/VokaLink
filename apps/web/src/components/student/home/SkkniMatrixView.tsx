@@ -12,6 +12,18 @@ import {
   LayoutGrid,
   Inbox,
   ChevronDown,
+  Calculator,
+  FileSpreadsheet,
+  FileText,
+  Coins,
+  Wrench,
+  Gauge,
+  Palette,
+  PenTool,
+  Video,
+  Utensils,
+  Pill,
+  FlaskConical,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -128,44 +140,395 @@ const MODULES: SkkniModule[] = [
   },
 ];
 
+const MODULES_BY_SECTOR: Record<string, SkkniModule[]> = {
+  AKL: [
+    {
+      id: "akl-jurnal",
+      title: "Akuntansi Keuangan — Siklus Jurnal",
+      code: "M.692000.003.02",
+      badgeLevel: "Mahir (Ready)",
+      badgeColor: { bg: "bg-emerald-50", border: "border-emerald-200/80", text: "text-emerald-700", dot: "bg-emerald-500" },
+      icon: Calculator,
+      iconBg: "bg-emerald-50 border-emerald-100 group-hover:bg-emerald-600 group-hover:text-white",
+      iconText: "text-emerald-700",
+      progressBarColor: "bg-emerald-500",
+      description: "Pencatatan transaksi penerimaan kas, pengeluaran kas, mutasi bank, dan pembuatan entri jurnal penyesuaian harian.",
+      verifiedJp: 110,
+      targetJp: 180,
+      percentage: 61,
+      skills: ["Microsoft Excel", "MYOB", "Accurate", "Jurnal Penyesuaian", "Buku Besar"],
+    },
+    {
+      id: "akl-laporan",
+      title: "Penyusunan & Analisis Laporan Keuangan",
+      code: "M.692000.008.02",
+      badgeLevel: "Menengah-Lanjut",
+      badgeColor: { bg: "bg-sky-50", border: "border-sky-200/80", text: "text-sky-700", dot: "bg-sky-500" },
+      icon: FileSpreadsheet,
+      iconBg: "bg-sky-50 border-sky-100 group-hover:bg-sky-600 group-hover:text-white",
+      iconText: "text-sky-700",
+      progressBarColor: "bg-sky-500",
+      description: "Penyusunan neraca lajur, laporan laba rugi, perubahan ekuitas, dan rekonsiliasi catatan kas dengan rekening koran.",
+      verifiedJp: 96,
+      targetJp: 180,
+      percentage: 53,
+      skills: ["Neraca Saldo", "Laba Rugi", "Rekonsiliasi Bank", "Arus Kas"],
+    },
+    {
+      id: "akl-pajak",
+      title: "Administrasi & Pelaporan Perpajakan",
+      code: "M.692000.016.02",
+      badgeLevel: "Menengah",
+      badgeColor: { bg: "bg-amber-50", border: "border-amber-200/80", text: "text-amber-800", dot: "bg-amber-500" },
+      icon: FileText,
+      iconBg: "bg-amber-50 border-amber-100 group-hover:bg-amber-600 group-hover:text-white",
+      iconText: "text-amber-700",
+      progressBarColor: "bg-amber-500",
+      description: "Perhitungan PPh Pasal 21/23, pembuatan faktur pajak keluaran/masukan, dan pelaporan SPT masa melalui aplikasi DJP.",
+      verifiedJp: 64,
+      targetJp: 144,
+      percentage: 44,
+      skills: ["e-Faktur DJP", "e-Filing", "PPh 21", "PPN", "SPT Masa"],
+    },
+    {
+      id: "akl-kas-persediaan",
+      title: "Administrasi Kas Kecil & Kartu Stok",
+      code: "M.692000.021.02",
+      badgeLevel: "Dasar-Menengah",
+      badgeColor: { bg: "bg-indigo-50", border: "border-indigo-200/80", text: "text-indigo-700", dot: "bg-indigo-500" },
+      icon: Coins,
+      iconBg: "bg-indigo-50 border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white",
+      iconText: "text-indigo-700",
+      progressBarColor: "bg-indigo-500",
+      description: "Pengelolaan dana kas kecil metode imprest/fluktuasi, verifikasi voucher tagihan vendor, dan opname fisik stok barang.",
+      verifiedJp: 52,
+      targetJp: 144,
+      percentage: 36,
+      skills: ["Petty Cash", "Voucher Kas", "Kartu Stok", "Opname Fisik"],
+    },
+  ],
+  OTOMOTIF: [
+    {
+      id: "oto-mesin",
+      title: "Servis Berkala & Perawatan Mesin EFI",
+      code: "G.45OTO01.001.2",
+      badgeLevel: "Mahir (Ready)",
+      badgeColor: { bg: "bg-emerald-50", border: "border-emerald-200/80", text: "text-emerald-700", dot: "bg-emerald-500" },
+      icon: Wrench,
+      iconBg: "bg-emerald-50 border-emerald-100 group-hover:bg-emerald-600 group-hover:text-white",
+      iconText: "text-emerald-700",
+      progressBarColor: "bg-emerald-500",
+      description: "Servis berkala kendaraan ringan, penggantian pelumas & filter, tune-up mesin bensin konvensional dan sistem injeksi EFI.",
+      verifiedJp: 120,
+      targetJp: 216,
+      percentage: 56,
+      skills: ["Tune-up EFI", "Ganti Oli & Filter", "Kunci Torsi", "Mikrometer", "Lift Hidrolik"],
+    },
+    {
+      id: "oto-chassis",
+      title: "Sistem Rem, Suspensi & Kemudi",
+      code: "G.45OTO01.010.2",
+      badgeLevel: "Menengah-Lanjut",
+      badgeColor: { bg: "bg-sky-50", border: "border-sky-200/80", text: "text-sky-700", dot: "bg-sky-500" },
+      icon: Gauge,
+      iconBg: "bg-sky-50 border-sky-100 group-hover:bg-sky-600 group-hover:text-white",
+      iconText: "text-sky-700",
+      progressBarColor: "bg-sky-500",
+      description: "Pembongkaran, pemeriksaan, dan penyetelan sistem rem hidrolik/ABS, penggantian kampas rem, dan pengecekan suspensi.",
+      verifiedJp: 104,
+      targetJp: 216,
+      percentage: 48,
+      skills: ["Brake Bleeder", "Dial Gauge", "Overhaul Rem", "Spooring Balancing"],
+    },
+    {
+      id: "oto-kelistrikan",
+      title: "Diagnosa Kelistrikan & Sensor ECU",
+      code: "G.45OTO01.012.2",
+      badgeLevel: "Menengah",
+      badgeColor: { bg: "bg-amber-50", border: "border-amber-200/80", text: "text-amber-800", dot: "bg-amber-500" },
+      icon: CheckCircle,
+      iconBg: "bg-amber-50 border-amber-100 group-hover:bg-amber-600 group-hover:text-white",
+      iconText: "text-amber-700",
+      progressBarColor: "bg-amber-500",
+      description: "Diagnosa gangguan kelistrikan mesin dan bodi menggunakan Scanner OBD-II, pembacaan live data stream, dan wiring diagram.",
+      verifiedJp: 72,
+      targetJp: 180,
+      percentage: 40,
+      skills: ["Scanner OBD-II", "Multimeter Digital", "Wiring Diagram", "Uji Sensor"],
+    },
+    {
+      id: "oto-transmisi",
+      title: "Transmisi, AC & Perbaikan Kendaraan",
+      code: "G.45OTO01.015.2",
+      badgeLevel: "Dasar-Menengah",
+      badgeColor: { bg: "bg-indigo-50", border: "border-indigo-200/80", text: "text-indigo-700", dot: "bg-indigo-500" },
+      icon: Cloud,
+      iconBg: "bg-indigo-50 border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white",
+      iconText: "text-indigo-700",
+      progressBarColor: "bg-indigo-500",
+      description: "Pemeriksaan kopling manual, fluida transmisi otomatis, uji kebocoran refrigeran AC mobil, dan pengisian freon.",
+      verifiedJp: 54,
+      targetJp: 180,
+      percentage: 30,
+      skills: ["Manifold Gauge", "Leak Detector", "Servis Kopling", "Fluida Transmisi"],
+    },
+  ],
+  DKV: [
+    {
+      id: "dkv-branding",
+      title: "Desain Grafis & Identitas Visual (Branding)",
+      code: "M.74100.001.01",
+      badgeLevel: "Mahir (Ready)",
+      badgeColor: { bg: "bg-emerald-50", border: "border-emerald-200/80", text: "text-emerald-700", dot: "bg-emerald-500" },
+      icon: Palette,
+      iconBg: "bg-emerald-50 border-emerald-100 group-hover:bg-emerald-600 group-hover:text-white",
+      iconText: "text-emerald-700",
+      progressBarColor: "bg-emerald-500",
+      description: "Perancangan logo vektor, corporate identity, brand guideline, dan pembuatan konten visual media sosial berkala.",
+      verifiedJp: 118,
+      targetJp: 198,
+      percentage: 60,
+      skills: ["Adobe Illustrator", "Photoshop", "Figma", "Branding", "Vektor"],
+    },
+    {
+      id: "dkv-ilustrasi",
+      title: "Ilustrasi Digital & Karakter",
+      code: "M.74100.005.01",
+      badgeLevel: "Menengah-Lanjut",
+      badgeColor: { bg: "bg-sky-50", border: "border-sky-200/80", text: "text-sky-700", dot: "bg-sky-500" },
+      icon: PenTool,
+      iconBg: "bg-sky-50 border-sky-100 group-hover:bg-sky-600 group-hover:text-white",
+      iconText: "text-sky-700",
+      progressBarColor: "bg-sky-500",
+      description: "Pembuatan aset gambar ilustrasi digital, desain maskot karakter, dan pewarnaan digital untuk kebutuhan publikasi komersial.",
+      verifiedJp: 92,
+      targetJp: 198,
+      percentage: 46,
+      skills: ["Pen Tablet", "Clip Studio Paint", "Procreate", "Desain Karakter"],
+    },
+    {
+      id: "dkv-layout",
+      title: "Tata Letak & Tipografi Media Cetak",
+      code: "M.74100.008.01",
+      badgeLevel: "Menengah",
+      badgeColor: { bg: "bg-amber-50", border: "border-amber-200/80", text: "text-amber-800", dot: "bg-amber-500" },
+      icon: FileText,
+      iconBg: "bg-amber-50 border-amber-100 group-hover:bg-amber-600 group-hover:text-white",
+      iconText: "text-amber-700",
+      progressBarColor: "bg-amber-500",
+      description: "Layouting buku, majalah, katalog produk, dan brosur promosi cetak dengan grid system dan hierarki tipografi standar industri.",
+      verifiedJp: 78,
+      targetJp: 198,
+      percentage: 39,
+      skills: ["Adobe InDesign", "Illustrator", "Grid System", "Pre-press Cetak"],
+    },
+    {
+      id: "dkv-video",
+      title: "Media Bergerak & Fotografi Produk",
+      code: "M.74100.011.01",
+      badgeLevel: "Dasar-Menengah",
+      badgeColor: { bg: "bg-indigo-50", border: "border-indigo-200/80", text: "text-indigo-700", dot: "bg-indigo-500" },
+      icon: Video,
+      iconBg: "bg-indigo-50 border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white",
+      iconText: "text-indigo-700",
+      progressBarColor: "bg-indigo-500",
+      description: "Editing video promosi, pembuatan motion graphics bumper, dan pemotretan produk studio dengan tata pencahayaan 3-point lighting.",
+      verifiedJp: 62,
+      targetJp: 198,
+      percentage: 31,
+      skills: ["Premiere Pro", "After Effects", "DSLR/Mirrorless", "Lighting Studio"],
+    },
+  ],
+  KULINER: [
+    {
+      id: "kul-mise",
+      title: "Mise en Place & Sanitasi Hygiene (HACCP)",
+      code: "I.55HDR00.001.2",
+      badgeLevel: "Mahir (Ready)",
+      badgeColor: { bg: "bg-emerald-50", border: "border-emerald-200/80", text: "text-emerald-700", dot: "bg-emerald-500" },
+      icon: Utensils,
+      iconBg: "bg-emerald-50 border-emerald-100 group-hover:bg-emerald-600 group-hover:text-white",
+      iconText: "text-emerald-700",
+      progressBarColor: "bg-emerald-500",
+      description: "Persiapan bahan baku mentah sesuai resep, teknik pemotongan standar (knife cuts), dan penerapan kebersihan dapur standar HACCP.",
+      verifiedJp: 124,
+      targetJp: 198,
+      percentage: 63,
+      skills: ["Pisau Chef", "Knife Cuts", "Sanitasi HACCP", "Timbangan Digital"],
+    },
+    {
+      id: "kul-hotkitchen",
+      title: "Pengolahan Hidangan Utama (Hot Kitchen)",
+      code: "I.55HDR00.010.2",
+      badgeLevel: "Menengah-Lanjut",
+      badgeColor: { bg: "bg-sky-50", border: "border-sky-200/80", text: "text-sky-700", dot: "bg-sky-500" },
+      icon: CheckCircle,
+      iconBg: "bg-sky-50 border-sky-100 group-hover:bg-sky-600 group-hover:text-white",
+      iconText: "text-sky-700",
+      progressBarColor: "bg-sky-500",
+      description: "Memasak hidangan utama nusantara dan kontinental dengan teknik sautéing, roasting, simmering, serta pengujian suhu kematangan.",
+      verifiedJp: 98,
+      targetJp: 198,
+      percentage: 49,
+      skills: ["Kompor Industri", "Wok", "Sauté", "SOP Resep Standar"],
+    },
+    {
+      id: "kul-pastry",
+      title: "Pastry, Bakery, & Dessert",
+      code: "I.55HDR00.015.2",
+      badgeLevel: "Menengah",
+      badgeColor: { bg: "bg-amber-50", border: "border-amber-200/80", text: "text-amber-800", dot: "bg-amber-500" },
+      icon: Database,
+      iconBg: "bg-amber-50 border-amber-100 group-hover:bg-amber-600 group-hover:text-white",
+      iconText: "text-amber-700",
+      progressBarColor: "bg-amber-500",
+      description: "Pembuatan adonan roti ragi, kue pastry lapis, cake, dan dessert dingin dengan ketepatan formulasi bahan dan suhu baking.",
+      verifiedJp: 74,
+      targetJp: 198,
+      percentage: 37,
+      skills: ["Mixer Planetary", "Deck Oven", "Formulasi Adonan", "Pastry"],
+    },
+    {
+      id: "kul-plating",
+      title: "Pelayanan Restoran, Plating & Inventory",
+      code: "I.55HDR00.020.2",
+      badgeLevel: "Dasar-Menengah",
+      badgeColor: { bg: "bg-indigo-50", border: "border-indigo-200/80", text: "text-indigo-700", dot: "bg-indigo-500" },
+      icon: Cloud,
+      iconBg: "bg-indigo-50 border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white",
+      iconText: "text-indigo-700",
+      progressBarColor: "bg-indigo-500",
+      description: "Penataan hidangan estetis (food plating), pemeriksaan suhu saji pesanan, dan manajemen perputaran stok bahan baku metode FIFO.",
+      verifiedJp: 58,
+      targetJp: 198,
+      percentage: 29,
+      skills: ["Plating Estetis", "Garnish Tools", "Rotasi FIFO", "Chiller/Freezer"],
+    },
+  ],
+  FARMASI: [
+    {
+      id: "far-resep",
+      title: "Pelayanan Resep & Peracikan Obat",
+      code: "Q.86FAR01.001.1",
+      badgeLevel: "Mahir (Ready)",
+      badgeColor: { bg: "bg-emerald-50", border: "border-emerald-200/80", text: "text-emerald-700", dot: "bg-emerald-500" },
+      icon: Pill,
+      iconBg: "bg-emerald-50 border-emerald-100 group-hover:bg-emerald-600 group-hover:text-white",
+      iconText: "text-emerald-700",
+      progressBarColor: "bg-emerald-500",
+      description: "Skrining administratif resep dokter, perhitungan dosis obat, peracikan sediaan serbuk terbagi (puyer) dan salep non-steril.",
+      verifiedJp: 114,
+      targetJp: 198,
+      percentage: 58,
+      skills: ["Mortir & Stamper", "Timbangan Miligram", "Salep", "Puyer", "Dosis Obat"],
+    },
+    {
+      id: "far-pio",
+      title: "Pelayanan Informasi Obat (PIO) & Etiket",
+      code: "Q.86FAR01.002.1",
+      badgeLevel: "Menengah-Lanjut",
+      badgeColor: { bg: "bg-sky-50", border: "border-sky-200/80", text: "text-sky-700", dot: "bg-sky-500" },
+      icon: CheckCircle,
+      iconBg: "bg-sky-50 border-sky-100 group-hover:bg-sky-600 group-hover:text-white",
+      iconText: "text-sky-700",
+      progressBarColor: "bg-sky-500",
+      description: "Penulisan etiket obat putih/biru dan penyerahan obat disertai konseling informasi aturan pakai dan cara penyimpanan obat.",
+      verifiedJp: 96,
+      targetJp: 198,
+      percentage: 48,
+      skills: ["Etiket Obat", "Konseling PIO", "Aturan Pakai", "Buku Catatan Resep"],
+    },
+    {
+      id: "far-stok",
+      title: "Pengelolaan Perbekalan Farmasi (FEFO)",
+      code: "Q.86FAR01.010.1",
+      badgeLevel: "Menengah",
+      badgeColor: { bg: "bg-amber-50", border: "border-amber-200/80", text: "text-amber-800", dot: "bg-amber-500" },
+      icon: FlaskConical,
+      iconBg: "bg-amber-50 border-amber-100 group-hover:bg-amber-600 group-hover:text-white",
+      iconText: "text-amber-700",
+      progressBarColor: "bg-amber-500",
+      description: "Pemeriksaan tanggal kedaluwarsa dengan sistem FEFO, pencatatan kartu stok obat, dan pengelolaan penerimaan dari PBF.",
+      verifiedJp: 76,
+      targetJp: 198,
+      percentage: 38,
+      skills: ["Kartu Stok Obat", "Metode FEFO", "PBF", "Software POS Apotek"],
+    },
+    {
+      id: "far-otc",
+      title: "Administrasi Resep & Pelayanan OTC",
+      code: "Q.86FAR01.020.1",
+      badgeLevel: "Dasar-Menengah",
+      badgeColor: { bg: "bg-indigo-50", border: "border-indigo-200/80", text: "text-indigo-700", dot: "bg-indigo-500" },
+      icon: FileText,
+      iconBg: "bg-indigo-50 border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white",
+      iconText: "text-indigo-700",
+      progressBarColor: "bg-indigo-500",
+      description: "Pengarsipan ordner resep masuk harian, penataan etalase apotek (planogram), dan pelayanan swamedikasi obat bebas/terbatas.",
+      verifiedJp: 62,
+      targetJp: 198,
+      percentage: 31,
+      skills: ["Ordner Resep", "Obat Bebas (OTC)", "Swamedikasi", "Display Etalase"],
+    },
+  ],
+  RPL: MODULES,
+};
+
+function resolveSector(departmentName?: string, sectorCode?: string): string {
+  if (sectorCode) {
+    const s = sectorCode.toUpperCase();
+    if (s === "TKR") return "OTOMOTIF";
+    if (MODULES_BY_SECTOR[s]) return s;
+  }
+  if (departmentName) {
+    const d = departmentName.toLowerCase();
+    if (d.includes("akuntansi") || d.includes("akl") || d.includes("keuangan")) return "AKL";
+    if (d.includes("otomotif") || d.includes("tkr") || d.includes("kendaraan")) return "OTOMOTIF";
+    if (d.includes("desain") || d.includes("dkv") || d.includes("visual")) return "DKV";
+    if (d.includes("kuliner") || d.includes("boga") || d.includes("restoran")) return "KULINER";
+    if (d.includes("farmasi") || d.includes("apotek") || d.includes("obat")) return "FARMASI";
+  }
+  return "RPL";
+}
+
 import type { KanbanTask } from "./types";
 
 interface SkkniMatrixViewProps {
   tasks?: KanbanTask[];
+  departmentName?: string;
+  sectorCode?: string;
 }
 
-export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
+export function SkkniMatrixView({ tasks, departmentName, sectorCode }: SkkniMatrixViewProps) {
   const [matrixLayout, setMatrixLayout] = useState<"GRID" | "LIST">("GRID");
   const [levelFilter, setLevelFilter] = useState<"ALL" | "READY" | "PROGRESS">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedModuleId, setExpandedModuleId] = useState<string | null>(null);
 
+  // Ambil modul standar yang relevan sesuai jurusan aktif siswa
+  const activeModules = useMemo(() => {
+    const sector = resolveSector(departmentName, sectorCode);
+    return MODULES_BY_SECTOR[sector] || MODULES_BY_SECTOR["RPL"] || [];
+  }, [departmentName, sectorCode]);
+
   // Hitung akumulasi JP dinamis per modul SKKNI dari logbook yang berstatus verified
   const dynamicModules = useMemo(() => {
-    if (!tasks || tasks.length === 0) return MODULES;
+    if (!tasks || tasks.length === 0) return activeModules;
 
     const verifiedTasks = tasks.filter((t) => t.status === "verified");
 
-    return MODULES.map((mod) => {
+    return activeModules.map((mod) => {
       const matchingJp = verifiedTasks
         .filter((t) => {
-          if (mod.id === "web-mobile") {
-            return t.category.includes("Web") || t.skkniUnitCode.includes("009") || t.title.includes("API") || t.title.includes("UI");
-          }
-          if (mod.id === "database") {
-            return t.category.includes("Basis Data") || t.skkniUnitCode.includes("010") || t.title.includes("Database") || t.title.includes("PostgreSQL");
-          }
-          if (mod.id === "software-qa") {
-            return t.category.includes("Testing") || t.skkniUnitCode.includes("015") || t.title.includes("QA") || t.title.includes("Test");
-          }
-          if (mod.id === "cloud-devops") {
-            return t.category.includes("Cloud") || t.skkniUnitCode.includes("020") || t.title.includes("CI/CD") || t.title.includes("Docker");
-          }
-          return false;
+          const modWords = mod.title.toLowerCase().split(/\s+/).filter((w) => w.length > 3);
+          const categoryMatch = modWords.some((w) => t.category.toLowerCase().includes(w));
+          const skkniMatch = mod.code && t.skkniUnitCode && t.skkniUnitCode.includes(mod.code.slice(0, 10));
+          const titleMatch = modWords.some((w) => t.title.toLowerCase().includes(w));
+          return categoryMatch || skkniMatch || titleMatch;
         })
         .reduce((sum, t) => sum + t.durationJp, 0);
 
-      const totalVerified = matchingJp;
+      const totalVerified = matchingJp > 0 ? matchingJp : mod.verifiedJp;
       const percentage = Math.min(100, Math.round((totalVerified / mod.targetJp) * 100));
       const badgeLevel = percentage >= 50 ? "Mahir (Ready)" : "Menengah";
 
@@ -176,7 +539,7 @@ export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
         badgeLevel,
       };
     });
-  }, [tasks]);
+  }, [tasks, activeModules]);
 
   const readyCount = useMemo(() => dynamicModules.filter((m) => m.percentage >= 50).length, [dynamicModules]);
   const progressCount = useMemo(() => dynamicModules.filter((m) => m.percentage < 50).length, [dynamicModules]);
@@ -212,7 +575,7 @@ export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
         <div className="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-full border border-slate-200/70 text-xs font-semibold overflow-x-auto scrollbar-none w-full sm:w-auto">
           {(
             [
-              { key: "ALL", label: "Semua", count: MODULES.length },
+              { key: "ALL", label: "Semua", count: activeModules.length },
               { key: "READY", label: "Mahir", count: readyCount },
               { key: "PROGRESS", label: "Progres", count: progressCount },
             ] as const
@@ -225,9 +588,13 @@ export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
                 onClick={() => setLevelFilter(chip.key)}
                 aria-pressed={active}
                 className={cn(
-                  "h-7 sm:h-7.5 px-3 rounded-full text-xs transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5",
+                  "flex-1 sm:flex-initial justify-center h-7 sm:h-7.5 px-3 rounded-full text-xs transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5",
                   active
-                    ? "bg-white text-slate-900 shadow-2xs font-bold"
+                    ? chip.key === "ALL"
+                      ? "bg-sky-500 text-white shadow-xs font-bold"
+                      : chip.key === "READY"
+                        ? "bg-white text-emerald-800 shadow-2xs font-bold"
+                        : "bg-white text-amber-800 shadow-2xs font-bold"
                     : "text-slate-600 hover:text-slate-900 hover:bg-white/40 font-medium"
                 )}
               >
@@ -236,8 +603,12 @@ export function SkkniMatrixView({ tasks }: SkkniMatrixViewProps) {
                   className={cn(
                     "tabular-nums text-[10.5px] px-1.5 py-0.2 rounded-full font-semibold",
                     active
-                      ? "bg-slate-100 text-slate-700"
-                      : "text-slate-400"
+                      ? chip.key === "ALL"
+                        ? "text-sky-100 font-bold"
+                        : chip.key === "READY"
+                          ? "bg-emerald-50 text-emerald-800"
+                          : "bg-amber-50 text-amber-800"
+                      : "text-slate-400 font-medium"
                   )}
                 >
                   {chip.count}

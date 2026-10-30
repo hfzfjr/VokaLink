@@ -430,10 +430,23 @@ passportsRouter.get(
         return;
       }
 
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugParam);
       let passport: PassportWithDetails | null = await prisma.skillPassport.findUnique({
         where: { passportSlug: slugParam },
         include: passportLookupInclude.include,
       });
+
+      if (!passport && isUuid) {
+        passport = await prisma.skillPassport.findFirst({
+          where: {
+            OR: [
+              { studentId: slugParam },
+              { id: slugParam },
+            ],
+          },
+          include: passportLookupInclude.include,
+        });
+      }
 
       if (!passport && typeof (prisma.skillPassport as any)?.findFirst === "function") {
         passport = await prisma.skillPassport.findFirst({

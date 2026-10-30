@@ -68,7 +68,7 @@ export function TeacherBottomNav() {
           const Icon = item.icon;
           const isActive = item.viewParam
             ? currentView === item.viewParam
-            : (!currentView || currentView === "matrix") &&
+            : !currentView &&
               (pathname === "/teacher/dashboard" || pathname === "/teacher/heatmap" || pathname === "/teacher");
 
           if (item.isPrimaryAction) {
