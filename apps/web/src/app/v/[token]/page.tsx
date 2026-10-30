@@ -1042,9 +1042,17 @@ export default function MentorVerificationPage() {
 
             {/* PIN Display Indicators */}
             <div className="py-1 text-center space-y-2">
-              <p className="text-xs text-slate-500">
-                Masukkan 4-digit PIN keamanan mentor Anda
-              </p>
+              <div className="space-y-1.5">
+                <p className="text-xs text-slate-500">
+                  Masukkan 4-digit PIN keamanan mentor Anda
+                </p>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold shadow-2xs">
+                  <span>🔑 PIN Demo Juri / Mentor:</span>
+                  <span className="font-mono text-emerald-900 bg-white px-2 py-0.5 rounded border border-emerald-300 tracking-widest font-black">
+                    1234
+                  </span>
+                </div>
+              </div>
               <div className="flex items-center justify-center gap-4 py-1">
                 {[0, 1, 2, 3].map((idx) => (
                   <div

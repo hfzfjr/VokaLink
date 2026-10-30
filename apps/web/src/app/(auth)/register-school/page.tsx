@@ -14,6 +14,12 @@ import {
   RefreshCw,
   WifiOff,
   ShieldCheck,
+  Plus,
+  X,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  Sparkles,
 } from "lucide-react";
 import { TOTAL_TARGET_JP } from "@vokalink/shared";
 import {
@@ -27,6 +33,45 @@ import Navbar, { NavbarButton } from "@/components/layout/Navbar";
 
 type Step = 1 | 2 | 3 | 4 | 5; // 1: Info, 2: Jurusan, 3: Periode, 4: Admin, 5: Sukses
 
+const POPULAR_DEPARTMENT_PRESETS = [
+  {
+    code: "TKJ",
+    name: "Teknik Komputer dan Jaringan",
+    description:
+      "Konsentrasi keahlian instalasi LAN/WAN, administrasi server Linux/Windows, routing perangkat jaringan, dan troubleshooting infrastruktur IT.",
+  },
+  {
+    code: "MPLB",
+    name: "Manajemen Perkantoran dan Layanan Bisnis",
+    description:
+      "Konsentrasi keahlian tata kelola administrasi perkantoran modern, korespondensi bisnis, kearsipan digital, dan layanan humas industri.",
+  },
+  {
+    code: "TITL",
+    name: "Teknik Instalasi Tenaga Listrik",
+    description:
+      "Konsentrasi keahlian instalasi penerangan, tenaga motor listrik, panel kendali industri, PLC, dan sistem otomasi kelistrikan.",
+  },
+  {
+    code: "TBSM",
+    name: "Teknik Bisnis Sepeda Motor",
+    description:
+      "Konsentrasi keahlian servis berkala mesin, sistem injeksi & kelistrikan motor, sasis, dan manajemen operasional bengkel resmi.",
+  },
+  {
+    code: "BKP",
+    name: "Bisnis Konstruksi dan Properti",
+    description:
+      "Konsentrasi keahlian perencanaan konstruksi bangunan gedung, estimasi biaya (RAB), pemodelan CAD/BIM, dan pengawasan proyek.",
+  },
+  {
+    code: "ANIMASI",
+    name: "Animasi",
+    description:
+      "Konsentrasi keahlian pembuatan aset visual 2D/3D, karakter rigging, storyboard kreatif, visual effects, dan pascaproduksi digital.",
+  },
+];
+
 export default function RegisterSchoolPage() {
   const [step, setStep] = useState<Step>(1);
   const [loading, setLoading] = useState(false);
@@ -37,6 +82,15 @@ export default function RegisterSchoolPage() {
   // Master departments list from API/seed
   const [departmentsList, setDepartmentsList] = useState<MasterDepartmentItem[]>([]);
   const [loadingDepts, setLoadingDepts] = useState(true);
+  const [customDepartments, setCustomDepartments] = useState<
+    Array<{ sectorCode: string; name: string; description?: string }>
+  >([]);
+  const [isAddDeptOpen, setIsAddDeptOpen] = useState(false);
+  const [showCurriculumDetails, setShowCurriculumDetails] = useState(false);
+  const [newDeptCode, setNewDeptCode] = useState("");
+  const [newDeptName, setNewDeptName] = useState("");
+  const [newDeptDesc, setNewDeptDesc] = useState("");
+  const [addDeptError, setAddDeptError] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -108,6 +162,26 @@ export default function RegisterSchoolPage() {
     };
   }, [formData.selectedDepartmentSectorCodes.length]);
 
+  // Handle ESC key and scroll lock when Add Department Modal is open
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isAddDeptOpen) {
+        setIsAddDeptOpen(false);
+        setAddDeptError(null);
+      }
+    };
+    if (isAddDeptOpen) {
+      document.body.style.overflow = "hidden";
+      window.addEventListener("keydown", handleKeyDown);
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isAddDeptOpen]);
+
   const toggleDepartment = (code: string) => {
     const current = [...formData.selectedDepartmentSectorCodes];
     const index = current.indexOf(code);
@@ -122,6 +196,64 @@ export default function RegisterSchoolPage() {
     }
     setErrorMsg(null);
     setFormData({ ...formData, selectedDepartmentSectorCodes: current });
+  };
+
+  const handleDeleteCustomDept = (sectorCode: string) => {
+    setCustomDepartments((prev) => prev.filter((d) => d.sectorCode !== sectorCode));
+    setDepartmentsList((prev) => prev.filter((d) => d.sectorCode !== sectorCode));
+    setFormData((prev) => ({
+      ...prev,
+      selectedDepartmentSectorCodes: prev.selectedDepartmentSectorCodes.filter(
+        (c) => c !== sectorCode
+      ),
+    }));
+  };
+
+  const handleAddCustomDepartment = () => {
+    setAddDeptError(null);
+    const code = newDeptCode.trim().toUpperCase().replace(/[^A-Z0-9-]/g, "");
+    const name = newDeptName.trim();
+    const desc =
+      newDeptDesc.trim() ||
+      `Konsentrasi keahlian bidang ${name} sesuai standar kurikulum SMK 792 JP.`;
+
+    if (code.length < 2 || code.length > 16) {
+      setAddDeptError("Kode singkatan jurusan wajib 2–16 karakter (contoh: TKJ, MPLB, TITL).");
+      return;
+    }
+    if (name.length < 3) {
+      setAddDeptError("Nama lengkap jurusan minimal 3 karakter.");
+      return;
+    }
+    if (departmentsList.some((d) => d.sectorCode.toUpperCase() === code)) {
+      setAddDeptError(`Jurusan dengan kode "${code}" sudah ada pada daftar.`);
+      return;
+    }
+
+    const newItem: MasterDepartmentItem = {
+      sectorCode: code,
+      name,
+      description: desc,
+      totalJp: TOTAL_TARGET_JP,
+      cpElementsCount: 4,
+      jobCardsCount: 10,
+    };
+
+    setDepartmentsList((prev) => [...prev, newItem]);
+    setCustomDepartments((prev) => [...prev, { sectorCode: code, name, description: desc }]);
+    setFormData((prev) => ({
+      ...prev,
+      selectedDepartmentSectorCodes: prev.selectedDepartmentSectorCodes.includes(code)
+        ? prev.selectedDepartmentSectorCodes
+        : [...prev.selectedDepartmentSectorCodes, code],
+    }));
+
+    setNewDeptCode("");
+    setNewDeptName("");
+    setNewDeptDesc("");
+    setIsAddDeptOpen(false);
+    setShowCurriculumDetails(false);
+    setErrorMsg(null);
   };
 
   // Validasi per langkah sebelum melangkah maju
@@ -208,6 +340,7 @@ export default function RegisterSchoolPage() {
         province: formData.province,
         city: formData.city,
         selectedDepartmentSectorCodes: formData.selectedDepartmentSectorCodes,
+        customDepartments,
         academicPeriodName: formData.academicPeriodName,
         startDate: formData.startDate,
         endDate: formData.endDate,
@@ -219,13 +352,20 @@ export default function RegisterSchoolPage() {
       };
 
       const result = await registerSchool(payload);
+      const data = result.data || result;
 
       setSuccessResult({
-        schoolName: result.school.name,
-        npsn: result.school.npsn,
-        adminEmail: result.admin.email,
-        departmentsCount: result.departments.length,
-        targetJp: result.activePeriod.targetTotalJp,
+        schoolName: data.school?.name || formData.name,
+        npsn: data.school?.npsn || formData.npsn,
+        adminEmail: data.admin?.email || formData.adminEmail,
+        departmentsCount:
+          data.departmentsCount ??
+          data.departments?.length ??
+          formData.selectedDepartmentSectorCodes.length,
+        targetJp:
+          data.academicPeriod?.targetTotalJp ??
+          data.activePeriod?.targetTotalJp ??
+          formData.targetTotalJp,
       });
 
       setStep(5);
@@ -401,22 +541,35 @@ export default function RegisterSchoolPage() {
         {/* STEP 2: Pemilihan Jurusan */}
         {step === 2 && (
           <div className="p-6 sm:p-8 bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-6">
-            <div>
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-sky-600 bg-sky-50 px-3 py-1 rounded-full border border-sky-100 inline-block mb-2">
-                Langkah 2 dari 4
-              </span>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                Pilih Konsentrasi Keahlian / Jurusan Aktif
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
-                Pilih jurusan yang aktif di sekolah Anda. Kurikulum standar 792 JP dan katalog Kartu Pekerjaan (Job Cards) akan langsung diaktifkan secara otomatis oleh sistem tanpa perlu konfigurasi manual.
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div>
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-sky-600 bg-sky-50 px-3 py-1 rounded-full border border-sky-100 inline-block mb-2">
+                  Langkah 2 dari 4
+                </span>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  Pilih Konsentrasi Keahlian / Jurusan Aktif
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
+                  Pilih jurusan yang aktif di sekolah Anda. Kurikulum standar 792 JP dan katalog Kartu Pekerjaan (Job Cards) akan langsung diaktifkan secara otomatis oleh sistem tanpa perlu konfigurasi manual.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddDeptOpen(true);
+                  setAddDeptError(null);
+                }}
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-xs font-bold transition shrink-0 cursor-pointer self-start"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Tambah Jurusan</span>
+              </button>
             </div>
 
             {loadingDepts ? (
-              <div className="space-y-3 py-4">
-                {[1, 2, 3].map((n) => (
-                  <SkeletonRect key={n} className="h-16 rounded-2xl" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 py-2">
+                {[1, 2, 3, 4].map((n) => (
+                  <SkeletonRect key={n} className="h-32 rounded-2xl" />
                 ))}
               </div>
             ) : departmentsList.length === 0 ? (
@@ -433,37 +586,66 @@ export default function RegisterSchoolPage() {
                   const isSelected = formData.selectedDepartmentSectorCodes.includes(
                     dept.sectorCode
                   );
+                  const isCustom = customDepartments.some(
+                    (cd) => cd.sectorCode === dept.sectorCode
+                  );
+
                   return (
                     <div
                       key={dept.sectorCode}
                       onClick={() => toggleDepartment(dept.sectorCode)}
-                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between select-none ${
                         isSelected
-                          ? "border-sky-500 bg-sky-50/50 shadow-xs"
+                          ? "border-sky-500 bg-sky-50/40 shadow-xs ring-1 ring-sky-500"
                           : "border-slate-200 hover:border-slate-300 bg-white"
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold text-[11px]">
-                            {dept.sectorCode}
-                          </span>
-                          <h4 className="font-bold text-slate-900 text-sm">{dept.name}</h4>
+                      <div>
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold text-[11px]">
+                              {dept.sectorCode}
+                            </span>
+                            <h4 className="font-bold text-slate-900 text-sm leading-snug">
+                              {dept.name}
+                            </h4>
+                            {isCustom && (
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                                Kustom
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {isCustom && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteCustomDept(dept.sectorCode);
+                                }}
+                                title="Hapus jurusan kustom ini"
+                                className="w-6 h-6 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            <div
+                              className={`w-5 h-5 rounded-full flex items-center justify-center transition ${
+                                isSelected
+                                  ? "bg-sky-500 border border-sky-500 text-white"
+                                  : "border border-slate-300 bg-white"
+                              }`}
+                            >
+                              {isSelected && <CheckCircle2 className="w-3.5 h-3.5" />}
+                            </div>
+                          </div>
                         </div>
-                        <div
-                          className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 border ${
-                            isSelected
-                              ? "bg-sky-500 border-sky-500 text-white"
-                              : "border-slate-300 bg-white"
-                          }`}
-                        >
-                          {isSelected && <CheckCircle2 className="w-3.5 h-3.5" />}
-                        </div>
+                        <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
+                          {dept.description}
+                        </p>
                       </div>
-                      <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
-                        {dept.description}
-                      </p>
-                      <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-600">
+
+                      <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-600">
                         <span>{dept.cpElementsCount} Elemen CP</span>
                         <span>{dept.jobCardsCount} Job Cards</span>
                         <span className="font-bold text-sky-600">{dept.totalJp} JP</span>
@@ -471,8 +653,49 @@ export default function RegisterSchoolPage() {
                     </div>
                   );
                 })}
+
+                {/* Card Tombol Tambah Jurusan Lainnya */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddDeptOpen(true);
+                    setAddDeptError(null);
+                  }}
+                  className="p-4 rounded-2xl border-2 border-dashed border-slate-200 hover:border-sky-400 hover:bg-sky-50/40 transition-all flex flex-col items-center justify-center gap-2 text-slate-500 hover:text-sky-700 min-h-[128px] cursor-pointer group"
+                >
+                  <div className="w-9 h-9 rounded-full bg-slate-100 group-hover:bg-sky-100 text-slate-600 group-hover:text-sky-600 flex items-center justify-center transition">
+                    <Plus className="w-5 h-5" />
+                  </div>
+                  <div className="text-center">
+                    <span className="text-xs sm:text-sm font-bold block text-slate-700 group-hover:text-sky-700">
+                      + Tambah Jurusan Lainnya
+                    </span>
+                    <span className="text-[11px] text-slate-400 block mt-0.5">
+                      Belum ada di daftar? Tambahkan jurusan sekolah Anda
+                    </span>
+                  </div>
+                </button>
               </div>
             )}
+
+            {/* Selected Summary Info Bar */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2 text-slate-700">
+                <BookOpen className="w-4 h-4 text-sky-600 shrink-0" />
+                <span className="font-semibold">
+                  <span className="font-bold text-slate-900">
+                    {formData.selectedDepartmentSectorCodes.length}
+                  </span>{" "}
+                  Konsentrasi Keahlian Dipilih
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-slate-500">Beban kurikulum per siswa:</span>
+                <span className="font-bold text-sky-700 bg-sky-100/70 border border-sky-200/80 px-2.5 py-0.5 rounded-full text-xs">
+                  {TOTAL_TARGET_JP} JP Standar Regulasi
+                </span>
+              </div>
+            </div>
 
             <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
               <button
@@ -620,6 +843,30 @@ export default function RegisterSchoolPage() {
                 Akun ini bertindak sebagai penanggung jawab utama (Role: SCHOOL_ADMIN) untuk mengelola
                 guru, penempatan DUDI, dan kurikulum.
               </p>
+            </div>
+
+            {/* Pratinjau Ringkas Konfigurasi Sekolah */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              <div className="space-y-0.5">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Sekolah &amp; NPSN
+                </span>
+                <span className="font-bold text-slate-900 text-sm block">
+                  {formData.name || "Nama Sekolah"}
+                </span>
+                <span className="text-slate-500 text-xs">
+                  NPSN: {formData.npsn} &bull; {formData.city}, {formData.province}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-center">
+                <span className="px-2.5 py-1 rounded-full bg-sky-100/80 text-sky-700 font-bold text-[11px]">
+                  {formData.selectedDepartmentSectorCodes.length} Jurusan Aktif (
+                  {formData.selectedDepartmentSectorCodes.join(", ")})
+                </span>
+                <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[11px]">
+                  {formData.targetTotalJp} JP
+                </span>
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -781,6 +1028,234 @@ export default function RegisterSchoolPage() {
           </div>
         )}
       </main>
+
+      {/* MODAL / DIALOG TAMBAH JURUSAN BARU */}
+      {isAddDeptOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/50 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-150"
+          onClick={() => {
+            setIsAddDeptOpen(false);
+            setAddDeptError(null);
+          }}
+        >
+          <div
+            className="relative w-full max-w-xl bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden my-auto animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="px-6 py-5 border-b border-slate-100 flex items-start justify-between gap-4 bg-slate-50/50">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center shrink-0 shadow-2xs">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                    Tambah Konsentrasi Keahlian Baru
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                    Sistem otomatis mengonfigurasi struktur 4 Elemen CP Fase F tepat 792 JP dan katalog Job Cards siap pakai sesuai Permendikbudristek No. 12/2024.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddDeptOpen(false);
+                  setAddDeptError(null);
+                }}
+                className="w-8 h-8 rounded-full bg-white border border-slate-200 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition shrink-0 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4 max-h-[calc(85vh-130px)] overflow-y-auto">
+              {/* Presets Rekomendasi Cepat */}
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Rekomendasi Cepat (Klik untuk isi otomatis):</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {POPULAR_DEPARTMENT_PRESETS.map((preset) => (
+                    <button
+                      key={preset.code}
+                      type="button"
+                      onClick={() => {
+                        setNewDeptCode(preset.code);
+                        setNewDeptName(preset.name);
+                        setNewDeptDesc(preset.description);
+                        setAddDeptError(null);
+                      }}
+                      className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 hover:bg-sky-50 text-slate-700 hover:text-sky-700 hover:border-sky-200 border border-slate-200/80 transition cursor-pointer"
+                    >
+                      + {preset.code}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {addDeptError && (
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>{addDeptError}</span>
+                </div>
+              )}
+
+              {/* Form Input Identitas Jurusan */}
+              <div className="space-y-3.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Kode Singkatan <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={16}
+                      placeholder="Contoh: TKJ"
+                      value={newDeptCode}
+                      onChange={(e) =>
+                        setNewDeptCode(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ""))
+                      }
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-sm font-bold uppercase focus:outline-none focus:ring-2 focus:ring-sky-500 placeholder:normal-case placeholder:font-normal placeholder:text-slate-400"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">2–16 karakter huruf besar</p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Nama Lengkap Konsentrasi Keahlian <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={120}
+                      placeholder="Contoh: Teknik Komputer dan Jaringan"
+                      value={newDeptName}
+                      onChange={(e) => setNewDeptName(e.target.value)}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-500 placeholder:text-slate-400"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">Nama resmi spektrum keahlian SMK</p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Deskripsi Ringkas Bidang Keahlian (Opsional)
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={250}
+                    placeholder="Contoh: Konsentrasi keahlian perakitan komputer, instalasi jaringan LAN/WAN, dan server."
+                    value={newDeptDesc}
+                    onChange={(e) => setNewDeptDesc(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-500 placeholder:text-slate-400"
+                  />
+                </div>
+              </div>
+
+              {/* Pratinjau Struktur Kurikulum Otomatis */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-sky-600" />
+                    <span className="text-xs font-bold text-slate-800">
+                      Struktur Kurikulum Otomatis Fase F
+                    </span>
+                  </div>
+                  <span className="px-2.5 py-0.5 rounded-full bg-sky-100/70 text-sky-800 border border-sky-200 text-[10px] font-extrabold">
+                    792 JP Tepat (BR-001)
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-600 pt-1">
+                  <div className="p-2 rounded-xl bg-white border border-slate-200/70">
+                    <span className="font-bold text-slate-800 block">1. Soft Skills &amp; K3LH</span>
+                    <span className="text-sky-600 font-semibold">180 JP</span> • 2 Kartu Pekerjaan
+                  </div>
+                  <div className="p-2 rounded-xl bg-white border border-slate-200/70">
+                    <span className="font-bold text-slate-800 block">2. Hard Skills Utama</span>
+                    <span className="text-sky-600 font-semibold">324 JP</span> • 3 Kartu Pekerjaan
+                  </div>
+                  <div className="p-2 rounded-xl bg-white border border-slate-200/70">
+                    <span className="font-bold text-slate-800 block">3. Troubleshooting Teknis</span>
+                    <span className="text-sky-600 font-semibold">180 JP</span> • 2 Kartu Pekerjaan
+                  </div>
+                  <div className="p-2 rounded-xl bg-white border border-slate-200/70">
+                    <span className="font-bold text-slate-800 block">4. Kewirausahaan Industri</span>
+                    <span className="text-sky-600 font-semibold">108 JP</span> • 2 Kartu Pekerjaan
+                  </div>
+                </div>
+
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowCurriculumDetails((prev) => !prev)}
+                    className="text-[11px] font-bold text-sky-600 hover:text-sky-700 inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>
+                      {showCurriculumDetails
+                        ? "Sembunyikan Rincian Job Cards & Formula XYZ ATS"
+                        : "Lihat Rincian Job Cards & Formula XYZ ATS"}
+                    </span>
+                    {showCurriculumDetails ? (
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+
+                  {showCurriculumDetails && (
+                    <div className="mt-2.5 p-3 rounded-xl bg-white border border-slate-200 text-xs space-y-2 animate-in fade-in duration-150">
+                      <p className="text-[11px] text-slate-500 leading-relaxed">
+                        Sistem telah memprogram formula kata kerja aktif (formula XYZ Google/ATS) untuk setiap kartu pekerjaan sehingga portofolio dan CV siswa siap pakai:
+                      </p>
+                      <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-700">
+                        <li>
+                          <span className="font-semibold">Penerapan K3LH &amp; SOP Industri</span> (Soft Skills)
+                        </li>
+                        <li>
+                          <span className="font-semibold">Pelaksanaan Tugas Teknis Utama &amp; Operasional Alat</span> (Hard Skills)
+                        </li>
+                        <li>
+                          <span className="font-semibold">Troubleshooting &amp; Pelaporan Teknis</span> (Pemecahan Masalah)
+                        </li>
+                        <li>
+                          <span className="font-semibold">Layanan Pelanggan &amp; Inovasi Kerja</span> (Kewirausahaan)
+                        </li>
+                        <li className="text-slate-500">
+                          <span className="font-semibold text-slate-600">Bantuan Operasional Umum</span> (BR-004: Non-Kompetensi bawaan, tidak diklaim sebagai skill di CV)
+                        </li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddDeptOpen(false);
+                  setAddDeptError(null);
+                }}
+                className="px-4 py-2 rounded-full border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleAddCustomDepartment}
+                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Simpan &amp; Aktifkan Jurusan</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 4. FOOTER */}
       <footer className="border-t border-slate-200/80 bg-white py-4 text-center text-xs text-slate-500">

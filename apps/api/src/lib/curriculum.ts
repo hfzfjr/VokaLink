@@ -58,32 +58,164 @@ export function getMasterDepartmentsList(): MasterDeptSeed[] {
   return getCurriculumSeedData().masterDepartments;
 }
 
+export interface CustomDepartmentMeta {
+  sectorCode: string;
+  name: string;
+  description?: string;
+}
+
+function buildDefaultCustomCurriculum(code: string, name: string): DeptCurriculumSeed {
+  const cleanCode = code.toUpperCase().replace(/[^A-Z0-9]/g, "") || "SMK";
+  return {
+    _jurusan: name,
+    sectorCode: cleanCode,
+    cpElements: [
+      {
+        code: `${cleanCode}-CP-01`,
+        title: `Internalisasi dan Penerapan Soft Skills (${name})`,
+        targetJp: 180,
+        sortOrder: 1,
+        jobCards: [
+          {
+            title: "Penerapan K3LH & Budaya Kerja Industri",
+            skkniUnitCode: null,
+            toolsAndSoftware: ["APD Standar", "SOP Perusahaan"],
+            actionVerbTemplate: "Menerapkan prosedur K3LH dan budaya kerja industri selama [durasi] menit",
+            isNonCompetency: false,
+          },
+          {
+            title: "Komunikasi & Koordinasi Tim Kerja",
+            skkniUnitCode: null,
+            toolsAndSoftware: ["Logbook Kerja", "Media Komunikasi"],
+            actionVerbTemplate: "Melaksanakan koordinasi dan komunikasi efektif bersama tim selama [durasi] menit",
+            isNonCompetency: false,
+          },
+        ],
+      },
+      {
+        code: `${cleanCode}-CP-02`,
+        title: `Penerapan Hard Skills & Kompetensi Teknis ${name}`,
+        targetJp: 324,
+        sortOrder: 2,
+        jobCards: [
+          {
+            title: `Pelaksanaan Tugas Teknis Utama ${name}`.slice(0, 60),
+            skkniUnitCode: null,
+            toolsAndSoftware: ["Peralatan Kerja Standar", "Perangkat Teknis"],
+            actionVerbTemplate: `Melaksanakan pekerjaan teknis ${name} sesuai SOP selama [durasi] menit`,
+            isNonCompetency: false,
+          },
+          {
+            title: "Pengoperasian Alat & Perangkat Kerja Kejuruan",
+            skkniUnitCode: null,
+            toolsAndSoftware: ["Instrumen Teknis", "Manual Operasional"],
+            actionVerbTemplate: "Mengoperasikan peralatan dan instrumen teknis kejuruan selama [durasi] menit",
+            isNonCompetency: false,
+          },
+          {
+            title: "Pemeriksaan Mutu & Evaluasi Hasil Pekerjaan",
+            skkniUnitCode: null,
+            toolsAndSoftware: ["Checklist QC", "Form Pemeriksaan"],
+            actionVerbTemplate: "Memeriksa kualitas dan ketepatan hasil kerja teknis selama [durasi] menit",
+            isNonCompetency: false,
+          },
+        ],
+      },
+      {
+        code: `${cleanCode}-CP-03`,
+        title: `Pengembangan & Pemecahan Masalah Teknis ${name}`,
+        targetJp: 180,
+        sortOrder: 3,
+        jobCards: [
+          {
+            title: "Troubleshooting & Perbaikan Kendala Teknis",
+            skkniUnitCode: null,
+            toolsAndSoftware: ["Alat Diagnostik", "Log Perbaikan"],
+            actionVerbTemplate: "Mengidentifikasi dan menangani kendala teknis operasional selama [durasi] menit",
+            isNonCompetency: false,
+          },
+          {
+            title: "Dokumentasi & Pelaporan Teknis Pekerjaan",
+            skkniUnitCode: null,
+            toolsAndSoftware: ["Aplikasi Perkantoran", "Formulir Laporan"],
+            actionVerbTemplate: "Menyusun dokumentasi dan laporan hasil pekerjaan teknis selama [durasi] menit",
+            isNonCompetency: false,
+          },
+        ],
+      },
+      {
+        code: `${cleanCode}-CP-04`,
+        title: "Kemandirian & Wawasan Kewirausahaan Industri",
+        targetJp: 108,
+        sortOrder: 4,
+        jobCards: [
+          {
+            title: "Layanan Pelanggan & Proyek Proses Bisnis",
+            skkniUnitCode: null,
+            toolsAndSoftware: ["SOP Layanan", "Sistem Manajemen"],
+            actionVerbTemplate: "Melaksanakan alur layanan dan proses bisnis industri selama [durasi] menit",
+            isNonCompetency: false,
+          },
+          {
+            title: "Inovasi Kerja & Efisiensi Alur Tugas Kejuruan",
+            skkniUnitCode: null,
+            toolsAndSoftware: ["Worksheet Inovasi", "Rencana Kerja"],
+            actionVerbTemplate: "Mengusulkan inisiatif perbaikan alur kerja kejuruan selama [durasi] menit",
+            isNonCompetency: false,
+          },
+        ],
+      },
+    ],
+    nonCompetencyJobCards: [
+      {
+        title: "Bantuan Operasional Umum (Non-Jurusan)",
+        skkniUnitCode: null,
+        toolsAndSoftware: [],
+        actionVerbTemplate: "Membantu tugas operasional umum selama [durasi] menit",
+        isNonCompetency: true,
+      },
+    ],
+  };
+}
+
 /**
  * Clones curriculum (SchoolDepartment, CpElement, and JobCards) for a newly registered school.
  */
 export async function cloneCurriculumForSchool(
   client: PrismaClient | Prisma.TransactionClient,
   schoolId: string,
-  sectorCodes: string[]
+  sectorCodes: string[],
+  customDepartments: CustomDepartmentMeta[] = []
 ) {
   const seedData = getCurriculumSeedData();
   const createdDepartments = [];
 
   for (const sectorCode of sectorCodes) {
-    const deptSeed = seedData.curriculum.find(
+    let deptSeed = seedData.curriculum.find(
       (d) => d.sectorCode.toUpperCase() === sectorCode.toUpperCase()
     );
     const masterDept = seedData.masterDepartments.find(
       (d) => d.sectorCode.toUpperCase() === sectorCode.toUpperCase()
     );
+    const customDept = customDepartments.find(
+      (d) => d.sectorCode.toUpperCase() === sectorCode.toUpperCase()
+    );
+
+    const resolvedSectorCode = (
+      deptSeed?.sectorCode ??
+      customDept?.sectorCode ??
+      sectorCode
+    ).toUpperCase();
+    const resolvedName =
+      masterDept?.name ?? customDept?.name ?? deptSeed?._jurusan ?? resolvedSectorCode;
 
     if (!deptSeed) {
-      continue;
+      deptSeed = buildDefaultCustomCurriculum(resolvedSectorCode, resolvedName);
     }
 
     // Find master department record if exists
     const masterRecord = await client.masterDepartment.findUnique({
-      where: { sectorCode: deptSeed.sectorCode },
+      where: { sectorCode: resolvedSectorCode },
     });
 
     // 1. Create School Department
@@ -91,8 +223,8 @@ export async function cloneCurriculumForSchool(
       data: {
         schoolId,
         masterDepartmentId: masterRecord?.id ?? null,
-        sectorCode: deptSeed.sectorCode,
-        name: masterDept?.name ?? deptSeed.sectorCode,
+        sectorCode: resolvedSectorCode,
+        name: resolvedName,
         isLocked: false,
       },
     });

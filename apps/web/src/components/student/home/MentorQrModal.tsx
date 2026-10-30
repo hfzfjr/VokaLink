@@ -13,7 +13,7 @@ import {
   CalendarCheck,
 } from "lucide-react";
 import { db } from "@/lib/pwa/db";
-import { generateVerificationLink, fetchStudentLogContext } from "@/lib/api";
+import { generateVerificationLink, fetchStudentLogContext, getPublicAppUrl } from "@/lib/api";
 import { QrCodeView } from "@/components/ui/QrCodeView";
 
 function WhatsAppIcon({ className = "w-4 h-4" }: { className?: string }) {
@@ -130,19 +130,13 @@ export function MentorQrModal({ onClose }: MentorQrModalProps) {
     };
   }, [onClose]);
 
-  const [appOrigin, setAppOrigin] = useState<string>("");
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setAppOrigin(window.location.origin);
-    }
-  }, []);
-
-  const vercelAppUrl = (appOrigin || process.env["NEXT_PUBLIC_APP_URL"] || "https://vokalink.vercel.app").replace(/\/$/, "");
+  // Menggunakan getPublicAppUrl() yang menjamin selalu memakai domain Vercel online
+  const vercelAppUrl = getPublicAppUrl();
   const verificationPath =
     activeLinkData?.verificationUrl ||
     (activeLinkData?.token ? `/v/${activeLinkData.token}` : "/v/mock-demo-token-123");
 
-  // URL verifikasi publik untuk dipindai kamera mentor
+  // URL verifikasi publik untuk dipindai kamera mentor (selalu mengarah ke Vercel online)
   const activeUrl = `${vercelAppUrl}${verificationPath}`;
 
   const pendingDays = activeLinkData?.pendingCount ?? 2;

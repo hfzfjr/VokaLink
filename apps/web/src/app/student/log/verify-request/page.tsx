@@ -10,7 +10,7 @@ import {
   CalendarCheck,
   ArrowLeft,
 } from "lucide-react";
-import { generateVerificationLink, fetchStudentLogContext } from "@/lib/api";
+import { generateVerificationLink, fetchStudentLogContext, getPublicAppUrl } from "@/lib/api";
 import { QrCodeView } from "@/components/ui/QrCodeView";
 import { db } from "@/lib/pwa/db";
 
@@ -118,14 +118,8 @@ export default function VerifyRequestPage() {
     loadVerificationData();
   }, [loadVerificationData]);
 
-  const [appOrigin, setAppOrigin] = useState<string>("");
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setAppOrigin(window.location.origin);
-    }
-  }, []);
-
-  const vercelAppUrl = (appOrigin || process.env["NEXT_PUBLIC_APP_URL"] || "https://vokalink.vercel.app").replace(/\/$/, "");
+  // Selalu mengutamakan domain publik Vercel online agar saat dipindai kamera HP tidak menuju ke localhost
+  const vercelAppUrl = getPublicAppUrl();
 
   // Relative path ke halaman verifikasi mentor: /v/[token]
   const verificationPath =
@@ -328,6 +322,27 @@ export default function VerifyRequestPage() {
                   </>
                 )}
               </button>
+            </div>
+
+            {/* ─── 5. PANDUAN PENGUJIAN JURI / DEMO LOMBA ─── */}
+            <div className="pt-2 text-center space-y-1.5 max-w-md mx-auto w-full">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200/80">
+                <span>🔑 PIN Demo Mentor:</span>
+                <span className="font-mono font-black text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-300">
+                  1234
+                </span>
+              </div>
+              <div>
+                <a
+                  href={verificationPath}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-bold text-sky-600 hover:text-sky-700 hover:underline inline-flex items-center gap-1"
+                >
+                  <span>Buka Halaman Mentor Langsung (Uji Coba Cepat)</span>
+                  <span className="text-[10px]">&rarr;</span>
+                </a>
+              </div>
             </div>
           </>
         )}

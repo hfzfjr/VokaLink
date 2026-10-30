@@ -207,76 +207,76 @@ function LoginForm() {
     <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12 flex-1 flex flex-col justify-center">
       <div className="max-w-md mx-auto lg:max-w-none w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-stretch">
         {/* SECTION KIRI: Banner Grafis Fitur VokaLink (Hanya tampil di Desktop lg:flex, disembunyikan di Mobile) */}
-        <section className="hidden lg:flex lg:col-span-6 rounded-3xl bg-slate-900 text-white p-8 sm:p-10 lg:p-12 border border-slate-800 shadow-xl flex-col justify-between relative overflow-hidden">
-          {/* Ambient Glow */}
+        <section className="hidden lg:flex lg:col-span-6 rounded-3xl bg-linear-to-b from-slate-50/90 via-sky-50/30 to-white text-slate-900 p-8 sm:p-10 lg:p-12 border border-slate-200/90 shadow-xl flex-col justify-between relative overflow-hidden">
+          {/* Ambient Soft Glow */}
           <div className="absolute top-0 right-0 -mr-20 -mt-20 w-72 h-72 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
           {/* Header & Tagline */}
           <div className="relative z-10 space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-400/20 text-sky-400 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Ekosistem PKL SMK Berbasis SKKNI</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-100/80 border border-sky-200 text-sky-800 text-xs font-bold shadow-2xs">
+              <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+              <span>Kurikulum Merdeka 792 JP &bull; Permendikbudristek 12/2024</span>
             </div>
 
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-snug">
-              Otomasi Logbook, Evaluasi Kompetensi & Paspor Digital.
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-snug">
+              Otomasi Logbook, Evaluasi Kompetensi &amp; Paspor Digital.
             </h2>
 
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
               Satu ekosistem terpadu untuk menghubungkan siswa vokasi, guru pembimbing, dan mentor industri secara transparan dan tervalidasi.
             </p>
           </div>
 
-          {/* Feature Highlights (High Contrast Modern Micro-Cards) */}
+          {/* Feature Highlights (Clean Minimal White Micro-Cards) */}
           <div className="relative z-10 my-6 space-y-3">
             {/* Feature 1 */}
-            <div className="p-3.5 rounded-2xl bg-slate-800/70 border border-slate-700/60 flex items-start gap-3.5">
-              <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-400 shrink-0 mt-0.5 border border-emerald-500/20">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex items-start gap-3.5 transition hover:border-slate-300">
+              <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 shrink-0 mt-0.5 border border-emerald-100 shadow-2xs">
                 <Flame className="w-4 h-4" />
               </div>
               <div className="space-y-0.5">
-                <h3 className="font-bold text-xs sm:text-sm text-white">Live Heatmap & Deteksi Drift</h3>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Guru memantau pencapaian 792 JP dan mendeteksi anomali penugasan non-kompetensi secara instan.
+                <h3 className="font-bold text-xs sm:text-sm text-slate-900">Live Heatmap &amp; Deteksi Drift</h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Guru memantau pencapaian 792 JP dan mendeteksi anomali penugasan non-kompetensi (BR-004) secara instan.
                 </p>
               </div>
             </div>
 
             {/* Feature 2 */}
-            <div className="p-3.5 rounded-2xl bg-slate-800/70 border border-slate-700/60 flex items-start gap-3.5">
-              <div className="p-2 rounded-xl bg-amber-500/15 text-amber-400 shrink-0 mt-0.5 border border-amber-500/20">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex items-start gap-3.5 transition hover:border-slate-300">
+              <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600 shrink-0 mt-0.5 border border-sky-100 shadow-2xs">
                 <ShieldCheck className="w-4 h-4" />
               </div>
               <div className="space-y-0.5">
-                <h3 className="font-bold text-xs sm:text-sm text-white">Verifikasi Mentor Tanpa Akun</h3>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Mentor industri menyetujui jurnal siswa dalam &lt;10 detik lewat tautan QR/WhatsApp dan PIN HP.
+                <h3 className="font-bold text-xs sm:text-sm text-slate-900">Verifikasi Mentor Tanpa Akun</h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Mentor industri menyetujui jurnal siswa dalam &lt;10 detik lewat tautan QR/WhatsApp dan PIN 4-digit HP.
                 </p>
               </div>
             </div>
 
             {/* Feature 3 */}
-            <div className="p-3.5 rounded-2xl bg-slate-800/70 border border-slate-700/60 flex items-start gap-3.5">
-              <div className="p-2 rounded-xl bg-sky-500/15 text-sky-400 shrink-0 mt-0.5 border border-sky-500/20">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex items-start gap-3.5 transition hover:border-slate-300">
+              <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 shrink-0 mt-0.5 border border-indigo-100 shadow-2xs">
                 <FileText className="w-4 h-4" />
               </div>
               <div className="space-y-0.5">
-                <h3 className="font-bold text-xs sm:text-sm text-white">Paspor Kompetensi & CV ATS</h3>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Rekap kegiatan tervalidasi otomatis bertransformasi menjadi resume standar industri ber-QR resmi.
+                <h3 className="font-bold text-xs sm:text-sm text-slate-900">Paspor Kompetensi &amp; CV ATS Resmi</h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Rekap kegiatan tervalidasi otomatis bertransformasi menjadi resume format ATS formula XYZ dan paspor ber-QR resmi.
                 </p>
               </div>
             </div>
           </div>
 
           {/* Bottom Security Assurance Note */}
-          <div className="relative z-10 pt-4 border-t border-slate-800 flex items-center gap-3">
-            <div className="w-7 h-7 rounded-full bg-sky-500/10 border border-sky-400/20 flex items-center justify-center text-sky-400 shrink-0">
-              <ShieldCheck className="w-3.5 h-3.5" />
+          <div className="relative z-10 pt-4 border-t border-slate-200/80 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-sky-50 border border-sky-200/80 flex items-center justify-center text-sky-600 shrink-0 shadow-2xs">
+              <ShieldCheck className="w-4 h-4" />
             </div>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
-              Setiap sertifikat dan paspor kompetensi dilengkapi segel digital resmi sesuai standar kurikulum vokasi nasional.
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              Setiap sertifikat dan paspor kompetensi dilengkapi segel digital resmi HMAC-SHA256 sesuai standar kurikulum vokasi nasional.
             </p>
           </div>
         </section>

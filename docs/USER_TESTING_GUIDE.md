@@ -62,7 +62,7 @@ Sesuai aturan bisnis **BR-007** (Verifikasi Mentor Tanpa Akun) dan **FR-012** (P
 * **Mekanisme:** Menggunakan *Signed Magic Link* bertanda tangan HMAC-SHA256 yang dikirimkan ke WhatsApp mentor atau QR Code perangkat.
 * **Keamanan Tambahan:**
   * **Device Token Binding:** Perangkat smartphone mentor terikat secara unik.
-  * **PIN Mentor:** `123456` *(salah 5 kali otomatis terkunci 15 menit)*.
+  * **PIN Mentor:** `1234` *(standar 4 digit, salah 5 kali otomatis terkunci 15 menit)*.
   * **Immutability:** Log yang telah berstatus `VERIFIED` terkunci secara permanen di database.
 
 ### B. Publik & HRD Rekrutmen Industri

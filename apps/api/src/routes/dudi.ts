@@ -29,32 +29,26 @@ const PIN_PEPPER =
   process.env["PIN_PEPPER"] || "vokalink_dev_pin_pepper_secret_key_32bytes!";
 
 function resolveWebAppOrigin(req: Request): string {
+  // Selalu prioritaskan domain publik Vercel online agar tautan aktivasi QR/WA mentor
+  // dapat dipindai langsung dari smartphone tanpa terblokir localhost
+  const envUrl = process.env["PUBLIC_APP_URL"] || process.env["NEXT_PUBLIC_APP_URL"];
+  if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
+    return envUrl.replace(/\/$/, "");
+  }
+
   const headerOrigin = req.get("origin") || req.get("referer");
   if (headerOrigin) {
     try {
       const parsed = new URL(headerOrigin);
       const origin = parsed.origin;
       const isLocal = origin.includes("localhost") || origin.includes("127.0.0.1");
-      if (isLocal) {
-        const localIp = getLocalIPv4();
-        if (localIp && localIp !== "127.0.0.1") {
-          return `http://${localIp}:${parsed.port || "3000"}`;
-        }
+      if (!isLocal) {
+        return origin;
       }
-      return origin;
     } catch {}
   }
 
-  const envUrl = process.env["NEXT_PUBLIC_APP_URL"] || process.env["APP_ORIGIN"];
-  if (envUrl) {
-    return envUrl.replace(/\/$/, "");
-  }
-
-  const localIp = getLocalIPv4();
-  if (localIp && localIp !== "127.0.0.1") {
-    return `http://${localIp}:3000`;
-  }
-  return "http://localhost:3000";
+  return "https://vokalink.vercel.app";
 }
 
 function buildMentorActivationObject(params: {
@@ -580,12 +574,24 @@ dudiRouter.post(
         } | null = null;
 
         if (data.mentor) {
+          const mentorId = crypto.randomUUID();
+          const mentorSalt = generateSalt(16);
+          const defaultPin = "1234";
+          const pinHash = hashPinWithScrypt(defaultPin, mentorSalt, PIN_PEPPER);
+          const defaultDeviceToken = `device-token-mentor-${mentorId}`;
+          const deviceTokenHash = hashSha256Hex(defaultDeviceToken);
+
           const mentor = await tx.dudiMentor.create({
             data: {
+              id: mentorId,
               dudiPartnerId: partner.id,
               fullName: data.mentor.fullName,
               jobTitle: data.mentor.jobTitle,
               whatsappNumber: data.mentor.whatsappNumber,
+              pinHash,
+              pinSalt: mentorSalt,
+              deviceTokenHash,
+              tokenBoundAt: new Date(),
             },
           });
 
@@ -626,6 +632,8 @@ dudiRouter.post(
             fullName: result.initialMentorResult.mentor.fullName,
             jobTitle: result.initialMentorResult.mentor.jobTitle,
             whatsappNumber: result.initialMentorResult.mentor.whatsappNumber,
+            defaultPin: "1234",
+            isPinConfigured: true,
             activation: buildMentorActivationObject({
               req,
               activationToken: result.initialMentorResult.activationToken,

@@ -101,6 +101,18 @@ export const mentorVerifyExecuteSchema = z.object({
 });
 
 
+export const customDepartmentRegisterSchema = z.object({
+  sectorCode: z
+    .string()
+    .min(2, "Kode jurusan minimal 2 karakter")
+    .max(16, "Kode jurusan maksimal 16 karakter")
+    .transform((v) => v.trim().toUpperCase()),
+  name: z.string().min(3, "Nama jurusan minimal 3 karakter").max(120),
+  description: z.string().max(300).optional(),
+});
+
+export type CustomDepartmentRegisterInput = z.infer<typeof customDepartmentRegisterSchema>;
+
 export const schoolRegisterSchema = z.object({
   npsn: z.string().length(8).regex(/^\d{8}$/, "NPSN wajib terdiri dari 8 digit angka."),
   name: z.string().min(3, "Nama sekolah minimal 3 karakter").max(150),
@@ -114,6 +126,7 @@ export const schoolRegisterSchema = z.object({
   selectedDepartmentSectorCodes: z
     .array(z.string())
     .min(1, "Pilih minimal 1 konsentrasi keahlian yang aktif di sekolah"),
+  customDepartments: z.array(customDepartmentRegisterSchema).optional().default([]),
   academicPeriodName: z.string().min(3).default("PKL Semester Genap 2025/2026"),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal harus YYYY-MM-DD").optional(),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal harus YYYY-MM-DD").optional(),
