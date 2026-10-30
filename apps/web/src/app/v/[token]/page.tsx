@@ -590,182 +590,180 @@ export default function MentorVerificationPage() {
   const totalJp = data.logs.reduce((acc, curr) => acc + curr.totalDurationJp, 0);
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28 lg:pb-16">
-      {/* 1. Header Bar: Mentor Identity & Student Profile */}
+    <div className="min-h-screen bg-slate-50/70 pb-28 lg:pb-16 text-slate-900">
+      {/* 1. Header Bar: Minimalist & Clean */}
       <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-20 shadow-2xs">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white border border-slate-200/80 flex items-center justify-center shadow-2xs">
-              <VokaIcon className="w-6 h-6" />
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/80 flex items-center justify-center shadow-2xs shrink-0">
+              <VokaIcon className="w-5 h-5" />
             </div>
-            <div>
-              <p className="text-[11px] font-extrabold text-sky-600 uppercase tracking-wider">
+            <div className="min-w-0">
+              <p className="text-[10px] font-extrabold text-sky-600 uppercase tracking-wider">
                 Verifikasi Mentor DUDI
               </p>
-              <h1 className="text-sm sm:text-base font-extrabold text-slate-900 leading-tight">
+              <h1 className="text-xs sm:text-sm font-bold text-slate-900 leading-tight truncate">
                 {data.mentor.dudiName}
               </h1>
             </div>
           </div>
 
-          {/* Mode Badge (QR vs WhatsApp) */}
-          <div className="flex items-center gap-2">
+          {/* Mode & Device Badge */}
+          <div className="flex items-center gap-1.5 shrink-0">
             <span
-              className={`px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wide flex items-center gap-1.5 ${
+              className={`px-2.5 py-1 rounded-full text-[10.5px] font-bold flex items-center gap-1.5 ${
                 data.mode === "QR"
-                  ? "bg-indigo-50 text-indigo-700 border border-indigo-200/80"
-                  : "bg-emerald-50 text-emerald-700 border border-emerald-200/80"
+                  ? "bg-indigo-50 text-indigo-700 border border-indigo-200/70"
+                  : "bg-emerald-50 text-emerald-700 border border-emerald-200/70"
               }`}
             >
-              <Clock className="w-3.5 h-3.5" />
-              {data.mode === "QR" ? "QR Tatap Muka" : "Tautan Kolektif WhatsApp"}
+              <Clock className="w-3 h-3 shrink-0" />
+              <span>{data.mode === "QR" ? "QR Tatap Muka" : "WhatsApp"}</span>
             </span>
+
+            {isDeviceRecognized && (
+              <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[10.5px] font-semibold">
+                <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                <span>HP Resmi</span>
+              </span>
+            )}
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-5">
-        {/* Warning Banners (Full-width) */}
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-5 space-y-4 sm:space-y-5">
+        {/* Warning Banner: Compact & Non-Intrusive */}
         {isDeviceRecognized === false && (
-          <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 space-y-3">
-            <div className="flex items-center gap-2 font-bold text-xs sm:text-sm text-amber-900">
-              <ShieldAlert className="w-5 h-5 text-amber-600 flex-shrink-0" />
-              <span>Verifikasi Perangkat Mentor (Mode Pengujian)</span>
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-50/90 border border-amber-200/80 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-start gap-2.5 min-w-0">
+              <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-slate-900">Perangkat Pengujian / Belum Ditautkan</p>
+                <p className="text-amber-800/90 mt-0.5 text-[11.5px] leading-relaxed">
+                  Gunakan PIN 1234 untuk persetujuan, atau tautkan perangkat ini sebagai HP mentor resmi.
+                </p>
+              </div>
             </div>
-            <p className="text-xs sm:text-sm text-amber-800 leading-relaxed">
-              Smartphone ini belum terdaftar di database mentor. Masukkan PIN Mentor (1234) saat menyetujui jurnal untuk menautkannya otomatis, atau klik tombol di bawah untuk memasang token mentor resmi instan:
-            </p>
-            <div className="flex items-center gap-3 pt-1 flex-wrap">
-              <button
-                type="button"
-                onClick={async () => {
-                  const tokenToSet = data?.mentor?.defaultDeviceToken || "device-token-mentor-0";
-                  if (typeof window !== "undefined") {
-                    localStorage.setItem("vokalink_mentor_device_token", tokenToSet);
-                  }
-                  setDeviceToken(tokenToSet);
-                  try {
-                    const checkRes = await checkMentorDevice(token, tokenToSet);
-                    setIsDeviceRecognized(checkRes.recognized);
-                  } catch {
-                    setIsDeviceRecognized(true);
-                  }
-                }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-bold transition shadow-2xs cursor-pointer"
-              >
-                <ShieldCheck className="w-4 h-4" />
-                <span>Tautkan Perangkat Ini Sekarang (1-Klik)</span>
-              </button>
 
-              <button
-                type="button"
-                onClick={() => router.push(`/v/${token}/activate`)}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-900 underline hover:text-amber-700 cursor-pointer py-1"
-              >
-                Aktivasi Manual & Ikat Perangkat <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                const tokenToSet = data?.mentor?.defaultDeviceToken || "device-token-mentor-0";
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("vokalink_mentor_device_token", tokenToSet);
+                }
+                setDeviceToken(tokenToSet);
+                try {
+                  const checkRes = await checkMentorDevice(token, tokenToSet);
+                  setIsDeviceRecognized(checkRes.recognized);
+                } catch {
+                  setIsDeviceRecognized(true);
+                }
+              }}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold text-xs transition shadow-2xs cursor-pointer shrink-0"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Tautkan HP Ini (1-Klik)</span>
+            </button>
           </div>
         )}
 
         {pinLockRemaining && pinLockRemaining > 0 && (
-          <div className="p-4 sm:p-5 rounded-3xl bg-amber-50 border border-amber-200 text-amber-900 flex items-center gap-3">
-            <Lock className="w-6 h-6 text-amber-600 flex-shrink-0" />
-            <div className="text-xs sm:text-sm">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center gap-3 text-xs sm:text-sm">
+            <Lock className="w-5 h-5 text-rose-600 shrink-0" />
+            <div>
               <strong className="block font-bold">Persetujuan Terkunci Sementara (15 Menit)</strong>
-              <span>
-                Percobaan PIN salah telah mencapai batas 5 kali. Silakan tunggu sekitar{" "}
-                <strong>{pinLockRemaining} menit</strong> lagi.
+              <span className="text-rose-800 text-xs">
+                Percobaan PIN salah telah mencapai batas 5 kali. Menunggu sekitar {pinLockRemaining} menit lagi.
               </span>
             </div>
           </div>
         )}
 
         {/* ─────────────────────────────────────────────────────────────────────────────
-            RESPONSIVE 2-COLUMN GRID (Desktop: lg:grid-cols-12, Mobile/Tablet: 1-col)
+            RESPONSIVE 2-COLUMN GRID (Desktop: lg:grid-cols-12, Mobile: 1-col)
            ───────────────────────────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-          {/* Left Column: Student Summary, Placement Info, & Desktop Actions */}
-          <div className="lg:col-span-5 xl:col-span-4 space-y-5 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pr-1">
-            {/* Student Profile Card with Full-Bleed Divider */}
-            <div className="bg-white rounded-3xl border border-slate-200/80 shadow-2xs overflow-hidden">
-              <div className="p-5 sm:p-6 pb-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <div className="flex items-center gap-2 text-slate-800 font-bold text-xs sm:text-sm">
-                    <GraduationCap className="w-4 h-4 text-sky-600" />
-                    <span>Profil Siswa Magang</span>
-                  </div>
-                  <span className="text-[11px] font-bold text-slate-500 font-mono bg-slate-100 px-2.5 py-0.5 rounded-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
+          {/* Left Column: Compact Student Summary & Desktop Actions */}
+          <div className="lg:col-span-5 xl:col-span-4 space-y-4 lg:sticky lg:top-18">
+            {/* Student Profile Card (Clean & Modern) */}
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs p-4 sm:p-5 space-y-3.5">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-600 to-indigo-600 text-white flex items-center justify-center font-extrabold text-sm shadow-xs shrink-0">
+                  {data.student.fullName
+                    ? data.student.fullName
+                        .split(" ")
+                        .map((n) => n[0])
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase()
+                    : "AP"}
+                </div>
+                <div className="min-w-0">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    Siswa Magang
+                  </span>
+                  <h2 className="text-sm sm:text-base font-bold text-slate-900 leading-snug truncate">
+                    {data.student.fullName}
+                  </h2>
+                  <p className="text-xs text-slate-500 truncate">
                     NISN: {data.student.identityNumber}
+                  </p>
+                </div>
+              </div>
+
+              {/* Detail fields in clean rows */}
+              <div className="pt-2 border-t border-slate-100 space-y-2 text-xs">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span>Konsentrasi:</span>
+                  <span className="font-semibold text-slate-800 text-right truncate max-w-[180px]">
+                    {data.student.departmentName}
                   </span>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 text-xs pt-3">
-                  <div>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Nama Lengkap</p>
-                    <p className="font-extrabold text-slate-900 text-sm sm:text-base">{data.student.fullName}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Konsentrasi Keahlian</p>
-                    <p className="font-bold text-slate-800 text-xs sm:text-sm">{data.student.departmentName}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Sekolah Asal</p>
-                    <p className="font-medium text-slate-700">{data.student.schoolName}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Lokasi Penempatan</p>
-                    <p className="font-semibold text-slate-800 flex items-center gap-1.5 mt-0.5">
-                      <Building2 className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                      <span className="truncate">{data.placement.dudiName} — {data.placement.city}</span>
-                    </p>
-                  </div>
+                <div className="flex items-center justify-between text-slate-500">
+                  <span>Sekolah:</span>
+                  <span className="font-semibold text-slate-800 text-right truncate max-w-[180px]">
+                    {data.student.schoolName}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-slate-500">
+                  <span>DUDI &amp; Kota:</span>
+                  <span className="font-semibold text-slate-800 text-right truncate max-w-[180px]">
+                    {data.placement.dudiName} ({data.placement.city})
+                  </span>
                 </div>
               </div>
 
-              {/* Quick Metrics (Full-Bleed Divider touching card edges) */}
-              <div className="border-t border-slate-100 bg-slate-50/40 p-5 sm:p-6 pt-4 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2.5 text-center">
-                <div className="p-2.5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">Jurnal Menunggu</p>
-                  <p className="text-base font-black text-slate-900 mt-0.5">{data.logs.length} Hari</p>
+              {/* Metrics Pill Grid */}
+              <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2">
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 text-center">
+                  <p className="text-[10px] font-semibold text-slate-500 uppercase">Menunggu</p>
+                  <p className="text-sm sm:text-base font-extrabold text-slate-900 mt-0.5">
+                    {data.logs.length} Hari Kerja
+                  </p>
                 </div>
-                <div className="p-2.5 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-800">
-                  <p className="text-[10px] text-emerald-600 font-bold uppercase">Total Jam Kerja</p>
-                  <p className="text-base font-black text-emerald-900 mt-0.5">{totalJp} JP</p>
-                </div>
-                <div className="hidden sm:block lg:hidden p-2.5 rounded-2xl bg-sky-50 border border-sky-100 text-sky-800">
-                  <p className="text-[10px] text-sky-600 font-bold uppercase">Metode Verifikasi</p>
-                  <p className="text-xs font-black text-sky-900 mt-1">{data.mode === "QR" ? "QR Tatap Muka" : "WhatsApp Batch"}</p>
-                </div>
-                <div className="hidden sm:block lg:hidden p-2.5 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-800">
-                  <p className="text-[10px] text-indigo-600 font-bold uppercase">Status Keamanan</p>
-                  <p className="text-xs font-black text-indigo-900 mt-1">HMAC Terenkripsi</p>
+                <div className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200/70 text-center">
+                  <p className="text-[10px] font-semibold text-emerald-700 uppercase">Total Jam</p>
+                  <p className="text-sm sm:text-base font-extrabold text-emerald-900 mt-0.5">
+                    {totalJp} JP
+                  </p>
                 </div>
               </div>
-            </div>
 
-            {/* Security Badge Card */}
-            <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs text-xs space-y-2">
-              <div className="flex items-center gap-2 font-bold text-slate-800">
-                <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                <span>Integritas &amp; Segel Digital</span>
+              <div className="pt-1 flex items-center justify-between text-[11px] text-slate-400">
+                <span className="inline-flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Segel Kriptografis HMAC-SHA256</span>
+                </span>
               </div>
-              <p className="text-slate-500 leading-relaxed text-[11px]">
-                Seluruh jurnal yang Anda setujui akan disegel secara kriptografis dan tidak dapat dimanipulasi sesuai standar sertifikasi kompetensi vokasi.
-              </p>
             </div>
 
             {/* Desktop Action Box (Hanya Tampil di Layar Besar lg:block) */}
             {data.logs.length > 0 && (
-              <div className="hidden lg:block bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-2xs space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Aksi Pengesahan Mentor
-                  </span>
-                  <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">
-                    Siap Disahkan
-                  </span>
-                </div>
+              <div className="hidden lg:block bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs space-y-2.5">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500 pb-1">
+                  Aksi Pengesahan Mentor
+                </p>
 
                 <button
                   type="button"
@@ -775,9 +773,9 @@ export default function MentorVerificationPage() {
                     setShowPinModal(true);
                   }}
                   disabled={Boolean(pinLockRemaining && pinLockRemaining > 0)}
-                  className="w-full h-14 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-md transition disabled:opacity-50 cursor-pointer"
+                  className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition disabled:opacity-50 cursor-pointer"
                 >
-                  <ShieldCheck className="w-5 h-5" />
+                  <ShieldCheck className="w-4 h-4" />
                   <span>
                     {data.logs.length > 1
                       ? `Setujui Borongan (${data.logs.length} Hari Kerja)`
@@ -789,50 +787,36 @@ export default function MentorVerificationPage() {
                   type="button"
                   onClick={() => setShowRejectModal(true)}
                   disabled={Boolean(pinLockRemaining && pinLockRemaining > 0)}
-                  className="w-full h-11 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-[0.99] text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
+                  className="w-full h-10 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-[0.99] text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
                 >
-                  <RotateCcw className="w-4 h-4 text-slate-500" />
+                  <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
                   <span>Minta Revisi / Catatan Perbaikan</span>
                 </button>
               </div>
             )}
           </div>
 
-          {/* Right Column: Pending Logs Feed */}
-          <div className="lg:col-span-7 xl:col-span-8 space-y-4">
-            {/* Persetujuan Borongan Pekan Ini Banner (Weekly Batch Review) */}
-            {data.logs.length > 1 && (
-              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-sky-50 via-indigo-50 to-emerald-50 border border-sky-200/80 shadow-2xs space-y-2">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">
-                      Persetujuan Borongan Pekan Ini (Weekly Batch Review)
-                    </h3>
-                  </div>
-                  <span className="text-[11px] font-bold text-sky-800 bg-white/90 px-2.5 py-0.5 rounded-full border border-sky-200 shadow-2xs">
-                    {data.logs.length} Hari Kerja · {totalJp} JP Total
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Sistem mengumpulkan seluruh catatan kegiatan harian siswa selama periode kerja. Sebagai mentor industri, Bapak/Ibu cukup memasukkan <strong>1 kali PIN</strong> untuk menyegel resmi seluruh {data.logs.length} entri jurnal sekaligus tanpa perlu membuka hari demi hari.
+          {/* Right Column: Pending Logs Feed (Clean, Focused, Card-per-Day) */}
+          <div className="lg:col-span-7 xl:col-span-8 space-y-3.5 sm:space-y-4">
+            {/* Header Feed */}
+            <div className="flex items-center justify-between px-1">
+              <div>
+                <h2 className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight">
+                  Tugas &amp; Jurnal Siswa ({data.logs.length} Hari)
+                </h2>
+                <p className="text-[11px] text-slate-500">
+                  Periksa kesesuaian tugas, durasi, dan foto bukti pelaksanaan
                 </p>
               </div>
-            )}
-
-            <div className="flex items-center justify-between px-1">
-              <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-600">
-                Daftar Kegiatan yang Perlu Disetujui ({data.logs.length})
-              </h2>
-              <span className="text-xs text-slate-400">
-                Periksa kesesuaian tugas & jam kerja
+              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/70">
+                {totalJp} JP Total
               </span>
             </div>
 
             {data.logs.length === 0 ? (
-              <div className="bg-white p-10 rounded-2xl border border-slate-200 text-center space-y-3">
-                <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
-                <p className="font-bold text-base text-slate-900">Seluruh Jurnal Telah Diverifikasi</p>
+              <div className="bg-white p-8 rounded-3xl border border-slate-200/80 text-center space-y-2.5">
+                <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto" />
+                <p className="font-bold text-sm text-slate-900">Seluruh Jurnal Telah Diverifikasi</p>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto">
                   Tidak ada catatan kegiatan siswa yang menunggu persetujuan pada penempatan PKL ini.
                 </p>
@@ -841,55 +825,52 @@ export default function MentorVerificationPage() {
               data.logs.map((log) => (
                 <div
                   key={log.id}
-                  className="bg-white rounded-3xl border border-slate-200/80 shadow-2xs overflow-hidden transition hover:border-slate-300"
+                  className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs overflow-hidden transition hover:border-slate-300"
                 >
-                  {/* Card Header: Tanggal & Status Kehadiran (Full-Bleed Header) */}
-                  <div className="bg-slate-50/80 px-5 sm:px-6 py-3.5 border-b border-slate-200/80 flex items-center justify-between text-xs sm:text-sm">
+                  {/* Card Header: Tanggal & Durasi JP */}
+                  <div className="bg-slate-50/90 px-4 sm:px-5 py-3 border-b border-slate-100 flex items-center justify-between text-xs sm:text-sm">
                     <div className="flex items-center gap-2 font-bold text-slate-900">
-                      <Calendar className="w-4 h-4 text-sky-600" />
+                      <Calendar className="w-4 h-4 text-sky-600 shrink-0" />
                       <span>
                         {new Date(log.logDate).toLocaleDateString("id-ID", {
                           weekday: "long",
                           day: "numeric",
-                          month: "long",
+                          month: "short",
                           year: "numeric",
                         })}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
+
+                    <div className="flex items-center gap-1.5">
                       {log.attendanceType !== "PRESENT" ? (
-                        <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200/80 text-xs font-bold">
+                        <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/80 text-[11px] font-bold">
                           {log.attendanceType === "SICK" ? "Sakit" : "Izin Resmi"}
                         </span>
                       ) : (
-                        <span className="px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200/70 text-xs font-bold font-mono">
+                        <span className="px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200/70 text-xs font-extrabold font-mono">
                           {log.totalDurationJp} JP
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <div className="p-5 sm:p-6 space-y-4">
-                    {/* Job Cards list within this log */}
-                    <div className="space-y-2.5">
+                  <div className="p-4 sm:p-5 space-y-3.5">
+                    {/* List of Job Card items for this day */}
+                    <div className="space-y-2">
                       {log.items.map((item, iIdx) => (
                         <div
                           key={item.id}
-                          className={`p-4 rounded-2xl border text-xs sm:text-sm space-y-2 ${
-                            item.isNonCompetency
-                              ? "bg-amber-50/40 border-amber-200/70"
-                              : "bg-slate-50/80 border-slate-200/80"
-                          }`}
+                          className="p-3 rounded-xl bg-slate-50/70 border border-slate-200/70 text-xs space-y-1.5"
                         >
-                          <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start justify-between gap-2">
                             <p className="font-bold text-slate-900 leading-snug">
                               {log.items.length > 1 && (
-                                <span className="text-sky-600 mr-2 font-extrabold">#{iIdx + 1}</span>
+                                <span className="text-sky-600 mr-1.5 font-bold">#{iIdx + 1}</span>
                               )}
                               {item.title}
                             </p>
                             <span
-                              className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold flex-shrink-0 border ${
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 border ${
                                 item.autonomyLevel === 3
                                   ? "bg-emerald-50 text-emerald-800 border-emerald-200/80"
                                   : item.autonomyLevel === 2
@@ -901,13 +882,13 @@ export default function MentorVerificationPage() {
                             </span>
                           </div>
 
-                          <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                          <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
                             {item.skkniUnitCode ? (
-                              <span className="font-mono bg-white px-2 py-0.5 rounded-md border border-slate-200">
-                                SKKNI: {item.skkniUnitCode}
+                              <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-600">
+                                {item.skkniUnitCode}
                               </span>
                             ) : (
-                              <span></span>
+                              <span />
                             )}
                             <span className="font-semibold text-slate-700">
                               Durasi: {item.durationJp} JP
@@ -915,8 +896,8 @@ export default function MentorVerificationPage() {
                           </div>
 
                           {item.isNonCompetency && (
-                            <p className="text-[11px] text-amber-800 font-semibold flex items-center gap-1 pt-1">
-                              <span>* Tugas Bantuan Operasional Non-Kompetensi</span>
+                            <p className="text-[10px] text-amber-800 font-semibold pt-0.5">
+                              * Tugas Bantuan Operasional Non-Kompetensi
                             </p>
                           )}
                         </div>
@@ -925,33 +906,34 @@ export default function MentorVerificationPage() {
 
                     {/* Catatan Siswa */}
                     {log.shortNote && (
-                      <div className="text-xs sm:text-sm text-slate-600 bg-slate-50/70 p-3.5 rounded-2xl border border-slate-200/80 italic flex items-start gap-2">
-                        <FileText className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                      <div className="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200/60 italic flex items-start gap-2 leading-relaxed">
+                        <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
                         <span>&quot;{log.shortNote}&quot;</span>
                       </div>
                     )}
 
                     {/* Foto Bukti Kerja WebP */}
                     {log.evidenceWebpUrl && (
-                      <div className="pt-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      <div className="pt-0.5">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider">
                             Foto Bukti Kerja
                           </span>
-                          <span className="text-[11px] text-sky-600 font-semibold cursor-pointer">
-                            Klik foto untuk perbesar
+                          <span className="text-[10.5px] text-sky-600 font-semibold hover:underline cursor-pointer">
+                            Ketuk untuk perbesar
                           </span>
                         </div>
                         <div
                           onClick={() => setPreviewPhotoUrl(log.evidenceWebpUrl)}
-                          className="relative rounded-2xl overflow-hidden border border-slate-200 h-44 sm:h-52 md:h-60 bg-slate-100 cursor-pointer group"
+                          className="relative rounded-2xl overflow-hidden border border-slate-200/80 h-44 sm:h-52 bg-slate-100 cursor-pointer group shadow-2xs"
                         >
                           <img
                             src={log.evidenceWebpUrl}
                             alt="Bukti Kerja Siswa"
-                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                            className="w-full h-full object-cover group-hover:scale-103 transition duration-300"
+                            loading="lazy"
                           />
-                          <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-bold gap-1.5 backdrop-blur-[2px]">
+                          <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1.5 backdrop-blur-2xs">
                             <Maximize2 className="w-4 h-4" />
                             <span>Perbesar Pratinjau</span>
                           </div>
@@ -968,20 +950,20 @@ export default function MentorVerificationPage() {
 
       {/* ─────────────────────────────────────────────────────────────────────────────
           STICKY BOTTOM ACTIONS BAR (HANYA UNTUK MOBILE/TABLET: lg:hidden)
-          Area Sentuh Minimal 56px Sesuai DESIGN.md §13.6
+          Area Sentuh Minimal 48-56px Sesuai DESIGN.md §13.6
          ───────────────────────────────────────────────────────────────────────────── */}
       {data.logs.length > 0 && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 p-3 sm:p-4 z-30 shadow-lg">
-          <div className="max-w-xl mx-auto flex items-center gap-3">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200/90 p-3 z-30 shadow-lg safe-bottom">
+          <div className="max-w-md mx-auto flex items-center gap-2.5">
             {/* Tombol Tolak / Minta Revisi */}
             <button
               type="button"
               onClick={() => setShowRejectModal(true)}
               disabled={Boolean(pinLockRemaining && pinLockRemaining > 0)}
-              className="h-14 px-4 sm:px-5 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
+              className="h-12 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition disabled:opacity-50 cursor-pointer shrink-0 border border-slate-200/60"
             >
-              <RotateCcw className="w-4 h-4 text-slate-500" />
-              <span>Minta Revisi</span>
+              <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+              <span>Revisi</span>
             </button>
 
             {/* Tombol Persetujuan Utama */}
@@ -993,11 +975,11 @@ export default function MentorVerificationPage() {
                 setShowPinModal(true);
               }}
               disabled={Boolean(pinLockRemaining && pinLockRemaining > 0)}
-              className="flex-1 h-14 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition disabled:opacity-50 cursor-pointer"
+              className="flex-1 h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition disabled:opacity-50 cursor-pointer"
             >
-              <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6" />
-              <span>
-                {data.logs.length > 1 ? `Setujui Borongan (${data.logs.length} Hari Kerja)` : "Setujui Pekerjaan"}
+              <ShieldCheck className="w-4 h-4 shrink-0" />
+              <span className="truncate">
+                {data.logs.length > 1 ? `Setujui ${data.logs.length} Hari (${totalJp} JP)` : "Setujui Pekerjaan"}
               </span>
             </button>
           </div>
@@ -1008,30 +990,33 @@ export default function MentorVerificationPage() {
           MODAL NUMPAD PIN 4 DIGIT (RESPONSIVE DI DESKTOP & MOBILE)
          ───────────────────────────────────────────────────────────────────────────── */}
       {showPinModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 border border-slate-200 shadow-2xl space-y-5 animate-in slide-in-from-bottom duration-300">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-2xl space-y-4 animate-in slide-in-from-bottom duration-300">
+            {/* Mobile Drag Indicator */}
+            <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto sm:hidden -mt-1 mb-2" />
+
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
-                  <Lock className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+                  <Lock className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-sm sm:text-base text-slate-900">Masukkan PIN Mentor</h3>
-                  <p className="text-[11px] text-slate-500">Penyegelan Segel Digital Resmi</p>
+                  <h3 className="font-bold text-sm text-slate-900">Masukkan PIN Mentor</h3>
+                  <p className="text-[10.5px] text-slate-500">Penyegelan Segel Digital Resmi</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowPinModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 cursor-pointer"
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 cursor-pointer transition active:scale-95"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
             {/* PIN Display Indicators */}
-            <div className="py-2 text-center space-y-2">
+            <div className="py-1 text-center space-y-2">
               <p className="text-xs text-slate-500">
                 Masukkan 4-digit PIN Mentor <span className="font-bold text-slate-700">(PIN Default: 1234)</span>
               </p>
@@ -1039,7 +1024,7 @@ export default function MentorVerificationPage() {
                 {[0, 1, 2, 3].map((idx) => (
                   <div
                     key={idx}
-                    className={`w-4 h-4 rounded-full transition-all duration-200 ${
+                    className={`w-3.5 h-3.5 rounded-full transition-all duration-200 ${
                       pin.length > idx
                         ? "bg-emerald-600 scale-125 shadow-xs"
                         : "border-2 border-slate-300 bg-slate-100"
@@ -1055,15 +1040,15 @@ export default function MentorVerificationPage() {
               )}
             </div>
 
-            {/* Custom Mobile / Touch Numpad Grid (Area Sentuh >= 56px) */}
-            <div className="grid grid-cols-3 gap-2.5 max-w-xs mx-auto">
+            {/* Custom Mobile / Touch Numpad Grid (Area Sentuh >= 48px) */}
+            <div className="grid grid-cols-3 gap-2 max-w-xs mx-auto">
               {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((num) => (
                 <button
                   key={num}
                   type="button"
                   onClick={() => handleKeypadPress(num)}
                   disabled={isSubmitting}
-                  className="h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 active:scale-95 text-slate-900 font-bold text-xl flex items-center justify-center transition cursor-pointer select-none"
+                  className="h-12 sm:h-13 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 active:scale-95 text-slate-900 font-bold text-lg flex items-center justify-center transition cursor-pointer select-none"
                 >
                   {num}
                 </button>
@@ -1073,7 +1058,7 @@ export default function MentorVerificationPage() {
                 type="button"
                 onClick={handleClearPin}
                 disabled={isSubmitting || pin.length === 0}
-                className="h-14 rounded-2xl bg-slate-50 hover:bg-slate-100 text-slate-400 font-bold text-xs flex items-center justify-center transition cursor-pointer"
+                className="h-12 sm:h-13 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-400 font-bold text-xs flex items-center justify-center transition cursor-pointer"
               >
                 Hapus
               </button>
@@ -1082,7 +1067,7 @@ export default function MentorVerificationPage() {
                 type="button"
                 onClick={() => handleKeypadPress("0")}
                 disabled={isSubmitting}
-                className="h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 active:scale-95 text-slate-900 font-bold text-xl flex items-center justify-center transition cursor-pointer select-none"
+                className="h-12 sm:h-13 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 active:scale-95 text-slate-900 font-bold text-lg flex items-center justify-center transition cursor-pointer select-none"
               >
                 0
               </button>
@@ -1091,28 +1076,28 @@ export default function MentorVerificationPage() {
                 type="button"
                 onClick={handleBackspace}
                 disabled={isSubmitting || pin.length === 0}
-                className="h-14 rounded-2xl bg-slate-50 hover:bg-slate-100 text-slate-600 flex items-center justify-center transition cursor-pointer"
+                className="h-12 sm:h-13 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 flex items-center justify-center transition cursor-pointer"
               >
-                <Delete className="w-5 h-5" />
+                <Delete className="w-4 h-4" />
               </button>
             </div>
 
             {/* Confirm Submit Button */}
-            <div className="pt-2">
+            <div className="pt-1">
               <button
                 type="button"
                 onClick={handleSubmitApproval}
                 disabled={pin.length !== 4 || isSubmitting}
-                className="w-full h-14 rounded-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition cursor-pointer shadow-md"
+                className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-95"
               >
                 {isSubmitting ? (
                   <span>Menyegel Kriptografis...</span>
                 ) : (
                   <>
-                    <ShieldCheck className="w-5 h-5" />
+                    <ShieldCheck className="w-4 h-4" />
                     <span>
                       {data.logs.length > 1
-                        ? `Konfirmasi Pengesahan Borongan (${data.logs.length} Hari)`
+                        ? `Konfirmasi Pengesahan (${data.logs.length} Hari)`
                         : "Konfirmasi Pengesahan"}
                     </span>
                   </>
