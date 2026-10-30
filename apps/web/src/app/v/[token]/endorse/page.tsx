@@ -667,7 +667,7 @@ export default function MentorEndorsementPage({ params }: PageProps) {
                   className="w-36 tracking-[0.5em] text-center text-lg font-black bg-slate-50 border border-slate-200 rounded-xl py-2 text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
                 />
                 <span className="text-[11px] text-slate-500">
-                  Untuk akun demo gunakan PIN <strong className="text-emerald-600 font-mono">1234</strong>
+                  Masukkan 4-digit PIN keamanan mentor
                 </span>
               </div>
 
