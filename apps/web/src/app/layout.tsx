@@ -61,20 +61,6 @@ export const metadata: Metadata = {
         alt: "Logo VokaLink",
         type: "image/png",
       },
-      {
-        url: "https://vokalink.vercel.app/apple-icon.png",
-        width: 180,
-        height: 180,
-        alt: "Logo VokaLink",
-        type: "image/png",
-      },
-      {
-        url: "https://vokalink.vercel.app/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "VokaLink — Ekosistem PKL SMK Terintegrasi",
-        type: "image/png",
-      },
     ],
   },
   twitter: {

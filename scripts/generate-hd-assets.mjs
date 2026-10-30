@@ -93,12 +93,13 @@ async function main() {
     .toFile(path.join(iconsDir, "favicon-16x16.png"));
   console.log("✓ Created HD icons/favicon-16x16.png");
 
-  // 4. Landscape OpenGraph Banner (1200x630) - pure logo on white
+  // 4. OpenGraph Image (512x512 square) - pure logo on white
   const ogPngPath = path.join(webDir, "public", "og-image.png");
-  await sharp(Buffer.from(pureLogoOgSvg))
+  await sharp(logo512Buffer)
+    .resize(512, 512)
     .png({ quality: 100, compressionLevel: 9 })
     .toFile(ogPngPath);
-  console.log("✓ Created HD og-image.png (1200x630, pure logo on white)");
+  console.log("✓ Created HD og-image.png (512x512, pure logo on white)");
 
   console.log("All pure logo HD assets generated successfully!");
 }
