@@ -20,6 +20,7 @@ import {
 import Navbar, { NavbarButton } from "@/components/layout/Navbar";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/use-auth";
+import { getApiBaseUrl } from "@/lib/api";
 import { sanitizeErrorMessage } from "@/lib/error-formatter";
 
 function GoogleIcon({ className = "w-5 h-5" }: { className?: string }) {
@@ -132,10 +133,7 @@ function LoginForm() {
 
     setLoading(true);
     try {
-      const apiUrl =
-        typeof window !== "undefined"
-          ? `${window.location.protocol}//${window.location.hostname}:3001/api/v1`
-          : (process.env["NEXT_PUBLIC_API_URL"] || "http://localhost:3001/api/v1");
+      const apiUrl = getApiBaseUrl();
 
       // 1. Jika identifier berformat email, coba validasi melalui Supabase Auth terlebih dahulu
       if (identifier.includes("@")) {

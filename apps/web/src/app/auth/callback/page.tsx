@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Loader2, AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/use-auth";
+import { getApiBaseUrl } from "@/lib/api";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -17,10 +18,7 @@ export default function AuthCallbackPage() {
 
     async function handleAuth() {
       try {
-        const apiUrl =
-          typeof window !== "undefined"
-            ? `${window.location.protocol}//${window.location.hostname}:3001/api/v1`
-            : (process.env["NEXT_PUBLIC_API_URL"] || "http://localhost:3001/api/v1");
+        const apiUrl = getApiBaseUrl();
 
         // 1. Ambil session Supabase (tunggu auth state jika perlu)
         let token: string | null = null;
