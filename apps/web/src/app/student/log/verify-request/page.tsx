@@ -162,7 +162,7 @@ export default function VerifyRequestPage() {
       <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-card text-center space-y-2.5 sm:space-y-3">
         {/* ─── 1. HEADER & IDENTITAS MENTOR (SATU BARIS TERPADU) ─── */}
         <div className="flex items-center justify-between gap-2.5 pb-2.5 border-b border-slate-100 text-left">
-          <div className="hidden md:flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0">
             <Link
               href="/student/log/history"
               className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition active:scale-95 shrink-0"
@@ -170,18 +170,25 @@ export default function VerifyRequestPage() {
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
+            <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/90 p-1 shadow-2xs flex items-center justify-center shrink-0">
+              <img
+                src="/icons/vokalink-icon.svg"
+                alt="VokaLink"
+                className="w-full h-full object-contain"
+              />
+            </div>
             <div className="min-w-0">
               <h1 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight leading-tight truncate">
                 Minta Validasi Mentor
               </h1>
               <p className="text-[10.5px] sm:text-xs text-slate-400 font-normal truncate">
-                Pindai QR langsung atau kirim via WA
+                Pindai QR langsung atau kirim via WhatsApp
               </p>
             </div>
           </div>
 
           {/* Chip Profil Mentor Ringkas (Full width di mobile, rapi & informatif) */}
-          <div className="flex items-center justify-between md:justify-start gap-2.5 px-3 py-1.5 rounded-2xl bg-slate-50 border border-slate-200/70 w-full md:w-auto">
+          <div className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-slate-50 border border-slate-200/70 shrink-0">
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
                 {mentorName.slice(0, 2).toUpperCase()}
@@ -283,6 +290,8 @@ export default function VerifyRequestPage() {
                   <QrCodeView
                     value={activeUrl}
                     size={qrSize}
+                    centerLogo="/icons/vokalink-icon.svg"
+                    errorCorrectionLevel="H"
                     className="mx-auto"
                   />
                 )}

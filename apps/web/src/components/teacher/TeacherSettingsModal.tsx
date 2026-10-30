@@ -16,13 +16,11 @@ import {
   LogOut,
   Building2,
   GraduationCap,
-  Sparkles,
   LayoutGrid,
   LayoutList,
   RefreshCw,
   ShieldCheck,
   ChevronRight,
-  BellRing,
 } from "lucide-react";
 import { useAuth } from "@/lib/use-auth";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
